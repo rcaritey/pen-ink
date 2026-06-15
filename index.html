@@ -73,9 +73,12 @@
   .logo-svg{ display:block; width:clamp(14rem, 74vw, 25rem); height:auto; }
   .glyph{
     stroke-width:2.1; vector-effect:non-scaling-stroke;
-    fill-opacity:0;            /* JS fades fill in after the stroke draws */
     stroke-linejoin:round; stroke-linecap:round;
   }
+  /* When JS animation is active, hide glyphs (fill AND stroke) before they're
+     drawn, so there's no flash of the static outline on load. Guarded by
+     .js-anim so a no-JS load still shows the filled wordmark instead of nothing. */
+  .js-anim .glyph{ fill-opacity:0; stroke-opacity:0; }
   .nib{
     position:absolute; top:5%; height:70%; width:2.5px;
     border-radius:2px;
@@ -130,10 +133,11 @@
   @media (prefers-reduced-motion:reduce){
     .stroke{ animation:none; transform:scaleX(1); }
     .settle{ animation:none; opacity:1; transform:none; }
-    .glyph{ fill-opacity:1; }
+    .js-anim .glyph{ fill-opacity:1; stroke-opacity:1; }
     .nib{ display:none; }
   }
 </style>
+<script>document.documentElement.classList.add('js-anim');</script>
 </head>
 <body>
   <div class="card">
@@ -176,7 +180,7 @@
   var svg = document.querySelector('.logo-svg');
 
   if(reduce || !glyphs.length){
-    glyphs.forEach(function(g){ g.style.fillOpacity = 1; g.style.strokeDashoffset = 0; });
+    glyphs.forEach(function(g){ g.style.fillOpacity = 1; g.style.strokeOpacity = 1; g.style.strokeDashoffset = 0; });
     if(nib) nib.style.display = 'none';
     return;
   }
@@ -187,6 +191,7 @@
       var len = g.getTotalLength();
       g.style.strokeDasharray = len;
       g.style.strokeDashoffset = len;
+      g.style.strokeOpacity = 1;
       var dur = Math.max(240, Math.min(470, len * 0.42));
       g.animate(
         [{strokeDashoffset: len}, {strokeDashoffset: 0}],
