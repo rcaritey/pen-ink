@@ -16,14 +16,15 @@
     --wine:     #8A2E34;
     --rule:     rgba(27,24,20,0.20);
 
-    /* reveal timeline — tuned to reading pace; shift together to speed up / slow down */
-    --t-lead:    .3s;
-    --t-stroke:  .9s;
-    --t-sub:    5.8s;
-    --t-ess:    8.2s;
-    --t-coda:  12.4s;
-    --t-colo:  14.8s;
-    --t-mail:  16.1s;
+    /* reveal timeline — shift these together to speed up / slow down */
+    --t-lead:   .3s;   /* tagline */
+    --t-line:  1.4s;   /* ink line draws across */
+    --t-wipe:  2.7s;   /* wordmark writes in as the line settles to a rule */
+    --t-sub:   4.0s;
+    --t-ess:   5.0s;
+    --t-coda:  6.2s;
+    --t-colo:  7.2s;
+    --t-mail:  7.9s;
   }
 
   *{ box-sizing:border-box; }
@@ -57,34 +58,35 @@
   }
   .lead .amp{ color:var(--wine); }
 
-  /* ink rule between line and brand */
-  .rule-wrap{ display:flex; justify-content:center; margin:clamp(1.6rem,4vw,2.4rem) 0; }
-  .stroke{
-    height:2px; width:clamp(7rem,30vw,13rem);
-    background:linear-gradient(90deg, transparent, var(--wine) 18%, var(--wine) 82%, transparent);
-    transform:scaleX(0);
-    animation:draw 1.2s cubic-bezier(.16,.84,.34,1) var(--t-stroke) both;
+  /* the brand block: a single ink line draws across, then settles to a rule
+     as the wordmark writes itself in beneath it */
+  .brand{
+    position:relative; display:flex; flex-direction:column; align-items:center;
+    gap:clamp(1.1rem,3vw,1.7rem); margin:clamp(1.7rem,4.5vw,2.6rem) 0;
   }
-  @keyframes draw{ to{ transform:scaleX(1); } }
+  .ink-line{
+    height:2px; width:clamp(7rem,30vw,13rem); border-radius:2px;
+    background:linear-gradient(90deg, transparent, var(--wine) 14%, var(--wine) 86%, transparent);
+  }
+  .js-anim .ink-line{ width:0; animation:ink 2.4s cubic-bezier(.16,.84,.34,1) var(--t-line) both; }
+  @keyframes ink{
+    0%{ width:0; }
+    38%{ width:min(44rem,84vw); }
+    54%{ width:min(44rem,84vw); }
+    100%{ width:clamp(7rem,30vw,13rem); }
+  }
+  /* wordmark is written in via a left-to-right ink wipe */
+  .logo-clip{ display:inline-block; }
+  .js-anim .logo-clip{ clip-path:inset(0 100% 0 0); animation:wipe 1.15s cubic-bezier(.3,.7,.4,1) var(--t-wipe) both; }
+  @keyframes wipe{ to{ clip-path:inset(0 0 0 0); } }
 
   /* 2 — the wordmark, inked on glyph by glyph */
   .logo{ margin:0; }
   .logo-wrap{ position:relative; display:inline-block; line-height:0; }
-  .logo-svg{ display:block; width:clamp(14rem, 74vw, 34rem); height:auto; }
+  .logo-svg{ display:block; width:clamp(14rem, 74vw, 38rem); height:auto; }
   .glyph{
     stroke-width:2.1; vector-effect:non-scaling-stroke;
     stroke-linejoin:round; stroke-linecap:round;
-  }
-  /* When JS animation is active, hide glyphs (fill AND stroke) before they're
-     drawn, so there's no flash of the static outline on load. Guarded by
-     .js-anim so a no-JS load still shows the filled wordmark instead of nothing. */
-  .js-anim .glyph{ fill-opacity:0; stroke-opacity:0; }
-  .nib{
-    position:absolute; top:5%; height:70%; width:2.5px;
-    border-radius:2px;
-    background:linear-gradient(180deg, var(--wine), var(--ink));
-    box-shadow:0 0 3px rgba(27,24,20,.45);
-    opacity:0; left:0;
   }
 
   /* 3 — subtitle */
@@ -120,21 +122,35 @@
   }
   .contact a:hover{ text-decoration-color:var(--wine); }
 
-  /* sequenced settle for text lines */
-  .settle{ opacity:0; transform:translateY(10px); animation:settle 1.1s ease both; }
-  .s1{ animation-delay:var(--t-lead); }
-  .s3{ animation-delay:var(--t-sub); }
-  .s4{ animation-delay:var(--t-ess); }
-  .s5{ animation-delay:var(--t-coda); }
-  .s6{ animation-delay:var(--t-colo); }
-  .s7{ animation-delay:var(--t-mail); }
+  /* sequenced settle for text lines (gated on .js-anim so no-JS shows them) */
+  .js-anim .settle{ opacity:0; transform:translateY(10px); animation:settle 1.1s ease both; }
+  .js-anim .s1{ animation-delay:var(--t-lead); }
+  .js-anim .s3{ animation-delay:var(--t-sub); }
+  .js-anim .s4{ animation-delay:var(--t-ess); }
+  .js-anim .s5{ animation-delay:var(--t-coda); }
+  .js-anim .s6{ animation-delay:var(--t-colo); }
+  .js-anim .s7{ animation-delay:var(--t-mail); }
   @keyframes settle{ to{ opacity:1; transform:none; } }
 
   @media (prefers-reduced-motion:reduce){
-    .stroke{ animation:none; transform:scaleX(1); }
-    .settle{ animation:none; opacity:1; transform:none; }
-    .js-anim .glyph{ fill-opacity:1; stroke-opacity:1; }
-    .nib{ display:none; }
+    .js-anim .ink-line{ animation:none; width:clamp(7rem,30vw,13rem); }
+    .js-anim .logo-clip{ animation:none; clip-path:none; }
+    .js-anim .settle{ animation:none; opacity:1; transform:none; }
+  }
+
+  /* desktop: compose as a centered title page, not a stretched phone column */
+  @media (min-width:56rem){
+    .card{ max-width:58rem; }
+    .lead{ max-width:34rem; }
+    .brand{ margin:clamp(2.2rem,5vh,3.2rem) 0; }
+    .subtitle{ max-width:34rem; }
+    .essence{ max-width:38rem; }
+    .footer{
+      display:flex; justify-content:space-between; align-items:baseline; gap:1.5rem;
+      width:100%; margin-top:clamp(3rem,7vh,4.75rem);
+      padding-top:1.1rem; border-top:1px solid var(--rule);
+    }
+    .footer .colophon, .footer .contact{ margin:0; }
   }
 </style>
 <script>document.documentElement.classList.add('js-anim');</script>
@@ -143,10 +159,10 @@
   <div class="card">
     <p class="lead settle s1">Before there was software, there was pen <span class="amp">&amp;</span> ink.</p>
 
-    <div class="rule-wrap"><span class="stroke" aria-hidden="true"></span></div>
-
-    <h1 class="logo">
-      <span class="logo-wrap">
+    <div class="brand">
+      <span class="ink-line" aria-hidden="true"></span>
+      <h1 class="logo">
+        <span class="logo-clip"><span class="logo-wrap">
     <svg class="logo-svg" viewBox="0 0 962.1 230.0" role="img" aria-label="Pen and Ink" preserveAspectRatio="xMidYMid meet">
       <path class="glyph" d="M8.500830078125 12.240000000000009Q13.543212890625 12.460000000000008 21.73598388671875 12.680000000000007Q29.928754882812502 12.900000000000006 37.98072265625 12.900000000000006Q48.4791162109375 12.900000000000006 58.097509765625006 12.680000000000007Q67.7159033203125 12.460000000000008 71.728701171875 12.460000000000008Q99.9854345703125 12.460000000000008 113.95100341796876 24.560000000000002Q127.916572265625 36.66 127.916572265625 55.8Q127.916572265625 63.72 125.11817871093751 72.41Q122.31978515625 81.1 115.48659912109375 88.47Q108.6534130859375 95.84 96.82623779296875 100.46000000000001Q84.9990625 105.08 66.888701171875 105.08H45.24072265625V100.67999999999999H64.688701171875Q79.252744140625 100.67999999999999 86.9219677734375 94.74Q94.59119140625 88.8 97.35 79.12Q100.10880859375 69.44 100.10880859375 58.22Q100.10880859375 37.31999999999999 92.70357421874999 26.97999999999999Q85.29833984375 16.639999999999986 67.284658203125 16.639999999999986Q57.798232421875 16.639999999999986 54.929423828124996 20.379999999999995Q52.060615234375 24.120000000000005 52.060615234375 35.56V144.15202148437498Q52.060615234375 152.3360107421875 53.7634130859375 156.4016064453125Q55.4662109375 160.4672021484375 60.411806640625 161.7872021484375Q65.35740234375 163.1072021484375 74.80859375 163.4416064453125V168.0Q68.6662109375 167.6127978515625 59.074243164062494 167.47639892578127Q49.482275390625 167.34 39.3535205078125 167.34Q30.403935546875 167.34 22.290361328125 167.47639892578127Q14.176787109375 167.6127978515625 8.500830078125 168.0V163.6Q15.8224365234375 163.16 19.54044189453125 161.84Q23.258447265625 160.52 24.5256494140625 156.56Q25.7928515625 152.6 25.7928515625 144.68V35.56Q25.7928515625 27.419999999999987 24.5256494140625 23.569999999999993Q23.258447265625 19.72 19.51404296875 18.289999999999992Q15.769638671875 16.859999999999985 8.500830078125 16.639999999999986Z" fill="#1B1814" stroke="#1B1814" data-cx="66.8"/>
       <path class="glyph" d="M194.22476562499997 51.408808593749995Q213.584765625 51.408808593749995 224.52756347656248 63.073212890624994Q235.470361328125 74.73761718749999 235.470361328125 100.02H159.922275390625L159.6494775390625 95.84H211.71046875Q212.0976708984375 85.06 210.16166015625 75.93Q208.2256494140625 66.8 204.05002685546876 61.3Q199.874404296875 55.8 193.1863720703125 55.8Q184.06953124999998 55.8 177.23629150390622 65.73520751953126Q170.40305175781248 75.6704150390625 168.9686474609375 97.82880859375L169.6814453125 98.92Q169.2942431640625 101.9560107421875 169.127041015625 105.4936279296875Q168.9598388671875 109.0312451171875 168.9598388671875 112.62166015625Q168.9598388671875 127.687255859375 173.56224853515624 137.93927734375Q178.164658203125 148.191298828125 185.4994775390625 153.24692138671875Q192.834296875 158.3025439453125 200.6135205078125 158.3025439453125Q206.36875488281248 158.3025439453125 211.91277099609374 156.50293212890625Q217.456787109375 154.7033203125 222.516787109375 150.25930419921878Q227.576787109375 145.8152880859375 231.5807763671875 138.044873046875L235.8223828125 139.69927734375Q233.34958496093748 147.3288623046875 227.77038818359375 154.59764404296874Q222.19119140625 161.86642578125 213.62 166.473212890625Q205.04880859374998 171.08 193.520830078125 171.08Q178.103212890625 171.08 166.72041503906252 164.1895849609375Q155.3376171875 157.299169921875 149.10282470703123 144.34997314453125Q142.8680322265625 131.4007763671875 142.8680322265625 113.36083007812499Q142.8680322265625 93.578447265625 149.34481933593747 79.7668408203125Q155.82160644531248 65.955234375 167.43759033203122 58.682021484375Q179.05357421875 51.408808593749995 194.22476562499997 51.408808593749995Z" fill="#1B1814" stroke="#1B1814" data-cx="189.1"/>
@@ -156,9 +172,9 @@
       <path class="glyph" d="M788.0926904296875 51.408808593749995Q796.8750732421876 51.408808593749995 802.53787109375 53.688005371093745Q808.2006689453125 55.967202148437494 811.782275390625 59.874404296875Q815.751083984375 64.16880859375 817.4582861328124 70.76880859375001Q819.16548828125 77.36880859375 819.16548828125 88.58880859375V147.54Q819.16548828125 156.78 822.7514990234374 160.07999999999998Q826.337509765625 163.38 834.8295312500001 163.38V168.0Q830.9311376953125 167.78 822.9407495117188 167.45Q814.950361328125 167.12 807.37357421875 167.12Q799.6383935546876 167.12 792.2596118164063 167.45Q784.880830078125 167.78 781.149638671875 168.0V163.38Q788.54166015625 163.38 791.5776708984375 160.07999999999998Q794.613681640625 156.78 794.613681640625 147.54V82.05927734375Q794.613681640625 75.767255859375 793.513681640625 70.680830078125Q792.413681640625 65.594404296875 788.9332666015625 62.5495849609375Q785.4528515625 59.504765625000005 778.483212890625 59.504765625000005Q770.510361328125 59.504765625000005 764.3723291015625 63.9927978515625Q758.234296875 68.480830078125 754.7538818359376 76.29088378906249Q751.273466796875 84.1009375 751.273466796875 93.737001953125V147.54Q751.273466796875 156.78 754.3358764648438 160.07999999999998Q757.3982861328125 163.38 764.737509765625 163.38V168.0Q761.0591162109375 167.78 753.8387280273438 167.45Q746.61833984375 167.12 739.041552734375 167.12Q731.3063720703125 167.12 723.1839892578125 167.45Q715.0616064453126 167.78 711.0576171875 168.0V163.38Q719.5496386718751 163.38 723.1356494140625 160.07999999999998Q726.72166015625 156.78 726.72166015625 147.54V78.46880859375Q726.72166015625 68.56880859375 723.4128515625 63.83880859375Q720.10404296875 59.10880859375 711.0576171875 59.10880859375V54.488808593749994Q718.0976171875001 55.148808593750005 724.6976171875 55.148808593750005Q732.1863720703125 55.148808593750005 738.913935546875 54.37880859375Q745.6414990234375 53.60880859375 751.273466796875 52.068808593750006V75.600107421875Q756.88787109375 62.118447265624994 766.801083984375 56.763627929687495Q776.7142968750001 51.408808593749995 788.0926904296875 51.408808593749995Z" fill="#1B1814" stroke="#1B1814" data-cx="771.5"/>
       <path class="glyph" d="M882.49025390625 -4.374404296875014V147.54Q882.49025390625 156.78 885.6582592773437 160.07999999999998Q888.8262646484375 163.38 896.482275390625 163.38V168.0Q892.751083984375 167.78 885.3723022460938 167.45Q877.9935205078125 167.12 870.4255419921875 167.12Q862.5231591796875 167.12 854.4007763671875 167.45Q846.2783935546876 167.78 842.274404296875 168.0V163.38Q850.7664257812501 163.38 854.3524365234375 160.07999999999998Q857.938447265625 156.78 857.938447265625 147.54V22.025595703124992Q857.938447265625 12.125595703124986 854.629638671875 7.395595703124997Q851.320830078125 2.665595703125007 842.274404296875 2.665595703125007V-1.9544042968749977Q849.3144042968751 -1.2944042968750011 855.914404296875 -1.2944042968750011Q863.4031591796875 -1.2944042968750011 870.13072265625 -2.064404296874997Q876.8582861328125 -2.834404296874993 882.49025390625 -4.374404296875014ZM953.189423828125 54.488808593749994V58.88880859375Q947.1086474609375 59.75119140625 941.4766796875 62.99396240234375Q935.8447119140625 66.2367333984375 930.3271484375 71.9214990234375L904.903720703125 98.515341796875L907.6141357421875 93.1473095703125L947.2141894531251 151.94Q950.4790087890625 156.5776171875 953.5458227539064 159.51681396484375Q956.6126367187501 162.4560107421875 961.03025390625 163.38V168.0Q958.293466796875 167.78 952.5426904296876 167.45Q946.7919140625 167.12 941.0983398437501 167.12Q933.8031591796876 167.12 926.3143774414064 167.45Q918.825595703125 167.78 915.094404296875 168.0V163.38Q919.494404296875 163.38 921.1752075195313 161.2327978515625Q922.8560107421876 159.085595703125 920.594404296875 155.9L896.7199462890625 117.989638671875Q893.1735205078126 112.7360107421875 890.1067065429688 111.1872021484375Q887.039892578125 109.6383935546875 881.5574560546875 109.47119140625V105.1239892578125Q887.6470947265625 104.45518066406251 891.6247119140626 102.734765625Q895.6023291015625 101.01435058593749 899.1399462890626 97.30953125L915.57833984375 80.6335205078125Q922.7767333984375 73.426318359375 922.8031323242187 68.6611376953125Q922.8295312500001 63.895957031250006 918.2139355468751 61.471579589843756Q913.5983398437501 59.047202148437506 906.1799462890625 58.88880859375V54.488808593749994Q912.05833984375 54.70880859374999 919.2611376953125 55.01240966796875Q926.4639355468751 55.3160107421875 931.40953125 55.3160107421875Q935.36072265625 55.3160107421875 939.4614990234375 55.2060107421875Q943.562275390625 55.0960107421875 947.1966528320313 54.90240966796875Q950.8310302734375 54.70880859374999 953.189423828125 54.488808593749994Z" fill="#1B1814" stroke="#1B1814" data-cx="900.0"/>
     </svg>
-        <span class="nib" aria-hidden="true"></span>
-      </span>
-    </h1>
+        </span></span>
+      </h1>
+    </div>
 
     <p class="subtitle settle s3">Practical AI tools for businesses and nonprofits.</p>
 
@@ -166,63 +182,11 @@
 
     <p class="coda settle s5"><strong>Same instinct as the old tools.<br><span class="nm">New medium.</span></strong></p>
 
-    <p class="colophon settle s6">Toronto<span class="dot">·</span>Est. 2025<span class="dot">·</span><a href="https://pen-ink.ca">pen-ink.ca</a></p>
-
-    <p class="contact settle s7"><a href="mailto:hello@pen-ink.ca">hello@pen-ink.ca</a></p>
+    <div class="footer">
+      <p class="colophon settle s6">Toronto<span class="dot">·</span>Est. 2025<span class="dot">·</span><a href="https://pen-ink.ca">pen-ink.ca</a></p>
+      <p class="contact settle s7"><a href="mailto:hello@pen-ink.ca">hello@pen-ink.ca</a></p>
+    </div>
   </div>
 
-<script>
-(function(){
-  var START = 2600;                  // when the pen starts (after the tagline is read)
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var glyphs = Array.prototype.slice.call(document.querySelectorAll('.glyph'));
-  var nib = document.querySelector('.nib');
-  var svg = document.querySelector('.logo-svg');
-
-  if(reduce || !glyphs.length){
-    glyphs.forEach(function(g){ g.style.fillOpacity = 1; g.style.strokeOpacity = 1; g.style.strokeDashoffset = 0; });
-    if(nib) nib.style.display = 'none';
-    return;
-  }
-
-  function run(){
-    var t = START, gap = 55;
-    glyphs.forEach(function(g){
-      var len = g.getTotalLength();
-      g.style.strokeDasharray = len;
-      g.style.strokeDashoffset = len;
-      g.style.strokeOpacity = 1;
-      var dur = Math.max(240, Math.min(470, len * 0.42));
-      g.animate(
-        [{strokeDashoffset: len}, {strokeDashoffset: 0}],
-        {duration: dur, delay: t, easing:'cubic-bezier(.4,.05,.45,1)', fill:'both'}
-      );
-      g.animate(
-        [{fillOpacity: 0}, {fillOpacity: 1}],
-        {duration: dur*0.55, delay: t + dur*0.5, fill:'both'}
-      );
-      t += dur + gap;
-    });
-
-    if(nib){
-      var w = svg.getBoundingClientRect().width;
-      var h = svg.getBoundingClientRect().height;
-      nib.style.height = (h*0.7) + 'px';
-      nib.animate(
-        [
-          {transform:'translateX(0)',        opacity:0, offset:0},
-          {transform:'translateX(0)',        opacity:1, offset:0.04},
-          {transform:'translateX('+w+'px)',  opacity:1, offset:0.94},
-          {transform:'translateX('+w+'px)',  opacity:0, offset:1}
-        ],
-        {duration: (t - START), delay: START, easing:'linear', fill:'both'}
-      );
-    }
-  }
-
-  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(run); }
-  else { run(); }
-})();
-</script>
 </body>
 </html>
