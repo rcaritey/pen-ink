@@ -20,10 +20,11 @@
     --t-lead:   .3s;   /* tagline */
     --t-line:  1.4s;   /* ink line draws across */
     --t-wipe:  2.7s;   /* wordmark writes in as the line settles to a rule */
-    --t-sub:   4.0s;
-    --t-ess:   5.0s;
-    --t-coda:  6.0s;
-    --t-cta:   6.8s;
+    --t-brg:   3.9s;
+    --t-sub:   4.4s;
+    --t-ess:   5.3s;
+    --t-coda:  6.2s;
+    --t-cta:   6.9s;
     --t-colo:  7.6s;
     --t-mail:  8.0s;
   }
@@ -58,6 +59,12 @@
     font-size:clamp(1.15rem, 1rem + 1vw, 1.85rem); line-height:1.35; color:var(--ink);
   }
   .lead .amp{ color:var(--wine); }
+  /* the hinge — ties the pen & ink metaphor to the work */
+  .bridge{
+    margin:clamp(1.4rem,3.2vw,2rem) auto 0; max-width:32rem;
+    font-family:"Playfair Display", serif; font-style:italic; font-weight:400;
+    font-size:clamp(1.15rem, 1rem + 1vw, 1.85rem); line-height:1.5; color:var(--ink-soft);
+  }
 
   /* the brand block: a single ink line draws across, then settles to a rule
      as the wordmark writes itself in beneath it */
@@ -99,13 +106,14 @@
   /* 4 — essence */
   .essence{
     margin:clamp(1.3rem,3vw,1.8rem) auto 0; max-width:30rem;
-    font-size:clamp(1.02rem, 0.95rem + .4vw, 1.25rem); line-height:1.65; color:var(--ink-soft);
+    font-family:"Playfair Display", serif; font-weight:400;
+    font-size:clamp(1.2rem, 1rem + .8vw, 1.45rem); line-height:1.45; color:var(--ink-soft);
   }
   /* 5 — bold closing line */
   .coda{
     margin:clamp(2.2rem,5vw,3rem) auto 0; max-width:30rem;
     font-family:"Playfair Display", serif; font-weight:700;
-    font-size:clamp(1.25rem, 1rem + 1.1vw, 2rem); line-height:1.3; color:var(--ink);
+    font-size:clamp(1.2rem, 1rem + .8vw, 1.45rem); line-height:1.3; color:var(--ink);
   }
   .coda .nm{ color:var(--wine); }
   /* 6 — colophon */
@@ -131,10 +139,29 @@
     transition:border-color .2s ease;
   }
   .cta a:hover{ border-bottom-color:var(--wine); }
+  .cta-link{ cursor:pointer; }
+  /* email provider chooser */
+  .cta-panel{
+    margin:1rem auto 0; max-width:23rem; text-align:left;
+    border:1px solid var(--rule); border-radius:9px; padding:.85rem 1rem 1rem;
+    background:rgba(255,255,255,.4);
+  }
+  .cta-panel[hidden]{ display:none; }
+  .cta-panel-title{ margin:0 0 .65rem; font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-soft); }
+  .cta-options{ display:flex; flex-wrap:wrap; gap:.5rem; }
+  .cta-opt{
+    font-family:"EB Garamond", Georgia, serif; font-size:1rem; color:var(--ink);
+    border:1px solid var(--rule); border-radius:6px; padding:.42rem .8rem;
+    background:none; cursor:pointer; transition:border-color .15s ease, color .15s ease;
+  }
+  .cta-opt:hover, .cta-opt:focus-visible{ border-color:var(--wine); color:var(--wine); }
+  .cta-hint{ margin:.75rem 0 0; font-size:.92rem; color:var(--wine); }
+  .cta-hint[hidden]{ display:none; }
 
   /* sequenced settle for text lines (gated on .js-anim so no-JS shows them) */
   .js-anim .settle{ opacity:0; transform:translateY(10px); animation:settle 1.1s ease both; }
   .js-anim .s1{ animation-delay:var(--t-lead); }
+  .js-anim .b1{ animation-delay:var(--t-brg); }
   .js-anim .s3{ animation-delay:var(--t-sub); }
   .js-anim .s4{ animation-delay:var(--t-ess); }
   .js-anim .s5{ animation-delay:var(--t-coda); }
@@ -155,12 +182,13 @@
     .lead{ max-width:38rem; }
     .brand{ margin:clamp(2.2rem,5vh,3.4rem) 0; }
     .subtitle{ max-width:42rem; }
+    .bridge{ max-width:40rem; }
 
     /* essence | coda + CTA become a two-column statement band */
     .statement{
       position:relative; display:grid; grid-template-columns:1fr 1fr;
       gap:clamp(2.4rem,5vw,4rem); align-items:center; text-align:left;
-      max-width:54rem; margin:clamp(2.6rem,5vh,3.6rem) auto 0;
+      max-width:58rem; margin:clamp(2.6rem,5vh,3.6rem) auto 0;
     }
     .statement::before{
       content:""; position:absolute; top:.1rem; bottom:.1rem; left:50%;
@@ -203,13 +231,25 @@
       </h1>
     </div>
 
+    <p class="bridge settle b1">It was the simplest way to take an idea and make it useful to someone else — you just picked it up and used it.</p>
+
     <p class="subtitle settle s3">Practical AI tools for businesses and nonprofits.</p>
 
     <div class="statement">
       <p class="essence settle s4">Tools that work without a manual — built around how the work actually gets done, and the people it's meant to serve.</p>
       <div class="aside">
         <p class="coda settle s5"><strong>Same instinct as the old tools.<br><span class="nm">New medium.</span></strong></p>
-        <p class="cta settle s5b"><a href="mailto:hello@pen-ink.ca?subject=Tell%20us%20about%20your%20workflow">Tell us about your workflow →</a></p>
+        <p class="cta settle s5b"><a class="cta-link" href="mailto:hello@pen-ink.ca?subject=Let's%20talk" aria-controls="ctaPanel" aria-expanded="false" aria-haspopup="true">Tell us what's getting in your way →</a></p>
+        <div class="cta-panel" id="ctaPanel" hidden>
+          <p class="cta-panel-title">Open a message in…</p>
+          <div class="cta-options">
+            <a class="cta-opt" data-provider="gmail" href="#" target="_blank" rel="noopener">Gmail</a>
+            <a class="cta-opt" data-provider="outlook" href="#" target="_blank" rel="noopener">Outlook</a>
+            <a class="cta-opt" data-provider="default" href="#">Mail app</a>
+            <button class="cta-opt cta-copy" type="button">Copy message</button>
+          </div>
+          <p class="cta-hint" hidden>Copied — paste it into an email to hello@pen-ink.ca</p>
+        </div>
       </div>
     </div>
 
@@ -218,6 +258,58 @@
       <p class="contact settle s7"><a href="mailto:hello@pen-ink.ca">hello@pen-ink.ca</a></p>
     </div>
   </div>
+
+<script>
+(function(){
+  var EMAIL = 'hello@pen-ink.ca';
+  var SUBJECT = "Let's talk";
+  var BODY = "Hi — here's what's been slowing us down:\n\n";
+  var enc = encodeURIComponent;
+
+  var link  = document.querySelector('.cta-link');
+  var panel = document.getElementById('ctaPanel');
+  if(!link || !panel) return;
+
+  var gmail   = panel.querySelector('[data-provider="gmail"]');
+  var outlook = panel.querySelector('[data-provider="outlook"]');
+  var deflt   = panel.querySelector('[data-provider="default"]');
+  var copyBtn = panel.querySelector('.cta-copy');
+  var hint    = panel.querySelector('.cta-hint');
+
+  gmail.href   = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + EMAIL + '&su=' + enc(SUBJECT) + '&body=' + enc(BODY);
+  outlook.href = 'https://outlook.office.com/mail/deeplink/compose?to=' + EMAIL + '&subject=' + enc(SUBJECT) + '&body=' + enc(BODY);
+  deflt.href   = 'mailto:' + EMAIL + '?subject=' + enc(SUBJECT) + '&body=' + enc(BODY);
+
+  function open(){ panel.hidden = false; link.setAttribute('aria-expanded','true'); }
+  function close(){ panel.hidden = true; link.setAttribute('aria-expanded','false'); if(hint) hint.hidden = true; }
+
+  link.addEventListener('click', function(e){
+    e.preventDefault();
+    panel.hidden ? open() : close();
+  });
+
+  copyBtn.addEventListener('click', function(){
+    var text = 'To: ' + EMAIL + '\nSubject: ' + SUBJECT + '\n\n' + BODY;
+    function done(){ if(hint) hint.hidden = false; }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(done);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly',''); ta.style.position = 'absolute'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch(err) {}
+      document.body.removeChild(ta); done();
+    }
+  });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && !panel.hidden){ close(); link.focus(); }
+  });
+  document.addEventListener('click', function(e){
+    if(!panel.hidden && !panel.contains(e.target) && e.target !== link){ close(); }
+  });
+})();
+</script>
 
 </body>
 </html>
