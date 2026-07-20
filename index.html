@@ -207,7 +207,6 @@
     .footer .colophon, .footer .contact{ margin:0; }
   }
 </style>
-<script>document.documentElement.classList.add('js-anim');</script>
 </head>
 <body>
   <div class="card">
@@ -239,18 +238,7 @@
       <p class="essence settle s4">Tools that work without a manual — built around how the work actually gets done, and the people it's meant to serve.</p>
       <div class="aside">
         <p class="coda settle s5"><strong>Same instinct as the old tools.<br><span class="nm">New medium.</span></strong></p>
-        <p class="cta settle s5b"><a class="cta-link" href="mailto:hello@pen-ink.ca?subject=Let's%20talk" aria-controls="ctaPanel" aria-expanded="false" aria-haspopup="true">Tell us what's getting in your way →</a></p>
-        <div class="cta-panel" id="ctaPanel" hidden>
-          <p class="cta-panel-title">Open a message in…</p>
-          <div class="cta-options">
-            <a class="cta-opt" data-provider="gmail" href="#" target="_blank" rel="noopener">Gmail</a>
-            <a class="cta-opt" data-provider="outlook" href="#" target="_blank" rel="noopener">Outlook</a>
-            <a class="cta-opt" data-provider="default" href="#">Mail app</a>
-            <button class="cta-opt cta-copy" type="button">Copy message</button>
-          </div>
-          <p class="cta-hint" hidden>Copied — paste it into an email to hello@pen-ink.ca</p>
-        </div>
-      </div>
+        <p class="cta settle s5b"><a class="cta-link" href="mailto:hello@pen-ink.ca?subject=Let's%20talk">Tell us what's getting in your way →</a></p>
     </div>
 
     <div class="footer">
@@ -258,58 +246,6 @@
       <p class="contact settle s7"><a href="mailto:hello@pen-ink.ca">hello@pen-ink.ca</a></p>
     </div>
   </div>
-
-<script>
-(function(){
-  var EMAIL = 'hello@pen-ink.ca';
-  var SUBJECT = "Let's talk";
-  var BODY = "Hi — here's what's been slowing us down:\n\n";
-  var enc = encodeURIComponent;
-
-  var link  = document.querySelector('.cta-link');
-  var panel = document.getElementById('ctaPanel');
-  if(!link || !panel) return;
-
-  var gmail   = panel.querySelector('[data-provider="gmail"]');
-  var outlook = panel.querySelector('[data-provider="outlook"]');
-  var deflt   = panel.querySelector('[data-provider="default"]');
-  var copyBtn = panel.querySelector('.cta-copy');
-  var hint    = panel.querySelector('.cta-hint');
-
-  gmail.href   = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + EMAIL + '&su=' + enc(SUBJECT) + '&body=' + enc(BODY);
-  outlook.href = 'https://outlook.office.com/mail/deeplink/compose?to=' + EMAIL + '&subject=' + enc(SUBJECT) + '&body=' + enc(BODY);
-  deflt.href   = 'mailto:' + EMAIL + '?subject=' + enc(SUBJECT) + '&body=' + enc(BODY);
-
-  function open(){ panel.hidden = false; link.setAttribute('aria-expanded','true'); }
-  function close(){ panel.hidden = true; link.setAttribute('aria-expanded','false'); if(hint) hint.hidden = true; }
-
-  link.addEventListener('click', function(e){
-    e.preventDefault();
-    panel.hidden ? open() : close();
-  });
-
-  copyBtn.addEventListener('click', function(){
-    var text = 'To: ' + EMAIL + '\nSubject: ' + SUBJECT + '\n\n' + BODY;
-    function done(){ if(hint) hint.hidden = false; }
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).then(done).catch(done);
-    } else {
-      var ta = document.createElement('textarea');
-      ta.value = text; ta.setAttribute('readonly',''); ta.style.position = 'absolute'; ta.style.left = '-9999px';
-      document.body.appendChild(ta); ta.select();
-      try { document.execCommand('copy'); } catch(err) {}
-      document.body.removeChild(ta); done();
-    }
-  });
-
-  document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape' && !panel.hidden){ close(); link.focus(); }
-  });
-  document.addEventListener('click', function(e){
-    if(!panel.hidden && !panel.contains(e.target) && e.target !== link){ close(); }
-  });
-})();
-</script>
 
 </body>
 </html>
