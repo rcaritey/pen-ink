@@ -1,0 +1,7 @@
+{
+  "name": "pen-ink",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pen & Ink landing page. Static index.html plus one Vercel function for the contact form.",
+  "type": "module"
+}
