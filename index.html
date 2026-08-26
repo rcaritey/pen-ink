@@ -158,6 +158,37 @@
   .cta-hint{ margin:.75rem 0 0; font-size:.92rem; color:var(--wine); }
   .cta-hint[hidden]{ display:none; }
 
+  /* contact form */
+  .form-field{ margin:0 0 .7rem; }
+  .form-field label{
+    display:block; margin:0 0 .25rem;
+    font-size:.68rem; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft);
+  }
+  .form-field input, .form-field textarea{
+    width:100%; font-family:"EB Garamond", Georgia, serif; font-size:1rem; color:var(--ink);
+    background:rgba(255,255,255,.55); border:1px solid var(--rule); border-radius:6px;
+    padding:.5rem .65rem; transition:border-color .15s ease;
+  }
+  .form-field textarea{ min-height:6.5rem; resize:vertical; line-height:1.45; }
+  .form-field input:focus, .form-field textarea:focus{ outline:none; border-color:var(--wine); }
+  /* honeypot — off-screen for people, irresistible to bots */
+  .form-trap{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  .form-send{
+    font-family:"Playfair Display", serif; font-style:italic;
+    font-size:1.05rem; color:var(--paper); background:var(--wine);
+    border:1px solid var(--wine); border-radius:6px; padding:.45rem 1.3rem;
+    cursor:pointer; transition:opacity .15s ease;
+  }
+  .form-send:hover{ opacity:.87; }
+  .form-send[disabled]{ opacity:.5; cursor:default; }
+  .form-foot{ display:flex; align-items:center; gap:.85rem; flex-wrap:wrap; margin-top:.3rem; }
+  .form-alt{ font-size:.9rem; color:var(--ink-soft); }
+  .form-alt a{ color:var(--wine); text-decoration:underline; text-decoration-color:rgba(138,46,52,.35); text-underline-offset:3px; }
+  .form-note{ margin:.7rem 0 0; font-size:.92rem; line-height:1.4; }
+  .form-note[hidden]{ display:none; }
+  .form-note.is-error{ color:var(--wine); }
+  .form-note.is-ok{ color:var(--ink); }
+
   /* sequenced settle for text lines (gated on .js-anim so no-JS shows them) */
   .js-anim .settle{ opacity:0; transform:translateY(10px); animation:settle 1.1s ease both; }
   .js-anim .s1{ animation-delay:var(--t-lead); }
@@ -238,14 +269,112 @@
       <p class="essence settle s4">Tools that work without a manual — built around how the work actually gets done, and the people it's meant to serve.</p>
       <div class="aside">
         <p class="coda settle s5"><strong>Same instinct as the old tools.<br><span class="nm">New medium.</span></strong></p>
-        <p class="cta settle s5b"><a class="cta-link" href="mailto:hello@pen-ink.ca?subject=Let's%20talk">Tell us what's getting in your way →</a></p>
+        <p class="cta settle s5b"><a class="cta-link" id="cta-link" href="#contact">Tell us what's getting in your way →</a></p>
+
+        <div class="cta-panel" id="contact">
+          <p class="cta-panel-title">Send us a note</p>
+          <form id="contact-form" method="post" action="/api/contact" novalidate>
+            <div class="form-field">
+              <label for="cf-name">Your name</label>
+              <input id="cf-name" name="name" type="text" autocomplete="name" maxlength="120" required>
+            </div>
+            <div class="form-field">
+              <label for="cf-email">Email</label>
+              <input id="cf-email" name="email" type="email" autocomplete="email" maxlength="200" required>
+            </div>
+            <div class="form-field">
+              <label for="cf-message">What's getting in your way?</label>
+              <textarea id="cf-message" name="message" maxlength="5000" required></textarea>
+            </div>
+            <div class="form-trap" aria-hidden="true">
+              <label for="cf-company">Company</label>
+              <input id="cf-company" name="company" type="text" tabindex="-1" autocomplete="off">
+            </div>
+            <div class="form-foot">
+              <button class="form-send" type="submit">Send</button>
+              <span class="form-alt">or <a href="mailto:hello@pen-ink.ca?subject=Let%27s%20talk" target="_blank" rel="noopener">email us directly</a></span>
+            </div>
+            <p class="form-note" id="form-note" role="status" aria-live="polite" hidden></p>
+          </form>
+        </div>
+      </div>
     </div>
 
     <div class="footer">
       <p class="colophon settle s6">Toronto<span class="dot">·</span>Est. 2025<span class="dot">·</span><a href="https://pen-ink.ca">pen-ink.ca</a></p>
-      <p class="contact settle s7"><a href="mailto:hello@pen-ink.ca">hello@pen-ink.ca</a></p>
+      <p class="contact settle s7"><a href="mailto:hello@pen-ink.ca" target="_blank" rel="noopener">hello@pen-ink.ca</a></p>
     </div>
   </div>
 
+<script>
+// Restores the load-in animation that commit 8a8aeb2 removed by accident.
+// Delete this single line to turn the animation off again.
+document.documentElement.classList.add('js-anim');
+
+(function () {
+  var panel = document.getElementById('contact');
+  var link  = document.getElementById('cta-link');
+  var form  = document.getElementById('contact-form');
+  var note  = document.getElementById('form-note');
+  if (!panel || !form) return;
+
+  // Without JS the panel simply stays open, so the form still works.
+  var params = new URLSearchParams(location.search);
+  var preopen = location.hash === '#contact' || params.has('sent');
+  panel.hidden = !preopen;
+
+  function open() {
+    panel.hidden = false;
+    var first = document.getElementById('cf-name');
+    if (first) first.focus();
+  }
+
+  if (link) {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (panel.hidden) open(); else panel.hidden = true;
+    });
+  }
+
+  function say(text, ok) {
+    note.textContent = text;
+    note.className = 'form-note ' + (ok ? 'is-ok' : 'is-error');
+    note.hidden = false;
+  }
+
+  // Surface the result of a no-JS round trip.
+  if (params.get('sent') === '1') say('Thank you — that reached us. We will reply to the address you gave.', true);
+  if (params.get('sent') === 'error') say('That did not go through. Please email hello@pen-ink.ca directly.', false);
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var button = form.querySelector('.form-send');
+    var data = Object.fromEntries(new FormData(form));
+
+    if (!data.name || !data.name.trim()) return say('Please add your name.', false);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email || '')) return say('That email address does not look right.', false);
+    if (!data.message || data.message.trim().length < 10) return say('Please tell us a little more.', false);
+
+    button.disabled = true;
+    note.hidden = true;
+
+    fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+      body: JSON.stringify(data)
+    })
+      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (r) {
+        if (!r.ok || !r.body.ok) throw new Error(r.body && r.body.error);
+        form.reset();
+        say('Thank you — that reached us. We will reply to the address you gave.', true);
+      })
+      .catch(function (err) {
+        say(err.message || 'That did not go through. Please email hello@pen-ink.ca directly.', false);
+      })
+      .finally(function () { button.disabled = false; });
+  });
+})();
+</script>
 </body>
 </html>
