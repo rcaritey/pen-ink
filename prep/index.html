@@ -719,6 +719,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <button type="button" class="btn link" data-open-how>How this works</button>
   <button type="button" class="btn link" data-open-safe>How your information stays safe</button>
   <button type="button" class="btn link" id="change-mode" hidden>Switch to typing</button>
+  <button type="button" class="btn link" id="change-voice" hidden>Try a different voice</button>
   <button type="button" class="btn link" data-download>Download a copy</button>
   <button type="button" class="btn link" id="erase">Erase my answers from this device</button>
 </footer>
@@ -802,7 +803,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     chg: { bg: "", meds: "", medNote: "" },
     recap: { said: "", open: [], more: "", todo: [""], nextWith: "", nextDate: "", nextTime: "" },
     first: "", important: [], prioSeen: false });
-  const blank = () => Object.assign({ v: 3, step: -1, mode: "", consent: null, who: "", carried: false,
+  const blank = () => Object.assign({ v: 3, step: -1, mode: "", consent: null, who: "", carried: false, voiceName: "",
     bg: { conditions: "", changes: "", team: "", allergies: "" }, meds: [{ n: "", d: "", w: "" }] }, blankVisit());
   function normalize(x) {
     const b = blank();
@@ -810,6 +811,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     ["who", "seeing", "date", "time", "purpose", "story"].forEach(k => b[k] = str(x[k]));
     b.time = toTime24(b.time);
     b.mode = x.mode === "voice" || x.mode === "type" ? x.mode : "";
+    b.voiceName = str(x.voiceName);
     b.consent = x.consent === true ? true : x.consent === false ? false : null;
     b.step = Number.isInteger(x.step) && x.step >= -1 && x.step < STEPS.length ? x.step : -1;
     if (x.bg && typeof x.bg === "object") ["conditions", "changes", "team", "allergies"].forEach(k => b.bg[k] = str(x.bg[k]));
@@ -871,12 +873,41 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const canSpeak = "speechSynthesis" in window;
     let rec = null, active = false, target = null, onCarry = null, silenceT = null, prompted = false, view = () => {};
+    // Pick the most natural-sounding English voice on this device. Newer "Natural", "Neural",
+    // "Premium" and "Enhanced" voices sound human; old built-in ones sound robotic.
+    const ROBOTIC = /(fred|albert|zarvox|trinoids|whisper|bad news|good news|bahh|bells|boing|bubbles|cellos|deranged|hysterical|jester|organ|superstar|wobble|ralph|junior|kathy|princess|espeak|compact)/i;
+    function rankVoices() {
+      if (!canSpeak) return [];
+      const score = v => {
+        let n = 0; const name = v.name;
+        if (/natural|neural/i.test(name)) n += 60;
+        if (/premium/i.test(name)) n += 50;
+        if (/enhanced/i.test(name)) n += 40;
+        if (/online/i.test(name)) n += 20;
+        if (/^google/i.test(name)) n += 25;
+        if (/(ava|zoe|evan|nathan|samantha|allison|susan|serena|daniel|karen|moira|tessa|aria|jenny|guy|libby|sonia|ryan|clara|liam)/i.test(name)) n += 10;
+        if (/^en-CA/i.test(v.lang)) n += 8; else if (/^en-(US|GB)/i.test(v.lang)) n += 5;
+        if (!v.localService) n += 3;
+        if (ROBOTIC.test(name)) n -= 100;
+        return n;
+      };
+      return speechSynthesis.getVoices().filter(v => /^en(-|_|$)/i.test(v.lang)).sort((a, b) => score(b) - score(a));
+    }
+    let chosen = null;
+    function pickVoice(name) {
+      const list = rankVoices();
+      chosen = (name && list.find(v => v.name === name)) || list[0] || null;
+      return chosen;
+    }
+    if (canSpeak) { pickVoice(); speechSynthesis.addEventListener("voiceschanged", () => pickVoice(chosen && chosen.name)); }
     const speak = text => new Promise(res => {
       if (!canSpeak || !text) return res();
       try {
         speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
-        u.rate = 0.85; u.lang = "en-CA";
+        if (!chosen) pickVoice();
+        if (chosen) { u.voice = chosen; u.lang = chosen.lang; } else u.lang = "en-CA";
+        u.rate = 0.95; u.pitch = 1;
         u.onend = () => res(); u.onerror = () => res();
         speechSynthesis.speak(u);
       } catch (err) { console.warn("Could not read aloud", err); res(); }
@@ -958,7 +989,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (text) { view("speaking"); await speak(text); }
       if (active) startRec();
     }
-    return { ask, stop, speak, canListen: !!SR };
+    // cycle to the next good voice; returns its name
+    function nextVoice() {
+      const list = rankVoices().filter(v => !ROBOTIC.test(v.name)).slice(0, 8);
+      if (!list.length) return "";
+      const i = chosen ? list.findIndex(v => v.name === chosen.name) : -1;
+      chosen = list[(i + 1) % list.length];
+      return chosen.name;
+    }
+    return { ask, stop, speak, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => chosen ? chosen.name : "" };
   })();
   const VOICE_MSG = {
     speaking: "Reading it out loud…",
@@ -969,12 +1008,20 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   };
   const voiceView = id => (st, heard) => { const el = $(id); if (!el) return; el.textContent = heard ? "Hearing: \u201c" + heard + "\u2026\u201d" : (VOICE_MSG[st] || ""); el.classList.toggle("listening", st === "listening"); };
   const isVoice = () => S.mode === "voice";
+  $("change-voice").addEventListener("click", () => {
+    const name = Voice.nextVoice();
+    if (!name) { $("mic-msg").textContent = "This device has only one voice."; return; }
+    S.voiceName = name; save();
+    $("mic-msg").textContent = "Voice: " + name.replace(/\s*\(.*\)\s*$/, "") + ". Tap again to try another.";
+    Voice.speak("Hi. This is how I'll sound when I read your questions.");
+  });
   function applyMode() {
     document.querySelectorAll("[data-voice-only]").forEach(el => el.hidden = !isVoice());
     $("story-label").textContent = isVoice() ? "What you said (you can fix any words)" : "Your answer";
     $("change-mode").hidden = !S.mode;
     $("change-mode").textContent = isVoice() ? "Switch to typing" : "Switch to talking";
     $("voice-note").hidden = !isVoice();
+    $("change-voice").hidden = !(isVoice() && Voice.canSpeak);
     if (isVoice() && !Voice.canListen) $("voice-note-text").textContent = "This browser can read the questions out loud but can't type what you say. For talking, use Chrome or Safari. You can still use the microphone on your keyboard.";
   }
 
@@ -1951,6 +1998,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   $("glance-boat").innerHTML = IC.boat;
 
   // ---------- start ----------
+  if (S.voiceName) Voice.pickVoice(S.voiceName);
   fillFields(); applyMode();
   addMics(document.querySelector("main"));
   if (!canStore) setSaved("warn");
