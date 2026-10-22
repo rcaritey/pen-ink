@@ -118,10 +118,16 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 .glance-boat { position: absolute; left: 3%; top: 4px; width: 48px; }
 .glance-boat svg { width: 100%; height: auto; display: block; animation: jrbob 2.6s ease-in-out infinite; }
 .glance-stops { position: relative; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-.glance-stops li { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 58px; line-height: 1.25; min-width: 0; }
+.glance-stops li { display: flex; min-width: 0; }
+.glance-sec { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 58px 2px 4px; line-height: 1.25; min-width: 0;
+  background: none; border: none; border-radius: 12px; font: inherit; color: inherit; cursor: pointer; }
+.glance-sec:hover b { text-decoration: underline; }
+.glance-sec > span:last-child { font-size: 0.85rem; color: var(--muted); }
+.here { cursor: pointer; }
+.here:hover { border-color: var(--accent); }
 .glance-stops .dot { position: absolute; top: 28px; width: 26px; height: 26px; border-radius: 50%; background: var(--surface); border: 4px solid var(--c); }
 .glance-stops b { color: var(--c); font-size: 0.98rem; }
-.glance-stops li > span:last-child { font-size: 0.85rem; color: var(--muted); }
+
 .glance-map { display: flex; width: 100%; justify-content: center; margin-top: 2px; min-height: 44px; }
 .start-choices { display: grid; gap: 12px; }
 .start-choice { display: flex; gap: 14px; align-items: center; text-align: left; width: 100%; padding: 16px 18px; border-radius: 16px; cursor: pointer;
@@ -355,7 +361,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 <main class="wrap">
 
   <div class="progress" id="progress" hidden>
-    <div class="here">
+    <div class="here" id="here-card-btn" role="button" tabindex="0" aria-label="Open the map of the full journey">
       <div class="here-river" aria-hidden="true">
         <svg viewBox="0 0 90 120" preserveAspectRatio="none"><path d="M78 -10 C 4 30 4 90 78 130" fill="none" stroke="var(--bank)" stroke-width="46"/><path d="M78 -10 C 4 30 4 90 78 130" fill="none" stroke="var(--river)" stroke-width="34"/><path class="jr-flow" d="M78 -10 C 4 30 4 90 78 130" fill="none" stroke="var(--glint)" stroke-width="2.5"/></svg>
         <span class="here-dock" id="here-dock"></span>
@@ -382,9 +388,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         </svg>
         <span class="glance-boat" id="glance-boat" aria-hidden="true"></span>
         <ol class="glance-stops" aria-label="Your journey">
-          <li style="--c:var(--accent)"><span class="dot" aria-hidden="true"></span><b>Appointment prep</b><span>5 short steps</span></li>
-          <li style="--c:var(--room)"><span class="dot" aria-hidden="true"></span><b>In the room</b><span>2 steps</span></li>
-          <li style="--c:var(--after)"><span class="dot" aria-hidden="true"></span><b>After</b><span>2 steps</span></li>
+          <li style="--c:var(--accent)"><button type="button" class="glance-sec" data-sec="prep"><span class="dot" aria-hidden="true"></span><b>Appointment prep</b><span>5 short steps</span></button></li>
+          <li style="--c:var(--room)"><button type="button" class="glance-sec" data-sec="room"><span class="dot" aria-hidden="true"></span><b>In the room</b><span>2 steps</span></button></li>
+          <li style="--c:var(--after)"><button type="button" class="glance-sec" data-sec="after"><span class="dot" aria-hidden="true"></span><b>After</b><span>2 steps</span></button></li>
         </ol>
         <button type="button" class="btn link glance-map" id="w-map-link">See the full journey map</button>
       </div>
@@ -1220,8 +1226,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     show(0);
   }));
   $("w-map-link").addEventListener("click", () => openJourney("map"));
+  // each section of the glance opens the map at that stage
+  document.querySelectorAll(".glance-sec").forEach(b => b.addEventListener("click", () => {
+    openJourney("map");
+    const i = JSTOPS.findIndex(st => st.ph === b.dataset.sec), stop = $("jr-body").querySelector(`[data-stop="${i}"]`);
+    if (stop) { stop.scrollIntoView({ block: "center" }); jInfo($("jr-body"), i); }
+  }));
   $("w-map-btn").addEventListener("click", () => openJourney("map"));
   $("map-link").addEventListener("click", () => openJourney("map"));
+  $("here-card-btn").addEventListener("click", () => openJourney("map"));
+  $("here-card-btn").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openJourney("map"); } });
   $("w-continue").addEventListener("click", () => show(resumeStep));
   function newVisitConfirm(boxId, focusBack) {
     const box = $(boxId);
@@ -2052,7 +2066,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         style="--c:${JPH[s.ph].c};left:${s.x < 200 ? "41%" : "3%"};top:${jpct(s.y, JH)}" ${here ? 'aria-current="step"' : ""}>
         <span class="k">Step ${jNum(i)}</span><span class="t">${esc(s.t)}</span><span class="s">${esc(s.s)}</span></button>`;
     }).join("");
-    root.innerHTML = `${live ? `<p class="muted jr-intro">${cur < 0 ? "Here's the whole trip. Tap a stop to read about it." : "The boat shows where you are. Tap a stop you've already passed to go back to it."}</p>` : ""}
+    root.innerHTML = `${live ? `<p class="muted jr-intro">${cur < 0 ? "Here's the whole trip. Tap a stop to read about it." : "The boat shows where you are. Tap any stop to go to that step."}</p>` : ""}
       <div class="jr-map">${jMapSVG()}
         <span class="jr-sign" style="--c:${JPH.prep.c};left:4%;top:${jpct(50, JH)}">Appointment prep</span>
         <span class="jr-sign" style="--c:${JPH.room.c};left:4%;top:${jpct(728, JH)}">In the room</span>
@@ -2086,7 +2100,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (st) {
       const i = Number(st.dataset.stop), s = JSTOPS[i], cur = inDialog ? jCur() : -1;
       if (inDialog && cur > -1 && s.steps.includes(S.step)) { dlg.close(); return; }
-      if (inDialog && cur > -1 && s.steps[0] < S.step) { root.querySelector(".jr-info").hidden = true; jSail(root, i, () => { dlg.close(); show(s.steps[0]); }); return; }
+      if (inDialog && cur > -1 && s.steps.length) {
+        if (!S.purpose.trim() && s.steps[0] > 0) { jInfo(root, i); root.querySelector(".jr-info p").insertAdjacentHTML("beforebegin", "<p><b>First, fill in what the appointment is for (step 1).</b></p>"); return; }
+        root.querySelector(".jr-info").hidden = true; jSail(root, i, () => { dlg.close(); show(s.steps[0]); }); return;
+      }
       jInfo(root, i); return;
     }
     if (e.target.closest("[data-info-close]")) { root.querySelector(".jr-info").hidden = true; return; }
