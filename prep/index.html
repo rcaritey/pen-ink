@@ -105,6 +105,8 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 .dym li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
 .dym s { color: var(--muted); }
 .cl-sum .dym { margin-top: 6px; }
+.sheet .say-list { border: 2px solid #111A22; border-radius: 8px; padding: 10px 16px 10px 36px; }
+.sheet .say-list li { font-family: var(--display); font-size: 1.1rem; }
 .sheet .tr-line { display: block; font-size: 0.85em; color: #4A5866; font-style: italic; }
 .glance { position: relative; background: var(--land); border: 1px solid var(--line); border-radius: 18px; padding: 14px 8px 6px; }
 .glance-river { position: absolute; left: 0; right: 0; top: 30px; width: 100%; height: 40px; }
@@ -581,10 +583,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <h2>What matters most?</h2>
     <p class="muted" id="pr-none" hidden>You haven't added any questions yet. Go back to add some, or tap Next.</p>
     <fieldset class="plain" id="pr-first-set">
-      <legend class="q-legend">Which question is most important to get answered? (required)</legend>
-      <p class="help">If you only get one answer, which one?</p>
+      <legend class="q-legend">Which questions are most important to get answered? (required)</legend>
+      <p class="help">Tick one or more. They go first on your pages, in the order you tick them.</p>
       <div class="list" id="pr-first"></div>
-      <p class="error" id="pr-error" hidden>Choose the one question that matters most, then tap Next.</p>
+      <p class="error" id="pr-error" hidden>Tick at least one question that matters most, then tap Next.</p>
     </fieldset>
     <fieldset class="plain" id="pr-more-set">
       <legend class="q-legend">Any others that are most important?</legend>
@@ -862,6 +864,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     b.carried = !!x.carried;
     b.first = str(x.first); b.prioSeen = !!x.prioSeen;
     if (Array.isArray(x.important)) b.important = x.important.map(str).filter(Boolean);
+    if (b.first && !b.important.some(t => t.toLowerCase() === b.first.toLowerCase())) b.important.unshift(b.first);
+    b.first = "";
     if (!(Number(x.v) >= 3) && b.step >= 0) b.step = Math.max(0, b.step - 1);   // older saves had a separate talk-or-type step
     if (x.recap && typeof x.recap === "object") {
       ["said", "more", "nextWith", "nextDate"].forEach(k => b.recap[k] = str(x.recap[k]));
@@ -1168,7 +1172,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function validate(id) {
     if (id === "bg" && S.carried && !S.chg.bg) { $("bg-chg-error").hidden = false; $("bg-no").focus(); return false; }
     if (id === "meds" && S.carried && !S.chg.meds) { $("med-chg-error").hidden = false; $("med-no").focus(); return false; }
-    if (id === "priority" && !$("pr-first-set").hidden && !S.first) { $("pr-error").hidden = false; const r = document.querySelector('input[name="pr-first"]'); if (r) r.focus(); return false; }
+    if (id === "priority" && !$("pr-first-set").hidden && !S.important.length) { $("pr-error").hidden = false; const r = $("prf-0"); if (r) r.focus(); return false; }
     if (id === "appt" && !S.purpose.trim()) { $("purpose-error").hidden = false; $("purpose").focus(); return false; }
     return true;
   }
@@ -1733,10 +1737,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const extra = S.sugg.slice().sort((a, b) => a - b).filter(i => i !== RECORD_Q).map(i => ({ t: sug(i), top: false }));
     const seen = new Set(), all = [];
     own.filter(q => q.top).concat(own.filter(q => !q.top), ai, extra).forEach(q => { const k = q.t.toLowerCase(); if (!seen.has(k)) { seen.add(k); all.push(q); } });
-    if (S.prioSeen) { const imp = new Set(S.important.map(x => x.toLowerCase())); all.forEach(q => { q.top = imp.has(q.t.toLowerCase()); }); }
-    const fi = S.first ? all.findIndex(q => q.t.toLowerCase() === S.first.toLowerCase()) : -1;
-    const first = fi > -1 ? Object.assign(all.splice(fi, 1)[0], { top: true, first: true }) : null;
-    return { top: (first ? [first] : []).concat(all.filter(q => q.top)), rest: all.filter(q => !q.top), first };
+    let firsts = [];
+    if (S.prioSeen) {
+      all.forEach(q => { q.top = false; });
+      firsts = S.important.map(x => { const i = all.findIndex(q => q.t.toLowerCase() === x.toLowerCase()); return i > -1 ? Object.assign(all.splice(i, 1)[0], { top: true, first: true }) : null; }).filter(Boolean);
+    }
+    return { top: firsts.concat(all.filter(q => q.top)), rest: all.filter(q => !q.top), firsts };
   }
 
   // ---------- what matters most ----------
@@ -1750,19 +1756,22 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function renderPriority() {
     const qs = questionTexts();
     if (!S.prioSeen) { S.important = S.ask.filter(q => q.top && q.t.trim()).map(q => q.t.trim()); S.prioSeen = true; save(); }
-    if (S.first && !qs.some(t => t.toLowerCase() === S.first.toLowerCase())) S.first = "";
-    $("pr-none").hidden = qs.length > 0; $("pr-first-set").hidden = !qs.length; $("pr-more-set").hidden = qs.length < 2;
+    if (S.first && !S.important.some(x => x.toLowerCase() === S.first.toLowerCase())) S.important.unshift(S.first);   // older single choice
+    S.first = "";
+    S.important = S.important.filter(x => qs.some(t => t.toLowerCase() === x.toLowerCase()));
+    $("pr-none").hidden = qs.length > 0; $("pr-first-set").hidden = !qs.length; $("pr-more-set").hidden = true;
     const one = $("pr-first"); one.innerHTML = "";
     qs.forEach((t, i) => {
-      const lab = document.createElement("label"); lab.className = "choice"; lab.setAttribute("for", "prf-" + i);
-      lab.innerHTML = `<input type="radio" name="pr-first" id="prf-${i}" ${S.first.toLowerCase() === t.toLowerCase() ? "checked" : ""}><span>${esc(t)}</span>`;
-      lab.querySelector("input").addEventListener("change", () => {
-        S.first = t; S.important = S.important.filter(x => x.toLowerCase() !== t.toLowerCase());
-        $("pr-error").hidden = true; save(); renderMore(qs);
+      const on = S.important.some(x => x.toLowerCase() === t.toLowerCase());
+      const lab = document.createElement("label"); lab.className = "sugg"; lab.setAttribute("for", "prf-" + i);
+      lab.innerHTML = `<input type="checkbox" id="prf-${i}" ${on ? "checked" : ""}><span>${esc(t)}</span>`;
+      lab.querySelector("input").addEventListener("change", e => {
+        S.important = S.important.filter(x => x.toLowerCase() !== t.toLowerCase());
+        if (e.target.checked) S.important.push(t);
+        $("pr-error").hidden = true; save();
       });
       one.appendChild(lab);
     });
-    renderMore(qs);
   }
   function renderMore(qs) {
     const more = $("pr-more"); more.innerHTML = "";
@@ -1834,7 +1843,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // answers like "not sure" help the family, but are noise for the doctor
     const UNSURE = /^(not sure|unsure|i'?m not sure|don'?t know|i don'?t know|no idea|can'?t say)\W*$/i;
     const facts = tell.filter(t => { const i = t.indexOf(": "); return !UNSURE.test((i > -1 ? t.slice(i + 2) : t).trim()); });
-    const { top: topAll, rest, first } = allQuestions();
+    const { top: topAll, rest, firsts } = allQuestions();
+    const first = firsts.length ? firsts[0] : null;
     const top = topAll.filter(q => !q.first);
     const liX = f => q => `<li${q.top ? ' class="top"' : ""}>${q.top ? '<span class="star" aria-label="most important">★</span> ' : ""}${f(q.t)}</li>`;
     const li = liX(x => esc(D(x))), liBoth = liX(both), liP = liX(x => esc(P(x)));
@@ -1845,7 +1855,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <p style="margin-top:8px">Hand the doctor your summary sheet.</p>
       ${recordAsk ? `<p style="margin-top:4px">Then ask: "Is it okay if I record this appointment on my phone?"</p>` : ""}</section>
       <section><h3>Make sure I mention</h3>${facts.length ? `<ul>${facts.slice(0, 8).map(t => `<li>${both(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
-      ${first ? `<section><h3>If I only get one answer</h3><p class="say">${both(first.t)}</p></section>` : ""}
+      ${first ? `<section><h3>Most important to me</h3><ol class="say-list">${firsts.map(q => `<li>${both(q.t)}</li>`).join("")}</ol></section>` : ""}
       <section><h3>${first ? "My other questions" : "My questions"}</h3>${top.length + shortRest.length ? `<ol>${top.concat(shortRest).map(liBoth).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}
       ${rest.length > shortRest.length ? `<p style="margin-top:6px;color:#3B4A57">More questions are on the full list.</p>` : ""}</section>
       <section><h3>My notes: what the doctor says</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div><div class="blank"></div>
@@ -1869,7 +1879,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         ["Changes since last visit", !S.carried ? "" : S.chg.meds === "yes" ? (esc(D(S.chg.medNote)) || "Yes (see list)") : S.chg.meds === "no" ? "None reported" : ""],
         ["Allergies", esc(D(S.bg.allergies)) || "None listed"]
       ])}</section>
-      ${first ? `<section><h3>Most important question to the patient</h3><p><b>${esc(D(first.t))}</b></p></section>` : ""}
+      ${first ? `<section><h3>Most important ${firsts.length > 1 ? "questions" : "question"} to the patient</h3><ol>${firsts.map(q => `<li><b>${esc(D(q.t))}</b></li>`).join("")}</ol></section>` : ""}
       ${qD.length ? `<section><h3>${first ? "Other questions" : "Patient's questions"}</h3><ol>${qD.map(li).join("")}</ol></section>` : ""}
       <section class="how"><h3>How this summary was prepared</h3>
         <p>The patient answered questions at home, in their own words, with family. Questions followed a standard symptom history (onset, location, duration, character, what makes it worse or better, timing, severity) and checked their other conditions and medicines. ${S.consent === true ? "An AI assistant (Claude, by Anthropic) suggested questions only. It did not diagnose." : "No AI was used."}${S.lang === "fr" && S.docLang === "en" && S.consent === true ? " The patient answered in French; answers were translated by the same AI." : ""} Answers are as reported by the patient and have not been verified. Not a medical record. Method: pen-ink.ca/prep</p></section>`;
@@ -1886,7 +1896,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       ${bgBits ? `<section><h3>Health background</h3>${bgBits}</section>` : ""}
       ${S.story.trim() ? `<section><h3>In their words</h3><p>${esc(S.story).replace(/\n/g, "<br>")}</p></section>` : ""}
       <section><h3>Make sure the doctor hears</h3>${tell.length ? `<ul class="check">${tell.map(t => `<li>${esc(P(t))}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
-      ${first ? `<section><h3>Most important question</h3><p><b>${esc(P(first.t))}</b></p></section>` : ""}
+      ${first ? `<section><h3>Most important ${firsts.length > 1 ? "questions" : "question"}</h3><ol>${firsts.map(q => `<li><b>${esc(P(q.t))}</b></li>`).join("")}</ol></section>` : ""}
       <section><h3>${first ? "Other questions" : "All questions"}</h3>${top.length + rest.length ? `<ol>${top.concat(rest).map(liP).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}</section>
       <section><h3>Medications</h3>${medsHTML()}</section>
       <section><h3>Bring</h3><ul class="check"><li>The patient's page and this list</li><li>Medication bottles, or the list above</li><li>Health card</li>${recordAsk ? "<li>Phone charged, to record</li>" : ""}</ul></section>
