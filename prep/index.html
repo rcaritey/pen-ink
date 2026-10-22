@@ -116,6 +116,11 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 .start-choice b { display: block; font-size: 1.2rem; }
 .start-choice span span { display: block; color: var(--muted); font-size: 0.95rem; line-height: 1.35; }
 .open-copy { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.how-step { display: flex; flex-direction: column; gap: 4px; padding-left: 14px; border-left: 4px solid var(--accent); }
+.how-step h3 { font-size: 1.1rem; }
+.sheet .how { margin-top: 18px; border: 1px solid #C9D2DB; border-radius: 6px; padding: 8px 12px; background: #F5F7F9; }
+.sheet .how h3 { border: none; margin-bottom: 2px; padding: 0; font-size: 0.8rem; }
+.sheet .how p { font-size: 0.82rem; color: #3B4A57; line-height: 1.4; }
 @media (prefers-reduced-motion: reduce) { .glance-boat svg, .start-choice { animation: none; transition: none; } }
 .say-inline { font-family: var(--display); }
 .q-legend { font-weight: 700; padding: 0; margin-bottom: 4px; font-size: 1rem; }
@@ -393,6 +398,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <div id="w-new-confirm" class="hint" hidden></div>
     </div>
     <div class="open-copy">
+      <button type="button" class="btn link" data-open-how>How this works</button>
       <label class="btn link" for="file-open" style="margin:0">Have a saved copy? Open it</label>
       <input type="file" id="file-open" accept=".json,application/json" class="visually-hidden">
       <p class="status" id="file-status" role="status" aria-live="polite"></p>
@@ -703,6 +709,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 
 <footer class="foot">
   <span>Made by <a href="/">Pen &amp; Ink</a></span>
+  <button type="button" class="btn link" data-open-how>How this works</button>
   <button type="button" class="btn link" data-open-safe>How your information stays safe</button>
   <button type="button" class="btn link" id="change-mode" hidden>Switch to typing</button>
   <button type="button" class="btn link" data-download>Download a copy</button>
@@ -1539,7 +1546,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       ])}</section>
       ${first ? `<section><h3>Most important question to the patient</h3><p><b>${esc(first.t)}</b></p></section>` : ""}
       ${qD.length ? `<section><h3>${first ? "Other questions" : "Patient's questions"}</h3><ol>${qD.map(li).join("")}</ol></section>` : ""}
-      <p class="fine">Prepared by the patient and family before the visit, in their own words. Not a medical record.</p>`;
+      <section class="how"><h3>How this summary was prepared</h3>
+        <p>The patient answered questions at home, in their own words, with family. Questions followed a standard symptom history (onset, location, duration, character, what makes it worse or better, timing, severity) and checked their other conditions and medicines. ${S.consent === true ? "An AI assistant (Claude, by Anthropic) suggested questions only. It did not diagnose." : "No AI was used."} Answers are as reported by the patient and have not been verified. Not a medical record. Method: pen-ink.ca/prep</p></section>`;
     const bgBits = [
       cond.length ? `<p><b>Conditions:</b></p><ul>${cond.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "",
       S.bg.changes.trim() ? `<p><b>Recent changes:</b> ${esc(S.bg.changes).replace(/\n/g, "<br>")}</p>` : "",
@@ -1707,11 +1715,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         <span class="jr-chip" style="left:86%;top:${jpct(1120, JH)}">Doctor says yes<span>record on your phone</span></span>
         ${stops}<div class="jr-boat">${IC.boat}</div></div>
       <div class="jr-info" hidden></div>
-      ${live ? `<button type="button" class="jr-safe-link" data-open-safe>${IC.shield}<span><b>How your information stays safe</b><span>Where your answers are kept, and what is sent.</span></span></button>` : ""}`;
+      ${live ? `<button type="button" class="jr-safe-link" data-open-how>${IC.spark}<span><b>How this works</b><span>The approach, in plain words. Also for doctors.</span></span></button>
+      <button type="button" class="jr-safe-link" data-open-safe>${IC.shield}<span><b>How your information stays safe</b><span>Where your answers are kept, and what is sent.</span></span></button>` : ""}`;
     jBoatAt = cur < 0 ? jLaunch : jLens[cur]; jPlaceBoat(root, jBoatAt);
     return root.querySelector(".jr-stop.here");
   }
   function jRenderMap() {
+    jView = "map";
     $("jr-title").textContent = "Map of the full journey"; $("jr-back").hidden = true;
     const here = jRenderMapInto($("jr-body"), true);
     if (here) requestAnimationFrame(() => here.scrollIntoView({ block: "center" }));
@@ -1739,7 +1749,30 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   $("jr-body").addEventListener("click", jClick);
 
+  let jView = "map";
+  function jRenderHow(fromJourney) {
+    jView = "how";
+    $("jr-title").textContent = "How this works"; $("jr-back").hidden = !fromJourney;
+    const step = (t, b) => `<section class="how-step"><h3>${t}</h3><p>${b}</p></section>`;
+    $("jr-body").innerHTML = `<div class="sf">
+      <p class="lead">A simple method, built with a family living with Parkinson's, to help you get the most from every appointment.</p>
+      ${step("You speak first", "Your own words come first, and nobody interrupts. If you choose Talk, each question is read out loud and the app waits until you say \u201ccarry on\u201d.")}
+      ${step("The questions a doctor would ask", "The questions follow the standard way doctors take a history: when it started, where it is, what it feels like, what makes it better or worse, how often, and how bad. Then a few about your other conditions and medicines, only where they matter.")}
+      ${step("Connecting the dots", "It checks whether today's concern could be linked to a long-term condition or a medicine, even when you're seeing a different kind of practitioner. If so, it suggests you ask. It never says something is linked. That's for your doctor.")}
+      ${step("Safety first", "If something sounds like an emergency, it tells you to call 911. If something sounds worrying, it suggests calling your doctor or Health811 today.")}
+      ${step("You decide", "Claude, an AI assistant made by Anthropic, only suggests questions, and only if you say yes. It doesn't diagnose or give medical advice. You choose what goes on your pages.")}
+      ${step("Three pages, one for each person", "A summary for the doctor to read, your own page to ask from and take notes on, and a full list for family.")}
+      ${step("After the visit", "Write down what the doctor said and what happens next, and send it to family. Questions that didn't get answered carry over to your next appointment.")}
+      <section class="card"><h3>For doctors and clinicians</h3>
+        <p>The summary is reported by the patient and organised for a quick read: reason for visit, details of the concern (onset, location, duration, character, what makes it worse or better, timing, severity), health background, medications with changes since the last visit, and the patient's questions with their top priority.</p>
+        <p>Questions are prompted by a guide based on standard history-taking and common screening topics. No licensed questionnaire items or scores are used. It is not a medical record and has not been verified.</p>
+        <p>Feedback is welcome: <b>hello@pen-ink.ca</b></p></section>
+      <button type="button" class="jr-safe-link" data-open-safe>${IC.shield}<span><b>How your information stays safe</b><span>Where your answers are kept, and what is sent.</span></span></button>
+    </div>`;
+    $("jr-body").scrollTop = 0;
+  }
   function jRenderSafe(fromJourney) {
+    jView = "safe";
     $("jr-title").textContent = "Your information"; $("jr-back").hidden = !fromJourney;
     $("jr-body").innerHTML = `<div class="sf">
       <p class="lead">Your health story belongs to you and your family. Here is where your answers are kept, and when anything leaves this phone or computer.</p>
@@ -1772,7 +1805,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("jr-body").scrollTop = 0;
   }
   function openJourney(view) {
-    if (view === "safe") jRenderSafe(false); else jRenderMap();
+    if (view === "safe") jRenderSafe(false); else if (view === "how") jRenderHow(false); else jRenderMap();
     if (!dlg.open) { try { dlg.showModal(); } catch (err) { console.warn("Could not open the journey", err); dlg.setAttribute("open", ""); } }
     $("jr-close").focus();
   }
@@ -1780,10 +1813,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   $("jr-close").addEventListener("click", () => dlg.close());
   $("jr-back").addEventListener("click", () => { jRenderMap(); $("jr-close").focus(); });
   dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+  // info pages open inside the overlay; from the map (or each other) they get a Back link to the map
   document.addEventListener("click", e => {
-    if (!e.target.closest("[data-open-safe]")) return;
-    if (dlg.open && $("jr-back").hidden && $("jr-title").textContent === "Your journey") { jRenderSafe(true); $("jr-back").focus(); }
-    else openJourney("safe");
+    const v = e.target.closest("[data-open-safe]") ? "safe" : e.target.closest("[data-open-how]") ? "how" : "";
+    if (!v) return;
+    if (dlg.open) { (v === "safe" ? jRenderSafe : jRenderHow)(true); $("jr-back").focus(); }
+    else openJourney(v);
   });
 
   // ---------- after the appointment: recap and sharing ----------
