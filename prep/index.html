@@ -238,8 +238,17 @@ textarea { min-height: 180px; resize: vertical; }
     </div>
     <div class="row no-print">
       <button type="button" class="btn primary" id="print">Print this sheet</button>
+      <button type="button" class="btn primary" id="share">Send to family</button>
       <button type="button" class="btn secondary" id="copy">Copy this sheet as text</button>
       <span class="status" id="copy-status" role="status" aria-live="polite"></span>
+    </div>
+    <div id="share-pick" class="hint no-print" hidden>
+      <strong>How do you want to send it?</strong>
+      It sends the caregiver's list. Nothing is stored on this website.
+      <div class="row" style="margin-top:10px">
+        <button type="button" class="btn secondary" id="share-email">Email</button>
+        <button type="button" class="btn secondary" id="share-text">Text message</button>
+      </div>
     </div>
     <div class="sheet-holder">
       <div class="sheet" id="sheet-p" role="tabpanel" aria-labelledby="tab-p"></div>
@@ -467,6 +476,28 @@ textarea { min-height: 180px; resize: vertical; }
   $("fresh-no").addEventListener("click", () => { $("fresh-confirm").hidden = true; $("fresh").focus(); });
   $("fresh-yes").addEventListener("click", () => { S = blank(); $("fresh-confirm").hidden = true; renderAll(); go(0); });
   $("print").addEventListener("click", () => window.print());
+  function familyText() {
+    buildSheets();
+    return sheetText($("sheet-c"));
+  }
+  function familySubject() {
+    const who = S.who.trim(), when = fmtDate(S.date);
+    return "Appointment prep" + (who ? " for " + who : "") + (when ? ", " + when : "");
+  }
+  $("share").addEventListener("click", async () => {
+    const text = familyText();
+    if (navigator.share) {
+      try { await navigator.share({ title: familySubject(), text }); return; }
+      catch (err) { if (err && err.name === "AbortError") return; console.warn("share", err); }
+    }
+    $("share-pick").hidden = false; $("share-email").focus();
+  });
+  $("share-email").addEventListener("click", () => {
+    location.href = "mailto:?subject=" + encodeURIComponent(familySubject()) + "&body=" + encodeURIComponent(familyText());
+  });
+  $("share-text").addEventListener("click", () => {
+    location.href = "sms:?&body=" + encodeURIComponent(familyText());
+  });
   $("app").addEventListener("submit", e => e.preventDefault());
 
   function renderAll() { fillSimple(); renderTell(); renderAsk(); renderSugg(); renderMeds(); }
