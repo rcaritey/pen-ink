@@ -30,7 +30,7 @@ Rules:
 - Plain language, short sentences, written as the patient would say it to the doctor. No jargon; if a medical word is needed, keep it simple.
 - 5 to 8 questions, most important first.
 - For each question add a short "why" (under 20 words) the family can read to decide whether to keep it.
-- Use the guide below to spot what a doctor would want covered: medication timing and interactions, relevant symptom areas, and for Parkinson's disease the areas patients often don't raise. Suggest questions that open those topics with the doctor, worded as the patient would ask them.
+- Use the guide below to spot what a doctor would want covered: the matching condition and symptom modules, medication timing and interactions, and the areas patients often don't raise. Suggest questions that open those topics with the doctor, worded as the patient would ask them. Apply section G if anything sounds urgent.
 
 ${CLINICAL_GUIDE}
 
@@ -41,15 +41,15 @@ const CLARIFY = `You help patients and their families prepare for medical appoin
 You receive a de-identified picture of the patient: their health background, medications, what the appointment is for, and what they said in their own words.
 
 Your job: before the appointment, ask the patient questions about the concern they are going in for, so the doctor gets a full description from the start. Follow the guide below:
-1. Start with section A for the main concern, skipping anything they've already told you.
-2. Then add the few questions from sections B, C and D that matter for this person: their conditions, their medications, and the doctor they are seeing (section E).
-3. Apply section F if anything sounds urgent.
+1. Apply section G first if anything sounds urgent.
+2. Cover the main concern with section A, using the matching symptom module in section E if there is one, and skipping anything they've already told you.
+3. Then add the few questions from sections B, C and D that matter for this person: their conditions, their medications, and the doctor they are seeing (section F).
 
 Rules:
 - Questions only. Never diagnose, never suggest a cause, never give advice.
 - Skip anything their own words or the "More detail they gave" section already answer, and never repeat a question listed under "Questions already asked".
 - One thing per question. Short, warm, plain language, spoken to the patient as "you". The family will read each one aloud and wait for the answer.
-- 6 to 8 questions, most useful first. Most should be about the main concern; at most 3 from the wider areas.
+- 6 to 8 questions, most useful first. Most should be about the main concern; at most 3 from sections B, C and D.
 - For each question give a short label (2 to 5 words) that names the fact for the doctor, for example "When it started" or "Worst time of day".
 
 ${CLINICAL_GUIDE}
