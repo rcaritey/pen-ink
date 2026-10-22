@@ -105,6 +105,11 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 .dym li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
 .dym s { color: var(--muted); }
 .cl-sum .dym { margin-top: 6px; }
+.sheet .if-list { margin-top: 6px; }
+.sheet .ans-note { margin-top: 14px; font-size: 0.85rem; color: #3B4A57; font-style: italic; }
+.sheet .ans-q > li { break-inside: avoid; page-break-inside: avoid; margin-bottom: 10px; }
+.sheet .ans-lines .blank { min-height: 26px; }
+.sheet section:has(.ans-q) { break-inside: auto; page-break-inside: auto; }
 .sheet .say-list { border: 2px solid #111A22; border-radius: 8px; padding: 10px 16px 10px 36px; }
 .sheet .say-list li { font-family: var(--display); font-size: 1.1rem; }
 .sheet .tr-line { display: block; font-size: 0.85em; color: #4A5866; font-style: italic; }
@@ -1853,7 +1858,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("sheet-p").innerHTML = header("My page") + `
       <section><h3>Start with</h3><p class="say">"I have some questions I'd like to go through. May I start?"</p>
       <p style="margin-top:8px">Hand the doctor your summary sheet.</p>
-      ${recordAsk ? `<p style="margin-top:4px">Then ask: "Is it okay if I record this appointment on my phone?"</p>` : ""}</section>
+      ${recordAsk ? `<p style="margin-top:4px">Then ask: "Is it okay if I record this appointment on my phone?"</p>
+      <ul class="if-list"><li><b>If yes:</b> start recording on your phone, for example with Voice Memos.</li>
+        <li><b>If no:</b> that's fine. Ask: "Could you jot your answers on the sheet I gave you?" There is space under each question. Or take notes below, and read them back before you leave.</li></ul>`
+      : `<p style="margin-top:4px">Ask: "Could you jot your answers on the sheet I gave you?" There is space under each question.</p>`}</section>
       <section><h3>Make sure I mention</h3>${facts.length ? `<ul>${facts.slice(0, 8).map(t => `<li>${both(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
       ${first ? `<section><h3>Most important to me</h3><ol class="say-list">${firsts.map(q => `<li>${both(q.t)}</li>`).join("")}</ol></section>` : ""}
       <section><h3>${first ? "My other questions" : "My questions"}</h3>${top.length + shortRest.length ? `<ol>${top.concat(shortRest).map(liBoth).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}
@@ -1864,6 +1872,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const dl = rows => `<dl class="dl">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>`;
     const medsD = S.meds.filter(x => x.n.trim()).map(x => esc([x.n, x.d.trim() || "dose not known", D(x.w)].filter(v => v && v.trim()).join(", ")));
     const qD = top.concat(rest).slice(0, 8);
+    const lined = n => `<div class="ans-lines" aria-hidden="true">${'<div class="blank"></div>'.repeat(n)}</div>`;
     $("sheet-d").innerHTML = `<h2>Patient summary${S.who.trim() ? " · " + esc(S.who) : ""}</h2>
       <div class="meta">${[S.seeing, fmtDate(S.date), fmtTime(S.time)].filter(x => x && x.trim()).map(x => `<span>${esc(x)}</span>`).join("")}</div>
       <section><h3>Reason for visit</h3><p>${esc(D(S.purpose)) || '<span class="empty">Not given</span>'}</p></section>
@@ -1879,8 +1888,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         ["Changes since last visit", !S.carried ? "" : S.chg.meds === "yes" ? (esc(D(S.chg.medNote)) || "Yes (see list)") : S.chg.meds === "no" ? "None reported" : ""],
         ["Allergies", esc(D(S.bg.allergies)) || "None listed"]
       ])}</section>
-      ${first ? `<section><h3>Most important ${firsts.length > 1 ? "questions" : "question"} to the patient</h3><ol>${firsts.map(q => `<li><b>${esc(D(q.t))}</b></li>`).join("")}</ol></section>` : ""}
-      ${qD.length ? `<section><h3>${first ? "Other questions" : "Patient's questions"}</h3><ol>${qD.map(li).join("")}</ol></section>` : ""}
+      ${first || qD.length ? `<p class="ans-note">Space is left under each question if you'd like to write your answer.</p>` : ""}
+      ${first ? `<section><h3>Most important ${firsts.length > 1 ? "questions" : "question"} to the patient</h3><ol class="ans-q">${firsts.map(q => `<li><b>${esc(D(q.t))}</b>${lined(3)}</li>`).join("")}</ol></section>` : ""}
+      ${qD.length ? `<section><h3>${first ? "Other questions" : "Patient's questions"}</h3><ol class="ans-q">${qD.map(q => `<li>${esc(D(q.t))}${lined(2)}</li>`).join("")}</ol></section>` : ""}
       <section class="how"><h3>How this summary was prepared</h3>
         <p>The patient answered questions at home, in their own words, with family. Questions followed a standard symptom history (onset, location, duration, character, what makes it worse or better, timing, severity) and checked their other conditions and medicines. ${S.consent === true ? "An AI assistant (Claude, by Anthropic) suggested questions only. It did not diagnose." : "No AI was used."}${S.lang === "fr" && S.docLang === "en" && S.consent === true ? " The patient answered in French; answers were translated by the same AI." : ""} Answers are as reported by the patient and have not been verified. Not a medical record. Method: pen-ink.ca/prep</p></section>`;
     const condP = lines(S.bg.conditions).map(P);
