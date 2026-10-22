@@ -14,6 +14,11 @@
 export const CLINICAL_GUIDE = `CLINICAL QUESTION GUIDE
 Use it to choose topics. Always write questions in your own plain words. Pick only the modules that match the concern, the health background, the medications or the doctor being seen. Never ask about everything.
 
+CROSS-CHECK (always): before choosing questions, ask yourself whether today's concern could be connected to any condition or medication in the health background, even when the visit is with a different kind of practitioner. A foot clinic, dentist or family doctor may be the first to hear about a symptom that belongs to a long-term condition. When a link is possible:
+- ask the patient one question that would help show it (for example, whether the symptom changes with medication timing), and
+- suggest the patient ask the practitioner, in plain words, "Could this be connected to my [condition] or its medication, and should my [specialist] know about it?"
+Never state that it is connected.
+
 A. THE MAIN CONCERN: always cover these first, skipping what the patient has already said
 - Onset: when it started, and whether it came on suddenly or slowly.
 - Location: exactly where, and whether it spreads or moves.
@@ -79,6 +84,7 @@ Lungs and breathing (COPD, asthma, other long-term lung conditions)
 Parkinson's disease
 - Whether symptoms change across the day with medication: wearing off before the next dose, slow to kick in, or extra involuntary movements.
 - Freezing, shuffling or falls.
+- Pain or unusual sensations (burning, aching, numbness, cramping, or toes or feet curling or twisting), and whether they change with medication timing or time of day. Relevant to any visit about pain, feet or sleep, not only neurology.
 - A short non-motor check, in plain words, on areas people often don't raise: sleep and vivid dreams, constipation, bladder, mood and worry, motivation, memory, seeing things, dizziness on standing, sense of smell, pain, swallowing, voice, sweating.
 - For a neurologist visit, a brief non-motor check is usually worth including. For other visits, include only the parts linked to the concern.
 
@@ -116,7 +122,7 @@ Injuries and accidents
 F. FIT THE DOCTOR BEING SEEN
 - Specialist: focus on that specialty's area, plus anything from the background that could affect it.
 - Family doctor: the main concern first, then any area from B, C or D that seems relevant.
-- Foot care or skin clinic: the skin, nails and feet area, plus diabetes and circulation if they are in the background.
+- Foot care or skin clinic: the skin, nails and feet area, plus any background condition that can affect the feet, skin or nerves (for example diabetes, circulation problems or Parkinson's).
 - Follow-up visit: what has changed since last time, and whether the last treatment helped.
 
 G. SAFETY (this overrides the "questions only" rule)
