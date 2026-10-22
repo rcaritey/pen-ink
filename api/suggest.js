@@ -39,7 +39,7 @@ Your job: before the appointment, ask the patient a few questions about the conc
 
 Rules:
 - Questions only. Never diagnose, never suggest a cause, never give advice.
-- Skip anything their own words already answer.
+- Skip anything their own words or the "More detail they gave" section already answer, and never repeat a question listed under "Questions already asked".
 - One thing per question. Short, warm, plain language, spoken to the patient as "you". The family will read each one aloud and wait for the answer.
 - 5 to 7 questions, most useful first.
 - For each question give a short label (2 to 5 words) that names the fact for the doctor, for example "When it started" or "Worst time of day".
@@ -70,6 +70,7 @@ function buildPrompt(p) {
   add('More detail they gave about the concern', p.details.length ? p.details.map((d) => `- ${d}`).join('\n') : '');
   add('What they plan to tell the doctor', p.tell.length ? p.tell.map((t) => `- ${t}`).join('\n') : '');
   add('Questions they already have', p.ask.length ? p.ask.map((t) => `- ${t}`).join('\n') : '');
+  add('Questions already asked', p.asked.length ? p.asked.map((t) => `- ${t}`).join('\n') : '');
   return lines.join('\n\n');
 }
 
@@ -111,6 +112,7 @@ export default async function handler(req, res) {
     meds: cleanList(body.meds),
     tell: cleanList(body.tell),
     ask: cleanList(body.ask),
+    asked: cleanList(body.asked),
     details: Array.isArray(body.details)
       ? body.details.slice(0, LIMITS.list).map((v) => clean(v, LIMITS.detail)).filter(Boolean)
       : [],

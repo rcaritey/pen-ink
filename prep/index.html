@@ -1268,18 +1268,22 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (S.consent === true && !S.clarify.qs.length) fetchClarify();
     else voiceAsk(false);
   }
-  async function fetchClarify() {
+  // more=true keeps every question already answered and adds new ones after them
+  async function fetchClarify(more) {
     const status = $("detail-status");
-    status.textContent = "Claude is writing questions about this. It takes about 15 seconds.";
+    const kept = more === true ? S.clarify.qs.filter(q => q.a.trim()) : [];
+    status.textContent = kept.length ? "Claude is writing more questions. Your answers so far are kept." : "Claude is writing questions about this. It takes about 15 seconds.";
     try {
-      const qs = await callClaude(picture({ mode: "clarify" }));
-      S.clarify = { qs: qs.map(q => ({ q: q.q, label: q.label || "", a: "" })), i: 0, done: false, merged: S.clarify.merged || [] };
+      const qs = await callClaude(picture({ mode: "clarify", details: kept.map(q => (q.label || q.q) + ": " + q.a.trim()), asked: S.clarify.qs.map(q => q.q) }));
+      const seen = new Set(S.clarify.qs.map(q => q.q.trim().toLowerCase()));
+      const fresh = qs.filter(q => !seen.has(q.q.trim().toLowerCase())).map(q => ({ q: q.q, label: q.label || "", a: "" }));
+      S.clarify = { qs: kept.concat(fresh), i: kept.length, done: false, merged: S.clarify.merged || [] };
       save(); status.textContent = "";
       if (STEPS[S.step].id !== "detail") return;
       renderClarify(); focusQ(); voiceAsk(true);
     } catch (err) {
       status.innerHTML = `${esc(err.message)} <button type="button" class="btn link" id="cl-retry">Try again</button>`;
-      $("cl-retry").addEventListener("click", fetchClarify);
+      $("cl-retry").addEventListener("click", () => fetchClarify(more));
     }
   }
   function mergeDetails() {
@@ -1327,9 +1331,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         ${got.length ? `<ul class="cl-sum">${got.map(q => `<li><b>${esc(q.label || q.q)}:</b> ${esc(q.a)}</li>`).join("")}</ul>
           <p>These are added to <b>What to tell the doctor</b>. Tap <b>Next</b> to check them.</p>` : `<p>No answers this time. Tap <b>Next</b> to carry on.</p>`}
         <div class="row"><button type="button" class="btn secondary" id="cl-redo">Change an answer</button>
-        <button type="button" class="btn link" id="cl-new">Ask me different questions</button></div>`;
+        <button type="button" class="btn link" id="cl-new">Ask me more questions</button></div>`;
       $("cl-redo").addEventListener("click", () => { c.i = 0; save(); renderClarify(); focusQ(); voiceAsk(false); });
-      $("cl-new").addEventListener("click", () => { S.clarify.qs = []; S.clarify.i = 0; save(); renderClarify(); fetchClarify(); });
+      $("cl-new").addEventListener("click", () => fetchClarify(true));
     }
   }
   const focusQ = () => { const el = $("cl-qtext"); if (el) el.focus(); };
