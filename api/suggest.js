@@ -8,6 +8,8 @@
 // - Only error status codes are logged, never request content.
 // No npm dependencies on purpose, same as api/contact.js.
 
+import { CLINICAL_GUIDE } from './_guide.js';
+
 const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages';
 const MODEL = process.env.PREP_MODEL || 'claude-sonnet-5-5';
 
@@ -28,6 +30,9 @@ Rules:
 - Plain language, short sentences, written as the patient would say it to the doctor. No jargon; if a medical word is needed, keep it simple.
 - 5 to 8 questions, most important first.
 - For each question add a short "why" (under 20 words) the family can read to decide whether to keep it.
+- Use the guide below to spot what a doctor would want covered: medication timing and interactions, relevant symptom areas, and for Parkinson's disease the areas patients often don't raise. Suggest questions that open those topics with the doctor, worded as the patient would ask them.
+
+${CLINICAL_GUIDE}
 
 Reply with JSON only, no other text, in exactly this shape:
 {"questions":[{"q":"...","why":"..."}]}`;
@@ -35,14 +40,19 @@ Reply with JSON only, no other text, in exactly this shape:
 const CLARIFY = `You help patients and their families prepare for medical appointments in Ontario, Canada.
 You receive a de-identified picture of the patient: their health background, medications, what the appointment is for, and what they said in their own words.
 
-Your job: before the appointment, ask the patient a few questions about the concern they are going in for, so the doctor gets a full description from the start. Ask what a careful clinician would want to know, for example: when it started and how it began, exactly where, what it feels like, how bad it is (0 to 10), when it happens or is worst, what makes it better or worse, what they have already tried, whether it is changing, other symptoms that come with it, and how it affects daily life, sleep or activity. Use their background and medications to choose what matters (for example, ask about timing relative to medication doses when that could be relevant).
+Your job: before the appointment, ask the patient questions about the concern they are going in for, so the doctor gets a full description from the start. Follow the guide below:
+1. Start with section A for the main concern, skipping anything they've already told you.
+2. Then add the few questions from sections B, C and D that matter for this person: their conditions, their medications, and the doctor they are seeing (section E).
+3. Apply section F if anything sounds urgent.
 
 Rules:
 - Questions only. Never diagnose, never suggest a cause, never give advice.
 - Skip anything their own words or the "More detail they gave" section already answer, and never repeat a question listed under "Questions already asked".
 - One thing per question. Short, warm, plain language, spoken to the patient as "you". The family will read each one aloud and wait for the answer.
-- 5 to 7 questions, most useful first.
+- 6 to 8 questions, most useful first. Most should be about the main concern; at most 3 from the wider areas.
 - For each question give a short label (2 to 5 words) that names the fact for the doctor, for example "When it started" or "Worst time of day".
+
+${CLINICAL_GUIDE}
 
 Reply with JSON only, no other text, in exactly this shape:
 {"questions":[{"q":"...","label":"..."}]}`;
