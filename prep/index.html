@@ -122,6 +122,13 @@ textarea { min-height: 180px; resize: vertical; }
   .sheet { border: none; padding: 0; max-width: none; }
   .sheet[hidden] { display: none !important; }
 }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ai-box { border: 1.5px solid var(--accent); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; background: var(--accent-soft); }
+.ai-box .sugg { background: var(--surface); }
+.sugg .why { display: block; color: var(--muted); font-size: 0.92rem; margin-top: 2px; }
+.error { color: var(--danger); font-weight: 700; }
+.carefile { margin-top: 6px; }
+.btn:disabled { opacity: .6; cursor: progress; }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 </style>
 
@@ -131,15 +138,29 @@ textarea { min-height: 180px; resize: vertical; }
   <header class="top">
     <span class="eyebrow">Appointment prep</span>
     <h1>Get ready for the appointment</h1>
-    <p class="muted">Work through it together, one step at a time. Nothing is saved: when you close this page, it's gone.</p>
+    <p class="muted">Work through it together, one step at a time. Your answers stay on this device. This website doesn't keep them.</p>
+    <div class="row no-print carefile">
+      <button type="button" class="btn secondary" id="cf-save">Save care file</button>
+      <label class="btn secondary" for="cf-open" style="display:inline-flex;align-items:center;margin:0">Open care file</label>
+      <input type="file" id="cf-open" accept=".json,application/json" class="visually-hidden">
+      <button type="button" class="btn link" id="cf-forget">Remove from this device</button>
+    </div>
+    <p class="status" id="cf-status" role="status" aria-live="polite"></p>
+    <div id="cf-forget-confirm" class="hint no-print" hidden>
+      <strong>Remove everything from this device?</strong>
+      This erases the answers from this phone or computer. Save a care file first if you want to keep them.
+      <div class="row" style="margin-top:10px">
+        <button type="button" class="btn primary" id="cf-forget-yes">Yes, remove it</button>
+        <button type="button" class="btn secondary" id="cf-forget-no">Keep it</button>
+      </div>
+    </div>
   </header>
 
   <nav class="steps" aria-label="Steps" id="stepnav"></nav>
 
   <form id="app" novalidate>
 
-  <!-- 1 -->
-  <div class="panel" data-step="0" data-name="Start">
+  <div class="panel" data-name="Start">
     <h2>Before you begin</h2>
     <div class="hint">
       <strong>Say this first</strong>
@@ -151,7 +172,8 @@ textarea { min-height: 180px; resize: vertical; }
     </div>
     <div class="field">
       <label for="who">Name of the person going to the appointment</label>
-      <input type="text" id="who" autocomplete="off">
+      <p class="help" id="who-help">Stays on this device. It's never sent for suggestions.</p>
+      <input type="text" id="who" aria-describedby="who-help" autocomplete="off">
     </div>
     <div class="field">
       <label for="seeing">Who are they seeing?</label>
@@ -165,7 +187,7 @@ textarea { min-height: 180px; resize: vertical; }
       </div>
       <div class="field" style="flex:1;min-width:180px">
         <label for="time">Time</label>
-        <input type="text" id="time" placeholder="" autocomplete="off">
+        <input type="text" id="time" autocomplete="off">
       </div>
     </div>
     <div class="field">
@@ -176,8 +198,32 @@ textarea { min-height: 180px; resize: vertical; }
     <div class="nav-row"><span></span><button type="button" class="btn primary" data-next>Carry on</button></div>
   </div>
 
-  <!-- 2 -->
-  <div class="panel" data-step="1" data-name="Their words" hidden>
+  <div class="panel" data-name="Background" hidden>
+    <h2>Their health background</h2>
+    <p class="muted">The bigger picture helps the suggestions fit them, not just today's concern. Fill in what you know. All of it is optional. Leave out names of people and places.</p>
+    <div class="field">
+      <label for="bg-conditions">Health conditions</label>
+      <p class="help" id="bg-conditions-help">One per line, with roughly when it started if you know. For example: Parkinson's disease, since 2019.</p>
+      <textarea id="bg-conditions" aria-describedby="bg-conditions-help" style="min-height:120px"></textarea>
+    </div>
+    <div class="field">
+      <label for="bg-changes">Recent changes</label>
+      <p class="help" id="bg-changes-help">Surgeries, hospital visits, new symptoms, medication changes, falls, in the last year or so.</p>
+      <textarea id="bg-changes" aria-describedby="bg-changes-help" style="min-height:120px"></textarea>
+    </div>
+    <div class="field">
+      <label for="bg-team">Other doctors and care they see</label>
+      <p class="help" id="bg-team-help">By type, not by name. For example: neurologist, urologist, physiotherapy.</p>
+      <input type="text" id="bg-team" aria-describedby="bg-team-help" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="bg-allergies">Allergies</label>
+      <input type="text" id="bg-allergies" autocomplete="off">
+    </div>
+    <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
+  </div>
+
+  <div class="panel" data-name="Their words" hidden>
     <h2>In their own words</h2>
     <div class="hint">
       <strong>Ask, then listen</strong>
@@ -190,8 +236,7 @@ textarea { min-height: 180px; resize: vertical; }
     <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
   </div>
 
-  <!-- 3 -->
-  <div class="panel" data-step="2" data-name="To tell" hidden>
+  <div class="panel" data-name="To tell" hidden>
     <h2>What to tell them</h2>
     <p class="muted">Short facts for the doctor: what's happening, where, since when, what makes it better or worse.</p>
     <div class="list" id="tell-list"></div>
@@ -199,8 +244,7 @@ textarea { min-height: 180px; resize: vertical; }
     <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
   </div>
 
-  <!-- 4 -->
-  <div class="panel" data-step="3" data-name="To ask" hidden>
+  <div class="panel" data-name="To ask" hidden>
     <h2>What to ask</h2>
     <p class="muted">Their own questions first. Tap <b>Top</b> on the ones that matter most. Those go first on the sheet, marked with a star.</p>
     <div class="list" id="ask-list"></div>
@@ -208,28 +252,45 @@ textarea { min-height: 180px; resize: vertical; }
     <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
   </div>
 
-  <!-- 5 -->
-  <div class="panel" data-step="4" data-name="Ideas" hidden>
-    <h2>Questions they might not think of</h2>
-    <p class="muted">Read each one out. Tick only the ones they want. They decide.</p>
-    <fieldset style="border:none;padding:0;margin:0">
-      <legend class="sr" style="position:absolute;left:-9999px">Suggested questions</legend>
-      <div class="list" id="sugg-list"></div>
-    </fieldset>
-    <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
-  </div>
-
-  <!-- 6 -->
-  <div class="panel" data-step="5" data-name="Medications" hidden>
+  <div class="panel" data-name="Medications" hidden>
     <h2>Medications</h2>
     <p class="muted">Everything they take, including vitamins and things taken now and then. Not sure of a dose? Leave it blank. It prints as a line to fill in from the bottle.</p>
     <div class="list" id="med-list"></div>
     <div><button type="button" class="btn secondary" data-add="med">Add another</button></div>
+    <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
+  </div>
+
+  <div class="panel" data-name="Ideas" hidden>
+    <h2>Questions they might not think of</h2>
+    <p class="muted">Read each one out. Tick only the ones they want. They decide.</p>
+
+    <section class="ai-box" aria-labelledby="ai-h">
+      <h3 id="ai-h">Suggestions for this appointment</h3>
+      <p>Claude reads their background, medications and today's concern, and suggests questions to ask. It doesn't diagnose or give medical advice.</p>
+      <label class="sugg" for="ai-consent">
+        <input type="checkbox" id="ai-consent">
+        <span>I understand that their health background, medications and answers are sent to Claude, an AI by Anthropic, to make suggestions. Their name and the appointment date are not sent. Nothing is saved on this website.</span>
+      </label>
+      <p class="error" id="ai-consent-error" hidden>Tick the box above first, so you've agreed to send it.</p>
+      <div class="row">
+        <button type="button" class="btn primary" id="ai-go">Suggest questions</button>
+        <span class="status" id="ai-status" role="status" aria-live="polite"></span>
+      </div>
+      <fieldset style="border:none;padding:0;margin:0">
+        <legend class="visually-hidden">Suggested for this appointment</legend>
+        <div class="list" id="ai-list"></div>
+      </fieldset>
+    </section>
+
+    <h3>Common questions</h3>
+    <fieldset style="border:none;padding:0;margin:0">
+      <legend class="visually-hidden">Common questions</legend>
+      <div class="list" id="sugg-list"></div>
+    </fieldset>
     <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>See the sheets</button></div>
   </div>
 
-  <!-- 7 -->
-  <div class="panel" data-step="6" data-name="Sheets" hidden>
+  <div class="panel" data-name="Sheets" hidden>
     <h2>Ready to take in</h2>
     <p class="muted">Same answers, two lists. The patient's page is short. The caregiver's list has everything.</p>
     <div class="tabs no-print" role="tablist" aria-label="Which sheet">
@@ -257,7 +318,7 @@ textarea { min-height: 180px; resize: vertical; }
     <div class="nav-row no-print"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn link" id="fresh">Clear everything and start fresh</button></div>
     <div id="fresh-confirm" class="hint no-print" hidden>
       <strong>Clear everything?</strong>
-      This erases all the answers on this page. It can't be undone.
+      This erases all the answers on this page and on this device. Save a care file first if you want to keep them.
       <div class="row" style="margin-top:10px">
         <button type="button" class="btn primary" id="fresh-yes">Yes, clear it</button>
         <button type="button" class="btn secondary" id="fresh-no">Keep my answers</button>
@@ -271,6 +332,7 @@ textarea { min-height: 180px; resize: vertical; }
 
 <script>
 (() => {
+  const STORE_KEY = "pen-ink-prep-carefile";
   const SUGGESTIONS = [
     "What is causing this?",
     "Do I need any tests?",
@@ -282,21 +344,58 @@ textarea { min-height: 180px; resize: vertical; }
     "When should I come back?",
     "Is it okay if I record this appointment on my phone?"
   ];
+  const RECORD_Q = SUGGESTIONS.length - 1;
   const EXAMPLE = {
     who: "Jean (example)", seeing: "Foot care clinic", date: "", time: "2:00 PM",
     purpose: "Something is bothering me: a burning feeling in my left foot",
+    bg: { conditions: "Example: Parkinson's disease, since 2019", changes: "Example: bladder procedure this summer", team: "Neurologist, urologist", allergies: "" },
     story: "Example: My toenails are thick and look like they have a fungus. The outside of my left foot burns, mostly at night, and more after a busy day. There's no cut.",
     tell: ["Burning on the outside of the left foot, no cut", "Started a few months ago", "Worst at night and after a lot of walking"],
     ask: [{t:"What is causing the burning?", top:true}, {t:"Is there a treatment for the nail fungus?", top:true}],
-    sugg: [3, 6, 7],
+    sugg: [3, 6, 7], ai: [],
     meds: [{n:"Example medication", d:"25/100", w:"3 times a day"}, {n:"Vitamin D3", d:"1,000 units", w:"Morning"}, {n:"Magnesium", d:"", w:""}]
   };
-  const blank = () => ({ who:"", seeing:"", date:"", time:"", purpose:"", story:"", tell:[""], ask:[{t:"",top:false}], sugg:[], meds:[{n:"",d:"",w:""}] });
-  let S = JSON.parse(JSON.stringify(EXAMPLE));
+  const blank = () => ({ who:"", seeing:"", date:"", time:"", purpose:"", bg:{conditions:"",changes:"",team:"",allergies:""}, story:"", tell:[""], ask:[{t:"",top:false}], sugg:[], ai:[], meds:[{n:"",d:"",w:""}] });
+  const clone = o => JSON.parse(JSON.stringify(o));
+  function normalize(x) {
+    const b = blank();
+    if (!x || typeof x !== "object") return b;
+    const str = v => typeof v === "string" ? v : "";
+    ["who","seeing","date","time","purpose","story"].forEach(k => b[k] = str(x[k]));
+    if (x.bg && typeof x.bg === "object") ["conditions","changes","team","allergies"].forEach(k => b.bg[k] = str(x.bg[k]));
+    if (Array.isArray(x.tell) && x.tell.length) b.tell = x.tell.map(str);
+    if (Array.isArray(x.ask) && x.ask.length) b.ask = x.ask.map(q => ({ t: str(q && q.t), top: !!(q && q.top) }));
+    if (Array.isArray(x.sugg)) b.sugg = x.sugg.filter(i => Number.isInteger(i) && i >= 0 && i < SUGGESTIONS.length);
+    if (Array.isArray(x.ai)) b.ai = x.ai.map(q => ({ q: str(q && q.q), why: str(q && q.why), on: !!(q && q.on) })).filter(q => q.q);
+    if (Array.isArray(x.meds) && x.meds.length) b.meds = x.meds.map(m => ({ n: str(m && m.n), d: str(m && m.d), w: str(m && m.w) }));
+    return b;
+  }
+
+  // ---- care file on this device
+  let fromDevice = false;
+  function loadLocal() {
+    try { const raw = localStorage.getItem(STORE_KEY); if (raw) { fromDevice = true; return normalize(JSON.parse(raw)); } }
+    catch (err) { console.warn("Could not read the care file on this device", err); }
+    return null;
+  }
+  let saveTimer = null;
+  function saveLocal() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); }
+      catch (err) { console.warn("Could not keep the care file on this device", err); }
+    }, 300);
+  }
+  function forgetLocal() {
+    try { localStorage.removeItem(STORE_KEY); } catch (err) { console.warn("Could not remove the care file", err); }
+  }
+
+  let S = loadLocal() || clone(EXAMPLE);
   let step = 0;
   const panels = [...document.querySelectorAll(".panel")];
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const changed = () => saveLocal();
 
   // ---- navigation
   function renderNav() {
@@ -323,8 +422,13 @@ textarea { min-height: 180px; resize: vertical; }
 
   // ---- simple fields
   const simple = ["who", "seeing", "date", "time", "purpose", "story"];
-  function fillSimple() { simple.forEach(k => $(k).value = S[k]); }
-  simple.forEach(k => $(k).addEventListener("input", e => S[k] = e.target.value));
+  const bgFields = { "bg-conditions": "conditions", "bg-changes": "changes", "bg-team": "team", "bg-allergies": "allergies" };
+  function fillSimple() {
+    simple.forEach(k => $(k).value = S[k]);
+    Object.entries(bgFields).forEach(([id, k]) => $(id).value = S.bg[k]);
+  }
+  simple.forEach(k => $(k).addEventListener("input", e => { S[k] = e.target.value; changed(); }));
+  Object.entries(bgFields).forEach(([id, k]) => $(id).addEventListener("input", e => { S.bg[k] = e.target.value; changed(); }));
 
   // ---- list editors
   function renderTell() {
@@ -332,11 +436,11 @@ textarea { min-height: 180px; resize: vertical; }
     S.tell.forEach((v, i) => {
       const row = document.createElement("div"); row.className = "item";
       const id = "tell-" + i;
-      row.innerHTML = `<label for="${id}" style="position:absolute;left:-9999px">Thing to tell ${i + 1}</label>
+      row.innerHTML = `<label for="${id}" class="visually-hidden">Thing to tell ${i + 1}</label>
         <input type="text" id="${id}" value="${esc(v)}" autocomplete="off">
         <button type="button" class="icon-btn" aria-label="Remove thing to tell ${i + 1}">Remove</button>`;
-      row.querySelector("input").addEventListener("input", e => S.tell[i] = e.target.value);
-      row.querySelector("button").addEventListener("click", () => { S.tell.splice(i, 1); if (!S.tell.length) S.tell.push(""); renderTell(); });
+      row.querySelector("input").addEventListener("input", e => { S.tell[i] = e.target.value; changed(); });
+      row.querySelector("button").addEventListener("click", () => { S.tell.splice(i, 1); if (!S.tell.length) S.tell.push(""); renderTell(); changed(); });
       box.appendChild(row);
     });
   }
@@ -345,15 +449,15 @@ textarea { min-height: 180px; resize: vertical; }
     S.ask.forEach((q, i) => {
       const row = document.createElement("div"); row.className = "item";
       const id = "ask-" + i;
-      row.innerHTML = `<label for="${id}" style="position:absolute;left:-9999px">Question ${i + 1}</label>
+      row.innerHTML = `<label for="${id}" class="visually-hidden">Question ${i + 1}</label>
         <input type="text" id="${id}" value="${esc(q.t)}" autocomplete="off">
         <button type="button" class="icon-btn star" aria-pressed="${q.top}" aria-label="Mark question ${i + 1} as most important">★ Top</button>
         <button type="button" class="icon-btn" aria-label="Remove question ${i + 1}">Remove</button>`;
-      const [inp] = row.querySelectorAll("input");
+      const inp = row.querySelector("input");
       const [star, rm] = row.querySelectorAll("button");
-      inp.addEventListener("input", e => S.ask[i].t = e.target.value);
-      star.addEventListener("click", () => { S.ask[i].top = !S.ask[i].top; star.setAttribute("aria-pressed", S.ask[i].top); });
-      rm.addEventListener("click", () => { S.ask.splice(i, 1); if (!S.ask.length) S.ask.push({t:"",top:false}); renderAsk(); });
+      inp.addEventListener("input", e => { S.ask[i].t = e.target.value; changed(); });
+      star.addEventListener("click", () => { S.ask[i].top = !S.ask[i].top; star.setAttribute("aria-pressed", S.ask[i].top); changed(); });
+      rm.addEventListener("click", () => { S.ask.splice(i, 1); if (!S.ask.length) S.ask.push({t:"",top:false}); renderAsk(); changed(); });
       box.appendChild(row);
     });
   }
@@ -365,8 +469,17 @@ textarea { min-height: 180px; resize: vertical; }
       lab.innerHTML = `<input type="checkbox" id="sugg-${i}" ${on ? "checked" : ""}><span>${esc(q)}${on ? '<span class="added">Added</span>' : ""}</span>`;
       lab.querySelector("input").addEventListener("change", e => {
         if (e.target.checked) { if (!S.sugg.includes(i)) S.sugg.push(i); } else S.sugg = S.sugg.filter(x => x !== i);
-        renderSugg(); $("sugg-" + i).focus();
+        renderSugg(); $("sugg-" + i).focus(); changed();
       });
+      box.appendChild(lab);
+    });
+  }
+  function renderAi() {
+    const box = $("ai-list"); box.innerHTML = "";
+    S.ai.forEach((q, i) => {
+      const lab = document.createElement("label"); lab.className = "sugg"; lab.setAttribute("for", "ai-" + i);
+      lab.innerHTML = `<input type="checkbox" id="ai-${i}" ${q.on ? "checked" : ""}><span>${esc(q.q)}${q.on ? '<span class="added">Added</span>' : ""}${q.why ? `<span class="why">${esc(q.why)}</span>` : ""}</span>`;
+      lab.querySelector("input").addEventListener("change", e => { S.ai[i].on = e.target.checked; renderAi(); $("ai-" + i).focus(); changed(); });
       box.appendChild(lab);
     });
   }
@@ -380,10 +493,10 @@ textarea { min-height: 180px; resize: vertical; }
         <div class="field"><label for="mw-${i}">When</label><input type="text" id="mw-${i}" value="${esc(m.w)}" autocomplete="off"></div>
         <button type="button" class="icon-btn" aria-label="Remove medication ${i + 1}">Remove</button></div>`;
       const [n, d, wh] = w.querySelectorAll("input");
-      n.addEventListener("input", e => S.meds[i].n = e.target.value);
-      d.addEventListener("input", e => S.meds[i].d = e.target.value);
-      wh.addEventListener("input", e => S.meds[i].w = e.target.value);
-      w.querySelector("button").addEventListener("click", () => { S.meds.splice(i, 1); if (!S.meds.length) S.meds.push({n:"",d:"",w:""}); renderMeds(); });
+      n.addEventListener("input", e => { S.meds[i].n = e.target.value; changed(); });
+      d.addEventListener("input", e => { S.meds[i].d = e.target.value; changed(); });
+      wh.addEventListener("input", e => { S.meds[i].w = e.target.value; changed(); });
+      w.querySelector("button").addEventListener("click", () => { S.meds.splice(i, 1); if (!S.meds.length) S.meds.push({n:"",d:"",w:""}); renderMeds(); changed(); });
       box.appendChild(w);
     });
   }
@@ -392,17 +505,46 @@ textarea { min-height: 180px; resize: vertical; }
     if (k === "tell") { S.tell.push(""); renderTell(); $("tell-" + (S.tell.length - 1)).focus(); }
     if (k === "ask") { S.ask.push({t:"",top:false}); renderAsk(); $("ask-" + (S.ask.length - 1)).focus(); }
     if (k === "med") { S.meds.push({n:"",d:"",w:""}); renderMeds(); $("mn-" + (S.meds.length - 1)).focus(); }
+    changed();
   }));
+
+  // ---- AI suggestions (name, date and time are never sent)
+  $("ai-consent").addEventListener("change", () => { $("ai-consent-error").hidden = true; });
+  $("ai-go").addEventListener("click", async () => {
+    if (!$("ai-consent").checked) { $("ai-consent-error").hidden = false; $("ai-consent").focus(); return; }
+    const payload = {
+      seeing: S.seeing, purpose: S.purpose, story: S.story,
+      conditions: S.bg.conditions, changes: S.bg.changes, team: S.bg.team, allergies: S.bg.allergies,
+      meds: S.meds.filter(m => m.n.trim()).map(m => [m.n, m.d, m.w].filter(x => x.trim()).join(", ")),
+      tell: S.tell.filter(t => t.trim()),
+      ask: S.ask.map(q => q.t).filter(t => t.trim()).concat(S.ai.filter(q => q.on).map(q => q.q))
+    };
+    const btn = $("ai-go"), status = $("ai-status");
+    btn.disabled = true; status.textContent = "Thinking about their whole picture. This takes about 15 seconds.";
+    try {
+      const r = await fetch("/api/suggest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) { status.textContent = data.error || "Suggestions are not available right now. Try again in a minute."; return; }
+      const kept = S.ai.filter(q => q.on);
+      const seen = new Set(kept.map(q => q.q.toLowerCase()));
+      S.ai = kept.concat(data.questions.filter(q => !seen.has(q.q.toLowerCase())).map(q => ({ q: q.q, why: q.why, on: false })));
+      renderAi(); changed();
+      status.textContent = data.questions.length + " suggestions below. Tick the ones they want.";
+    } catch (err) {
+      console.error("Suggestion request failed", err);
+      status.textContent = "Couldn't reach the suggestions. Check the internet connection and try again.";
+    } finally { btn.disabled = false; }
+  });
 
   // ---- sheets
   function allQuestions() {
     const own = S.ask.filter(q => q.t.trim());
-    const extra = S.sugg.slice().sort((a, b) => a - b).map(i => ({ t: SUGGESTIONS[i], top: false, sugg: true }))
-      .filter(q => !/record this appointment/.test(q.t));
+    const ai = S.ai.filter(q => q.on).map(q => ({ t: q.q, top: false }));
+    const extra = S.sugg.slice().sort((a, b) => a - b).filter(i => i !== RECORD_Q).map(i => ({ t: SUGGESTIONS[i], top: false }));
     const top = own.filter(q => q.top), rest = own.filter(q => !q.top);
-    return { top, rest: rest.concat(extra) };
+    return { top, rest: rest.concat(ai, extra) };
   }
-  const recordAsk = () => S.sugg.includes(SUGGESTIONS.length - 1);
+  const recordAsk = () => S.sugg.includes(RECORD_Q);
   function fmtDate(v) {
     if (!v) return "";
     const d = new Date(v + "T12:00:00");
@@ -417,25 +559,32 @@ textarea { min-height: 180px; resize: vertical; }
     if (!m.length) return `<p class="empty">No medications listed.</p><div class="blank"></div><div class="blank"></div>`;
     return `<ul>${m.map(x => `<li>${esc(x.n)}, ${x.d.trim() ? esc(x.d) : "dose: ________"}${x.w.trim() ? ", " + esc(x.w) : ""}</li>`).join("")}</ul>`;
   }
+  const lines = t => t.split(/\n+/).map(s => s.trim()).filter(Boolean);
   function buildSheets() {
     const tell = S.tell.filter(t => t.trim());
     const { top, rest } = allQuestions();
-    const qs = top.map(q => `<li class="top"><span class="star" aria-label="most important">★</span> ${esc(q.t)}</li>`)
-      .concat(rest.map(q => `<li>${esc(q.t)}</li>`)).join("");
-    // patient: short. top questions + up to 4 others
+    const li = q => `<li${q.top ? ' class="top"' : ""}>${q.top ? '<span class="star" aria-label="most important">★</span> ' : ""}${esc(q.t)}</li>`;
+    const qs = top.concat(rest).map(li).join("");
     const shortRest = rest.slice(0, Math.max(0, 6 - top.length));
-    const pq = top.map(q => `<li class="top"><span class="star" aria-label="most important">★</span> ${esc(q.t)}</li>`)
-      .concat(shortRest.map(q => `<li>${esc(q.t)}</li>`)).join("");
+    const pq = top.concat(shortRest).map(li).join("");
+    const cond = lines(S.bg.conditions);
     $("sheet-p").innerHTML = header("My appointment") + `
       <section><h3>Start with</h3><p class="say">"I have some questions I'd like to go through. May I start?"</p>
       ${recordAsk() ? `<p style="margin-top:8px">Then: "Is it okay if I record this appointment on my phone?"</p>` : ""}</section>
       <section><h3>Tell them</h3>${tell.length ? `<ul>${tell.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
       <section><h3>Ask them</h3>${pq ? `<ol>${pq}</ol>` : `<p class="empty">No questions added yet.</p>`}
-      ${rest.length > shortRest.length ? `<p class="muted" style="margin-top:6px;color:#3B4A57">More questions are on the caregiver's list.</p>` : ""}</section>
-      <section><h3>My medications</h3>${medsHTML()}</section>
+      ${rest.length > shortRest.length ? `<p style="margin-top:6px;color:#3B4A57">More questions are on the caregiver's list.</p>` : ""}</section>
+      <section><h3>My medications</h3>${medsHTML()}${S.bg.allergies.trim() ? `<p style="margin-top:6px"><b>Allergies:</b> ${esc(S.bg.allergies)}</p>` : ""}</section>
       <section><h3>What they said</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div></section>`;
+    const bgBits = [
+      cond.length ? `<p><b>Conditions:</b></p><ul>${cond.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "",
+      S.bg.changes.trim() ? `<p><b>Recent changes:</b> ${esc(S.bg.changes).replace(/\n/g, "<br>")}</p>` : "",
+      S.bg.team.trim() ? `<p><b>Also seeing:</b> ${esc(S.bg.team)}</p>` : "",
+      S.bg.allergies.trim() ? `<p><b>Allergies:</b> ${esc(S.bg.allergies)}</p>` : ""
+    ].join("");
     $("sheet-c").innerHTML = header("Caregiver's list") + `
       ${S.purpose.trim() ? `<section><h3>Appointment is for</h3><p>${esc(S.purpose)}</p></section>` : ""}
+      ${bgBits ? `<section><h3>Health background</h3>${bgBits}</section>` : ""}
       ${S.story.trim() ? `<section><h3>In their words</h3><p>${esc(S.story).replace(/\n/g, "<br>")}</p></section>` : ""}
       <section><h3>Make sure the doctor hears</h3>${tell.length ? `<ul class="check">${tell.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
       <section><h3>All questions</h3>${qs ? `<ol>${qs}</ol>` : `<p class="empty">No questions added yet.</p>`}</section>
@@ -446,9 +595,8 @@ textarea { min-height: 180px; resize: vertical; }
         <p style="margin-top:6px">To do:</p><div class="blank"></div><div class="blank"></div>
         <p style="margin-top:6px">Questions not answered (bring next time):</p><div class="blank"></div><div class="blank"></div></section>`;
   }
-  function sheetText(el) {
-    return el.innerText.replace(/\n{3,}/g, "\n\n").trim();
-  }
+  const sheetText = el => el.innerText.replace(/\n{3,}/g, "\n\n").trim();
+
   // tabs
   const tabs = [$("tab-p"), $("tab-c")], sheets = [$("sheet-p"), $("sheet-c")];
   tabs.forEach((t, i) => t.addEventListener("click", () => {
@@ -461,25 +609,19 @@ textarea { min-height: 180px; resize: vertical; }
   }));
   $("copy").addEventListener("click", () => {
     const el = sheets.find(s => !s.hidden);
-    const txt = sheetText(el);
     const done = () => $("copy-status").textContent = "Copied. Paste it into an email or a document.";
     const fallback = () => {
       const r = document.createRange(); r.selectNodeContents(el);
       const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
       $("copy-status").textContent = "Couldn't copy automatically. The sheet is selected: press Ctrl+C (or Cmd+C) to copy it.";
     };
-    try { navigator.clipboard.writeText(txt).then(done, err => { console.warn("clipboard", err); fallback(); }); }
+    try { navigator.clipboard.writeText(sheetText(el)).then(done, err => { console.warn("clipboard", err); fallback(); }); }
     catch (err) { console.warn("clipboard", err); fallback(); }
   });
-  // start fresh
-  $("fresh").addEventListener("click", () => { $("fresh-confirm").hidden = false; $("fresh-yes").focus(); });
-  $("fresh-no").addEventListener("click", () => { $("fresh-confirm").hidden = true; $("fresh").focus(); });
-  $("fresh-yes").addEventListener("click", () => { S = blank(); $("fresh-confirm").hidden = true; renderAll(); go(0); });
   $("print").addEventListener("click", () => window.print());
-  function familyText() {
-    buildSheets();
-    return sheetText($("sheet-c"));
-  }
+
+  // send to family
+  function familyText() { buildSheets(); return sheetText($("sheet-c")); }
   function familySubject() {
     const who = S.who.trim(), when = fmtDate(S.date);
     return "Appointment prep" + (who ? " for " + who : "") + (when ? ", " + when : "");
@@ -495,15 +637,55 @@ textarea { min-height: 180px; resize: vertical; }
   $("share-email").addEventListener("click", () => {
     location.href = "mailto:?subject=" + encodeURIComponent(familySubject()) + "&body=" + encodeURIComponent(familyText());
   });
-  $("share-text").addEventListener("click", () => {
-    location.href = "sms:?&body=" + encodeURIComponent(familyText());
+  $("share-text").addEventListener("click", () => { location.href = "sms:?&body=" + encodeURIComponent(familyText()); });
+
+  // care file: save / open / remove
+  const cfStatus = msg => $("cf-status").textContent = msg;
+  $("cf-save").addEventListener("click", () => {
+    const name = (S.who.trim() || "care-file").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "care-file";
+    const blob = new Blob([JSON.stringify({ app: "pen-ink-prep", version: 1, saved: new Date().toISOString(), data: S }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = name + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    cfStatus("Saved as " + name + ".json in your Downloads. Keep it somewhere private.");
   });
+  $("cf-open").addEventListener("change", e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (!parsed || parsed.app !== "pen-ink-prep") throw new Error("Not a care file");
+        S = normalize(parsed.data); renderAll(); changed(); go(0);
+        cfStatus("Opened " + f.name + ".");
+      } catch (err) {
+        console.warn("Could not open care file", err);
+        cfStatus("That file isn't a care file from this page. Choose the .json file you saved here.");
+      }
+      e.target.value = "";
+    };
+    reader.onerror = () => { console.warn("File read failed", reader.error); cfStatus("Couldn't read that file. Try choosing it again."); };
+    reader.readAsText(f);
+  });
+  $("cf-forget").addEventListener("click", () => { $("cf-forget-confirm").hidden = false; $("cf-forget-yes").focus(); });
+  $("cf-forget-no").addEventListener("click", () => { $("cf-forget-confirm").hidden = true; $("cf-forget").focus(); });
+  $("cf-forget-yes").addEventListener("click", () => {
+    clearTimeout(saveTimer); forgetLocal(); S = blank(); renderAll();
+    $("cf-forget-confirm").hidden = true; go(0); cfStatus("Removed from this device.");
+  });
+
+  // start fresh
+  $("fresh").addEventListener("click", () => { $("fresh-confirm").hidden = false; $("fresh-yes").focus(); });
+  $("fresh-no").addEventListener("click", () => { $("fresh-confirm").hidden = true; $("fresh").focus(); });
+  $("fresh-yes").addEventListener("click", () => { clearTimeout(saveTimer); forgetLocal(); S = blank(); $("fresh-confirm").hidden = true; renderAll(); go(0); });
   $("app").addEventListener("submit", e => e.preventDefault());
 
-  function renderAll() { fillSimple(); renderTell(); renderAsk(); renderSugg(); renderMeds(); }
+  function renderAll() { fillSimple(); renderTell(); renderAsk(); renderSugg(); renderAi(); renderMeds(); }
   renderAll(); renderNav();
+  if (fromDevice) cfStatus("Picked up where you left off on this device.");
 })();
 </script>
-
 </body>
 </html>
