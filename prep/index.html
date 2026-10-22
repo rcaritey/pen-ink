@@ -96,6 +96,16 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 .segs span.on { background: var(--c); }
 .segs span.half { background: linear-gradient(90deg, var(--c) 50%, var(--line) 50%); }
 .small { font-size: 0.92rem; }
+.lang-pick { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lang-btn { font: inherit; font-weight: 700; min-height: 44px; padding: 6px 16px; border-radius: 999px; cursor: pointer;
+  border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); }
+.lang-btn[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.dym { margin-top: 10px; border: 2px dashed var(--star); background: var(--star-soft); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.dym ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.dym li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
+.dym s { color: var(--muted); }
+.cl-sum .dym { margin-top: 6px; }
+.sheet .tr-line { display: block; font-size: 0.85em; color: #4A5866; font-style: italic; }
 .glance { position: relative; background: var(--land); border: 1px solid var(--line); border-radius: 18px; padding: 14px 8px 6px; }
 .glance-river { position: absolute; left: 0; right: 0; top: 30px; width: 100%; height: 40px; }
 .glance-boat { position: absolute; left: 3%; top: 4px; width: 48px; }
@@ -372,6 +382,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         <button type="button" class="btn link glance-map" id="w-map-link">See the full journey map</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="lang-pick" role="radiogroup" aria-labelledby="lang-pick-label">
+          <span id="lang-pick-label" class="muted small">Language you'll speak:</span>
+          <button type="button" role="radio" class="lang-btn" data-lang="en" aria-checked="true">English</button>
+          <button type="button" role="radio" class="lang-btn" data-lang="fr" aria-checked="false" lang="fr">Français</button>
+        </div>
         <h2>How would you like to answer?</h2>
         <div class="start-choices">
           <button type="button" class="start-choice" data-mode="voice">
@@ -423,6 +438,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <input type="text" id="purpose" aria-describedby="purpose-help" autocomplete="off" required>
       <p class="error" id="purpose-error" hidden>Add a few words about what the appointment is for, then tap Next.</p>
     </div>
+    <fieldset class="plain" id="doclang-set" hidden>
+      <legend class="q-legend">Language for the doctor's pages</legend>
+      <p class="help">You can answer in French. Claude translates your answers for the doctor.</p>
+      <div class="row">
+        <label class="choice" for="dl-en" style="flex:1;min-width:150px"><input type="radio" name="doclang" id="dl-en" value="en"><span><b>English</b></span></label>
+        <label class="choice" for="dl-fr" style="flex:1;min-width:150px"><input type="radio" name="doclang" id="dl-fr" value="fr"><span><b lang="fr">Français</b></span></label>
+      </div>
+    </fieldset>
     <div class="field">
       <label for="seeing">Who are you seeing?</label>
       <p class="help" id="seeing-help">For example: neurologist or family doctor.</p>
@@ -720,6 +743,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <button type="button" class="btn link" data-open-safe>How your information stays safe</button>
   <button type="button" class="btn link" id="change-mode" hidden>Switch to typing</button>
   <button type="button" class="btn link" id="change-voice" hidden>Try a different voice</button>
+  <button type="button" class="btn link" id="change-lang">Parler en français</button>
   <button type="button" class="btn link" data-download>Download a copy</button>
   <button type="button" class="btn link" id="erase">Erase my answers from this device</button>
 </footer>
@@ -779,6 +803,18 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     "When should I come back?",
     "Is it okay if I record this appointment on my phone?"
   ];
+  const SUGGESTIONS_FR = [
+    "Qu'est-ce qui cause ça ?",
+    "Ai-je besoin de tests ?",
+    "Quel est le traitement, et combien de temps avant que ça aide ?",
+    "Le traitement est-il sans danger avec mes autres médicaments ?",
+    "Y a-t-il des effets secondaires à surveiller ?",
+    "Qu'est-ce que je peux faire à la maison pour aider ?",
+    "Qu'est-ce que je dois surveiller, et quand dois-je vous appeler ?",
+    "Quand dois-je revenir ?",
+    "Est-ce que je peux enregistrer ce rendez-vous sur mon téléphone ?"
+  ];
+  const sug = i => (S.lang === "fr" ? SUGGESTIONS_FR : SUGGESTIONS)[i];
   const RECORD_Q = SUGGESTIONS.length - 1;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -803,7 +839,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     chg: { bg: "", meds: "", medNote: "" },
     recap: { said: "", open: [], more: "", todo: [""], nextWith: "", nextDate: "", nextTime: "" },
     first: "", important: [], prioSeen: false });
-  const blank = () => Object.assign({ v: 3, step: -1, mode: "", consent: null, who: "", carried: false, voiceName: "",
+  const blank = () => Object.assign({ v: 3, step: -1, mode: "", consent: null, who: "", carried: false, voiceName: "", lang: "en", docLang: "en", tr: {}, fixOff: false,
     bg: { conditions: "", changes: "", team: "", allergies: "" }, meds: [{ n: "", d: "", w: "" }] }, blankVisit());
   function normalize(x) {
     const b = blank();
@@ -812,6 +848,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     b.time = toTime24(b.time);
     b.mode = x.mode === "voice" || x.mode === "type" ? x.mode : "";
     b.voiceName = str(x.voiceName);
+    b.lang = x.lang === "fr" ? "fr" : "en"; b.docLang = x.docLang === "fr" ? "fr" : "en"; b.fixOff = !!x.fixOff;
+    if (x.tr && typeof x.tr === "object") Object.keys(x.tr).slice(0, 600).forEach(k => { if (typeof x.tr[k] === "string") b.tr[k] = x.tr[k]; });
     b.consent = x.consent === true ? true : x.consent === false ? false : null;
     b.step = Number.isInteger(x.step) && x.step >= -1 && x.step < STEPS.length ? x.step : -1;
     if (x.bg && typeof x.bg === "object") ["conditions", "changes", "team", "allergies"].forEach(k => b.bg[k] = str(x.bg[k]));
@@ -837,7 +875,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       b.chg.medNote = str(x.chg.medNote);
     }
     if (x.clarify && Array.isArray(x.clarify.qs)) {
-      b.clarify.qs = x.clarify.qs.map(q => ({ q: str(q && q.q), label: str(q && q.label), a: str(q && q.a) })).filter(q => q.q);
+      b.clarify.qs = x.clarify.qs.map(q => ({ q: str(q && q.q), label: str(q && q.label), a: str(q && q.a),
+        fixes: Array.isArray(q && q.fixes) ? q.fixes.filter(f => f && typeof f.from === "string" && typeof f.to === "string") : [] })).filter(q => q.q);
       b.clarify.i = Math.min(Math.max(0, Number(x.clarify.i) || 0), b.clarify.qs.length);
       b.clarify.done = !!x.clarify.done;
       b.clarify.merged = Array.isArray(x.clarify.merged) ? x.clarify.merged.map(str) : [];
@@ -865,6 +904,29 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }, 300);
   }
   let S = load() || blank();
+  const SAY = {
+    en: {
+      hello: "Hello. I'll read the questions out loud, and I'll wait for you.",
+      words: "What's on your mind about this appointment? Say it all, in any order. Take your time. I'll wait. When you've finished, say carry on.",
+      wordsQ: "What's on your mind about this appointment?",
+      intro: "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say carry on. ",
+      silence: "Should I continue, or do you need more time?",
+      thanks: "Thank you.",
+      done: "That's all my questions. Thank you. Tap Next when you're ready.",
+      sample: "Hi. This is how I'll sound when I read your questions."
+    },
+    fr: {
+      hello: "Bonjour. Je vais lire les questions à voix haute, et je vais vous attendre.",
+      words: "Qu'est-ce qui vous préoccupe pour ce rendez-vous ? Dites tout, dans l'ordre que vous voulez. Prenez votre temps, j'attends. Quand vous avez fini, dites continuez.",
+      wordsQ: "Qu'est-ce qui vous préoccupe pour ce rendez-vous ?",
+      intro: "On prend notre temps. Je pose une question à la fois, et j'attends. Quand vous avez fini de répondre, dites continuez. ",
+      silence: "Voulez-vous que je continue, ou avez-vous besoin de plus de temps ?",
+      thanks: "Merci.",
+      done: "C'est tout pour mes questions. Merci. Touchez Next quand vous êtes prêt.",
+      sample: "Bonjour. Voici ma voix quand je lis vos questions."
+    }
+  };
+  const say = k => (SAY[S.lang] || SAY.en)[k];
   let resumeStep = Math.max(0, S.step);
   const hasVisit = () => !!(S.purpose.trim() || S.seeing.trim() || S.story.trim() || resumeStep > 0);
 
@@ -891,7 +953,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (ROBOTIC.test(name)) n -= 100;
         return n;
       };
-      return speechSynthesis.getVoices().filter(v => /^en(-|_|$)/i.test(v.lang)).sort((a, b) => score(b) - score(a));
+      const want = S.lang === "fr" ? "fr" : "en";
+      return speechSynthesis.getVoices().filter(v => new RegExp("^" + want + "(-|_|$)", "i").test(v.lang))
+        .sort((a, b) => (score(b) + (/-CA$/i.test(b.lang) ? 8 : 0)) - (score(a) + (/-CA$/i.test(a.lang) ? 8 : 0)));
     }
     let chosen = null;
     function pickVoice(name) {
@@ -906,7 +970,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
         if (!chosen) pickVoice();
-        if (chosen) { u.voice = chosen; u.lang = chosen.lang; } else u.lang = "en-CA";
+        if (chosen) { u.voice = chosen; u.lang = chosen.lang; } else u.lang = S.lang === "fr" ? "fr-CA" : "en-CA";
         u.rate = 0.95; u.pitch = 1;
         u.onend = () => res(); u.onerror = () => res();
         speechSynthesis.speak(u);
@@ -918,7 +982,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       silenceT = setTimeout(async () => {
         if (!active) return;
         prompted = true; pauseRec(); view("speaking");
-        await speak("Should I continue, or do you need more time?");
+        await speak(say("silence"));
         if (active) startRec();
       }, 15000);
     }
@@ -927,7 +991,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       let r;
       try { r = new SR(); } catch (err) { console.warn("Voice typing unavailable", err); view("typing"); return; }
       rec = r;
-      r.lang = "en-CA"; r.continuous = true; r.interimResults = true;
+      r.lang = S.lang === "fr" ? "fr-CA" : "en-CA"; r.continuous = true; r.interimResults = true;
       // Finished phrases are ADDED to the box, never rebuilt, so typing (including Enter) is kept.
       // Words still being heard show in the status line until they're final.
       const done = new Set();
@@ -942,7 +1006,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           // some phones repeat the whole phrase so far in each result; keep only the new part
           if (lastFinal && t.trim().toLowerCase().startsWith(lastFinal.toLowerCase())) t = t.trim().slice(lastFinal.length);
           lastFinal = e.results[i][0].transcript.trim();
-          const m = t.match(/\bcarry on\W*$/i);
+          const m = t.match(/(\bcarry on|\bcontinuez|\bon continue|\bc'est tout)\W*$/i);
           if (m) {
             appendSpoken(t.slice(0, m.index));
             const next = onCarry; stop(); if (next) next();
@@ -965,11 +1029,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     function appendSpoken(raw) {
       let t = raw.replace(/\s+/g, " ").trim();
       if (!t || !target) return;
-      if (/^(scratch that|undo that|delete that)\W*$/i.test(t)) {
+      if (/^(scratch that|undo that|delete that|efface ça|effacez ça|efface|effacez|annule ça|annule)\W*$/i.test(t)) {
         if (target._hist && target._hist.length) { target.value = target._hist.pop(); target.dispatchEvent(new Event("input", { bubbles: true })); target.dispatchEvent(new Event("voice-change")); }
         return;
       }
       target._hist = target._hist || []; target._hist.push(target.value); if (target._hist.length > 30) target._hist.shift();
+      added = true;
       let v = target.value;
       const fresh = !v.trim() || /\n\s*$/.test(v);
       const paused = Date.now() - lastSpokeAt > 2500;
@@ -983,7 +1048,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       target.dispatchEvent(new Event("input"));
     }
     function pauseRec() { clearTimeout(silenceT); if (rec) { const r = rec; rec = null; try { r.stop(); } catch (err) { console.warn(err); } } }
-    function stop() { active = false; pauseRec(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } view("off"); }
+    let added = false;
+    function stop() {
+      const was = target, had = added; added = false;
+      if (had && was && api.onEnd) setTimeout(() => api.onEnd(was), 0);
+      active = false; pauseRec(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } view("off"); }
     async function ask(text, el, carry, v) {
       stop(); view = v || (() => {}); active = true; target = el; onCarry = carry; prompted = !text;
       if (text) { view("speaking"); await speak(text); }
@@ -997,11 +1066,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       chosen = list[(i + 1) % list.length];
       return chosen.name;
     }
-    return { ask, stop, speak, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => chosen ? chosen.name : "" };
+    const api = { ask, stop, speak, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => chosen ? chosen.name : "", onEnd: null };
+    return api;
   })();
   const VOICE_MSG = {
     speaking: "Reading it out loud…",
-    listening: "Listening. Take your time. Say “scratch that” to remove the last part, and “carry on” when you've finished.",
+    listening: "Listening. Take your time. Say “scratch that” (or “efface ça”) to remove the last part, and “carry on” (or “continuez”) when you've finished.",
     blocked: "The microphone is blocked. Allow it in your browser settings, or type your answer.",
     typing: "This browser can't type what you say. Type your answer, or use the microphone on your keyboard.",
     off: ""
@@ -1013,8 +1083,24 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (!name) { $("mic-msg").textContent = "This device has only one voice."; return; }
     S.voiceName = name; save();
     $("mic-msg").textContent = "Voice: " + name.replace(/\s*\(.*\)\s*$/, "") + ". Tap again to try another.";
-    Voice.speak("Hi. This is how I'll sound when I read your questions.");
+    Voice.speak(say("sample"));
   });
+  function applyLang() {
+    document.querySelectorAll(".lang-btn").forEach(b => b.setAttribute("aria-checked", b.dataset.lang === S.lang));
+    $("doclang-set").hidden = S.lang !== "fr";
+    $("dl-en").checked = S.docLang === "en"; $("dl-fr").checked = S.docLang === "fr";
+    $("change-lang").textContent = S.lang === "fr" ? "Speak in English" : "Parler en français";
+    $("change-lang").setAttribute("lang", S.lang === "fr" ? "en" : "fr");
+    Voice.pickVoice(S.voiceName);
+  }
+  function setLang(l) {
+    if (S.lang === l) return;
+    S.lang = l; S.voiceName = ""; save(); applyLang();
+    $("mic-msg").textContent = l === "fr" ? "Speaking in French. Questions are read in French and Claude translates your answers for the doctor." : "Speaking in English.";
+  }
+  document.querySelectorAll(".lang-btn").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
+  $("change-lang").addEventListener("click", () => setLang(S.lang === "fr" ? "en" : "fr"));
+  document.querySelectorAll('input[name="doclang"]').forEach(r => r.addEventListener("change", () => { S.docLang = r.value; save(); }));
   function applyMode() {
     document.querySelectorAll("[data-voice-only]").forEach(el => el.hidden = !isVoice());
     $("story-label").textContent = isVoice() ? "What you said (you can fix any words)" : "Your answer";
@@ -1099,7 +1185,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (id === "ask") renderAsk();
     if (id === "ideas") enterIdeas();
     if (id === "priority") renderPriority();
-    if (id === "sheets") { buildSheets(); setTab(0); }
+    if (id === "sheets") { buildSheets(); setTab(0); ensureTranslations("sheet-status").then(changed => { if (changed) buildSheets(); }); }
     if (id === "recap" || id === "recap2") renderRecap();
     if (id === "share") buildRecap();
     if (id === "bg" || id === "meds") renderChecks();
@@ -1121,7 +1207,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   document.querySelectorAll(".start-choice").forEach(b => b.addEventListener("click", () => {
     S.mode = b.dataset.mode; applyMode(); save();
-    if (isVoice()) Voice.speak("Hello. I'll read the questions out loud, and I'll wait for you.");
+    if (isVoice()) Voice.speak(say("hello"));
     show(0);
   }));
   $("w-map-link").addEventListener("click", () => openJourney("map"));
@@ -1213,8 +1299,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 
   // ---------- own words by voice ----------
   function askWords() {
-    Voice.ask("What's on your mind about this appointment? Say it all, in any order. Take your time. I'll wait. When you've finished, say carry on.",
-      $("story"), () => { show(S.step + 1); Voice.speak("Thank you."); }, voiceView("words-state"));
+    Voice.ask(say("words"), $("story"), () => { show(S.step + 1); Voice.speak(say("thanks")); }, voiceView("words-state"));
   }
   $("words-again").addEventListener("click", askWords);
   $("words-stop").addEventListener("click", () => Voice.stop());
@@ -1224,7 +1309,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const STOP_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
   const MIC_MSG = {
     speaking: "", off: "",
-    listening: "Listening. Say \u201cscratch that\u201d to remove the last part. When you've finished, say \u201ccarry on\u201d or tap Stop.",
+    listening: "Listening. Say \u201cscratch that\u201d (\u201cefface \u00e7a\u201d) to remove the last part. When you've finished, say \u201ccarry on\u201d (\u201ccontinuez\u201d) or tap Stop.",
     blocked: "The microphone is blocked. Allow it in your browser settings, or type your answer.",
     typing: "This browser can't type what you say. Type your answer, or use the microphone on your keyboard."
   };
@@ -1287,6 +1372,75 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     });
   }
 
+
+  // ---------- "Did you mean...?": Claude checks voice-typed words against the question and context ----------
+  function questionFor(el) {
+    if (el.id === "cl-answer") { const q = S.clarify.qs[S.clarify.i]; return q ? q.q : ""; }
+    if (el.id === "story") return say("wordsQ");
+    const lab = document.querySelector(`label[for="${el.id}"]`);
+    return lab ? lab.textContent.replace(/\s*\(.*?\)\s*/g, " ").trim() : "";
+  }
+  // one panel per answer; get/set read and write the answer; onChange runs after each change
+  function showDym(host, fixes, get, set, onChange) {
+    host.querySelectorAll(":scope > .dym").forEach(x => x.remove());
+    const live = fixes.filter(f => get().includes(f.from));
+    if (!live.length) return;
+    const box = document.createElement("div"); box.className = "dym no-print";
+    const draw = () => {
+      const left = live.filter(f => !f.gone && get().includes(f.from));
+      if (!left.length) { box.remove(); return; }
+      box.innerHTML = `<p><b>Did you mean…?</b> <span class="muted small">Voice typing may have misheard these.</span></p>
+        <ul>${left.map((f, i) => `<li><span><s>${esc(f.from)}</s> → <b>${esc(f.to)}</b></span>
+          <span class="row"><button type="button" class="btn secondary" data-use="${i}">Use</button><button type="button" class="btn link fix" data-no="${i}">No</button></span></li>`).join("")}</ul>
+        ${left.length > 1 ? '<div><button type="button" class="btn link" data-all>Use all</button></div>' : ""}`;
+      const useOne = f => { set(get().replace(f.from, f.to)); f.gone = true; };
+      box.querySelectorAll("[data-use]").forEach(b => b.addEventListener("click", () => { useOne(left[+b.dataset.use]); onChange(); draw(); }));
+      box.querySelectorAll("[data-no]").forEach(b => b.addEventListener("click", () => { left[+b.dataset.no].gone = true; onChange(); draw(); }));
+      const all = box.querySelector("[data-all]"); if (all) all.addEventListener("click", () => { left.forEach(useOne); onChange(); draw(); });
+    };
+    draw(); host.appendChild(box);
+  }
+  function askFixConsent(host, yes) {
+    host.querySelectorAll(":scope > .dym").forEach(x => x.remove());
+    const box = document.createElement("div"); box.className = "dym no-print";
+    box.innerHTML = `<p><b>Check for misheard words?</b></p>
+      <p class="small">Claude, an AI assistant made by Anthropic, can spot words the voice typing got wrong. Your words are sent to it, not your name.</p>
+      <div class="row"><button type="button" class="btn primary" data-y>Yes, check my words</button><button type="button" class="btn link fix" data-n>No thanks</button></div>`;
+    box.querySelector("[data-y]").addEventListener("click", () => { S.consent = true; save(); box.remove(); yes(); });
+    box.querySelector("[data-n]").addEventListener("click", () => { S.fixOff = true; save(); box.remove(); });
+    host.appendChild(box);
+  }
+  async function checkWords(el) {
+    if (S.fixOff || S.consent === false || !el.isConnected) return;
+    const text = el.value.trim(); if (text.length < 3) return;
+    const qi = el.id === "cl-answer" ? S.clarify.i : -1;
+    const host = el.closest(".item, .field"); if (!host) return;
+    if (S.consent !== true) { askFixConsent(host, () => checkWords(el)); return; }
+    let fixes = [];
+    try {
+      const data = await callApi({ mode: "fix", text, question: questionFor(el), lang: S.lang, purpose: S.purpose,
+        conditions: S.bg.conditions, meds: S.meds.filter(m => m.n.trim()).map(m => m.n) });
+      fixes = (data.fixes || []).filter(f => f && f.from && f.to);
+    } catch (err) { console.warn("Word check failed", err); return; }
+    if (!fixes.length) return;
+    if (qi > -1) {
+      const q = S.clarify.qs[qi]; if (!q) return;
+      q.fixes = fixes; save();
+      if (S.clarify.i === qi && el.isConnected) showClarifyFixes(qi, host); else if (S.clarify.i >= S.clarify.qs.length) renderClarify();
+      return;
+    }
+    if (!el.isConnected) return;
+    showDym(host, fixes, () => el.value,
+      v => { remember(el, el.value); el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); },
+      () => {});
+  }
+  function showClarifyFixes(qi, host) {
+    const q = S.clarify.qs[qi];
+    showDym(host, q.fixes || [], () => q.a,
+      v => { q.a = v; const ta = $("cl-answer"); if (ta && S.clarify.i === qi) { remember(ta, ta.value); ta.value = v; } if (S.clarify.done) mergeDetails(); save(); },
+      () => { q.fixes = (q.fixes || []).filter(f => !f.gone && q.a.includes(f.from)); save(); });
+  }
+  Voice.onEnd = el => { checkWords(el); };
 
   // ---------- list editors ----------
   // list answers grow to show everything they hold
@@ -1385,8 +1539,18 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       meds: S.meds.filter(m => m.n.trim()).map(m => [m.n, m.d, m.w].filter(x => x.trim()).join(", ")),
       details: [],
       tell: S.tell.filter(t => t.trim()),
-      ask: S.ask.map(q => q.t).filter(t => t.trim()).concat(S.ai.filter(q => q.on).map(q => q.q))
+      ask: S.ask.map(q => q.t).filter(t => t.trim()).concat(S.ai.filter(q => q.on).map(q => q.q)),
+      lang: S.lang, docLang: S.docLang
     }, extra || {});
+  }
+  async function callApi(payload, retried) {
+    let r;
+    try { r = await fetch("/api/suggest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }); }
+    catch (err) { console.error("Network error", err); throw new Error("Couldn't reach Claude. Check your internet connection and try again."); }
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 502 && !retried) return callApi(payload, true);
+    if (!r.ok || !data.ok) throw new Error(data.error || "Not available right now. Try again in a minute.");
+    return data;
   }
   async function callClaude(payload, retried) {
     let r;
@@ -1400,6 +1564,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 
   // ---------- more detail: one question at a time ----------
   // Built-in questions: the standard symptom history doctors use. Used without Claude, or if Claude is unavailable.
+  const STANDARD_QS_FR = [
+    { q: "Quand est-ce que ça a commencé ? C'est venu tout d'un coup ou petit à petit ?", fr: "Début", en: "When it started" },
+    { q: "Où exactement ? Est-ce que ça s'étend ailleurs ?", fr: "Endroit", en: "Where" },
+    { q: "Comment c'est, avec vos propres mots ?", fr: "Sensation", en: "What it feels like" },
+    { q: "De 0 à 10, c'est fort comment, au pire et un jour normal ?", fr: "Intensité (0 à 10)", en: "How bad (0 to 10)" },
+    { q: "Quand est-ce que ça arrive, et à quelle fréquence ? Est-ce que ça s'améliore, empire ou reste pareil ?", fr: "Moment et fréquence", en: "When and how often" },
+    { q: "Qu'est-ce qui empire les choses ? Qu'est-ce qui aide ?", fr: "Ce qui empire ou aide", en: "Worse and better with" },
+    { q: "Qu'avez-vous déjà essayé, et est-ce que ça a aidé ?", fr: "Déjà essayé", en: "Tried so far" },
+    { q: "Est-ce qu'il y a autre chose qui vient avec ? Qu'est-ce que ça vous empêche de faire ?", fr: "Autres symptômes et vie quotidienne", en: "Other symptoms and daily life" }
+  ];
   const STANDARD_QS = [
     { q: "When did it start? Did it come on suddenly or slowly?", label: "When it started" },
     { q: "Where exactly is it? Does it spread anywhere?", label: "Where" },
@@ -1411,7 +1585,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     { q: "Does anything else come with it? What does it stop you doing?", label: "Other symptoms and daily life" }
   ];
   function useStandard() {
-    S.clarify = { qs: STANDARD_QS.map(q => ({ q: q.q, label: q.label, a: "" })), i: 0, done: false, merged: S.clarify.merged || [] };
+    const set = S.lang === "fr" ? STANDARD_QS_FR.map(q => ({ q: q.q, label: S.docLang === "fr" ? q.fr : q.en })) : STANDARD_QS;
+    S.clarify = { qs: set.map(q => ({ q: q.q, label: q.label, a: "", fixes: [] })), i: 0, done: false, merged: S.clarify.merged || [] };
     $("detail-status").textContent = ""; save(); renderClarify(); focusQ(); voiceAsk(true);
   }
   function enterDetail() {
@@ -1429,7 +1604,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     try {
       const qs = await callClaude(picture({ mode: "clarify", details: kept.map(q => (q.label || q.q) + ": " + q.a.trim()), asked: S.clarify.qs.map(q => q.q) }));
       const seen = new Set(S.clarify.qs.map(q => q.q.trim().toLowerCase()));
-      const fresh = qs.filter(q => !seen.has(q.q.trim().toLowerCase())).map(q => ({ q: q.q, label: q.label || "", a: "" }));
+      const fresh = qs.filter(q => !seen.has(q.q.trim().toLowerCase())).map(q => ({ q: q.q, label: q.label || "", a: "", fixes: [] }));
       S.clarify = { qs: kept.concat(fresh), i: kept.length, done: false, merged: S.clarify.merged || [] };
       save(); status.textContent = "";
       if (STEPS[S.step].id !== "detail") return;
@@ -1467,11 +1642,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           ${c.i > 0 ? '<button type="button" class="btn link" id="cl-prev">Previous question</button>' : ""}
         </div>`;
       $("cl-answer").addEventListener("input", e => { q.a = e.target.value; save(); });
-      if (!isVoice()) addMics(box);
+      addMics(box);
+      if (q.fixes && q.fixes.length) showClarifyFixes(c.i, $("cl-answer").closest(".field"));
       const move = d => {
         Voice.stop();
         c.i += d;
-        if (c.i >= c.qs.length) { mergeDetails(); if (isVoice()) Voice.speak("That's all my questions. Thank you. Tap Next when you're ready."); }
+        if (c.i >= c.qs.length) { mergeDetails(); if (isVoice()) Voice.speak(say("done")); }
         save(); renderClarify(); focusQ();
         if (c.i < c.qs.length) voiceAsk(false);
       };
@@ -1483,20 +1659,26 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     } else {
       const got = c.qs.filter(q => q.a.trim());
       box.innerHTML = `<h3 id="cl-qtext" tabindex="-1">Done. Here's what you said</h3>
-        ${got.length ? `<ul class="cl-sum">${got.map(q => `<li><b>${esc(q.label || q.q)}:</b> ${esc(q.a)}</li>`).join("")}</ul>
+        ${got.length ? `<ul class="cl-sum">${got.map(q => `<li data-qi="${c.qs.indexOf(q)}"><b>${esc(q.label || q.q)}:</b> <span class="ans">${esc(q.a)}</span></li>`).join("")}</ul>
           <p>These are added to <b>What to tell the doctor</b>. Tap <b>Next</b> to check them.</p>` : `<p>No answers this time. Tap <b>Next</b> to carry on.</p>`}
         <div class="row"><button type="button" class="btn secondary" id="cl-redo">Change an answer</button>
         <button type="button" class="btn link" id="cl-new">Ask me more questions</button></div>`;
+      box.querySelectorAll(".cl-sum li").forEach(li => {
+        const qi = +li.dataset.qi, q = c.qs[qi];
+        if (!q || !q.fixes || !q.fixes.length) return;
+        showDym(li, q.fixes, () => q.a, v => { q.a = v; li.querySelector(".ans").textContent = v; mergeDetails(); save(); },
+          () => { q.fixes = q.fixes.filter(f => !f.gone && q.a.includes(f.from)); save(); });
+      });
       $("cl-redo").addEventListener("click", () => { c.i = 0; save(); renderClarify(); focusQ(); voiceAsk(false); });
       $("cl-new").addEventListener("click", () => fetchClarify(true));
     }
   }
   const focusQ = () => { const el = $("cl-qtext"); if (el) el.focus(); };
-  const INTRO = "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say carry on. ";
+
   function voiceAsk(intro) {
     const c = S.clarify;
     if (!isVoice() || c.i >= c.qs.length || !$("cl-answer")) return;
-    Voice.ask((intro ? INTRO : "") + c.qs[c.i].q, $("cl-answer"), () => $("cl-next").click(), voiceView("cl-vstate"));
+    Voice.ask((intro ? say("intro") : "") + c.qs[c.i].q, $("cl-answer"), () => $("cl-next").click(), voiceView("cl-vstate"));
   }
 
   // ---------- suggestions ----------
@@ -1531,7 +1713,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   function renderSugg() {
     const box = $("sugg-list"); box.innerHTML = "";
-    SUGGESTIONS.forEach((q, i) => {
+    SUGGESTIONS.forEach((_, i) => {
+      const q = sug(i);
       const lab = document.createElement("label"); lab.className = "sugg"; lab.setAttribute("for", "sugg-" + i);
       const on = S.sugg.includes(i);
       lab.innerHTML = `<input type="checkbox" id="sugg-${i}" ${on ? "checked" : ""}><span>${esc(q)}${on ? '<span class="added">Added</span>' : ""}</span>`;
@@ -1547,7 +1730,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function allQuestions() {
     const own = S.ask.filter(q => q.t.trim()).map(q => ({ t: q.t.trim(), top: q.top }));
     const ai = S.ai.filter(q => q.on).map(q => ({ t: q.q, top: false }));
-    const extra = S.sugg.slice().sort((a, b) => a - b).filter(i => i !== RECORD_Q).map(i => ({ t: SUGGESTIONS[i], top: false }));
+    const extra = S.sugg.slice().sort((a, b) => a - b).filter(i => i !== RECORD_Q).map(i => ({ t: sug(i), top: false }));
     const seen = new Set(), all = [];
     own.filter(q => q.top).concat(own.filter(q => !q.top), ai, extra).forEach(q => { const k = q.t.toLowerCase(); if (!seen.has(k)) { seen.add(k); all.push(q); } });
     if (S.prioSeen) { const imp = new Set(S.important.map(x => x.toLowerCase())); all.forEach(q => { q.top = imp.has(q.t.toLowerCase()); }); }
@@ -1561,7 +1744,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function questionTexts() {
     const seen = new Set();
     return S.ask.map(q => q.t.trim()).filter(Boolean)
-      .concat(S.ai.filter(q => q.on).map(q => q.q), S.sugg.slice().sort((a, b) => a - b).filter(i => i !== RECORD_Q).map(i => SUGGESTIONS[i]))
+      .concat(S.ai.filter(q => q.on).map(q => q.q), S.sugg.slice().sort((a, b) => a - b).filter(i => i !== RECORD_Q).map(i => sug(i)))
       .filter(t => { const k = t.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
   }
   function renderPriority() {
@@ -1612,51 +1795,87 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     return `<ul>${m.map(x => `<li>${esc(x.n)}, ${x.d.trim() ? esc(x.d) : "dose: ________"}${x.w.trim() ? ", " + esc(x.w) : ""}</li>`).join("")}</ul>`;
   }
   const lines = t => t.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  // ---------- translations (French answers -> doctor's language), kept on the device ----------
+  const tkey = (to, x) => to + "|" + x;
+  const tr = (x, to) => { const t = (x || "").trim(); return t ? (S.tr[tkey(to, t)] || t) : t; };
+  const needTr = () => S.lang === "fr" && S.consent === true;
+  function trItems() {
+    const qs = (() => { const { top, rest } = allQuestions(); return top.concat(rest).map(q => q.t); })();
+    const tell = S.tell.map(t => t.trim()).filter(Boolean);
+    const doc = [S.purpose, ...tell, ...qs, ...lines(S.bg.conditions), S.bg.changes, S.bg.team, S.bg.allergies, S.chg.medNote, ...S.meds.map(m => m.w)];
+    const uniq = a => [...new Set(a.map(x => (x || "").trim()).filter(Boolean))];
+    return { doc: uniq(doc), pat: uniq([...qs, ...tell]) };
+  }
+  let trBusy = false;
+  async function ensureTranslations(statusId) {
+    if (!needTr() || trBusy) return false;
+    const { doc, pat } = trItems();
+    const jobs = [[S.docLang, doc], [S.lang, pat]].map(([to, items]) => [to, items.filter(x => !S.tr[tkey(to, x)])]).filter(j => j[1].length);
+    if (!jobs.length) return false;
+    trBusy = true;
+    const st = $(statusId); if (st) st.textContent = S.docLang === "en" ? "Translating your answers into English for the doctor…" : "Préparation des pages en français…";
+    try {
+      for (const [to, items] of jobs) {
+        const data = await callApi({ mode: "translate", items, docLang: to });
+        items.forEach((x, i) => { if (data.items[i]) S.tr[tkey(to, x)] = data.items[i]; });
+      }
+      save(); if (st) st.textContent = "";
+      return true;
+    } catch (err) {
+      console.warn("Translation failed", err);
+      if (st) st.textContent = "Couldn't translate just now. The pages show your answers as you gave them. Come back to this step to try again.";
+      return false;
+    } finally { trBusy = false; }
+  }
   function buildSheets() {
+    const D = x => tr(x, S.docLang), P = x => tr(x, S.lang);
+    const both = x => { const d = D(x), p = P(x); return d === p ? esc(d) : `${esc(d)}<span class="tr-line">${esc(p)}</span>`; };
     const tell = S.tell.filter(t => t.trim());
     // answers like "not sure" help the family, but are noise for the doctor
     const UNSURE = /^(not sure|unsure|i'?m not sure|don'?t know|i don'?t know|no idea|can'?t say)\W*$/i;
     const facts = tell.filter(t => { const i = t.indexOf(": "); return !UNSURE.test((i > -1 ? t.slice(i + 2) : t).trim()); });
     const { top: topAll, rest, first } = allQuestions();
     const top = topAll.filter(q => !q.first);
-    const li = q => `<li${q.top ? ' class="top"' : ""}>${q.top ? '<span class="star" aria-label="most important">★</span> ' : ""}${esc(q.t)}</li>`;
+    const liX = f => q => `<li${q.top ? ' class="top"' : ""}>${q.top ? '<span class="star" aria-label="most important">★</span> ' : ""}${f(q.t)}</li>`;
+    const li = liX(x => esc(D(x))), liBoth = liX(both), liP = liX(x => esc(P(x)));
     const shortRest = rest.slice(0, Math.max(0, 6 - top.length));
     const recordAsk = S.sugg.includes(RECORD_Q);
     $("sheet-p").innerHTML = header("My page") + `
       <section><h3>Start with</h3><p class="say">"I have some questions I'd like to go through. May I start?"</p>
       <p style="margin-top:8px">Hand the doctor your summary sheet.</p>
       ${recordAsk ? `<p style="margin-top:4px">Then ask: "Is it okay if I record this appointment on my phone?"</p>` : ""}</section>
-      <section><h3>Make sure I mention</h3>${facts.length ? `<ul>${facts.slice(0, 8).map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
-      ${first ? `<section><h3>If I only get one answer</h3><p class="say">${esc(first.t)}</p></section>` : ""}
-      <section><h3>${first ? "My other questions" : "My questions"}</h3>${top.length + shortRest.length ? `<ol>${top.concat(shortRest).map(li).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}
+      <section><h3>Make sure I mention</h3>${facts.length ? `<ul>${facts.slice(0, 8).map(t => `<li>${both(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
+      ${first ? `<section><h3>If I only get one answer</h3><p class="say">${both(first.t)}</p></section>` : ""}
+      <section><h3>${first ? "My other questions" : "My questions"}</h3>${top.length + shortRest.length ? `<ol>${top.concat(shortRest).map(liBoth).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}
       ${rest.length > shortRest.length ? `<p style="margin-top:6px;color:#3B4A57">More questions are on the full list.</p>` : ""}</section>
       <section><h3>My notes: what the doctor says</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div><div class="blank"></div>
         <p style="margin-top:8px">Next appointment: ______________________</p></section>`;
-    const cond = lines(S.bg.conditions);
+    const cond = lines(S.bg.conditions).map(D);
     const dl = rows => `<dl class="dl">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>`;
-    const medsD = S.meds.filter(x => x.n.trim()).map(x => esc([x.n, x.d.trim() || "dose not known", x.w].filter(v => v && v.trim()).join(", ")));
+    const medsD = S.meds.filter(x => x.n.trim()).map(x => esc([x.n, x.d.trim() || "dose not known", D(x.w)].filter(v => v && v.trim()).join(", ")));
     const qD = top.concat(rest).slice(0, 8);
     $("sheet-d").innerHTML = `<h2>Patient summary${S.who.trim() ? " · " + esc(S.who) : ""}</h2>
       <div class="meta">${[S.seeing, fmtDate(S.date), fmtTime(S.time)].filter(x => x && x.trim()).map(x => `<span>${esc(x)}</span>`).join("")}</div>
-      <section><h3>Reason for visit</h3><p>${esc(S.purpose) || '<span class="empty">Not given</span>'}</p></section>
-      ${facts.length ? `<section><h3>About this concern</h3><ul>${facts.map(t => `<li>${esc(t)}</li>`).join("")}</ul></section>` : ""}
+      <section><h3>Reason for visit</h3><p>${esc(D(S.purpose)) || '<span class="empty">Not given</span>'}</p></section>
+      ${facts.length ? `<section><h3>About this concern</h3><ul>${facts.map(t => `<li>${esc(D(t))}</li>`).join("")}</ul></section>` : ""}
       ${cond.length || S.bg.changes.trim() || S.bg.team.trim() ? `<section><h3>Health background</h3>${dl([
         ["Conditions", cond.map(esc).join("; ")],
-        ["Recent changes", esc(S.bg.changes.trim()).replace(/\n+/g, "; ")],
-        ["Also seen by", esc(S.bg.team.trim())],
+        ["Recent changes", esc(D(S.bg.changes)).replace(/\n+/g, "; ")],
+        ["Also seen by", esc(D(S.bg.team))],
         ["Since last visit", S.carried && S.chg.bg === "no" ? "No changes reported" : ""]
       ])}</section>` : ""}
       <section><h3>Medications and allergies</h3>${dl([
         ["Medications", medsD.length ? medsD.join("<br>") : "None listed"],
-        ["Changes since last visit", !S.carried ? "" : S.chg.meds === "yes" ? (esc(S.chg.medNote.trim()) || "Yes (see list)") : S.chg.meds === "no" ? "None reported" : ""],
-        ["Allergies", esc(S.bg.allergies.trim()) || "None listed"]
+        ["Changes since last visit", !S.carried ? "" : S.chg.meds === "yes" ? (esc(D(S.chg.medNote)) || "Yes (see list)") : S.chg.meds === "no" ? "None reported" : ""],
+        ["Allergies", esc(D(S.bg.allergies)) || "None listed"]
       ])}</section>
-      ${first ? `<section><h3>Most important question to the patient</h3><p><b>${esc(first.t)}</b></p></section>` : ""}
+      ${first ? `<section><h3>Most important question to the patient</h3><p><b>${esc(D(first.t))}</b></p></section>` : ""}
       ${qD.length ? `<section><h3>${first ? "Other questions" : "Patient's questions"}</h3><ol>${qD.map(li).join("")}</ol></section>` : ""}
       <section class="how"><h3>How this summary was prepared</h3>
-        <p>The patient answered questions at home, in their own words, with family. Questions followed a standard symptom history (onset, location, duration, character, what makes it worse or better, timing, severity) and checked their other conditions and medicines. ${S.consent === true ? "An AI assistant (Claude, by Anthropic) suggested questions only. It did not diagnose." : "No AI was used."} Answers are as reported by the patient and have not been verified. Not a medical record. Method: pen-ink.ca/prep</p></section>`;
+        <p>The patient answered questions at home, in their own words, with family. Questions followed a standard symptom history (onset, location, duration, character, what makes it worse or better, timing, severity) and checked their other conditions and medicines. ${S.consent === true ? "An AI assistant (Claude, by Anthropic) suggested questions only. It did not diagnose." : "No AI was used."}${S.lang === "fr" && S.docLang === "en" && S.consent === true ? " The patient answered in French; answers were translated by the same AI." : ""} Answers are as reported by the patient and have not been verified. Not a medical record. Method: pen-ink.ca/prep</p></section>`;
+    const condP = lines(S.bg.conditions).map(P);
     const bgBits = [
-      cond.length ? `<p><b>Conditions:</b></p><ul>${cond.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "",
+      condP.length ? `<p><b>Conditions:</b></p><ul>${condP.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "",
       S.bg.changes.trim() ? `<p><b>Recent changes:</b> ${esc(S.bg.changes).replace(/\n/g, "<br>")}</p>` : "",
       S.carried && S.chg.meds ? `<p><b>Medication changes since last visit:</b> ${S.chg.meds === "yes" ? esc(S.chg.medNote.trim()) || "yes" : "none"}</p>` : "",
       S.bg.team.trim() ? `<p><b>Also seeing:</b> ${esc(S.bg.team)}</p>` : "",
@@ -1666,9 +1885,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       ${S.purpose.trim() ? `<section><h3>Appointment is for</h3><p>${esc(S.purpose)}</p></section>` : ""}
       ${bgBits ? `<section><h3>Health background</h3>${bgBits}</section>` : ""}
       ${S.story.trim() ? `<section><h3>In their words</h3><p>${esc(S.story).replace(/\n/g, "<br>")}</p></section>` : ""}
-      <section><h3>Make sure the doctor hears</h3>${tell.length ? `<ul class="check">${tell.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
-      ${first ? `<section><h3>Most important question</h3><p><b>${esc(first.t)}</b></p></section>` : ""}
-      <section><h3>${first ? "Other questions" : "All questions"}</h3>${top.length + rest.length ? `<ol>${top.concat(rest).map(li).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}</section>
+      <section><h3>Make sure the doctor hears</h3>${tell.length ? `<ul class="check">${tell.map(t => `<li>${esc(P(t))}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
+      ${first ? `<section><h3>Most important question</h3><p><b>${esc(P(first.t))}</b></p></section>` : ""}
+      <section><h3>${first ? "Other questions" : "All questions"}</h3>${top.length + rest.length ? `<ol>${top.concat(rest).map(liP).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}</section>
       <section><h3>Medications</h3>${medsHTML()}</section>
       <section><h3>Bring</h3><ul class="check"><li>The patient's page and this list</li><li>Medication bottles, or the list above</li><li>Health card</li>${recordAsk ? "<li>Phone charged, to record</li>" : ""}</ul></section>
       <section><h3>After the appointment</h3>
@@ -1999,7 +2218,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 
   // ---------- start ----------
   if (S.voiceName) Voice.pickVoice(S.voiceName);
-  fillFields(); applyMode();
+  fillFields(); applyMode(); applyLang();
   addMics(document.querySelector("main"));
   if (!canStore) setSaved("warn");
   show(-1);

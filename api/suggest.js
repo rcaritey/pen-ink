@@ -111,7 +111,7 @@ const tidy = (list) => (Array.isArray(list) ? list : [])
   .filter((x) => x.q)
   .slice(0, 10);
 
-// Fallback for any plain-text reply: find the JSON object in it.
+// Fallback for any plain-text reply: find the JSON object in it (kept for reference; askClaude now handles this).
 function parseQuestions(text) {
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
@@ -128,6 +128,87 @@ function parseQuestions(text) {
   }
 }
 
+// ---- languages: the patient may speak French; the doctor's pages may be in English or French
+const LANG_NAME = { en: 'English', fr: 'Canadian French' };
+const pickLang = (v) => (v === 'fr' ? 'fr' : 'en');
+
+const FIX = `You help correct voice typing for a patient preparing for a medical appointment.
+The patient may speak with a French accent, and Parkinson's disease can make speech soft, fast or slurred, so voice typing often mishears words.
+You receive the question they were answering, some context (their conditions, medications and the reason for the visit), and the text the voice typing produced.
+
+Find only words or short phrases that were clearly misheard: ones that don't make sense there, where the context makes the intended word obvious (for example a medication name heard as ordinary words, or a sound-alike word).
+Rules:
+- Never change meaning, never add information, never fix grammar, style or punctuation, never translate.
+- "from" must be copied exactly as it appears in the text (same letters and case). "to" is the correction.
+- If you are not fairly sure, leave it. If nothing needs fixing, return an empty list.
+- At most 6 fixes.`;
+
+const FIX_SCHEMA = {
+  type: 'object',
+  properties: {
+    fixes: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { from: { type: 'string' }, to: { type: 'string' } },
+        required: ['from', 'to'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['fixes'],
+  additionalProperties: false,
+};
+
+const TRANSLATE = `You translate a patient's own notes for their doctor.
+Translate each item faithfully into the target language. Keep the patient's meaning, tone and first-person voice. Keep medication names, numbers and doses exactly as written. Do not add, explain, summarise or correct anything.
+If an item is already in the target language, return it unchanged. Return the items in the same order, one translation per item.`;
+
+const TRANSLATE_SCHEMA = {
+  type: 'object',
+  properties: { items: { type: 'array', items: { type: 'string' } } },
+  required: ['items'],
+  additionalProperties: false,
+};
+
+async function askClaude(system, user, schema, maxTokens) {
+  const response = await fetch(ANTHROPIC_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: maxTokens,
+      inference_geo: 'us',
+      system,
+      messages: [{ role: 'user', content: user }],
+      output_config: { format: { type: 'json_schema', schema } },
+    }),
+  });
+  if (!response.ok) {
+    // Status and the API's error type only (for example invalid_request_error). Never the request or reply content.
+    let kind = '';
+    try { kind = ((await response.json()).error || {}).type || ''; } catch { /* no body */ }
+    console.error('Anthropic API error', response.status, kind);
+    const err = new Error('api'); err.code = 'api'; throw err;
+  }
+  const data = await response.json();
+  const blocks = data.content || [];
+  const text = blocks.filter((b) => b.type === 'text').map((b) => b.text).join('');
+  try { return JSON.parse(text); } catch {
+    const a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if (a > -1 && b > a) { try { return JSON.parse(text.slice(a, b + 1)); } catch { /* fall through */ } }
+    // Shape only, never content: which blocks came back and why the reply stopped.
+    console.error('Reply could not be read', data.stop_reason, blocks.map((x) => x.type).join(','));
+    const err = new Error('parse'); err.code = 'parse'; throw err;
+  }
+}
+
+const UNAVAILABLE = 'Suggestions are not available right now. Try again in a minute, or use the common questions below.';
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
@@ -138,88 +219,78 @@ export default async function handler(req, res) {
   const body = typeof req.body === 'object' && req.body ? req.body : (() => {
     try { return JSON.parse(req.body || '{}'); } catch { return {}; }
   })();
-
-  const p = {
-    seeing: clean(body.seeing, LIMITS.seeing),
-    purpose: clean(body.purpose, LIMITS.purpose),
-    conditions: clean(body.conditions, LIMITS.conditions),
-    team: clean(body.team, LIMITS.team),
-    changes: clean(body.changes, LIMITS.changes),
-    allergies: clean(body.allergies, LIMITS.allergies),
-    story: clean(body.story, LIMITS.story),
-    meds: cleanList(body.meds),
-    tell: cleanList(body.tell),
-    ask: cleanList(body.ask),
-    asked: cleanList(body.asked),
-    details: Array.isArray(body.details)
-      ? body.details.slice(0, LIMITS.list).map((v) => clean(v, LIMITS.detail)).filter(Boolean)
-      : [],
-  };
-  const mode = body.mode === 'clarify' ? 'clarify' : 'suggest';
-
-  if (!p.purpose && !p.story && !p.tell.length && !p.ask.length) {
-    return res.status(400).json({
-      ok: false,
-      error: 'Add what the appointment is for, or what they said in their own words, then try again.',
-    });
-  }
+  const mode = ['clarify', 'translate', 'fix'].includes(body.mode) ? body.mode : 'suggest';
+  const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 
   if (!process.env.ANTHROPIC_API_KEY) {
     console.error('ANTHROPIC_API_KEY is not set');
-    return res.status(503).json({
-      ok: false,
-      error: 'Suggestions are not switched on yet. You can still use the common questions below.',
-    });
+    return res.status(503).json({ ok: false, error: 'Suggestions are not switched on yet. You can still use the common questions below.' });
   }
 
   try {
-    const response = await fetch(ANTHROPIC_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 2500,
-        inference_geo: 'us',
-        system: mode === 'clarify' ? CLARIFY : SYSTEM,
-        messages: [{ role: 'user', content: buildPrompt(p) }],
-        output_config: { format: { type: 'json_schema', schema: QUESTION_SCHEMA } },
-      }),
-    });
-
-    if (!response.ok) {
-      // Status and the API's error type only (for example invalid_request_error). Never the request or reply content.
-      let kind = '';
-      try { kind = ((await response.json()).error || {}).type || ''; } catch { /* no body */ }
-      console.error('Anthropic API error', response.status, kind);
-      return res.status(502).json({
-        ok: false,
-        error: 'Suggestions are not available right now. Try again in a minute, or use the common questions below.',
-      });
+    // ---- translate the patient's own words for the doctor's pages
+    if (mode === 'translate') {
+      const items = Array.isArray(body.items) ? body.items.slice(0, 80).map((v) => clean(v, LIMITS.story)) : [];
+      if (!items.length) return res.status(200).json({ ok: true, items: [] });
+      const out = await askClaude(TRANSLATE, `Target language: ${LANG_NAME[docLang]}\n\nItems (JSON array):\n${JSON.stringify(items)}`, TRANSLATE_SCHEMA, 6000);
+      const got = Array.isArray(out.items) ? out.items.map((v) => clean(v, LIMITS.story)) : [];
+      if (got.length !== items.length) return res.status(502).json({ ok: false, error: 'The translation came back incomplete. Please try again.' });
+      return res.status(200).json({ ok: true, items: got });
     }
 
-    const data = await response.json();
-    const blocks = data.content || [];
-    const text = blocks.filter((b) => b.type === 'text').map((b) => b.text).join('');
-    let questions = null;
-    try { questions = tidy(JSON.parse(text).questions); } catch { questions = parseQuestions(text); }
-    if (!questions || !questions.length) {
-      // Shape only, never content: which blocks came back and why the reply stopped.
-      console.error('Suggestion reply could not be read', data.stop_reason, blocks.map((b) => b.type).join(','));
-      return res.status(502).json({
-        ok: false,
-        error: 'The suggestions came back in a form we could not read. Please try again.',
-      });
+    // ---- "Did you mean...?" for voice-typed answers
+    if (mode === 'fix') {
+      const text = clean(body.text, LIMITS.story);
+      if (!text) return res.status(200).json({ ok: true, fixes: [] });
+      const ctx = [
+        `Language spoken: ${LANG_NAME[lang]}`,
+        `Question being answered: ${clean(body.question, 400) || 'not given'}`,
+        `Reason for visit: ${clean(body.purpose, LIMITS.purpose) || 'not given'}`,
+        `Conditions: ${clean(body.conditions, LIMITS.conditions) || 'not given'}`,
+        `Medications: ${cleanList(body.meds).join('; ') || 'not given'}`,
+        '',
+        `Voice-typed text:\n${text}`,
+      ].join('\n');
+      const out = await askClaude(FIX, ctx, FIX_SCHEMA, 800);
+      const fixes = (Array.isArray(out.fixes) ? out.fixes : [])
+        .map((f) => ({ from: clean(f && f.from, 120), to: clean(f && f.to, 120) }))
+        .filter((f) => f.from && f.to && f.from !== f.to && text.includes(f.from))
+        .slice(0, 6);
+      return res.status(200).json({ ok: true, fixes });
+    }
+
+    // ---- questions: interview (clarify) or suggestions for the doctor
+    const p = {
+      seeing: clean(body.seeing, LIMITS.seeing),
+      purpose: clean(body.purpose, LIMITS.purpose),
+      conditions: clean(body.conditions, LIMITS.conditions),
+      team: clean(body.team, LIMITS.team),
+      changes: clean(body.changes, LIMITS.changes),
+      allergies: clean(body.allergies, LIMITS.allergies),
+      story: clean(body.story, LIMITS.story),
+      meds: cleanList(body.meds),
+      tell: cleanList(body.tell),
+      ask: cleanList(body.ask),
+      asked: cleanList(body.asked),
+      details: Array.isArray(body.details)
+        ? body.details.slice(0, LIMITS.list).map((v) => clean(v, LIMITS.detail)).filter(Boolean)
+        : [],
+    };
+    if (!p.purpose && !p.story && !p.tell.length && !p.ask.length) {
+      return res.status(400).json({ ok: false, error: 'Add what the appointment is for, or what they said in their own words, then try again.' });
+    }
+    const langNote = mode === 'clarify'
+      ? `\n\n## Languages\nThe patient speaks ${LANG_NAME[lang]}. Write every question ("q") in ${LANG_NAME[lang]}. Write every "label" in ${LANG_NAME[docLang]}, because labels go on the doctor's page. Their answers may be in either language.`
+      : `\n\n## Languages\nWrite every question ("q") in ${LANG_NAME[docLang]}, because the patient will ask the doctor in that language. Write every "why" in ${LANG_NAME[lang]}, because the patient reads it.`;
+    const out = await askClaude(mode === 'clarify' ? CLARIFY : SYSTEM, buildPrompt(p) + langNote, QUESTION_SCHEMA, 2500);
+    const questions = tidy(out.questions);
+    if (!questions.length) {
+      return res.status(502).json({ ok: false, error: 'The suggestions came back in a form we could not read. Please try again.' });
     }
     return res.status(200).json({ ok: true, questions });
   } catch (error) {
-    console.error('Suggestion request failed', error && error.name);
-    return res.status(502).json({
-      ok: false,
-      error: 'Suggestions are not available right now. Try again in a minute, or use the common questions below.',
-    });
+    if (error && error.code === 'parse') return res.status(502).json({ ok: false, error: 'The suggestions came back in a form we could not read. Please try again.' });
+    if (!(error && error.code)) console.error('Request failed', error && error.name);
+    return res.status(502).json({ ok: false, error: UNAVAILABLE });
   }
 }
