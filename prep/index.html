@@ -196,7 +196,10 @@ fieldset.plain { border: none; padding: 0; margin: 0; }
 .voice-state { font-weight: 700; color: var(--accent); min-height: 1.4em; }
 .with-mic { display: flex; gap: 8px; align-items: flex-start; }
 .with-mic > input { flex: 1; min-width: 0; }
-.mic-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+.mic-row { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; }
+.fix-row { display: flex; justify-content: flex-end; gap: 4px 12px; }
+.fix-row:has(> .fix:not([hidden])) { margin-top: 2px; }
+.btn.link.fix { color: var(--muted); min-height: 44px; padding: 6px 4px; }
 .mic { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; min-width: 48px; padding: 6px 12px; border-radius: 10px;
   border: 1.5px solid var(--line); background: var(--surface); color: var(--accent); font: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer; flex-shrink: 0; }
 .mic[aria-pressed="true"] { border-color: var(--danger); color: var(--danger); }
@@ -931,6 +934,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     function appendSpoken(raw) {
       let t = raw.replace(/\s+/g, " ").trim();
       if (!t || !target) return;
+      if (/^(scratch that|undo that|delete that)\W*$/i.test(t)) {
+        if (target._hist && target._hist.length) { target.value = target._hist.pop(); target.dispatchEvent(new Event("input", { bubbles: true })); target.dispatchEvent(new Event("voice-change")); }
+        return;
+      }
+      target._hist = target._hist || []; target._hist.push(target.value); if (target._hist.length > 30) target._hist.shift();
       let v = target.value;
       const fresh = !v.trim() || /\n\s*$/.test(v);
       const paused = Date.now() - lastSpokeAt > 2500;
@@ -954,7 +962,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   })();
   const VOICE_MSG = {
     speaking: "Reading it out loud…",
-    listening: "Listening. Take your time. When you've finished, say “carry on”.",
+    listening: "Listening. Take your time. Say “scratch that” to remove the last part, and “carry on” when you've finished.",
     blocked: "The microphone is blocked. Allow it in your browser settings, or type your answer.",
     typing: "This browser can't type what you say. Type your answer, or use the microphone on your keyboard.",
     off: ""
@@ -1169,46 +1177,69 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const STOP_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
   const MIC_MSG = {
     speaking: "", off: "",
-    listening: "Listening. Speak your answer. When you've finished, say \u201ccarry on\u201d or tap Stop.",
+    listening: "Listening. Say \u201cscratch that\u201d to remove the last part. When you've finished, say \u201ccarry on\u201d or tap Stop.",
     blocked: "The microphone is blocked. Allow it in your browser settings, or type your answer.",
     typing: "This browser can't type what you say. Type your answer, or use the microphone on your keyboard."
   };
+  // Every answer box gets: Speak / Add by voice (when the browser can listen), Undo (puts back what was there
+  // before the last spoken phrase or Clear) and, for single answers, Clear.
+  const remember = (el, before) => { el._hist = el._hist || []; el._hist.push(before); if (el._hist.length > 30) el._hist.shift(); };
   function addMics(root) {
-    if (!Voice.canListen) return;
     root.querySelectorAll('input[type="text"], textarea').forEach(el => {
       if (el.dataset.mic) return;
       el.dataset.mic = "1";
       const lab = document.querySelector(`label[for="${el.id}"]`);
       const name = lab ? lab.textContent.replace(/\s*\(.*?\)\s*/g, " ").trim() : "this answer";
-      const btn = document.createElement("button");
-      btn.type = "button"; btn.className = "mic"; btn.setAttribute("aria-pressed", "false");
-      btn.setAttribute("aria-label", "Speak: " + name);
-      // empty box: "Speak"; box with text: "Add by voice" (spoken words go on the end)
-      const idle = () => el.value.trim() ? "Add by voice" : "Speak";
-      const setLook = on => {
-        btn.setAttribute("aria-pressed", on); btn.innerHTML = (on ? STOP_SVG : MIC_SVG) + `<span>${on ? "Stop" : idle()}</span>`;
-        btn.setAttribute("aria-label", (on ? "Stop listening: " : idle() + ": ") + name);
-      };
-      setLook(false);
-      el.addEventListener("input", () => { if (btn.getAttribute("aria-pressed") !== "true") setLook(false); });
-      btn.addEventListener("click", () => {
-        if (btn.getAttribute("aria-pressed") === "true") { Voice.stop(); return; }
-        Voice.ask("", el, () => {}, (st, heard) => { setLook(st === "listening"); $("mic-msg").textContent = heard ? "Hearing: \u201c" + heard + "\u2026\u201d" : (MIC_MSG[st] || ""); });
+      const inList = !!(el.nextElementSibling && el.nextElementSibling.classList.contains("item-actions"));
+      const mk = (cls, text, label) => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = text; b.setAttribute("aria-label", label); return b; };
+      const undo = mk("btn link fix", "Undo", "Undo the last change: " + name);
+      const clear = inList ? null : mk("btn link fix", "Clear", "Clear: " + name);
+      const refresh = () => { undo.hidden = !(el._hist && el._hist.length); if (clear) clear.hidden = !el.value.trim(); };
+      undo.addEventListener("click", () => {
+        if (!el._hist || !el._hist.length) return;
+        el.value = el._hist.pop(); el.dispatchEvent(new Event("input", { bubbles: true })); refresh(); el.focus();
+        $("mic-msg").textContent = "Undone.";
       });
-      const acts = el.nextElementSibling && el.nextElementSibling.classList.contains("item-actions") ? el.nextElementSibling : null;
-      if (acts) {
-        acts.prepend(btn);
+      if (clear) clear.addEventListener("click", () => {
+        remember(el, el.value); el.value = ""; el.dispatchEvent(new Event("input", { bubbles: true })); refresh(); el.focus();
+        $("mic-msg").textContent = "Cleared. Tap Undo to bring it back.";
+      });
+      el.addEventListener("input", refresh);
+      el.addEventListener("voice-change", refresh);
+      refresh();
+      let btn = null;
+      if (Voice.canListen) {
+        btn = document.createElement("button");
+        btn.type = "button"; btn.className = "mic"; btn.setAttribute("aria-pressed", "false");
+        // empty box: "Speak"; box with text: "Add by voice" (spoken words go on the end)
+        const idle = () => el.value.trim() ? "Add by voice" : "Speak";
+        const setLook = on => {
+          btn.setAttribute("aria-pressed", on); btn.innerHTML = (on ? STOP_SVG : MIC_SVG) + `<span>${on ? "Stop" : idle()}</span>`;
+          btn.setAttribute("aria-label", (on ? "Stop listening: " : idle() + ": ") + name);
+        };
+        setLook(false);
+        el.addEventListener("input", () => { if (btn.getAttribute("aria-pressed") !== "true") setLook(false); });
+        btn.addEventListener("click", () => {
+          if (btn.getAttribute("aria-pressed") === "true") { Voice.stop(); return; }
+          Voice.ask("", el, () => {}, (st, heard) => { setLook(st === "listening"); $("mic-msg").textContent = heard ? "Hearing: \u201c" + heard + "\u2026\u201d" : (MIC_MSG[st] || ""); });
+        });
+      }
+      const tools = [undo, clear, btn].filter(Boolean);
+      if (inList) {
+        el.nextElementSibling.prepend(...tools);
       } else if (el.tagName === "TEXTAREA") {
         const row = document.createElement("div"); row.className = "mic-row";
-        el.after(row); row.appendChild(btn);
-      } else if (el.parentElement.classList.contains("item")) {
-        el.after(btn);
+        el.after(row); row.append(...tools);
       } else {
         const wrap = document.createElement("div"); wrap.className = "with-mic";
-        el.before(wrap); wrap.appendChild(el); wrap.appendChild(btn);
+        el.before(wrap); wrap.appendChild(el);
+        if (btn) wrap.appendChild(btn);
+        const row = document.createElement("div"); row.className = "fix-row"; row.append(undo, clear);
+        wrap.after(row);
       }
     });
   }
+
 
   // ---------- list editors ----------
   // list answers grow to show everything they hold
