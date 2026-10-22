@@ -168,7 +168,10 @@ textarea { min-height: 160px; resize: vertical; }
 .choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
 
 .list { display: flex; flex-direction: column; gap: 10px; }
-.item { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.item { display: flex; flex-direction: column; gap: 6px; padding-bottom: 6px; }
+textarea.grow { min-height: 48px; resize: none; overflow: hidden; line-height: 1.45; }
+.item-actions { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: flex-end; }
+.item-actions .rm { color: var(--muted); font-weight: 700; min-height: 44px; }
 .item input[type=text] { flex: 1 1 240px; min-width: 0; }
 .icon-btn { min-width: 48px; min-height: 48px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface);
   color: var(--ink); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; padding: 4px 10px; }
@@ -1136,16 +1139,22 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const btn = document.createElement("button");
       btn.type = "button"; btn.className = "mic"; btn.setAttribute("aria-pressed", "false");
       btn.setAttribute("aria-label", "Speak: " + name);
-      btn.innerHTML = MIC_SVG + "<span>Speak</span>";
+      // empty box: "Speak"; box with text: "Add by voice" (spoken words go on the end)
+      const idle = () => el.value.trim() ? "Add by voice" : "Speak";
       const setLook = on => {
-        btn.setAttribute("aria-pressed", on); btn.innerHTML = (on ? STOP_SVG : MIC_SVG) + `<span>${on ? "Stop" : "Speak"}</span>`;
-        btn.setAttribute("aria-label", (on ? "Stop listening: " : "Speak: ") + name);
+        btn.setAttribute("aria-pressed", on); btn.innerHTML = (on ? STOP_SVG : MIC_SVG) + `<span>${on ? "Stop" : idle()}</span>`;
+        btn.setAttribute("aria-label", (on ? "Stop listening: " : idle() + ": ") + name);
       };
+      setLook(false);
+      el.addEventListener("input", () => { if (btn.getAttribute("aria-pressed") !== "true") setLook(false); });
       btn.addEventListener("click", () => {
         if (btn.getAttribute("aria-pressed") === "true") { Voice.stop(); return; }
         Voice.ask("", el, () => {}, (st, heard) => { setLook(st === "listening"); $("mic-msg").textContent = heard ? "Hearing: \u201c" + heard + "\u2026\u201d" : (MIC_MSG[st] || ""); });
       });
-      if (el.tagName === "TEXTAREA") {
+      const acts = el.nextElementSibling && el.nextElementSibling.classList.contains("item-actions") ? el.nextElementSibling : null;
+      if (acts) {
+        acts.prepend(btn);
+      } else if (el.tagName === "TEXTAREA") {
         const row = document.createElement("div"); row.className = "mic-row";
         el.after(row); row.appendChild(btn);
       } else if (el.parentElement.classList.contains("item")) {
@@ -1158,19 +1167,24 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
 
   // ---------- list editors ----------
+  // list answers grow to show everything they hold
+  function grow(el) { el.style.height = "auto"; el.style.height = Math.max(48, el.scrollHeight + 3) + "px"; }
+  document.addEventListener("input", e => { if (e.target.classList && e.target.classList.contains("grow")) grow(e.target); });
+  const growAll = root => requestAnimationFrame(() => root.querySelectorAll("textarea.grow").forEach(grow));
   function renderTell() {
     const box = $("tell-list"); box.innerHTML = "";
     if (!S.tell.length) S.tell.push("");
     S.tell.forEach((v, i) => {
       const row = document.createElement("div"); row.className = "item";
       row.innerHTML = `<label for="tell-${i}" class="visually-hidden">Thing to tell the doctor ${i + 1}</label>
-        <input type="text" id="tell-${i}" value="${esc(v)}" autocomplete="off">
-        <button type="button" class="icon-btn" aria-label="Remove item ${i + 1}">Remove</button>`;
-      row.querySelector("input").addEventListener("input", e => { S.tell[i] = e.target.value; save(); });
-      row.querySelector("button").addEventListener("click", () => { S.tell.splice(i, 1); renderTell(); save(); });
+        <textarea id="tell-${i}" class="grow" rows="1">${esc(v)}</textarea>
+        <div class="item-actions"><button type="button" class="btn link rm">Remove</button></div>`;
+      row.querySelector("textarea").addEventListener("input", e => { S.tell[i] = e.target.value; save(); });
+      row.querySelector(".rm").setAttribute("aria-label", `Remove item ${i + 1}`);
+      row.querySelector(".rm").addEventListener("click", () => { S.tell.splice(i, 1); renderTell(); save(); });
       box.appendChild(row);
     });
-    addMics(box);
+    addMics(box); growAll(box);
   }
   function renderAsk() {
     const box = $("ask-list"); box.innerHTML = "";
@@ -1178,16 +1192,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     S.ask.forEach((q, i) => {
       const row = document.createElement("div"); row.className = "item";
       row.innerHTML = `<label for="ask-${i}" class="visually-hidden">Question ${i + 1}</label>
-        <input type="text" id="ask-${i}" value="${esc(q.t)}" autocomplete="off">
-        <button type="button" class="icon-btn star" aria-pressed="${q.top}">★ Most important</button>
-        <button type="button" class="icon-btn" aria-label="Remove question ${i + 1}">Remove</button>`;
-      const [star, rm] = row.querySelectorAll("button");
-      row.querySelector("input").addEventListener("input", e => { S.ask[i].t = e.target.value; save(); });
+        <textarea id="ask-${i}" class="grow" rows="1">${esc(q.t)}</textarea>
+        <div class="item-actions"><button type="button" class="icon-btn star" aria-pressed="${q.top}">★ Most important</button><button type="button" class="btn link rm">Remove</button></div>`;
+      const star = row.querySelector(".star"), rm = row.querySelector(".rm");
+      rm.setAttribute("aria-label", `Remove question ${i + 1}`);
+      row.querySelector("textarea").addEventListener("input", e => { S.ask[i].t = e.target.value; save(); });
       star.addEventListener("click", () => { S.ask[i].top = !S.ask[i].top; star.setAttribute("aria-pressed", S.ask[i].top); save(); });
       rm.addEventListener("click", () => { S.ask.splice(i, 1); renderAsk(); save(); });
       box.appendChild(row);
     });
-    addMics(box);
+    addMics(box); growAll(box);
   }
   function renderMeds() {
     const box = $("med-list"); box.innerHTML = "";
@@ -1713,13 +1727,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     r.todo.forEach((v, i) => {
       const row = document.createElement("div"); row.className = "item";
       row.innerHTML = `<label for="todo-${i}" class="visually-hidden">Thing to do ${i + 1}</label>
-        <input type="text" id="todo-${i}" value="${esc(v)}" autocomplete="off">
-        <button type="button" class="icon-btn" aria-label="Remove thing to do ${i + 1}">Remove</button>`;
-      row.querySelector("input").addEventListener("input", e => { r.todo[i] = e.target.value; save(); });
-      row.querySelector(".icon-btn").addEventListener("click", () => { r.todo.splice(i, 1); renderTodo(); save(); });
+        <textarea id="todo-${i}" class="grow" rows="1">${esc(v)}</textarea>
+        <div class="item-actions"><button type="button" class="btn link rm">Remove</button></div>`;
+      row.querySelector("textarea").addEventListener("input", e => { r.todo[i] = e.target.value; save(); });
+      row.querySelector(".rm").setAttribute("aria-label", `Remove thing to do ${i + 1}`);
+      row.querySelector(".rm").addEventListener("click", () => { r.todo.splice(i, 1); renderTodo(); save(); });
       box.appendChild(row);
     });
-    addMics(box);
+    addMics(box); growAll(box);
   }
   [["rc-said", "said"], ["rc-more", "more"], ["rc-with", "nextWith"], ["rc-date", "nextDate"], ["rc-time", "nextTime"]]
     .forEach(([id, k]) => $(id).addEventListener("input", e => { S.recap[k] = e.target.value; save(); }));
