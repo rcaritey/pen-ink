@@ -16,17 +16,23 @@
   --line: #C9D2DB; --accent: #1F5C7A; --accent-ink: #FFFFFF; --accent-soft: #E3EEF4;
   --star: #8A5A00; --star-soft: #FFF3D6; --danger: #A12C2C; --ok: #2E6B3A;
   --shadow-tint: 23,52,70;
+  --land: #E5EEE2; --bank: #CADCC4; --tree: #ABC7A3; --river: #9FD0E0; --river-deep: #6AAFC6; --glint: #EEF8FB;
+  --boat: #C2643A; --sail: #FFF8EC; --room: #3B5BA5; --after: #8A5A9E;
   --display: "Literata", Georgia, "Times New Roman", serif;
   --body: "Atkinson Hyperlegible", "Segoe UI", Verdana, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0F161D; --surface: #18222C; --ink: #EAF0F5; --muted: #A9B7C4;
   --line: #34434F; --accent: #7EC0DE; --accent-ink: #0B1A22; --accent-soft: #1D3442;
-  --star: #F2C25C; --star-soft: #3A2E12; --danger: #F08A8A; --ok: #8FD19E; --shadow-tint: 0,0,0; color-scheme: dark } }
+  --star: #F2C25C; --star-soft: #3A2E12; --danger: #F08A8A; --ok: #8FD19E; --shadow-tint: 0,0,0;
+  --land: #132621; --bank: #1C352D; --tree: #24443A; --river: #1E4A5C; --river-deep: #2C6378; --glint: #7FB8CB;
+  --boat: #E08A5E; --sail: #EDE4D6; --room: #8EA8EC; --after: #C79BDA; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #0F161D; --surface: #18222C; --ink: #EAF0F5; --muted: #A9B7C4;
   --line: #34434F; --accent: #7EC0DE; --accent-ink: #0B1A22; --accent-soft: #1D3442;
-  --star: #F2C25C; --star-soft: #3A2E12; --danger: #F08A8A; --ok: #8FD19E; --shadow-tint: 0,0,0; color-scheme: dark }
+  --star: #F2C25C; --star-soft: #3A2E12; --danger: #F08A8A; --ok: #8FD19E; --shadow-tint: 0,0,0;
+  --land: #132621; --bank: #1C352D; --tree: #24443A; --river: #1E4A5C; --river-deep: #2C6378; --glint: #7FB8CB;
+  --boat: #E08A5E; --sail: #EDE4D6; --room: #8EA8EC; --after: #C79BDA; color-scheme: dark }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -151,10 +157,83 @@ fieldset.plain { border: none; padding: 0; margin: 0; }
 footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: center; align-items: center;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); font-size: 0.95rem; color: var(--muted); }
 
+/* Journey: a small top-bar button opens the river map as an overlay; the boat sits at the current step */
+.jr-open { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; padding: 6px 12px; border-radius: 999px;
+  border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
+.jr-open:hover { border-color: var(--accent); }
+.jr-open svg { width: 26px; height: 14px; color: var(--river-deep); flex-shrink: 0; }
+.appbar .right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+dialog.jr { padding: 0; border: none; margin: 0 auto; width: 100%; max-width: 600px; height: 100%; max-height: 100%;
+  background: var(--bg); color: var(--ink); overflow: hidden; }
+dialog.jr[open] { display: flex; flex-direction: column; }
+dialog.jr::backdrop { background: rgba(10,20,28,.55); }
+.jr-head { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-shrink: 0;
+  padding-block: calc(env(safe-area-inset-top, 0px) + 10px) 10px; border-bottom: 1px solid var(--line);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.jr-head h2 { font-size: 1.25rem; flex: 1; min-width: 0; }
+.jr-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding-block: 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 16px; }
+.jr-map { position: relative; width: 100%; max-width: 500px; margin: 0 auto; aspect-ratio: 400 / 1600; border-radius: 20px; overflow: hidden; background: var(--land); flex-shrink: 0; }
+.jr-map > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.jr-flow { stroke-dasharray: 6 22; animation: jrflow 3.5s linear infinite; }
+@keyframes jrflow { to { stroke-dashoffset: -56; } }
+.jr-stop { position: absolute; transform: translateY(-50%); width: 56%; display: flex; flex-direction: column; gap: 1px; text-align: left;
+  background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-radius: 14px; padding: 8px 11px; cursor: pointer;
+  font: inherit; box-shadow: 0 2px 0 var(--bank); }
+.jr-stop:hover { border-color: var(--c); }
+.jr-stop .k { font-size: 0.72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
+.jr-stop .t { font-weight: 700; font-size: 0.98rem; line-height: 1.25; }
+.jr-stop .s { font-size: 0.85rem; color: var(--muted); line-height: 1.3; }
+.jr-stop.here { border-color: var(--star); box-shadow: 0 0 0 4px var(--star-soft); }
+.jr-stop.here .k::after { content: " · you are here"; color: var(--star); }
+.jr-stop.done .k::before { content: "\2713  "; }
+.jr-sign { position: absolute; transform: translateY(-50%); background: var(--c); color: var(--surface); font-family: var(--display);
+  font-weight: 650; font-size: 0.85rem; padding: 4px 10px; border-radius: 8px; white-space: nowrap; }
+.jr-chip { position: absolute; transform: translate(-50%, -50%); width: 27%; text-align: center; font-size: 0.75rem; font-weight: 700; line-height: 1.25;
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; padding: 4px 5px; }
+.jr-chip span { display: block; font-weight: 400; color: var(--muted); }
+.jr-boat { position: absolute; width: 13%; max-width: 62px; transform: translate(-50%, -62%); pointer-events: none; z-index: 3; }
+.jr-boat svg { width: 100%; height: auto; display: block; animation: jrbob 2.6s ease-in-out infinite; }
+@keyframes jrbob { 50% { transform: translateY(3px) rotate(-2deg); } }
+.jr-info { position: sticky; bottom: 0; z-index: 5; background: var(--surface); border: 2px solid var(--c, var(--accent)); border-radius: 16px;
+  padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 -6px 24px rgba(var(--shadow-tint), .18); }
+.jr-info ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+.jr-info .say { font-family: var(--display); border-left: 4px solid var(--c, var(--accent)); padding-left: 10px; }
+.jr-intro { max-width: 500px; margin: 0 auto; width: 100%; }
+.jr-safe-link { display: flex; gap: 12px; align-items: center; width: 100%; max-width: 500px; margin: 0 auto; text-align: left; font: inherit; color: var(--ink);
+  background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; cursor: pointer; }
+.jr-safe-link:hover { border-color: var(--accent); }
+.jr-safe-link svg { width: 36px; height: 36px; flex-shrink: 0; color: var(--accent); }
+.jr-safe-link b { display: block; } .jr-safe-link span span { display: block; font-size: 0.92rem; color: var(--muted); }
+/* Safe harbour (privacy) view */
+.sf { display: flex; flex-direction: column; gap: 22px; max-width: 560px; margin: 0 auto; width: 100%; }
+.sf section { display: flex; flex-direction: column; gap: 10px; }
+.sf-row { display: flex; align-items: stretch; }
+.sf-node { flex: 1 1 0; min-width: 0; background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 12px;
+  display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; }
+.sf-node svg { width: 48px; height: 48px; color: var(--c, var(--accent)); }
+.sf-node b { font-size: 1rem; line-height: 1.3; }
+.sf-node span { font-size: 0.9rem; color: var(--muted); line-height: 1.4; }
+.sf-node.home { border-color: var(--accent); background: var(--accent-soft); }
+.sf-arrow { flex: 0 0 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 4px;
+  text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--muted); line-height: 1.25; }
+.sf-arrow svg { width: 64px; height: 20px; color: var(--river-deep); }
+.sf-arrow svg.back { transform: scaleX(-1); }
+@media (max-width: 520px) {
+  .sf-row { flex-direction: column; }
+  .sf-arrow { flex-basis: auto; flex-direction: row; padding: 6px 0; gap: 10px; }
+  .sf-arrow svg { transform: rotate(90deg); width: 36px; } .sf-arrow svg.back { transform: rotate(-90deg); }
+}
+.sf-never { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.sf-never li { display: flex; gap: 12px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.sf-never svg { width: 24px; height: 24px; flex-shrink: 0; color: var(--boat); margin-top: 2px; }
+@media (prefers-reduced-motion: reduce) { .jr-flow, .jr-boat svg { animation: none; } }
+
 @media print {
   @page { size: letter; margin: 0.5in; }
   body { background: #fff; }
-  .appbar, .progress, .actions, footer.foot, .no-print { display: none !important; }
+  .appbar, .progress, .actions, footer.foot, .no-print, dialog.jr { display: none !important; }
   .wrap { padding: 0; max-width: none; }
   .screen { border: none; padding: 0; background: #fff; }
   .sheet { border: none; padding: 0; max-width: none; }
@@ -166,7 +245,13 @@ footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display
 
 <header class="appbar">
   <span class="brand">Appointment Prep</span>
-  <span class="saved" id="saved" role="status" aria-live="polite"></span>
+  <span class="right">
+    <span class="saved" id="saved" role="status" aria-live="polite"></span>
+    <button type="button" class="jr-open" id="jr-open" aria-haspopup="dialog">
+      <svg viewBox="0 0 26 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M2 4 C6 1 9 7 13 4 S20 1 24 4"/><path d="M2 10 C6 7 9 13 13 10 S20 7 24 10"/></svg>
+      Your journey
+    </button>
+  </span>
 </header>
 
 <main class="wrap">
@@ -408,6 +493,7 @@ footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display
 
 <footer class="foot">
   <span>Made by <a href="/">Pen &amp; Ink</a></span>
+  <button type="button" class="btn link" data-open-safe>How your information stays safe</button>
   <button type="button" class="btn link" id="change-mode" hidden>Switch to typing</button>
   <button type="button" class="btn link" data-download>Download a copy</button>
   <button type="button" class="btn link" id="erase">Erase my answers from this device</button>
@@ -422,6 +508,15 @@ footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display
     </div>
   </div>
 </div>
+
+<dialog class="jr" id="jr" aria-labelledby="jr-title">
+  <div class="jr-head">
+    <button type="button" class="btn link" id="jr-back" hidden>&larr; Journey</button>
+    <h2 id="jr-title">Your journey</h2>
+    <button type="button" class="btn secondary" id="jr-close">Close</button>
+  </div>
+  <div class="jr-body" id="jr-body"></div>
+</dialog>
 
 <script>
 (() => {
@@ -809,6 +904,7 @@ footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display
         <li><b>Not sent:</b> your name, or the appointment date and time.</li>
         <li>Nothing is kept on this website. It's processed in the United States, and Anthropic deletes it within 30 days.</li>
       </ul>
+      <div><button type="button" class="btn link" data-open-safe style="padding-left:0">How your information stays safe</button></div>
       <div class="row"><button type="button" class="btn primary" data-consent="yes">Yes, use Claude</button>
       <button type="button" class="btn secondary" data-consent="no">No thanks</button></div></div>`;
   }
@@ -1082,6 +1178,182 @@ footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display
   });
   $("share-email").addEventListener("click", () => { location.href = "mailto:?subject=" + encodeURIComponent(familySubject()) + "&body=" + encodeURIComponent(sheetText($("sheet-c"))); });
   $("share-text").addEventListener("click", () => { location.href = "sms:?&body=" + encodeURIComponent(sheetText($("sheet-c"))); });
+
+  // ---------- journey: the river map, opened from the top bar ----------
+  // Each stop groups one or more app steps; the last two stops are guidance for the visit itself.
+  const JH = 1600;
+  const JSTOPS = [
+    { steps: [0], x: 120, y: 140, t: "How you'll answer", s: "Talk or type. It waits for you." },
+    { steps: [1], x: 280, y: 270, t: "The appointment", s: "What it's for, who and when." },
+    { steps: [2], x: 120, y: 400, t: "In your own words", s: "Say it all. Nobody interrupts." },
+    { steps: [3, 4], x: 280, y: 530, t: "Your health", s: "Background and medications." },
+    { steps: [5, 6], x: 120, y: 660, t: "More about it", s: "What the doctor should hear." },
+    { steps: [7, 8], x: 280, y: 790, t: "Your questions", s: "Yours, plus ones to consider." },
+    { steps: [9], x: 120, y: 920, t: "Your three pages", s: "For the doctor, you and family." },
+    { steps: [], ph: "room", x: 280, y: 1080, t: "At the appointment", s: "Hand it over. Ask your questions.",
+      info: `<p class="say">"I have some questions I'd like to go through. May I start?"</p>
+        <ul><li>Hand the doctor the summary sheet when you sit down.</li>
+        <li>Read your questions from My page. Write the answers beside them.</li>
+        <li>Want to record? Ask first: "Is it okay if I record this on my phone?"</li></ul>
+        <p><b>If the doctor says yes:</b> record on your own phone. This website never records anything.</p>
+        <p><b>If the doctor says no:</b> that's fine. Write notes on My page. Before you leave, ask: "Can I read back what I wrote to make sure I got it right?"</p>` },
+    { steps: [], ph: "after", x: 120, y: 1465, t: "After the visit", s: "Next date, to-dos, open questions.",
+      info: `<ul><li>Fill in the <b>After the appointment</b> part of the family list: next appointment, to-dos, and questions not answered.</li>
+        <li>Share it with family who help, so nobody has to retell it.</li>
+        <li>Another appointment coming up? Start a new one. Your health background and medications stay.</li></ul>` }
+  ];
+  const JPH = { before: { name: "Before", c: "var(--accent)" }, room: { name: "In the room", c: "var(--room)" }, after: { name: "After", c: "var(--after)" } };
+  const jpct = (v, t) => (v / t * 100).toFixed(3) + "%";
+  const jseg = (a, b) => { const m = (a[1] + b[1]) / 2; return ` C ${a[0]} ${m} ${b[0]} ${m} ${b[0]} ${b[1]}`; };
+  const jthrough = pts => pts.slice(1).reduce((d, p, i) => d + jseg(pts[i], p), `M ${pts[0][0]} ${pts[0][1]}`);
+  const J_UP = jthrough([[200, -20], [200, 50], ...JSTOPS.slice(0, 8).map(s => [s.x, s.y]), [200, 1170]]);
+  const J_YES = "M 200 1170 C 300 1200 310 1320 200 1350";
+  const J_NO = "M 200 1170 C 100 1200 90 1320 200 1350";
+  const J_LOW = jthrough([[200, 1350], [120, 1465], [200, 1560], [200, 1620]]);
+  const J_MAIN = J_UP + " C 300 1200 310 1320 200 1350" + J_LOW.replace(/^M [\d.]+ [\d.]+/, "");
+  const IC = {
+    boat: `<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M32 4 L32 30" stroke="var(--ink)" stroke-width="2"/><path d="M33 6 L50 28 L33 28 Z" fill="var(--sail)" stroke="var(--ink)" stroke-width="1.5"/><circle cx="20" cy="24" r="4.5" fill="var(--ink)"/><rect x="16" y="28" width="8" height="6" rx="2" fill="var(--ink)"/><circle cx="42" cy="26" r="4" fill="var(--ink)"/><rect x="38.5" y="30" width="7" height="5" rx="2" fill="var(--ink)"/><path d="M4 33 H60 L52 44 H12 Z" fill="var(--boat)" stroke="var(--ink)" stroke-width="1.5"/></svg>`,
+    shield: `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><path d="M20 4 L34 9 V19 C34 28 27 34 20 36 C13 34 6 28 6 19 V9 Z"/><path d="M14 20 L18.5 24.5 L27 15" stroke-linecap="round"/></svg>`,
+    home: `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><path d="M8 26 L28 9 L48 26"/><path d="M13 22 V47 H43 V22"/><rect x="21" y="29" width="14" height="13" rx="1.5"/><path d="M24 33 H32 M24 37 H30" stroke-linecap="round"/></svg>`,
+    spark: `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><path d="M28 8 C30 20 36 26 48 28 C36 30 30 36 28 48 C26 36 20 30 8 28 C20 26 26 20 28 8 Z"/></svg>`,
+    arrow: `<svg viewBox="0 0 72 22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M3 11 C18 3 30 19 45 11 S 60 7 66 11"/><path d="M58 5 L66 11 L58 17"/></svg>`,
+    tag: `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M8 28 L24 12 H44 V32 L28 48 Z"/><circle cx="36" cy="20" r="3"/><path d="M14 44 L44 14" stroke-width="3"/></svg>`,
+    mic: `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><rect x="21" y="8" width="14" height="26" rx="7"/><path d="M13 28 C13 37 20 43 28 43 C36 43 43 37 43 28 M28 43 V50 M20 50 H36"/></svg>`,
+    send: `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="14" width="40" height="28" rx="3"/><path d="M8 16 L28 31 L48 16"/></svg>`,
+    no: `<svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="13" cy="13" r="10.5"/><path d="M5.5 5.5 L20.5 20.5"/></svg>`
+  };
+  const dlg = $("jr");
+  let jPath = null, jTotal = 0, jLens = [], jLaunch = 0, jBoatAt = 0;
+  function jSetupPath() {
+    if (jPath) return;
+    const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("aria-hidden", "true"); svg.style.cssText = "position:absolute;width:0;height:0;visibility:hidden";
+    jPath = document.createElementNS(ns, "path"); jPath.setAttribute("d", J_MAIN); svg.appendChild(jPath); document.body.appendChild(svg);
+    jTotal = jPath.getTotalLength();
+    const near = (x, y) => { let best = 0, bd = Infinity; for (let l = 0; l <= jTotal; l += 2) { const p = jPath.getPointAtLength(l), d = (p.x - x) ** 2 + (p.y - y) ** 2; if (d < bd) { bd = d; best = l; } } return best; };
+    jLens = JSTOPS.map(s => near(s.x, s.y)); jLaunch = near(200, 50);
+  }
+  const jCur = () => S.step < 0 ? -1 : JSTOPS.findIndex(st => st.steps.includes(S.step));
+  function jPlaceBoat(l) {
+    const b = $("jr-boat"); if (!b) return;
+    const p = jPath.getPointAtLength(l); b.style.left = jpct(p.x, 400); b.style.top = jpct(p.y, JH);
+  }
+  function jSail(i, done) {
+    const to = jLens[i], from = jBoatAt;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || Math.abs(to - from) < 1) { jBoatAt = to; jPlaceBoat(to); return done(); }
+    const dur = Math.min(1400, 450 + Math.abs(to - from) * 0.5), t0 = performance.now();
+    (function f(now) {
+      const k = Math.min(1, (now - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      jBoatAt = from + (to - from) * e; jPlaceBoat(jBoatAt);
+      if (k < 1) requestAnimationFrame(f); else setTimeout(done, 150);
+    })(t0);
+  }
+  function jMapSVG() {
+    const trees = [[40,110],[355,240],[30,410],[365,600],[40,760],[360,880],[35,1020],[370,1270],[30,1270],[360,1500],[45,1580],[340,50]]
+      .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="16" fill="var(--tree)"/><circle cx="${x + 14}" cy="${y + 8}" r="11" fill="var(--tree)"/>`).join("");
+    const docks = JSTOPS.map((s, i) => `<circle cx="${s.x}" cy="${s.y}" r="15" fill="var(--surface)" stroke="${JPH[s.ph || "before"].c}" stroke-width="4"/><text x="${s.x}" y="${s.y + 5}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)" font-family="Atkinson Hyperlegible, sans-serif">${i + 1}</text>`).join("");
+    const w = (d, a, b) => `<path d="${d}" stroke="var(--bank)" stroke-width="${a}"/><path d="${d}" stroke="var(--river)" stroke-width="${b}"/>`;
+    return `<svg viewBox="0 0 400 ${JH}" preserveAspectRatio="none" aria-hidden="true">
+      <rect width="400" height="${JH}" fill="var(--land)"/>${trees}
+      <g fill="none" stroke-linecap="round">${w(J_UP, 84, 66)}${w(J_YES, 58, 42)}${w(J_NO, 58, 42)}${w(J_LOW, 84, 66)}
+        <path d="${J_UP}" stroke="var(--river-deep)" stroke-width="22" opacity=".45"/><path d="${J_LOW}" stroke="var(--river-deep)" stroke-width="22" opacity=".45"/>
+        ${[J_UP, J_YES, J_NO, J_LOW].map(d => `<path class="jr-flow" d="${d}" stroke="var(--glint)" stroke-width="3" opacity=".9"/>`).join("")}</g>
+      <ellipse cx="200" cy="1260" rx="44" ry="66" fill="var(--bank)"/><ellipse cx="200" cy="1260" rx="36" ry="58" fill="var(--land)"/>
+      <circle cx="192" cy="1243" r="12" fill="var(--tree)"/><circle cx="208" cy="1275" r="10" fill="var(--tree)"/>${docks}</svg>`;
+  }
+  function jRenderMap() {
+    jSetupPath();
+    $("jr-title").textContent = "Your journey"; $("jr-back").hidden = true;
+    const cur = jCur();
+    const stops = JSTOPS.map((s, i) => {
+      const ph = s.ph || "before", here = i === cur, done = cur > -1 && i < cur && !s.ph;
+      return `<button type="button" class="jr-stop${here ? " here" : ""}${done ? " done" : ""}" data-stop="${i}"
+        style="--c:${JPH[ph].c};left:${s.x < 200 ? "41%" : "3%"};top:${jpct(s.y, JH)}" ${here ? 'aria-current="step"' : ""}>
+        <span class="k">${i + 1} · ${JPH[ph].name}</span><span class="t">${esc(s.t)}</span><span class="s">${esc(s.s)}</span></button>`;
+    }).join("");
+    $("jr-body").innerHTML = `<p class="muted jr-intro">${cur < 0 ? "Here's the whole trip, from getting ready to after the visit. Tap a stop to read about it." : "The boat shows where you are. Tap a stop you've already passed to go back to it."}</p>
+      <div class="jr-map">${jMapSVG()}
+        <span class="jr-sign" style="--c:var(--accent);left:4%;top:${jpct(50, JH)}">Before</span>
+        <span class="jr-sign" style="--c:var(--room);left:4%;top:${jpct(1000, JH)}">In the room</span>
+        <span class="jr-sign" style="--c:var(--after);left:4%;top:${jpct(1392, JH)}">After</span>
+        <span class="jr-chip" style="left:14%;top:${jpct(1260, JH)}">Doctor says no<span>write notes</span></span>
+        <span class="jr-chip" style="left:86%;top:${jpct(1260, JH)}">Doctor says yes<span>record on your phone</span></span>
+        ${stops}<div class="jr-boat" id="jr-boat">${IC.boat}</div></div>
+      <div id="jr-info" class="jr-info" hidden></div>
+      <button type="button" class="jr-safe-link" data-open-safe>${IC.shield}<span><b>How your information stays safe</b><span>Where your answers are kept, and what is sent.</span></span></button>`;
+    jBoatAt = cur < 0 ? jLaunch : jLens[cur]; jPlaceBoat(jBoatAt);
+    const here = $("jr-body").querySelector(".jr-stop.here");
+    if (here) requestAnimationFrame(() => here.scrollIntoView({ block: "center" }));
+    else $("jr-body").scrollTop = 0;
+  }
+  function jInfo(i) {
+    const s = JSTOPS[i], box = $("jr-info"), ph = s.ph || "before", cur = jCur();
+    const body = s.info || (cur < 0 ? `<p>${esc(s.s)} Tap <b>Start</b> on the first screen to begin.</p>`
+      : `<p>${esc(s.s)} You'll get here after the stops before it.</p>`);
+    box.style.setProperty("--c", JPH[ph].c);
+    box.innerHTML = `<h3>${i + 1}. ${esc(s.t)}</h3>${body}<div><button type="button" class="btn secondary" data-info-close>Got it</button></div>`;
+    box.hidden = false; box.querySelector("[data-info-close]").focus();
+  }
+  function jClick(e) {
+    const st = e.target.closest("[data-stop]");
+    if (st) {
+      const i = Number(st.dataset.stop), s = JSTOPS[i], cur = jCur();
+      if (s.steps.length && cur > -1 && s.steps.includes(S.step)) { dlg.close(); return; }
+      if (s.steps.length && cur > -1 && s.steps[0] < S.step) { $("jr-info").hidden = true; jSail(i, () => { dlg.close(); show(s.steps[0]); }); return; }
+      jInfo(i); return;
+    }
+    if (e.target.closest("[data-info-close]")) { $("jr-info").hidden = true; return; }
+    if (e.target.closest("[data-sf-download]")) { download(); $("sf-status").textContent = "Downloaded a copy to your Downloads."; return; }
+    if (e.target.closest("[data-sf-erase]")) { dlg.close(); $("erase").click(); $("erase-confirm").scrollIntoView({ block: "center" }); }
+  }
+  $("jr-body").addEventListener("click", jClick);
+
+  function jRenderSafe(fromJourney) {
+    $("jr-title").textContent = "Your information"; $("jr-back").hidden = !fromJourney;
+    $("jr-body").innerHTML = `<div class="sf">
+      <p class="lead">Your health story belongs to you and your family. Here is where your answers are kept, and when anything leaves this phone or computer.</p>
+      <section><h3>Where your answers live</h3>
+        <div class="sf-row">
+          <div class="sf-node home">${IC.home}<b>On this phone or computer</b><span>Saved in this browser only. Not on our website.</span></div>
+          <div class="sf-arrow">${IC.arrow}<span>Only if you say yes. No name, no date.</span></div>
+          <div class="sf-node" style="--c:var(--room)">${IC.spark}<b>Claude suggests questions</b><span>Processed in the United States. Anthropic deletes it within 30 days.</span></div>
+          <div class="sf-arrow">${IC.arrow.replace("<svg", '<svg class="back"')}<span>The questions come back to you</span></div>
+          <div class="sf-node home">${IC.home}<b>Back on your device</b><span>You choose which ones to keep.</span></div>
+        </div></section>
+      <section><h3>Your name stays behind</h3>
+        <div class="sf-node" style="--c:var(--boat)">${IC.tag}<b>Name, date and time are never sent</b><span>They are only printed on your pages.</span></div></section>
+      <section><h3>When you talk instead of type</h3>
+        <div class="sf-node" style="--c:var(--accent)">${IC.mic}<b>Your browser does the voice typing</b><span>Chrome sends the sound to Google, and Safari sends it to Apple. Prefer not to? Choose Read and type.</span></div></section>
+      <section><h3>Sending pages to family</h3>
+        <div class="sf-node" style="--c:var(--after)">${IC.send}<b>From your own email or text messages</b><span>Nothing is stored on this website along the way.</span></div></section>
+      <section><h3>What we never do</h3>
+        <ul class="sf-never">
+          <li>${IC.no}<span>Keep your answers on our website, or sell or share them.</span></li>
+          <li>${IC.no}<span>Use your answers to train AI.</span></li>
+          <li>${IC.no}<span>Diagnose or give medical advice. It only helps you ask.</span></li>
+          <li>${IC.no}<span>Record your appointment. This website never records anything.</span></li>
+        </ul></section>
+      <section><h3>You're in control</h3>
+        <div class="row"><button type="button" class="btn secondary" data-sf-download>Download a copy</button>
+        <button type="button" class="btn secondary" data-sf-erase>Erase my answers from this device</button></div>
+        <p class="status" id="sf-status" role="status" aria-live="polite"></p></section>
+    </div>`;
+    $("jr-body").scrollTop = 0;
+  }
+  function openJourney(view) {
+    if (view === "safe") jRenderSafe(false); else jRenderMap();
+    if (!dlg.open) { try { dlg.showModal(); } catch (err) { console.warn("Could not open the journey", err); dlg.setAttribute("open", ""); } }
+    $("jr-close").focus();
+  }
+  $("jr-open").addEventListener("click", () => openJourney("map"));
+  $("jr-close").addEventListener("click", () => dlg.close());
+  $("jr-back").addEventListener("click", () => { jRenderMap(); $("jr-close").focus(); });
+  dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+  document.addEventListener("click", e => {
+    if (!e.target.closest("[data-open-safe]")) return;
+    if (dlg.open && $("jr-back").hidden && $("jr-title").textContent === "Your journey") { jRenderSafe(true); $("jr-back").focus(); }
+    else openJourney("safe");
+  });
 
   // ---------- start ----------
   fillFields(); applyMode();
