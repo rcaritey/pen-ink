@@ -973,13 +973,55 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         .sort((a, b) => (score(b) + (/-CA$/i.test(b.lang) ? 8 : 0)) - (score(a) + (/-CA$/i.test(a.lang) ? 8 : 0)));
     }
     let chosen = null;
+    // Natural voices from Microsoft (processed in Canada) when the website has them switched on.
+    // The browser's own voice is the fallback, so reading aloud never stops working.
+    const CLOUD = {
+      en: [["en-CA-ClaraNeural", "Clara"], ["en-CA-LiamNeural", "Liam"], ["en-US-AvaNeural", "Ava"], ["en-US-AndrewNeural", "Andrew"]],
+      fr: [["fr-CA-SylvieNeural", "Sylvie"], ["fr-CA-ThierryNeural", "Thierry"], ["fr-CA-AntoineNeural", "Antoine"], ["fr-FR-DeniseNeural", "Denise (France)"], ["fr-FR-HenriNeural", "Henri (France)"]]
+    };
+    let cloudOn = false, cloudVoice = "";
+    const cloudList = () => CLOUD[S.lang === "fr" ? "fr" : "en"];
+    const cloudPick = () => (cloudList().find(v => v[0] === cloudVoice) || cloudList()[0]);
+    fetch("/api/tts").then(r => r.ok ? r.json() : {}).then(d => { cloudOn = !!(d && d.on); }).catch(() => {});
+    const audio = new Audio(), clips = new Map();
+    let audioDone = null;
+    // phones only allow sound that starts from a tap, so wake the player on the first tap
+    const unlock = () => { audio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="; audio.play().catch(() => {}); };
+    document.addEventListener("pointerdown", unlock, { once: true, capture: true });
+    async function cloudSpeak(text) {
+      const id = cloudPick()[0], k = id + "|" + text;
+      try {
+        let url = clips.get(k);
+        if (!url) {
+          const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, voice: id }) });
+          if (!r.ok) { if (r.status === 503) cloudOn = false; return false; }
+          url = URL.createObjectURL(await r.blob()); clips.set(k, url);
+        }
+        return await new Promise(res => {
+          audioDone = () => { audioDone = null; res(true); };
+          audio.onended = () => audioDone && audioDone();
+          audio.onerror = () => { audioDone = null; res(false); };
+          audio.src = url;
+          audio.play().catch(() => { audioDone = null; res(false); });
+        });
+      } catch (err) { console.warn("Natural voice unavailable", err); return false; }
+    }
+    function quiet() { try { audio.pause(); } catch (err) { console.warn(err); } if (audioDone) audioDone(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } }
     function pickVoice(name) {
+      if (name && cloudList().some(v => v[0] === name)) { cloudVoice = name; return chosen; }
+      cloudVoice = "";
       const list = rankVoices();
       chosen = (name && list.find(v => v.name === name)) || list[0] || null;
       return chosen;
     }
     if (canSpeak) { pickVoice(); speechSynthesis.addEventListener("voiceschanged", () => pickVoice(chosen && chosen.name)); }
-    const speak = text => new Promise(res => {
+    const speak = async text => {
+      if (!text) return;
+      quiet();
+      if (cloudOn && await cloudSpeak(text)) return;
+      return browserSpeak(text);
+    };
+    const browserSpeak = text => new Promise(res => {
       if (!canSpeak || !text) return res();
       try {
         speechSynthesis.cancel();
@@ -1067,7 +1109,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     function stop() {
       const was = target, had = added; added = false;
       if (had && was && api.onEnd) setTimeout(() => api.onEnd(was), 0);
-      active = false; pauseRec(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } view("off"); }
+      active = false; pauseRec(); quiet(); view("off"); }
     async function ask(text, el, carry, v) {
       stop(); view = v || (() => {}); active = true; target = el; onCarry = carry; prompted = !text;
       if (text) { view("speaking"); await speak(text); }
@@ -1075,13 +1117,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     // cycle to the next good voice; returns its name
     function nextVoice() {
+      if (cloudOn) { const l = cloudList(), i = l.findIndex(v => v[0] === cloudPick()[0]); cloudVoice = l[(i + 1) % l.length][0]; return cloudVoice; }
       const list = rankVoices().filter(v => !ROBOTIC.test(v.name)).slice(0, 8);
       if (!list.length) return "";
       const i = chosen ? list.findIndex(v => v.name === chosen.name) : -1;
       chosen = list[(i + 1) % list.length];
       return chosen.name;
     }
-    const api = { ask, stop, speak, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => chosen ? chosen.name : "", onEnd: null };
+    const api = { ask, stop, speak, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
+      voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null };
     return api;
   })();
   const VOICE_MSG = {
@@ -1097,7 +1141,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const name = Voice.nextVoice();
     if (!name) { $("mic-msg").textContent = "This device has only one voice."; return; }
     S.voiceName = name; save();
-    $("mic-msg").textContent = "Voice: " + name.replace(/\s*\(.*\)\s*$/, "") + ". Tap again to try another.";
+    $("mic-msg").textContent = "Voice: " + Voice.voiceLabel() + ". Tap again to try another.";
     Voice.speak(say("sample"));
   });
   function applyLang() {
@@ -2150,7 +2194,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <section><h3>Your name stays behind</h3>
         <div class="sf-node" style="--c:var(--boat)">${IC.tag}<b>Name, date and time are never sent</b><span>They are only printed on your pages.</span></div></section>
       <section><h3>When you talk instead of type</h3>
-        <div class="sf-node" style="--c:var(--accent)">${IC.mic}<b>Your browser does the voice typing</b><span>Chrome sends the sound to Google, and Safari sends it to Apple. Prefer not to? Choose Read and type.</span></div></section>
+        <div class="sf-node" style="--c:var(--accent)">${IC.mic}<b>Your browser does the voice typing</b><span>Chrome sends the sound to Google, and Safari sends it to Apple. Prefer not to? Choose Read and type.</span></div>
+        <div class="sf-node" style="--c:var(--accent)">${IC.mic}<b>A natural voice reads the questions</b><span>Only the question being read is sent, to Microsoft in Canada. It is not kept.</span></div></section>
       <section><h3>Sending pages to family</h3>
         <div class="sf-node" style="--c:var(--after)">${IC.send}<b>From your own email or text messages</b><span>Nothing is stored on this website along the way.</span></div></section>
       <section><h3>What we never do</h3>
