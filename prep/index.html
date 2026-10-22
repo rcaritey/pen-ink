@@ -854,21 +854,29 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       try { r = new SR(); } catch (err) { console.warn("Voice typing unavailable", err); view("typing"); return; }
       rec = r;
       r.lang = "en-CA"; r.continuous = true; r.interimResults = true;
-      const base = target.value.trim() ? target.value.trim() + " " : "";
+      // Finished phrases are ADDED to the box, never rebuilt, so typing (including Enter) is kept.
+      // Words still being heard show in the status line until they're final.
+      const done = new Set();
+      let lastFinal = "";
       r.onresult = e => {
-        let fin = "", interim = "";
-        for (let i = 0; i < e.results.length; i++) {
-          if (e.results[i].isFinal) fin += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
+        let interim = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          let t = e.results[i][0].transcript;
+          if (!e.results[i].isFinal) { interim += t; continue; }
+          if (done.has(i)) continue;
+          done.add(i);
+          // some phones repeat the whole phrase so far in each result; keep only the new part
+          if (lastFinal && t.trim().toLowerCase().startsWith(lastFinal.toLowerCase())) t = t.trim().slice(lastFinal.length);
+          lastFinal = e.results[i][0].transcript.trim();
+          const m = t.match(/\bcarry on\W*$/i);
+          if (m) {
+            appendSpoken(t.slice(0, m.index));
+            const next = onCarry; stop(); if (next) next();
+            return;
+          }
+          appendSpoken(t);
         }
-        const m = fin.match(/\bcarry on\W*$/i);
-        if (m) {
-          target.value = (base + fin.slice(0, m.index)).trim();
-          target.dispatchEvent(new Event("input"));
-          const done = onCarry; stop(); if (done) done();
-          return;
-        }
-        target.value = (base + fin + interim).trim();
-        target.dispatchEvent(new Event("input"));
+        view("listening", interim.trim());
         armSilence();
       };
       r.onerror = e => {
@@ -878,6 +886,22 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       r.onend = () => { if (active && rec === r) startRec(); };
       try { r.start(); view("listening"); armSilence(); }
       catch (err) { console.warn("Could not start listening", err); view("typing"); }
+    }
+    let lastSpokeAt = 0;
+    function appendSpoken(raw) {
+      let t = raw.replace(/\s+/g, " ").trim();
+      if (!t || !target) return;
+      let v = target.value;
+      const fresh = !v.trim() || /\n\s*$/.test(v);
+      const paused = Date.now() - lastSpokeAt > 2500;
+      lastSpokeAt = Date.now();
+      if (!fresh) {
+        v = v.replace(/[ \t]+$/, "");
+        if (paused && !/[.!?,:;]$/.test(v)) v += ".";
+      }
+      if (fresh || paused || /[.!?]$/.test(v)) t = t.charAt(0).toUpperCase() + t.slice(1);
+      target.value = v + (fresh ? "" : " ") + t;
+      target.dispatchEvent(new Event("input"));
     }
     function pauseRec() { clearTimeout(silenceT); if (rec) { const r = rec; rec = null; try { r.stop(); } catch (err) { console.warn(err); } } }
     function stop() { active = false; pauseRec(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } view("off"); }
@@ -895,7 +919,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     typing: "This browser can't type what you say. Type your answer, or use the microphone on your keyboard.",
     off: ""
   };
-  const voiceView = id => st => { const el = $(id); if (!el) return; el.textContent = VOICE_MSG[st] || ""; el.classList.toggle("listening", st === "listening"); };
+  const voiceView = id => (st, heard) => { const el = $(id); if (!el) return; el.textContent = heard ? "Hearing: \u201c" + heard + "\u2026\u201d" : (VOICE_MSG[st] || ""); el.classList.toggle("listening", st === "listening"); };
   const isVoice = () => S.mode === "voice";
   function applyMode() {
     document.querySelectorAll("[data-voice-only]").forEach(el => el.hidden = !isVoice());
@@ -1119,7 +1143,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       };
       btn.addEventListener("click", () => {
         if (btn.getAttribute("aria-pressed") === "true") { Voice.stop(); return; }
-        Voice.ask("", el, () => {}, st => { setLook(st === "listening"); $("mic-msg").textContent = MIC_MSG[st] || ""; });
+        Voice.ask("", el, () => {}, (st, heard) => { setLook(st === "listening"); $("mic-msg").textContent = heard ? "Hearing: \u201c" + heard + "\u2026\u201d" : (MIC_MSG[st] || ""); });
       });
       if (el.tagName === "TEXTAREA") {
         const row = document.createElement("div"); row.className = "mic-row";
