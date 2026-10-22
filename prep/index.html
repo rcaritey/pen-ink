@@ -518,7 +518,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <!-- 7 TELL -->
   <section class="screen" id="s-tell" hidden>
     <h2>What to tell the doctor</h2>
-    <p class="muted">Your answers are already here. Fix anything that's wrong.</p>
+    <p class="muted" id="tell-intro">Your answers are already here. Fix anything that's wrong.</p>
+    <div class="hint" id="tell-empty" hidden>
+      Nothing here yet. Write short facts the doctor should hear: what it is, where, since when, and how bad.
+      <div style="margin-top:8px"><button type="button" class="btn secondary" id="tell-back">Go back and answer a few questions</button></div>
+    </div>
     <div class="list" id="tell-list"></div>
     <div><button type="button" class="btn secondary" data-add="tell">Add another</button></div>
   </section>
@@ -1031,7 +1035,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (id === "words" && isVoice()) askWords();
     if (id === "meds") renderMeds();
     if (id === "detail") enterDetail();
-    if (id === "tell") renderTell();
+    if (id === "tell") {
+      const empty = !S.tell.some(t => t.trim());
+      $("tell-empty").hidden = !empty; $("tell-intro").hidden = empty;
+      if (!empty) $("tell-intro").textContent = S.clarify.merged.length ? "Your answers are already here. Fix anything that's wrong." : "Short facts the doctor should hear. Add or fix anything.";
+      renderTell();
+    }
     if (id === "ask") renderAsk();
     if (id === "ideas") enterIdeas();
     if (id === "priority") renderPriority();
@@ -1268,7 +1277,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 
   // ---------- Claude ----------
   function consentHTML() {
-    if (S.consent === false) return `<div class="card"><p>You chose not to use Claude. You can still fill everything in yourself, then tap Next.</p>
+    if (S.consent === false) return `<div class="card"><p>You chose not to use Claude. You'll get the standard questions doctors ask instead.</p>
       <div><button type="button" class="btn secondary" data-consent="yes">Use Claude after all</button></div></div>`;
     return `<div class="ai-box"><h3>Get help from Claude</h3>
       <p>Claude is an AI assistant made by Anthropic. It can ask you about this concern and suggest questions for the doctor. It doesn't diagnose or give medical advice.</p>
@@ -1312,10 +1321,26 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
 
   // ---------- more detail: one question at a time ----------
+  // Built-in questions: the standard symptom history doctors use. Used without Claude, or if Claude is unavailable.
+  const STANDARD_QS = [
+    { q: "When did it start? Did it come on suddenly or slowly?", label: "When it started" },
+    { q: "Where exactly is it? Does it spread anywhere?", label: "Where" },
+    { q: "What does it feel like, in your own words?", label: "What it feels like" },
+    { q: "How bad is it from 0 to 10, at its worst and on a normal day?", label: "How bad (0 to 10)" },
+    { q: "When does it happen, and how often? Is it getting better, worse, or staying the same?", label: "When and how often" },
+    { q: "What makes it worse? What makes it better?", label: "Worse and better with" },
+    { q: "What have you tried so far, and did it help?", label: "Tried so far" },
+    { q: "Does anything else come with it? What does it stop you doing?", label: "Other symptoms and daily life" }
+  ];
+  function useStandard() {
+    S.clarify = { qs: STANDARD_QS.map(q => ({ q: q.q, label: q.label, a: "" })), i: 0, done: false, merged: S.clarify.merged || [] };
+    $("detail-status").textContent = ""; save(); renderClarify(); focusQ(); voiceAsk(true);
+  }
   function enterDetail() {
     renderConsent("detail-consent", enterDetail);
     renderClarify();
     if (S.consent === true && !S.clarify.qs.length) fetchClarify();
+    else if (S.consent === false && !S.clarify.qs.length) useStandard();
     else voiceAsk(false);
   }
   // more=true keeps every question already answered and adds new ones after them
@@ -1332,7 +1357,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (STEPS[S.step].id !== "detail") return;
       renderClarify(); focusQ(); voiceAsk(true);
     } catch (err) {
-      status.innerHTML = `${esc(err.message)} <button type="button" class="btn link" id="cl-retry">Try again</button>`;
+      status.innerHTML = `${esc(err.message)}<div class="row" style="margin-top:8px"><button type="button" class="btn secondary" id="cl-retry">Try again</button>
+        <button type="button" class="btn primary" id="cl-std">Use the standard questions</button></div>`;
+      $("cl-std").addEventListener("click", useStandard);
       $("cl-retry").addEventListener("click", () => fetchClarify(more));
     }
   }
@@ -1345,7 +1372,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   function renderClarify() {
     const c = S.clarify, box = $("cl-card");
-    if (S.consent !== true || !c.qs.length) { box.hidden = true; box.innerHTML = ""; return; }
+    if (!c.qs.length) { box.hidden = true; box.innerHTML = ""; return; }
     box.hidden = false;
     if (c.i < c.qs.length) {
       const q = c.qs[c.i], last = c.i === c.qs.length - 1;
@@ -1390,7 +1417,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const INTRO = "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say carry on. ";
   function voiceAsk(intro) {
     const c = S.clarify;
-    if (!isVoice() || S.consent !== true || c.i >= c.qs.length || !$("cl-answer")) return;
+    if (!isVoice() || c.i >= c.qs.length || !$("cl-answer")) return;
     Voice.ask((intro ? INTRO : "") + c.qs[c.i].q, $("cl-answer"), () => $("cl-next").click(), voiceView("cl-vstate"));
   }
 
@@ -1490,6 +1517,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       more.appendChild(lab);
     });
   }
+  $("tell-back").addEventListener("click", () => show(STEPS.findIndex(x => x.id === "detail")));
   $("pr-add").addEventListener("click", () => {
     const t = $("pr-new").value.trim();
     if (!t) { $("pr-new").focus(); return; }

@@ -84,30 +84,27 @@ function buildPrompt(p) {
   return lines.join('\n\n');
 }
 
-// Claude must answer by filling in this form (forced tool use), so the reply is always structured data.
-const QUESTION_TOOL = {
-  name: 'give_questions',
-  description: 'Return the questions for the patient or family.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      questions: {
-        type: 'array',
-        minItems: 1,
-        maxItems: 10,
-        items: {
-          type: 'object',
-          properties: {
-            q: { type: 'string', description: 'The question, in plain words.' },
-            why: { type: 'string', description: 'Suggestions only: why it matters, under 20 words.' },
-            label: { type: 'string', description: 'Interview only: 2 to 5 words naming the fact for the doctor.' },
-          },
-          required: ['q'],
+// Structured outputs: Claude's reply must match this JSON schema exactly (Sonnet 5.5 does not allow forced tool use).
+// Every field is required (empty string when not used) and objects allow no extra keys, as the API requires.
+const QUESTION_SCHEMA = {
+  type: 'object',
+  properties: {
+    questions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          q: { type: 'string', description: 'The question, in plain words.' },
+          why: { type: 'string', description: 'Suggestions: why it matters, under 20 words. Empty string in the interview.' },
+          label: { type: 'string', description: 'Interview: 2 to 5 words naming the fact for the doctor. Empty string for suggestions.' },
         },
+        required: ['q', 'why', 'label'],
+        additionalProperties: false,
       },
     },
-    required: ['questions'],
   },
+  required: ['questions'],
+  additionalProperties: false,
 };
 const tidy = (list) => (Array.isArray(list) ? list : [])
   .map((x) => ({ q: clean(x && x.q, 300), why: clean(x && x.why, 200), label: clean(x && x.label, 60) }))
@@ -187,16 +184,17 @@ export default async function handler(req, res) {
         model: MODEL,
         max_tokens: 2500,
         inference_geo: 'us',
-        system: (mode === 'clarify' ? CLARIFY : SYSTEM).replace(/Reply with JSON only[\s\S]*$/, 'Give your answer with the give_questions tool.'),
+        system: mode === 'clarify' ? CLARIFY : SYSTEM,
         messages: [{ role: 'user', content: buildPrompt(p) }],
-        tools: [QUESTION_TOOL],
-        tool_choice: { type: 'tool', name: 'give_questions' },
+        output_config: { format: { type: 'json_schema', schema: QUESTION_SCHEMA } },
       }),
     });
 
     if (!response.ok) {
-      // Status only. The error body can echo the request, so it is not logged.
-      console.error('Anthropic API error', response.status);
+      // Status and the API's error type only (for example invalid_request_error). Never the request or reply content.
+      let kind = '';
+      try { kind = ((await response.json()).error || {}).type || ''; } catch { /* no body */ }
+      console.error('Anthropic API error', response.status, kind);
       return res.status(502).json({
         ok: false,
         error: 'Suggestions are not available right now. Try again in a minute, or use the common questions below.',
@@ -205,11 +203,9 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     const blocks = data.content || [];
-    const tool = blocks.find((b) => b.type === 'tool_use' && b.name === 'give_questions');
-    let questions = tool ? tidy(tool.input && tool.input.questions) : null;
-    if (!questions || !questions.length) {
-      questions = parseQuestions(blocks.filter((b) => b.type === 'text').map((b) => b.text).join(''));
-    }
+    const text = blocks.filter((b) => b.type === 'text').map((b) => b.text).join('');
+    let questions = null;
+    try { questions = tidy(JSON.parse(text).questions); } catch { questions = parseQuestions(text); }
     if (!questions || !questions.length) {
       // Shape only, never content: which blocks came back and why the reply stopped.
       console.error('Suggestion reply could not be read', data.stop_reason, blocks.map((b) => b.type).join(','));
