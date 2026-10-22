@@ -540,6 +540,28 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <fieldset class="plain"><legend class="visually-hidden">Common questions</legend><div class="list" id="sugg-list"></div></fieldset>
   </section>
 
+  <!-- PREP 5, part 3 -->
+  <section class="screen" id="s-priority" hidden>
+    <h2>What matters most?</h2>
+    <p class="muted" id="pr-none" hidden>You haven't added any questions yet. Go back to add some, or tap Next.</p>
+    <fieldset class="plain" id="pr-first-set">
+      <legend class="q-legend">Which question is most important to get answered? (required)</legend>
+      <p class="help">If you only get one answer, which one?</p>
+      <div class="list" id="pr-first"></div>
+      <p class="error" id="pr-error" hidden>Choose the one question that matters most, then tap Next.</p>
+    </fieldset>
+    <fieldset class="plain" id="pr-more-set">
+      <legend class="q-legend">Any others that are most important?</legend>
+      <p class="help">Tick them. They go near the top.</p>
+      <div class="list" id="pr-more"></div>
+    </fieldset>
+    <div class="field">
+      <label for="pr-new">A question we missed?</label>
+      <textarea id="pr-new" class="grow" rows="1"></textarea>
+      <div class="item-actions"><button type="button" class="btn secondary" id="pr-add">Add it</button></div>
+    </div>
+  </section>
+
   <!-- 10 SHEETS -->
   <section class="screen" id="s-sheets" hidden>
     <div class="no-print" style="display:flex;flex-direction:column;gap:16px">
@@ -723,7 +745,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     { id: "detail", sec: "prep", stop: 3, name: "More about it" },
     { id: "tell", sec: "prep", stop: 3, name: "What to tell the doctor" },
     { id: "ask", sec: "prep", stop: 4, name: "Your questions" },
-    { id: "ideas", sec: "prep", stop: 4, name: "Questions to consider", next: "Get my pages" },
+    { id: "ideas", sec: "prep", stop: 4, name: "Questions to consider" },
+    { id: "priority", sec: "prep", stop: 4, name: "What matters most", next: "Get my pages" },
     { id: "sheets", sec: "room", stop: 5, name: "Your pages" },
     { id: "visit", sec: "room", stop: 6, name: "At the appointment", next: "I'm back from the appointment" },
     { id: "recap", sec: "after", stop: 7, name: "What the doctor said" },
@@ -763,7 +786,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const blankVisit = () => ({ seeing: "", date: "", time: "", purpose: "", story: "",
     clarify: { qs: [], i: 0, done: false, merged: [] }, tell: [""], ask: [{ t: "", top: false }], ai: [], aiFetched: false, sugg: [],
     chg: { bg: "", meds: "", medNote: "" },
-    recap: { said: "", open: [], more: "", todo: [""], nextWith: "", nextDate: "", nextTime: "" } });
+    recap: { said: "", open: [], more: "", todo: [""], nextWith: "", nextDate: "", nextTime: "" },
+    first: "", important: [], prioSeen: false });
   const blank = () => Object.assign({ v: 3, step: -1, mode: "", consent: null, who: "", carried: false,
     bg: { conditions: "", changes: "", team: "", allergies: "" }, meds: [{ n: "", d: "", w: "" }] }, blankVisit());
   function normalize(x) {
@@ -782,6 +806,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (Array.isArray(x.ai)) b.ai = x.ai.map(q => ({ q: str(q && q.q), why: str(q && q.why), on: !!(q && q.on) })).filter(q => q.q);
     b.aiFetched = !!x.aiFetched && b.ai.length > 0;
     b.carried = !!x.carried;
+    b.first = str(x.first); b.prioSeen = !!x.prioSeen;
+    if (Array.isArray(x.important)) b.important = x.important.map(str).filter(Boolean);
     if (!(Number(x.v) >= 3) && b.step >= 0) b.step = Math.max(0, b.step - 1);   // older saves had a separate talk-or-type step
     if (x.recap && typeof x.recap === "object") {
       ["said", "more", "nextWith", "nextDate"].forEach(k => b.recap[k] = str(x.recap[k]));
@@ -990,6 +1016,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function validate(id) {
     if (id === "bg" && S.carried && !S.chg.bg) { $("bg-chg-error").hidden = false; $("bg-no").focus(); return false; }
     if (id === "meds" && S.carried && !S.chg.meds) { $("med-chg-error").hidden = false; $("med-no").focus(); return false; }
+    if (id === "priority" && !$("pr-first-set").hidden && !S.first) { $("pr-error").hidden = false; const r = document.querySelector('input[name="pr-first"]'); if (r) r.focus(); return false; }
     if (id === "appt" && !S.purpose.trim()) { $("purpose-error").hidden = false; $("purpose").focus(); return false; }
     return true;
   }
@@ -1000,6 +1027,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (id === "tell") renderTell();
     if (id === "ask") renderAsk();
     if (id === "ideas") enterIdeas();
+    if (id === "priority") renderPriority();
     if (id === "sheets") { buildSheets(); setTab(0); }
     if (id === "recap" || id === "recap2") renderRecap();
     if (id === "share") buildRecap();
@@ -1404,11 +1432,62 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 
   // ---------- sheets ----------
   function allQuestions() {
-    const own = S.ask.filter(q => q.t.trim());
+    const own = S.ask.filter(q => q.t.trim()).map(q => ({ t: q.t.trim(), top: q.top }));
     const ai = S.ai.filter(q => q.on).map(q => ({ t: q.q, top: false }));
     const extra = S.sugg.slice().sort((a, b) => a - b).filter(i => i !== RECORD_Q).map(i => ({ t: SUGGESTIONS[i], top: false }));
-    return { top: own.filter(q => q.top), rest: own.filter(q => !q.top).concat(ai, extra) };
+    const seen = new Set(), all = [];
+    own.filter(q => q.top).concat(own.filter(q => !q.top), ai, extra).forEach(q => { const k = q.t.toLowerCase(); if (!seen.has(k)) { seen.add(k); all.push(q); } });
+    if (S.prioSeen) { const imp = new Set(S.important.map(x => x.toLowerCase())); all.forEach(q => { q.top = imp.has(q.t.toLowerCase()); }); }
+    const fi = S.first ? all.findIndex(q => q.t.toLowerCase() === S.first.toLowerCase()) : -1;
+    const first = fi > -1 ? Object.assign(all.splice(fi, 1)[0], { top: true, first: true }) : null;
+    return { top: (first ? [first] : []).concat(all.filter(q => q.top)), rest: all.filter(q => !q.top), first };
   }
+
+  // ---------- what matters most ----------
+  // questions in the order they were added, so the list doesn't move while choosing
+  function questionTexts() {
+    const seen = new Set();
+    return S.ask.map(q => q.t.trim()).filter(Boolean)
+      .concat(S.ai.filter(q => q.on).map(q => q.q), S.sugg.slice().sort((a, b) => a - b).filter(i => i !== RECORD_Q).map(i => SUGGESTIONS[i]))
+      .filter(t => { const k = t.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+  }
+  function renderPriority() {
+    const qs = questionTexts();
+    if (!S.prioSeen) { S.important = S.ask.filter(q => q.top && q.t.trim()).map(q => q.t.trim()); S.prioSeen = true; save(); }
+    if (S.first && !qs.some(t => t.toLowerCase() === S.first.toLowerCase())) S.first = "";
+    $("pr-none").hidden = qs.length > 0; $("pr-first-set").hidden = !qs.length; $("pr-more-set").hidden = qs.length < 2;
+    const one = $("pr-first"); one.innerHTML = "";
+    qs.forEach((t, i) => {
+      const lab = document.createElement("label"); lab.className = "choice"; lab.setAttribute("for", "prf-" + i);
+      lab.innerHTML = `<input type="radio" name="pr-first" id="prf-${i}" ${S.first.toLowerCase() === t.toLowerCase() ? "checked" : ""}><span>${esc(t)}</span>`;
+      lab.querySelector("input").addEventListener("change", () => {
+        S.first = t; S.important = S.important.filter(x => x.toLowerCase() !== t.toLowerCase());
+        $("pr-error").hidden = true; save(); renderMore(qs);
+      });
+      one.appendChild(lab);
+    });
+    renderMore(qs);
+  }
+  function renderMore(qs) {
+    const more = $("pr-more"); more.innerHTML = "";
+    qs.filter(t => t.toLowerCase() !== S.first.toLowerCase()).forEach((t, i) => {
+      const on = S.important.some(x => x.toLowerCase() === t.toLowerCase());
+      const lab = document.createElement("label"); lab.className = "sugg"; lab.setAttribute("for", "prm-" + i);
+      lab.innerHTML = `<input type="checkbox" id="prm-${i}" ${on ? "checked" : ""}><span>${esc(t)}</span>`;
+      lab.querySelector("input").addEventListener("change", e => {
+        S.important = S.important.filter(x => x.toLowerCase() !== t.toLowerCase());
+        if (e.target.checked) S.important.push(t);
+        save();
+      });
+      more.appendChild(lab);
+    });
+  }
+  $("pr-add").addEventListener("click", () => {
+    const t = $("pr-new").value.trim();
+    if (!t) { $("pr-new").focus(); return; }
+    S.ask = S.ask.filter(q => q.t.trim()); S.ask.push({ t, top: false });
+    $("pr-new").value = ""; $("pr-new").dispatchEvent(new Event("input", { bubbles: true })); save(); renderPriority();
+  });
   function header(title) {
     const bits = [S.seeing, fmtDate(S.date), fmtTime(S.time)].filter(x => x && x.trim()).map(esc);
     return `<h2>${esc(title)}${S.who.trim() ? " · " + esc(S.who) : ""}</h2>${bits.length ? `<div class="meta">${bits.map(b => `<span>${b}</span>`).join("")}</div>` : ""}`;
@@ -1424,7 +1503,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // answers like "not sure" help the family, but are noise for the doctor
     const UNSURE = /^(not sure|unsure|i'?m not sure|don'?t know|i don'?t know|no idea|can'?t say)\W*$/i;
     const facts = tell.filter(t => { const i = t.indexOf(": "); return !UNSURE.test((i > -1 ? t.slice(i + 2) : t).trim()); });
-    const { top, rest } = allQuestions();
+    const { top: topAll, rest, first } = allQuestions();
+    const top = topAll.filter(q => !q.first);
     const li = q => `<li${q.top ? ' class="top"' : ""}>${q.top ? '<span class="star" aria-label="most important">★</span> ' : ""}${esc(q.t)}</li>`;
     const shortRest = rest.slice(0, Math.max(0, 6 - top.length));
     const recordAsk = S.sugg.includes(RECORD_Q);
@@ -1433,7 +1513,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <p style="margin-top:8px">Hand the doctor your summary sheet.</p>
       ${recordAsk ? `<p style="margin-top:4px">Then ask: "Is it okay if I record this appointment on my phone?"</p>` : ""}</section>
       <section><h3>Make sure I mention</h3>${facts.length ? `<ul>${facts.slice(0, 8).map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
-      <section><h3>My questions</h3>${top.length + shortRest.length ? `<ol>${top.concat(shortRest).map(li).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}
+      ${first ? `<section><h3>If I only get one answer</h3><p class="say">${esc(first.t)}</p></section>` : ""}
+      <section><h3>${first ? "My other questions" : "My questions"}</h3>${top.length + shortRest.length ? `<ol>${top.concat(shortRest).map(li).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}
       ${rest.length > shortRest.length ? `<p style="margin-top:6px;color:#3B4A57">More questions are on the full list.</p>` : ""}</section>
       <section><h3>My notes: what the doctor says</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div><div class="blank"></div>
         <p style="margin-top:8px">Next appointment: ______________________</p></section>`;
@@ -1456,7 +1537,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         ["Changes since last visit", !S.carried ? "" : S.chg.meds === "yes" ? (esc(S.chg.medNote.trim()) || "Yes (see list)") : S.chg.meds === "no" ? "None reported" : ""],
         ["Allergies", esc(S.bg.allergies.trim()) || "None listed"]
       ])}</section>
-      ${qD.length ? `<section><h3>Patient's questions</h3><ol>${qD.map(li).join("")}</ol></section>` : ""}
+      ${first ? `<section><h3>Most important question to the patient</h3><p><b>${esc(first.t)}</b></p></section>` : ""}
+      ${qD.length ? `<section><h3>${first ? "Other questions" : "Patient's questions"}</h3><ol>${qD.map(li).join("")}</ol></section>` : ""}
       <p class="fine">Prepared by the patient and family before the visit, in their own words. Not a medical record.</p>`;
     const bgBits = [
       cond.length ? `<p><b>Conditions:</b></p><ul>${cond.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "",
@@ -1470,7 +1552,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       ${bgBits ? `<section><h3>Health background</h3>${bgBits}</section>` : ""}
       ${S.story.trim() ? `<section><h3>In their words</h3><p>${esc(S.story).replace(/\n/g, "<br>")}</p></section>` : ""}
       <section><h3>Make sure the doctor hears</h3>${tell.length ? `<ul class="check">${tell.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
-      <section><h3>All questions</h3>${top.length + rest.length ? `<ol>${top.concat(rest).map(li).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}</section>
+      ${first ? `<section><h3>Most important question</h3><p><b>${esc(first.t)}</b></p></section>` : ""}
+      <section><h3>${first ? "Other questions" : "All questions"}</h3>${top.length + rest.length ? `<ol>${top.concat(rest).map(li).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}</section>
       <section><h3>Medications</h3>${medsHTML()}</section>
       <section><h3>Bring</h3><ul class="check"><li>The patient's page and this list</li><li>Medication bottles, or the list above</li><li>Health card</li>${recordAsk ? "<li>Phone charged, to record</li>" : ""}</ul></section>
       <section><h3>After the appointment</h3>
