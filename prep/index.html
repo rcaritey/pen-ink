@@ -404,16 +404,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <strong>Before you start talking</strong>
       <span id="voice-note-text">Your phone will ask to use the microphone. Tap Allow. To turn your voice into words, Chrome sends the sound to Google and Safari sends it to Apple.</span>
     </div>
-    <p class="muted">Only the reason for the visit is needed. Fill in the rest if you know it. Tap <b>Speak</b> next to any answer to say it instead of typing.</p>
+    <p class="muted">Only the reason is needed. Tap <b>Speak</b> to talk instead of type.</p>
     <div class="field">
       <label for="purpose">What is the appointment for? (required)</label>
-      <p class="help" id="purpose-help">A check-up, or something specific? For example: a burning feeling in my left foot.</p>
+      <p class="help" id="purpose-help">For example: a burning feeling in my left foot.</p>
       <input type="text" id="purpose" aria-describedby="purpose-help" autocomplete="off" required>
       <p class="error" id="purpose-error" hidden>Add a few words about what the appointment is for, then tap Next.</p>
     </div>
     <div class="field">
       <label for="seeing">Who are you seeing?</label>
-      <p class="help" id="seeing-help">For example: neurologist, family doctor, foot care clinic.</p>
+      <p class="help" id="seeing-help">For example: neurologist or family doctor.</p>
       <input type="text" id="seeing" aria-describedby="seeing-help" autocomplete="off">
     </div>
     <div class="two">
@@ -430,7 +430,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <!-- 3 OWN WORDS -->
   <section class="screen" id="s-words" hidden>
     <h2>In your own words</h2>
-    <p class="lead">What's on your mind about this appointment? Say it all, in any order. Nobody will interrupt.</p>
+    <p class="lead">What's on your mind about this appointment? Take your time. Nobody will interrupt.</p>
     <div class="voice-panel" data-voice-only>
       <p class="voice-state" id="words-state" role="status" aria-live="polite"></p>
       <div class="row">
@@ -449,26 +449,26 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <h2>Your health background</h2>
     <fieldset class="choices check-q" id="bg-check" hidden>
       <legend class="q">Since your last appointment, has anything changed in your health? (required)</legend>
-      <p class="muted">For example: a new diagnosis, a hospital visit, a fall, a surgery or a new symptom.</p>
+      <p class="muted">For example: a hospital visit, a fall or a new symptom.</p>
       <label class="choice" for="bg-no"><input type="radio" name="bg-chg" id="bg-no" value="no"><span><b>No, nothing has changed</b></span></label>
       <label class="choice" for="bg-yes"><input type="radio" name="bg-chg" id="bg-yes" value="yes"><span><b>Yes, something has changed</b></span></label>
       <p class="error" id="bg-chg-error" hidden>Choose No or Yes to carry on.</p>
     </fieldset>
-    <div class="hint" id="bg-yes-hint" hidden><strong>Update what's changed</strong>Add it under <b>Recent changes</b> below, with roughly when it happened.</div>
-    <p class="muted" id="bg-intro">This helps the questions fit you, not just today's concern. Everything here is optional. Leave out names of people and places.</p>
+    <div class="hint" id="bg-yes-hint" hidden>Add it under <b>Recent changes</b> below.</div>
+    <p class="muted" id="bg-intro">All optional. It helps the questions fit you.</p>
     <div class="field">
       <label for="bg-conditions">Health conditions</label>
-      <p class="help" id="bg-conditions-help">One per line, with roughly when it started. For example: Parkinson's disease, since 2019.</p>
+      <p class="help" id="bg-conditions-help">One per line. For example: Parkinson's, since 2019.</p>
       <textarea id="bg-conditions" aria-describedby="bg-conditions-help" style="min-height:110px"></textarea>
     </div>
     <div class="field">
       <label for="bg-changes">Recent changes</label>
-      <p class="help" id="bg-changes-help">In the last year or so: surgeries, hospital visits, falls, new symptoms, medication changes.</p>
+      <p class="help" id="bg-changes-help">In the last year: surgeries, hospital stays, falls.</p>
       <textarea id="bg-changes" aria-describedby="bg-changes-help" style="min-height:110px"></textarea>
     </div>
     <div class="field">
       <label for="bg-team">Other doctors and care you see</label>
-      <p class="help" id="bg-team-help">By type, not by name. For example: neurologist, urologist, physiotherapy.</p>
+      <p class="help" id="bg-team-help">By type, not name. For example: urologist.</p>
       <input type="text" id="bg-team" aria-describedby="bg-team-help" autocomplete="off">
     </div>
     <div class="field">
@@ -482,17 +482,17 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <h2>Your medications</h2>
     <fieldset class="choices check-q" id="med-check" hidden>
       <legend class="q">Since your last appointment, have any medications been started, stopped or changed? (required)</legend>
-      <p class="muted">Include changes to doses, and anything new from another doctor or the pharmacy.</p>
+      <p class="muted">Include dose changes.</p>
       <label class="choice" for="med-no"><input type="radio" name="med-chg" id="med-no" value="no"><span><b>No, nothing has changed</b></span></label>
       <label class="choice" for="med-yes"><input type="radio" name="med-chg" id="med-yes" value="yes"><span><b>Yes, something has changed</b></span></label>
       <p class="error" id="med-chg-error" hidden>Choose No or Yes to carry on.</p>
     </fieldset>
     <div class="field" id="med-note-wrap" hidden>
       <label for="med-note">What changed?</label>
-      <p class="help" id="med-note-help">For example: started magnesium in September; levodopa dose went up in August. Then update the list below.</p>
+      <p class="help" id="med-note-help">For example: started magnesium in September.</p>
       <textarea id="med-note" aria-describedby="med-note-help" style="min-height:90px"></textarea>
     </div>
-    <p class="muted">Everything you take, including vitamins and things you take now and then. Not sure of a dose? Leave it blank. It prints as a line to fill in from the bottle.</p>
+    <p class="muted">Include vitamins. Not sure of a dose? Leave it blank.</p>
     <div class="list" id="med-list"></div>
     <div><button type="button" class="btn secondary" data-add="med">Add another medication</button></div>
   </section>
@@ -500,7 +500,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <!-- 6 MORE DETAIL -->
   <section class="screen" id="s-detail" hidden>
     <h2>A few more questions about it</h2>
-    <p class="muted">The questions a doctor would ask about this, so they get the full picture from the start.</p>
+    <p class="muted">What a doctor would ask, so they get the full picture.</p>
     <div id="detail-consent"></div>
     <p class="status" id="detail-status" role="status" aria-live="polite"></p>
     <div id="cl-card" class="ai-box" hidden></div>
@@ -509,7 +509,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <!-- 7 TELL -->
   <section class="screen" id="s-tell" hidden>
     <h2>What to tell the doctor</h2>
-    <p class="muted">Short facts the doctor should hear. Your answers from the last step are already here. Change anything that isn't right.</p>
+    <p class="muted">Your answers are already here. Fix anything that's wrong.</p>
     <div class="list" id="tell-list"></div>
     <div><button type="button" class="btn secondary" data-add="tell">Add another</button></div>
   </section>
@@ -517,7 +517,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <!-- 8 ASK -->
   <section class="screen" id="s-ask" hidden>
     <h2>Your questions for the doctor</h2>
-    <p class="muted">Write the questions you already have. Tap <b>Most important</b> on the ones that matter most. They go first on your sheet.</p>
+    <p class="muted">Tap <b>Most important</b> to put a question first.</p>
     <div class="list" id="ask-list"></div>
     <div><button type="button" class="btn secondary" data-add="ask">Add another question</button></div>
   </section>
@@ -525,7 +525,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <!-- 9 IDEAS -->
   <section class="screen" id="s-ideas" hidden>
     <h2>Questions you might not think of</h2>
-    <p class="muted">Tick the ones you want to ask. You decide.</p>
+    <p class="muted">Tick the ones you want. You decide.</p>
     <div id="ideas-consent"></div>
     <div id="ai-wrap" class="ai-box" hidden>
       <h3>Suggested for this appointment</h3>
@@ -541,11 +541,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <section class="screen" id="s-sheets" hidden>
     <div class="no-print" style="display:flex;flex-direction:column;gap:16px">
       <h2>Your pages</h2>
-      <p>You're ready. You have three pages, each for a different person.</p>
+      <p>Three pages, one for each person.</p>
       <ol class="ready">
-        <li><b>Summary for the doctor.</b> Print it and hand it over when you sit down.</li>
-        <li><b>My page.</b> Print it for yourself. Read your questions from it and jot down what the doctor says.</li>
-        <li><b>Full list for family.</b> Send it to family who help.</li>
+        <li><b>Summary for the doctor.</b> Hand it over when you sit down.</li>
+        <li><b>My page.</b> Read your questions from it.</li>
+        <li><b>Full list for family.</b> Send it to them.</li>
       </ol>
       <div class="tabs" role="tablist" aria-label="Which page">
         <button type="button" class="btn secondary" role="tab" id="tab-d" aria-selected="true" aria-controls="sheet-d">Summary for the doctor</button>
@@ -573,7 +573,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <div class="sheet" id="sheet-c" role="tabpanel" aria-labelledby="tab-c" hidden></div>
     <div class="card no-print">
       <h3>Keep a copy</h3>
-      <p class="muted">Your answers are saved on this phone or computer, so you can come back any time. To keep them safe, or to use them on another device, download a copy. Keep it somewhere private.</p>
+      <p class="muted">To use your answers on another device, download a copy.</p>
       <div><button type="button" class="btn secondary" data-download>Download a copy</button></div>
     </div>
   </section>
@@ -584,43 +584,48 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <ol class="ready">
       <li>When you sit down, say: <span class="say-inline">"I have some questions I'd like to go through. May I start?"</span></li>
       <li>Hand the doctor your <b>Summary for the doctor</b>.</li>
-      <li>Read your questions from <b>My page</b>. Write the answers beside them.</li>
-      <li>Want to record it? Ask first: "Is it okay if I record this on my phone?"</li>
+      <li>Ask your questions from <b>My page</b>.</li>
+      <li>Want to record? Ask first.</li>
     </ol>
     <div class="two">
-      <div class="card" style="flex:1;min-width:220px"><h3>If the doctor says yes</h3><p>Record on your own phone, for example with Voice Memos on an iPhone. This website never records anything.</p></div>
-      <div class="card" style="flex:1;min-width:220px"><h3>If the doctor says no</h3><p>That's fine. Write notes on My page. Before you leave, ask: "Can I read back what I wrote to make sure I got it right?"</p></div>
+      <div class="card" style="flex:1;min-width:220px"><h3>If the doctor says yes</h3><p>Record on your own phone, for example with Voice Memos.</p></div>
+      <div class="card" style="flex:1;min-width:220px"><h3>If the doctor says no</h3><p>That's fine. Take notes, then read them back to the doctor.</p></div>
     </div>
-    <div class="hint"><strong>When you're back home</strong>Tap <b>I'm back from the appointment</b> to write down what the doctor said and what happens next.</div>
+    <div class="hint">Back home? Tap <b>I'm back from the appointment</b>.</div>
   </section>
 
   <!-- AFTER 1 -->
   <section class="screen" id="s-recap" hidden>
-    <h2>How did it go?</h2>
-    <p class="muted">Write down what you can while it's fresh. You can come back to this later.</p>
+    <h2>What did the doctor say?</h2>
+    <p class="muted">Write it while it's fresh. Your notes or recording can help.</p>
     <div class="field">
-      <label for="rc-said">What did the doctor say?</label>
-      <p class="help" id="rc-said-help">In your own words. Use your notes or your recording.</p>
+      <label for="rc-said">What the doctor said</label>
+      <p class="help" id="rc-said-help">In your own words.</p>
       <textarea id="rc-said" aria-describedby="rc-said-help"></textarea>
     </div>
     <fieldset class="plain">
       <legend class="q-legend">Which of your questions didn't get answered?</legend>
-      <p class="help">Tick them. They'll be ready for next time.</p>
+      <p class="help">They'll be ready for next time.</p>
       <div class="list" id="rc-open-list"></div>
     </fieldset>
     <div class="field">
       <label for="rc-more">Anything else to ask next time?</label>
       <textarea id="rc-more" style="min-height:90px"></textarea>
     </div>
+  </section>
+
+  <!-- AFTER 1, part 2 -->
+  <section class="screen" id="s-recap2" hidden>
+    <h2>What happens next?</h2>
     <div class="field">
       <label id="rc-todo-label">Things to do</label>
-      <p class="help">For example: buy the cream the doctor named; book blood work; bring your walking shoes next time.</p>
+      <p class="help">For example: book blood work.</p>
       <div class="list" id="rc-todo-list"></div>
       <div style="margin-top:10px"><button type="button" class="btn secondary" data-add="todo">Add another</button></div>
     </div>
     <h3>Next appointment</h3>
     <div class="field">
-      <label for="rc-with">With who?</label>
+      <label for="rc-with">Who with?</label>
       <input type="text" id="rc-with" autocomplete="off">
     </div>
     <div class="two">
@@ -652,13 +657,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <div class="sheet" id="sheet-r"></div>
     <div class="card no-print">
       <h3>Get ready for your next appointment</h3>
-      <p class="muted">Start the next one. Your health background and medications stay, and the questions that didn't get answered are carried over.</p>
+      <p class="muted">Your health details and unanswered questions carry over.</p>
       <div><button type="button" class="btn primary" id="sheets-new">Start preparing for the next appointment</button></div>
       <div id="sheets-new-confirm" class="hint" hidden></div>
     </div>
     <div class="card no-print">
       <h3>Keep a copy</h3>
-      <p class="muted">Your answers are saved on this phone or computer. To keep them safe, or to use them on another device, download a copy.</p>
+      <p class="muted">To use your answers on another device, download a copy.</p>
       <div><button type="button" class="btn secondary" data-download>Download a copy</button></div>
     </div>
   </section>
@@ -718,7 +723,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     { id: "ideas", sec: "prep", stop: 4, name: "Questions to consider", next: "Get my pages" },
     { id: "sheets", sec: "room", stop: 5, name: "Your pages" },
     { id: "visit", sec: "room", stop: 6, name: "At the appointment", next: "I'm back from the appointment" },
-    { id: "recap", sec: "after", stop: 7, name: "Recap" },
+    { id: "recap", sec: "after", stop: 7, name: "What the doctor said" },
+    { id: "recap2", sec: "after", stop: 7, name: "What happens next" },
     { id: "share", sec: "after", stop: 8, name: "Next steps and sharing" }
   ];
   const SUGGESTIONS = [
@@ -947,7 +953,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("bg-yes-hint").hidden = !(S.carried && S.chg.bg === "yes");
     $("med-note-wrap").hidden = !(S.carried && S.chg.meds === "yes");
     $("med-note").value = S.chg.medNote;
-    $("bg-intro").textContent = S.carried ? "This is what you told us last time. Check it's still right." : "This helps the questions fit you, not just today's concern. Everything here is optional. Leave out names of people and places.";
+    $("bg-intro").textContent = S.carried ? "This is what you told us last time. Check it's still right." : "All optional. It helps the questions fit you.";
   }
   [["bg", "bg"], ["med", "meds"]].forEach(([id, key]) => document.querySelectorAll(`input[name="${id}-chg"]`).forEach(r => r.addEventListener("change", () => {
     S.chg[key] = r.value; $(id + "-chg-error").hidden = true; renderChecks(); save();
@@ -968,7 +974,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (id === "ask") renderAsk();
     if (id === "ideas") enterIdeas();
     if (id === "sheets") { buildSheets(); setTab(0); }
-    if (id === "recap") renderRecap();
+    if (id === "recap" || id === "recap2") renderRecap();
     if (id === "share") buildRecap();
     if (id === "bg" || id === "meds") renderChecks();
   }
@@ -1433,7 +1439,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const sheets = [$("sheet-d"), $("sheet-p"), $("sheet-c")], tabs = [$("tab-d"), $("tab-p"), $("tab-c")];
   const TAB_ABOUT = [
     "For the doctor to read. Hand it over when you sit down.",
-    "For you. Read your questions from it, and write down what the doctor says.",
+    "For you. Read your questions and take notes.",
     "For family who help. Everything in one place."
   ];
   let curTab = 0;
