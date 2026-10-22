@@ -13,7 +13,7 @@ const MODEL = process.env.PREP_MODEL || 'claude-sonnet-5-5';
 
 const LIMITS = {
   seeing: 200, purpose: 500, conditions: 2000, team: 1000, changes: 2000,
-  allergies: 500, story: 6000, item: 400, list: 30,
+  allergies: 500, story: 6000, item: 400, list: 30, detail: 600,
 };
 
 const SYSTEM = `You help patients and their families prepare for medical appointments in Ontario, Canada.
@@ -31,6 +31,21 @@ Rules:
 
 Reply with JSON only, no other text, in exactly this shape:
 {"questions":[{"q":"...","why":"..."}]}`;
+
+const CLARIFY = `You help patients and their families prepare for medical appointments in Ontario, Canada.
+You receive a de-identified picture of the patient: their health background, medications, what the appointment is for, and what they said in their own words.
+
+Your job: before the appointment, ask the patient a few questions about the concern they are going in for, so the doctor gets a full description from the start. Ask what a careful clinician would want to know, for example: when it started and how it began, exactly where, what it feels like, how bad it is (0 to 10), when it happens or is worst, what makes it better or worse, what they have already tried, whether it is changing, other symptoms that come with it, and how it affects daily life, sleep or activity. Use their background and medications to choose what matters (for example, ask about timing relative to medication doses when that could be relevant).
+
+Rules:
+- Questions only. Never diagnose, never suggest a cause, never give advice.
+- Skip anything their own words already answer.
+- One thing per question. Short, warm, plain language, spoken to the patient as "you". The family will read each one aloud and wait for the answer.
+- 5 to 7 questions, most useful first.
+- For each question give a short label (2 to 5 words) that names the fact for the doctor, for example "When it started" or "Worst time of day".
+
+Reply with JSON only, no other text, in exactly this shape:
+{"questions":[{"q":"...","label":"..."}]}`;
 
 function clean(value, max) {
   if (typeof value !== 'string') return '';
@@ -52,6 +67,7 @@ function buildPrompt(p) {
   add('Other members of the care team', p.team);
   add('Recent changes', p.changes);
   add('In their own words', p.story);
+  add('More detail they gave about the concern', p.details.length ? p.details.map((d) => `- ${d}`).join('\n') : '');
   add('What they plan to tell the doctor', p.tell.length ? p.tell.map((t) => `- ${t}`).join('\n') : '');
   add('Questions they already have', p.ask.length ? p.ask.map((t) => `- ${t}`).join('\n') : '');
   return lines.join('\n\n');
@@ -65,7 +81,7 @@ function parseQuestions(text) {
     const data = JSON.parse(text.slice(start, end + 1));
     if (!Array.isArray(data.questions)) return null;
     return data.questions
-      .map((x) => ({ q: clean(x && x.q, 300), why: clean(x && x.why, 200) }))
+      .map((x) => ({ q: clean(x && x.q, 300), why: clean(x && x.why, 200), label: clean(x && x.label, 60) }))
       .filter((x) => x.q)
       .slice(0, 10);
   } catch {
@@ -95,7 +111,11 @@ export default async function handler(req, res) {
     meds: cleanList(body.meds),
     tell: cleanList(body.tell),
     ask: cleanList(body.ask),
+    details: Array.isArray(body.details)
+      ? body.details.slice(0, LIMITS.list).map((v) => clean(v, LIMITS.detail)).filter(Boolean)
+      : [],
   };
+  const mode = body.mode === 'clarify' ? 'clarify' : 'suggest';
 
   if (!p.purpose && !p.story && !p.tell.length && !p.ask.length) {
     return res.status(400).json({
@@ -124,7 +144,7 @@ export default async function handler(req, res) {
         model: MODEL,
         max_tokens: 1200,
         inference_geo: 'us',
-        system: SYSTEM,
+        system: mode === 'clarify' ? CLARIFY : SYSTEM,
         messages: [{ role: 'user', content: buildPrompt(p) }],
       }),
     });

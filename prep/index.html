@@ -122,12 +122,16 @@ textarea { min-height: 180px; resize: vertical; }
   .sheet { border: none; padding: 0; max-width: none; }
   .sheet[hidden] { display: none !important; }
 }
+[hidden] { display: none !important; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .ai-box { border: 1.5px solid var(--accent); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; background: var(--accent-soft); }
 .ai-box .sugg { background: var(--surface); }
 .sugg .why { display: block; color: var(--muted); font-size: 0.92rem; margin-top: 2px; }
 .error { color: var(--danger); font-weight: 700; }
 .carefile { margin-top: 6px; }
+.cl-q { font-family: var(--display); font-size: 1.35rem; line-height: 1.35; }
+.cl-count { font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.cl-sum { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
 .btn:disabled { opacity: .6; cursor: progress; }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 </style>
@@ -236,6 +240,26 @@ textarea { min-height: 180px; resize: vertical; }
     <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
   </div>
 
+  <div class="panel" data-name="More detail" hidden>
+    <h2>A few more questions about it</h2>
+    <p class="muted">Claude asks about today's concern the way a doctor would: when it started, how bad it is, what helps. Their answers give the doctor a full picture from the start.</p>
+    <div class="hint">
+      <strong>Same rule as before</strong>
+      Read one question out. Wait for the answer. Tap Next only when they say carry on.
+    </div>
+    <label class="sugg" for="cl-consent">
+      <input type="checkbox" id="cl-consent" class="consent">
+      <span>I understand that their health background, medications and answers are sent to Claude, an AI by Anthropic, to write questions. Their name and the appointment date are not sent. Nothing is saved on this website.</span>
+    </label>
+    <p class="error" id="cl-consent-error" hidden>Tick the box above first, so you've agreed to send it.</p>
+    <div class="row">
+      <button type="button" class="btn primary" id="cl-go">Ask me questions</button>
+      <span class="status" id="cl-status" role="status" aria-live="polite"></span>
+    </div>
+    <div id="cl-card" class="ai-box" hidden></div>
+    <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
+  </div>
+
   <div class="panel" data-name="To tell" hidden>
     <h2>What to tell them</h2>
     <p class="muted">Short facts for the doctor: what's happening, where, since when, what makes it better or worse.</p>
@@ -268,7 +292,7 @@ textarea { min-height: 180px; resize: vertical; }
       <h3 id="ai-h">Suggestions for this appointment</h3>
       <p>Claude reads their background, medications and today's concern, and suggests questions to ask. It doesn't diagnose or give medical advice.</p>
       <label class="sugg" for="ai-consent">
-        <input type="checkbox" id="ai-consent">
+        <input type="checkbox" id="ai-consent" class="consent">
         <span>I understand that their health background, medications and answers are sent to Claude, an AI by Anthropic, to make suggestions. Their name and the appointment date are not sent. Nothing is saved on this website.</span>
       </label>
       <p class="error" id="ai-consent-error" hidden>Tick the box above first, so you've agreed to send it.</p>
@@ -352,10 +376,10 @@ textarea { min-height: 180px; resize: vertical; }
     story: "Example: My toenails are thick and look like they have a fungus. The outside of my left foot burns, mostly at night, and more after a busy day. There's no cut.",
     tell: ["Burning on the outside of the left foot, no cut", "Started a few months ago", "Worst at night and after a lot of walking"],
     ask: [{t:"What is causing the burning?", top:true}, {t:"Is there a treatment for the nail fungus?", top:true}],
-    sugg: [3, 6, 7], ai: [],
+    sugg: [3, 6, 7], ai: [], clarify: { qs: [], i: 0, added: false },
     meds: [{n:"Example medication", d:"25/100", w:"3 times a day"}, {n:"Vitamin D3", d:"1,000 units", w:"Morning"}, {n:"Magnesium", d:"", w:""}]
   };
-  const blank = () => ({ who:"", seeing:"", date:"", time:"", purpose:"", bg:{conditions:"",changes:"",team:"",allergies:""}, story:"", tell:[""], ask:[{t:"",top:false}], sugg:[], ai:[], meds:[{n:"",d:"",w:""}] });
+  const blank = () => ({ who:"", seeing:"", date:"", time:"", purpose:"", bg:{conditions:"",changes:"",team:"",allergies:""}, story:"", tell:[""], ask:[{t:"",top:false}], sugg:[], ai:[], clarify:{ qs:[], i:0, added:false }, meds:[{n:"",d:"",w:""}] });
   const clone = o => JSON.parse(JSON.stringify(o));
   function normalize(x) {
     const b = blank();
@@ -367,6 +391,11 @@ textarea { min-height: 180px; resize: vertical; }
     if (Array.isArray(x.ask) && x.ask.length) b.ask = x.ask.map(q => ({ t: str(q && q.t), top: !!(q && q.top) }));
     if (Array.isArray(x.sugg)) b.sugg = x.sugg.filter(i => Number.isInteger(i) && i >= 0 && i < SUGGESTIONS.length);
     if (Array.isArray(x.ai)) b.ai = x.ai.map(q => ({ q: str(q && q.q), why: str(q && q.why), on: !!(q && q.on) })).filter(q => q.q);
+    if (x.clarify && Array.isArray(x.clarify.qs)) {
+      b.clarify.qs = x.clarify.qs.map(q => ({ q: str(q && q.q), label: str(q && q.label), a: str(q && q.a) })).filter(q => q.q);
+      b.clarify.i = Math.min(Math.max(0, Number(x.clarify.i) || 0), b.clarify.qs.length);
+      b.clarify.added = !!x.clarify.added;
+    }
     if (Array.isArray(x.meds) && x.meds.length) b.meds = x.meds.map(m => ({ n: str(m && m.n), d: str(m && m.d), w: str(m && m.w) }));
     return b;
   }
@@ -508,23 +537,93 @@ textarea { min-height: 180px; resize: vertical; }
     changed();
   }));
 
-  // ---- AI suggestions (name, date and time are never sent)
-  $("ai-consent").addEventListener("change", () => { $("ai-consent-error").hidden = true; });
-  $("ai-go").addEventListener("click", async () => {
-    if (!$("ai-consent").checked) { $("ai-consent-error").hidden = false; $("ai-consent").focus(); return; }
-    const payload = {
+  // ---- shared consent: ticking either box ticks both
+  document.querySelectorAll(".consent").forEach(box => box.addEventListener("change", () => {
+    document.querySelectorAll(".consent").forEach(b => b.checked = box.checked);
+    $("ai-consent-error").hidden = true; $("cl-consent-error").hidden = true;
+  }));
+  const details = () => S.clarify.qs.filter(q => q.a.trim()).map(q => (q.label || q.q) + ": " + q.a.trim());
+  function picture() {
+    return {
       seeing: S.seeing, purpose: S.purpose, story: S.story,
       conditions: S.bg.conditions, changes: S.bg.changes, team: S.bg.team, allergies: S.bg.allergies,
       meds: S.meds.filter(m => m.n.trim()).map(m => [m.n, m.d, m.w].filter(x => x.trim()).join(", ")),
+      details: S.clarify.added ? [] : details(),
       tell: S.tell.filter(t => t.trim()),
       ask: S.ask.map(q => q.t).filter(t => t.trim()).concat(S.ai.filter(q => q.on).map(q => q.q))
     };
+  }
+  async function callClaude(payload) {
+    const r = await fetch("/api/suggest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.ok) throw new Error(data.error || "Not available right now. Try again in a minute.");
+    return data.questions;
+  }
+
+  // ---- follow-up interview about today's concern, one question at a time
+  function renderClarify() {
+    const c = S.clarify, box = $("cl-card");
+    if (!c.qs.length) { box.hidden = true; box.innerHTML = ""; return; }
+    box.hidden = false;
+    if (c.i < c.qs.length) {
+      const q = c.qs[c.i], last = c.i === c.qs.length - 1;
+      box.innerHTML = `<p class="cl-count">Question ${c.i + 1} of ${c.qs.length}</p>
+        <p class="cl-q" id="cl-qtext" tabindex="-1">${esc(q.q)}</p>
+        <div class="field"><label for="cl-answer">Their answer</label>
+        <textarea id="cl-answer" style="min-height:110px">${esc(q.a)}</textarea></div>
+        <div class="nav-row">
+          <div class="row">${c.i > 0 ? '<button type="button" class="btn secondary" id="cl-prev">Back</button>' : ""}
+          <button type="button" class="btn secondary" id="cl-skip">Skip this one</button></div>
+          <button type="button" class="btn primary" id="cl-next">${last ? "Finish" : "Next question"}</button>
+        </div>`;
+      $("cl-answer").addEventListener("input", e => { q.a = e.target.value; changed(); });
+      if ($("cl-prev")) $("cl-prev").addEventListener("click", () => { c.i--; renderClarify(); changed(); $("cl-qtext").focus(); });
+      $("cl-skip").addEventListener("click", () => { q.a = ""; c.i++; renderClarify(); changed(); focusClarify(); });
+      $("cl-next").addEventListener("click", () => { c.i++; renderClarify(); changed(); focusClarify(); });
+    } else {
+      const got = c.qs.filter(q => q.a.trim());
+      box.innerHTML = `<h3 id="cl-qtext" tabindex="-1">What they told you</h3>
+        ${got.length ? `<ul class="cl-sum">${got.map(q => `<li><b>${esc(q.label || q.q)}:</b> ${esc(q.a)}</li>`).join("")}</ul>` : `<p class="muted">No answers yet.</p>`}
+        <div class="row">
+          ${got.length ? `<button type="button" class="btn primary" id="cl-add" ${c.added ? "disabled" : ""}>${c.added ? "Added to what to tell them" : "Add to what to tell them"}</button>` : ""}
+          <button type="button" class="btn secondary" id="cl-redo">Change an answer</button>
+        </div>`;
+      if ($("cl-add") && !c.added) $("cl-add").addEventListener("click", () => {
+        S.tell = S.tell.filter(t => t.trim());
+        details().forEach(d => { if (!S.tell.includes(d)) S.tell.push(d); });
+        if (!S.tell.length) S.tell.push("");
+        c.added = true; renderTell(); renderClarify(); changed();
+        $("cl-status").textContent = "Added. You'll see them on the next step.";
+      });
+      $("cl-redo").addEventListener("click", () => { c.i = 0; c.added = false; renderClarify(); changed(); $("cl-qtext").focus(); });
+    }
+  }
+  const focusClarify = () => { const el = $("cl-qtext"); if (el) el.focus(); };
+  $("cl-go").addEventListener("click", async () => {
+    if (!$("cl-consent").checked) { $("cl-consent-error").hidden = false; $("cl-consent").focus(); return; }
+    const payload = picture();
+    if (!payload.purpose && !payload.story) { $("cl-status").textContent = "Fill in what the appointment is for, or what they said, first."; return; }
+    const btn = $("cl-go"), status = $("cl-status");
+    btn.disabled = true; status.textContent = "Writing questions about their concern. This takes about 15 seconds.";
+    try {
+      payload.mode = "clarify"; payload.details = [];
+      const qs = await callClaude(payload);
+      S.clarify = { qs: qs.map(q => ({ q: q.q, label: q.label || "", a: "" })), i: 0, added: false };
+      renderClarify(); changed(); status.textContent = ""; focusClarify();
+    } catch (err) {
+      console.error("Follow-up questions failed", err);
+      status.textContent = err.message || "Couldn't reach Claude. Check the internet connection and try again.";
+    } finally { btn.disabled = false; }
+  });
+
+  // ---- AI suggestions (name, date and time are never sent)
+  $("ai-go").addEventListener("click", async () => {
+    if (!$("ai-consent").checked) { $("ai-consent-error").hidden = false; $("ai-consent").focus(); return; }
+    const payload = picture();
     const btn = $("ai-go"), status = $("ai-status");
     btn.disabled = true; status.textContent = "Thinking about their whole picture. This takes about 15 seconds.";
     try {
-      const r = await fetch("/api/suggest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok || !data.ok) { status.textContent = data.error || "Suggestions are not available right now. Try again in a minute."; return; }
+      const data = { questions: await callClaude(payload) };
       const kept = S.ai.filter(q => q.on);
       const seen = new Set(kept.map(q => q.q.toLowerCase()));
       S.ai = kept.concat(data.questions.filter(q => !seen.has(q.q.toLowerCase())).map(q => ({ q: q.q, why: q.why, on: false })));
@@ -532,7 +631,7 @@ textarea { min-height: 180px; resize: vertical; }
       status.textContent = data.questions.length + " suggestions below. Tick the ones they want.";
     } catch (err) {
       console.error("Suggestion request failed", err);
-      status.textContent = "Couldn't reach the suggestions. Check the internet connection and try again.";
+      status.textContent = err.message || "Couldn't reach the suggestions. Check the internet connection and try again.";
     } finally { btn.disabled = false; }
   });
 
@@ -585,6 +684,7 @@ textarea { min-height: 180px; resize: vertical; }
     $("sheet-c").innerHTML = header("Caregiver's list") + `
       ${S.purpose.trim() ? `<section><h3>Appointment is for</h3><p>${esc(S.purpose)}</p></section>` : ""}
       ${bgBits ? `<section><h3>Health background</h3>${bgBits}</section>` : ""}
+      ${!S.clarify.added && details().length ? `<section><h3>More detail</h3><ul>${details().map(d => `<li>${esc(d)}</li>`).join("")}</ul></section>` : ""}
       ${S.story.trim() ? `<section><h3>In their words</h3><p>${esc(S.story).replace(/\n/g, "<br>")}</p></section>` : ""}
       <section><h3>Make sure the doctor hears</h3>${tell.length ? `<ul class="check">${tell.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
       <section><h3>All questions</h3>${qs ? `<ol>${qs}</ol>` : `<p class="empty">No questions added yet.</p>`}</section>
@@ -618,7 +718,8 @@ textarea { min-height: 180px; resize: vertical; }
     try { navigator.clipboard.writeText(sheetText(el)).then(done, err => { console.warn("clipboard", err); fallback(); }); }
     catch (err) { console.warn("clipboard", err); fallback(); }
   });
-  $("print").addEventListener("click", () => window.print());
+  $("print").addEventListener("click", () => { buildSheets(); window.print(); });
+  window.addEventListener("beforeprint", buildSheets);
 
   // send to family
   function familyText() { buildSheets(); return sheetText($("sheet-c")); }
@@ -682,7 +783,7 @@ textarea { min-height: 180px; resize: vertical; }
   $("fresh-yes").addEventListener("click", () => { clearTimeout(saveTimer); forgetLocal(); S = blank(); $("fresh-confirm").hidden = true; renderAll(); go(0); });
   $("app").addEventListener("submit", e => e.preventDefault());
 
-  function renderAll() { fillSimple(); renderTell(); renderAsk(); renderSugg(); renderAi(); renderMeds(); }
+  function renderAll() { fillSimple(); renderTell(); renderAsk(); renderSugg(); renderAi(); renderClarify(); renderMeds(); }
   renderAll(); renderNav();
   if (fromDevice) cfStatus("Picked up where you left off on this device.");
 })();
