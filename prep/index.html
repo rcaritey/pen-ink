@@ -75,7 +75,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 label { font-weight: 700; display: block; margin-bottom: 6px; }
 .field { display: flex; flex-direction: column; }
 .help { color: var(--muted); font-size: 0.95rem; margin-top: -2px; margin-bottom: 6px; }
-input[type=text], input[type=date], textarea {
+input[type=text], input[type=date], input[type=time], textarea {
   font: inherit; color: var(--ink); background: var(--bg); border: 1.5px solid var(--line); border-radius: 10px;
   padding: 10px 12px; min-height: 48px; width: 100%; }
 textarea { min-height: 160px; resize: vertical; }
@@ -123,6 +123,13 @@ fieldset.plain { border: none; padding: 0; margin: 0; }
 
 .voice-panel { display: flex; flex-direction: column; gap: 10px; }
 .voice-state { font-weight: 700; color: var(--accent); min-height: 1.4em; }
+.with-mic { display: flex; gap: 8px; align-items: flex-start; }
+.with-mic > input { flex: 1; min-width: 0; }
+.mic-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+.mic { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; min-width: 48px; padding: 6px 12px; border-radius: 10px;
+  border: 1.5px solid var(--line); background: var(--surface); color: var(--accent); font: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+.mic[aria-pressed="true"] { border-color: var(--danger); color: var(--danger); }
+.med .mic span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .voice-state.listening::before { content: "\25CF  "; color: var(--danger); }
 .cl-q { font-family: var(--display); font-size: 1.4rem; line-height: 1.35; }
 .cl-count { font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
@@ -304,11 +311,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <legend>How would you like to answer?</legend>
       <label class="choice" for="mode-voice">
         <input type="radio" name="mode" id="mode-voice" value="voice">
-        <span><b>Talk</b>I'll read each question out loud and type what you say. I'll wait as long as you need. When you've finished, say "carry on".</span>
+        <span><b>Talk</b>I'll read each question out loud and type what you say. I'll wait as long as you need. When you've finished, say "carry on". You can type or fix any answer too.</span>
       </label>
       <label class="choice" for="mode-type">
         <input type="radio" name="mode" id="mode-type" value="type">
-        <span><b>Read and type</b>Read each question on the screen and type your answers.</span>
+        <span><b>Read and type</b>Read each question on the screen and type your answers. You can still tap <b>Speak</b> next to any answer to say it instead.</span>
       </label>
     </fieldset>
     <p class="error" id="mode-error" hidden>Choose Talk or Read and type to carry on.</p>
@@ -322,7 +329,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <!-- 2 APPOINTMENT -->
   <section class="screen" id="s-appt" hidden>
     <h2>About the appointment</h2>
-    <p class="muted">Only the reason for the visit is needed. Fill in the rest if you know it.</p>
+    <p class="muted">Only the reason for the visit is needed. Fill in the rest if you know it. Tap <b>Speak</b> next to any answer to say it instead of typing.</p>
     <div class="field">
       <label for="purpose">What is the appointment for? (required)</label>
       <p class="help" id="purpose-help">A check-up, or something specific? For example: a burning feeling in my left foot.</p>
@@ -336,7 +343,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     </div>
     <div class="two">
       <div class="field"><label for="date">Date</label><input type="date" id="date"></div>
-      <div class="field"><label for="time">Time</label><input type="text" id="time" autocomplete="off"></div>
+      <div class="field"><label for="time">Time</label><input type="time" id="time" step="300"></div>
     </div>
     <div class="field">
       <label for="who">Your name</label>
@@ -370,13 +377,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <label for="bg-conditions">Health conditions</label>
       <p class="help" id="bg-conditions-help">One per line, with roughly when it started. For example: Parkinson's disease, since 2019.</p>
       <textarea id="bg-conditions" aria-describedby="bg-conditions-help" style="min-height:110px"></textarea>
-      <div class="row" data-voice-only style="margin-top:8px"><button type="button" class="btn secondary" data-dictate="bg-conditions">Speak this answer</button><span class="voice-state" id="bg-conditions-state" role="status" aria-live="polite"></span></div>
     </div>
     <div class="field">
       <label for="bg-changes">Recent changes</label>
       <p class="help" id="bg-changes-help">In the last year or so: surgeries, hospital visits, falls, new symptoms, medication changes.</p>
       <textarea id="bg-changes" aria-describedby="bg-changes-help" style="min-height:110px"></textarea>
-      <div class="row" data-voice-only style="margin-top:8px"><button type="button" class="btn secondary" data-dictate="bg-changes">Speak this answer</button><span class="voice-state" id="bg-changes-state" role="status" aria-live="polite"></span></div>
     </div>
     <div class="field">
       <label for="bg-team">Other doctors and care you see</label>
@@ -484,6 +489,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     </div>
   </section>
 
+  <p class="status" id="mic-msg" role="status" aria-live="polite" style="margin-top:12px"></p>
   <nav class="actions" id="actions" aria-label="Steps" hidden>
     <button type="button" class="btn secondary" id="back">Back</button>
     <span class="spacer"></span>
@@ -548,6 +554,19 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const str = v => typeof v === "string" ? v : "";
+  // times are kept as "14:00" (what a time field gives); older answers like "2:00 PM" are converted
+  function toTime24(v) {
+    if (/^\d{2}:\d{2}$/.test(v)) return v;
+    const m = String(v).trim().match(/^(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m\.?$/i);
+    if (!m) return "";
+    let h = Number(m[1]) % 12; if (/p/i.test(m[3])) h += 12;
+    return String(h).padStart(2, "0") + ":" + (m[2] || "00");
+  }
+  function fmtTime(v) {
+    if (!/^\d{2}:\d{2}$/.test(v)) return "";
+    const [h, m] = v.split(":").map(Number);
+    return (h % 12 || 12) + ":" + String(m).padStart(2, "0") + (h < 12 ? " a.m." : " p.m.");
+  }
 
   // ---------- state ----------
   const blankVisit = () => ({ seeing: "", date: "", time: "", purpose: "", story: "",
@@ -558,6 +577,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const b = blank();
     if (!x || typeof x !== "object") return b;
     ["who", "seeing", "date", "time", "purpose", "story"].forEach(k => b[k] = str(x[k]));
+    b.time = toTime24(b.time);
     b.mode = x.mode === "voice" || x.mode === "type" ? x.mode : "";
     b.consent = x.consent === true ? true : x.consent === false ? false : null;
     b.step = Number.isInteger(x.step) && x.step >= -1 && x.step < STEPS.length ? x.step : -1;
@@ -688,7 +708,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const screens = { welcome: $("s-welcome") };
   STEPS.forEach(s => screens[s.id] = $("s-" + s.id));
   function show(step) {
-    Voice.stop();
+    Voice.stop(); $("mic-msg").textContent = "";
     S.step = step; save();
     Object.values(screens).forEach(el => el.hidden = true);
     const onWelcome = step < 0;
@@ -832,10 +852,46 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   $("words-again").addEventListener("click", askWords);
   $("words-stop").addEventListener("click", () => Voice.stop());
-  document.querySelectorAll("[data-dictate]").forEach(b => b.addEventListener("click", () => {
-    const id = b.dataset.dictate;
-    Voice.ask("", $(id), () => {}, voiceView(id + "-state"));
-  }));
+
+  // ---------- Speak button on every answer ----------
+  const MIC_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>';
+  const STOP_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
+  const MIC_MSG = {
+    speaking: "", off: "",
+    listening: "Listening. Speak your answer. When you've finished, say \u201ccarry on\u201d or tap Stop.",
+    blocked: "The microphone is blocked. Allow it in your browser settings, or type your answer.",
+    typing: "This browser can't type what you say. Type your answer, or use the microphone on your keyboard."
+  };
+  function addMics(root) {
+    if (!Voice.canListen) return;
+    root.querySelectorAll('input[type="text"], textarea').forEach(el => {
+      if (el.dataset.mic) return;
+      el.dataset.mic = "1";
+      const lab = document.querySelector(`label[for="${el.id}"]`);
+      const name = lab ? lab.textContent.replace(/\s*\(.*?\)\s*/g, " ").trim() : "this answer";
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "mic"; btn.setAttribute("aria-pressed", "false");
+      btn.setAttribute("aria-label", "Speak: " + name);
+      btn.innerHTML = MIC_SVG + "<span>Speak</span>";
+      const setLook = on => {
+        btn.setAttribute("aria-pressed", on); btn.innerHTML = (on ? STOP_SVG : MIC_SVG) + `<span>${on ? "Stop" : "Speak"}</span>`;
+        btn.setAttribute("aria-label", (on ? "Stop listening: " : "Speak: ") + name);
+      };
+      btn.addEventListener("click", () => {
+        if (btn.getAttribute("aria-pressed") === "true") { Voice.stop(); return; }
+        Voice.ask("", el, () => {}, st => { setLook(st === "listening"); $("mic-msg").textContent = MIC_MSG[st] || ""; });
+      });
+      if (el.tagName === "TEXTAREA") {
+        const row = document.createElement("div"); row.className = "mic-row";
+        el.after(row); row.appendChild(btn);
+      } else if (el.parentElement.classList.contains("item")) {
+        el.after(btn);
+      } else {
+        const wrap = document.createElement("div"); wrap.className = "with-mic";
+        el.before(wrap); wrap.appendChild(el); wrap.appendChild(btn);
+      }
+    });
+  }
 
   // ---------- list editors ----------
   function renderTell() {
@@ -850,6 +906,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       row.querySelector("button").addEventListener("click", () => { S.tell.splice(i, 1); renderTell(); save(); });
       box.appendChild(row);
     });
+    addMics(box);
   }
   function renderAsk() {
     const box = $("ask-list"); box.innerHTML = "";
@@ -866,6 +923,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       rm.addEventListener("click", () => { S.ask.splice(i, 1); renderAsk(); save(); });
       box.appendChild(row);
     });
+    addMics(box);
   }
   function renderMeds() {
     const box = $("med-list"); box.innerHTML = "";
@@ -881,9 +939,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       n.addEventListener("input", e => { S.meds[i].n = e.target.value; save(); });
       d.addEventListener("input", e => { S.meds[i].d = e.target.value; save(); });
       wh.addEventListener("input", e => { S.meds[i].w = e.target.value; save(); });
-      w.querySelector("button").addEventListener("click", () => { S.meds.splice(i, 1); renderMeds(); save(); });
+      w.querySelector(".icon-btn").addEventListener("click", () => { S.meds.splice(i, 1); renderMeds(); save(); });
       box.appendChild(w);
     });
+    addMics(box);
   }
   document.querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => {
     const k = b.dataset.add;
@@ -983,6 +1042,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           ${c.i > 0 ? '<button type="button" class="btn link" id="cl-prev">Previous question</button>' : ""}
         </div>`;
       $("cl-answer").addEventListener("input", e => { q.a = e.target.value; save(); });
+      if (!isVoice()) addMics(box);
       const move = d => {
         Voice.stop();
         c.i += d;
@@ -1066,7 +1126,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     return { top: own.filter(q => q.top), rest: own.filter(q => !q.top).concat(ai, extra) };
   }
   function header(title) {
-    const bits = [S.seeing, fmtDate(S.date), S.time].filter(x => x && x.trim()).map(esc);
+    const bits = [S.seeing, fmtDate(S.date), fmtTime(S.time)].filter(x => x && x.trim()).map(esc);
     return `<h2>${esc(title)}${S.who.trim() ? " · " + esc(S.who) : ""}</h2>${bits.length ? `<div class="meta">${bits.map(b => `<span>${b}</span>`).join("")}</div>` : ""}`;
   }
   function medsHTML() {
@@ -1098,7 +1158,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const medsD = S.meds.filter(x => x.n.trim()).map(x => esc([x.n, x.d.trim() || "dose not known", x.w].filter(v => v && v.trim()).join(", ")));
     const qD = top.concat(rest).slice(0, 8);
     $("sheet-d").innerHTML = `<h2>Patient summary${S.who.trim() ? " · " + esc(S.who) : ""}</h2>
-      <div class="meta">${[S.seeing, fmtDate(S.date), S.time].filter(x => x && x.trim()).map(x => `<span>${esc(x)}</span>`).join("")}</div>
+      <div class="meta">${[S.seeing, fmtDate(S.date), fmtTime(S.time)].filter(x => x && x.trim()).map(x => `<span>${esc(x)}</span>`).join("")}</div>
       <section><h3>Reason for visit</h3><p>${esc(S.purpose) || '<span class="empty">Not given</span>'}</p></section>
       ${facts.length ? `<section><h3>About this concern</h3><ul>${facts.map(t => `<li>${esc(t)}</li>`).join("")}</ul></section>` : ""}
       ${cond.length || S.bg.changes.trim() || S.bg.team.trim() ? `<section><h3>Health background</h3>${dl([
@@ -1357,6 +1417,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 
   // ---------- start ----------
   fillFields(); applyMode();
+  addMics(document.querySelector("main"));
   if (!canStore) setSaved("warn");
   show(-1);
 })();
