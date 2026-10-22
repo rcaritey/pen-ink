@@ -59,6 +59,23 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 
 .progress { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
 .progress p { font-size: 0.95rem; color: var(--muted); font-weight: 700; }
+/* river strip: the journey as the progress bar; the boat sails to the current stop */
+.river { position: relative; display: block; width: 100%; height: 74px; padding: 0; border: 1.5px solid var(--line); border-radius: 14px;
+  background: var(--land); overflow: hidden; cursor: pointer; font: inherit; color: var(--ink); }
+.river:hover { border-color: var(--accent); }
+.river > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.rs-dock { position: absolute; top: 30px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--surface); border: 3px solid var(--c); }
+.rs-dock.done { background: var(--c); }
+.rs-boat { position: absolute; top: 4px; width: 34px; margin-left: -17px; transition: left .9s ease-in-out; pointer-events: none; }
+.rs-boat svg { width: 100%; height: auto; display: block; animation: jrbob 2.6s ease-in-out infinite; }
+.rs-ph { position: absolute; bottom: 3px; font-size: 0.7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--c); transform: translateX(-50%); white-space: nowrap; }
+.rs-map { position: absolute; right: 8px; top: 6px; font-size: 0.75rem; font-weight: 700; color: var(--accent); background: var(--surface); border-radius: 999px; padding: 1px 8px; }
+@media (prefers-reduced-motion: reduce) { .rs-boat { transition: none; } .rs-boat svg { animation: none; } }
+.next-legs { display: flex; flex-direction: column; gap: 12px; }
+.leg { border: 2px solid var(--c); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
+.leg .k { font-size: 0.78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
+.leg ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+.leg .say { font-family: var(--display); border-left: 4px solid var(--c); padding-left: 10px; }
 .bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
 .bar > div { height: 100%; background: var(--accent); border-radius: 999px; transition: width .3s; }
 
@@ -98,6 +115,8 @@ textarea { min-height: 160px; resize: vertical; }
 .actions .spacer { flex: 1; }
 
 .choices { border: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.check-q { border-bottom: 1px dashed var(--line); padding-bottom: 16px; }
+.choices legend.q { font-family: var(--body); font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
 .choices legend { font-family: var(--display); font-weight: 650; font-size: 1.6rem; margin-bottom: 12px; padding: 0; }
 .choice { display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border: 2px solid var(--line); border-radius: 14px; cursor: pointer; font-weight: 400; margin: 0; }
 .choice input { width: 26px; height: 26px; margin-top: 3px; flex-shrink: 0; accent-color: var(--accent); }
@@ -264,8 +283,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 <main class="wrap">
 
   <div class="progress" id="progress" hidden>
+    <button type="button" class="river" id="river-strip" aria-label="Open your journey map"></button>
     <p id="pg-label"></p>
-    <div class="bar" aria-hidden="true"><div id="pg-bar"></div></div>
   </div>
 
   <!-- WELCOME -->
@@ -279,6 +298,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         <li>You can stop and come back. Your answers are saved on this phone or computer.</li>
         <li>Helping a family member? Sit together and use their words.</li>
       </ul>
+      <div class="card">
+        <h3>The trip ahead</h3>
+        <p class="muted">Getting ready, the visit, and after. The boat shows where you are as you go.</p>
+        <button type="button" class="river" id="welcome-strip" aria-label="See the whole journey"></button>
+      </div>
       <div><button type="button" class="btn primary big" id="w-start">Start</button></div>
     </div>
     <div id="w-back" style="display:flex;flex-direction:column;gap:16px" hidden>
@@ -372,7 +396,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <!-- 4 BACKGROUND -->
   <section class="screen" id="s-bg" hidden>
     <h2>Your health background</h2>
-    <p class="muted">This helps the questions fit you, not just today's concern. Everything here is optional. Leave out names of people and places.</p>
+    <fieldset class="choices check-q" id="bg-check" hidden>
+      <legend class="q">Since your last appointment, has anything changed in your health? (required)</legend>
+      <p class="muted">For example: a new diagnosis, a hospital visit, a fall, a surgery or a new symptom.</p>
+      <label class="choice" for="bg-no"><input type="radio" name="bg-chg" id="bg-no" value="no"><span><b>No, nothing has changed</b></span></label>
+      <label class="choice" for="bg-yes"><input type="radio" name="bg-chg" id="bg-yes" value="yes"><span><b>Yes, something has changed</b></span></label>
+      <p class="error" id="bg-chg-error" hidden>Choose No or Yes to carry on.</p>
+    </fieldset>
+    <div class="hint" id="bg-yes-hint" hidden><strong>Update what's changed</strong>Add it under <b>Recent changes</b> below, with roughly when it happened.</div>
+    <p class="muted" id="bg-intro">This helps the questions fit you, not just today's concern. Everything here is optional. Leave out names of people and places.</p>
     <div class="field">
       <label for="bg-conditions">Health conditions</label>
       <p class="help" id="bg-conditions-help">One per line, with roughly when it started. For example: Parkinson's disease, since 2019.</p>
@@ -397,6 +429,18 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <!-- 5 MEDICATIONS -->
   <section class="screen" id="s-meds" hidden>
     <h2>Your medications</h2>
+    <fieldset class="choices check-q" id="med-check" hidden>
+      <legend class="q">Since your last appointment, have any medications been started, stopped or changed? (required)</legend>
+      <p class="muted">Include changes to doses, and anything new from another doctor or the pharmacy.</p>
+      <label class="choice" for="med-no"><input type="radio" name="med-chg" id="med-no" value="no"><span><b>No, nothing has changed</b></span></label>
+      <label class="choice" for="med-yes"><input type="radio" name="med-chg" id="med-yes" value="yes"><span><b>Yes, something has changed</b></span></label>
+      <p class="error" id="med-chg-error" hidden>Choose No or Yes to carry on.</p>
+    </fieldset>
+    <div class="field" id="med-note-wrap" hidden>
+      <label for="med-note">What changed?</label>
+      <p class="help" id="med-note-help">For example: started magnesium in September; levodopa dose went up in August. Then update the list below.</p>
+      <textarea id="med-note" aria-describedby="med-note-help" style="min-height:90px"></textarea>
+    </div>
     <p class="muted">Everything you take, including vitamins and things you take now and then. Not sure of a dose? Leave it blank. It prints as a line to fill in from the bottle.</p>
     <div class="list" id="med-list"></div>
     <div><button type="button" class="btn secondary" data-add="med">Add another medication</button></div>
@@ -476,6 +520,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <div class="sheet" id="sheet-d" role="tabpanel" aria-labelledby="tab-d"></div>
     <div class="sheet" id="sheet-p" role="tabpanel" aria-labelledby="tab-p" hidden></div>
     <div class="sheet" id="sheet-c" role="tabpanel" aria-labelledby="tab-c" hidden></div>
+    <div class="next-legs no-print" id="next-legs"></div>
     <div class="card no-print">
       <h3>Keep a copy</h3>
       <p class="muted">Your answers are saved on this phone or computer, so you can come back any time. To keep them safe, or to use them on another device, download a copy. Keep it somewhere private.</p>
@@ -570,8 +615,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 
   // ---------- state ----------
   const blankVisit = () => ({ seeing: "", date: "", time: "", purpose: "", story: "",
-    clarify: { qs: [], i: 0, done: false, merged: [] }, tell: [""], ask: [{ t: "", top: false }], ai: [], aiFetched: false, sugg: [] });
-  const blank = () => Object.assign({ v: 2, step: -1, mode: "", consent: null, who: "",
+    clarify: { qs: [], i: 0, done: false, merged: [] }, tell: [""], ask: [{ t: "", top: false }], ai: [], aiFetched: false, sugg: [],
+    chg: { bg: "", meds: "", medNote: "" } });
+  const blank = () => Object.assign({ v: 2, step: -1, mode: "", consent: null, who: "", carried: false,
     bg: { conditions: "", changes: "", team: "", allergies: "" }, meds: [{ n: "", d: "", w: "" }] }, blankVisit());
   function normalize(x) {
     const b = blank();
@@ -588,6 +634,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (Array.isArray(x.sugg)) b.sugg = x.sugg.filter(i => Number.isInteger(i) && i >= 0 && i < SUGGESTIONS.length);
     if (Array.isArray(x.ai)) b.ai = x.ai.map(q => ({ q: str(q && q.q), why: str(q && q.why), on: !!(q && q.on) })).filter(q => q.q);
     b.aiFetched = !!x.aiFetched && b.ai.length > 0;
+    b.carried = !!x.carried;
+    if (x.chg && typeof x.chg === "object") {
+      b.chg.bg = x.chg.bg === "yes" || x.chg.bg === "no" ? x.chg.bg : "";
+      b.chg.meds = x.chg.meds === "yes" || x.chg.meds === "no" ? x.chg.meds : "";
+      b.chg.medNote = str(x.chg.medNote);
+    }
     if (x.clarify && Array.isArray(x.clarify.qs)) {
       b.clarify.qs = x.clarify.qs.map(q => ({ q: str(q && q.q), label: str(q && q.label), a: str(q && q.a) })).filter(q => q.q);
       b.clarify.i = Math.min(Math.max(0, Number(x.clarify.i) || 0), b.clarify.qs.length);
@@ -719,7 +771,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     resumeStep = step;
     screens[s.id].hidden = false;
     $("pg-label").textContent = `Step ${step + 1} of ${STEPS.length} · ${s.name}`;
-    $("pg-bar").style.width = Math.round(((step + 1) / STEPS.length) * 100) + "%";
+    renderStrip($("river-strip"), true);
     $("back").textContent = step === 0 ? "Back to start" : "Back";
     $("next").hidden = step === STEPS.length - 1;
     $("next").textContent = s.next || "Next";
@@ -732,7 +784,23 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   $("back").addEventListener("click", () => show(S.step - 1));
   $("next").addEventListener("click", () => { if (validate(STEPS[S.step].id)) show(S.step + 1); });
+  function renderChecks() {
+    $("bg-check").hidden = !S.carried; $("med-check").hidden = !S.carried;
+    $("bg-no").checked = S.chg.bg === "no"; $("bg-yes").checked = S.chg.bg === "yes";
+    $("med-no").checked = S.chg.meds === "no"; $("med-yes").checked = S.chg.meds === "yes";
+    $("bg-yes-hint").hidden = !(S.carried && S.chg.bg === "yes");
+    $("med-note-wrap").hidden = !(S.carried && S.chg.meds === "yes");
+    $("med-note").value = S.chg.medNote;
+    $("bg-intro").textContent = S.carried ? "This is what you told us last time. Check it's still right." : "This helps the questions fit you, not just today's concern. Everything here is optional. Leave out names of people and places.";
+  }
+  [["bg", "bg"], ["med", "meds"]].forEach(([id, key]) => document.querySelectorAll(`input[name="${id}-chg"]`).forEach(r => r.addEventListener("change", () => {
+    S.chg[key] = r.value; $(id + "-chg-error").hidden = true; renderChecks(); save();
+    if (r.value === "yes") (id === "bg" ? $("bg-changes") : $("med-note")).focus();
+  })));
+  $("med-note").addEventListener("input", e => { S.chg.medNote = e.target.value; save(); });
   function validate(id) {
+    if (id === "bg" && S.carried && !S.chg.bg) { $("bg-chg-error").hidden = false; $("bg-no").focus(); return false; }
+    if (id === "meds" && S.carried && !S.chg.meds) { $("med-chg-error").hidden = false; $("med-no").focus(); return false; }
     if (id === "how" && !S.mode) { $("mode-error").hidden = false; $("mode-voice").focus(); return false; }
     if (id === "appt" && !S.purpose.trim()) { $("purpose-error").hidden = false; $("purpose").focus(); return false; }
     return true;
@@ -744,7 +812,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (id === "tell") renderTell();
     if (id === "ask") renderAsk();
     if (id === "ideas") enterIdeas();
-    if (id === "sheets") { buildSheets(); setTab(0); }
+    if (id === "sheets") { buildSheets(); setTab(0); renderNextLegs(); }
+    if (id === "bg" || id === "meds") renderChecks();
   }
 
   // ---------- welcome ----------
@@ -772,7 +841,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         <button type="button" class="btn secondary" data-no>Cancel</button></div>`;
     box.hidden = false;
     box.querySelector("[data-yes]").addEventListener("click", () => {
-      Object.assign(S, blankVisit()); box.hidden = true; fillFields(); show(S.mode ? 1 : 0);
+      const hadHealth = !!(S.bg.conditions.trim() || S.bg.changes.trim() || S.bg.team.trim() || S.bg.allergies.trim() || S.meds.some(m => m.n.trim()));
+      Object.assign(S, blankVisit()); S.carried = hadHealth; box.hidden = true; fillFields(); renderChecks(); show(S.mode ? 1 : 0);
     });
     box.querySelector("[data-no]").addEventListener("click", () => { box.hidden = true; $(focusBack).focus(); });
     box.querySelector("[data-yes]").focus();
@@ -979,7 +1049,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function picture(extra) {
     return Object.assign({
       seeing: S.seeing, purpose: S.purpose, story: S.story,
-      conditions: S.bg.conditions, changes: S.bg.changes, team: S.bg.team, allergies: S.bg.allergies,
+      conditions: S.bg.conditions, team: S.bg.team, allergies: S.bg.allergies,
+      changes: [S.bg.changes.trim(), S.chg.meds === "yes" && S.chg.medNote.trim() ? "Medication changes since last visit: " + S.chg.medNote.trim() : ""].filter(Boolean).join("\n"),
       meds: S.meds.filter(m => m.n.trim()).map(m => [m.n, m.d, m.w].filter(x => x.trim()).join(", ")),
       details: [],
       tell: S.tell.filter(t => t.trim()),
@@ -1164,10 +1235,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       ${cond.length || S.bg.changes.trim() || S.bg.team.trim() ? `<section><h3>Health background</h3>${dl([
         ["Conditions", cond.map(esc).join("; ")],
         ["Recent changes", esc(S.bg.changes.trim()).replace(/\n+/g, "; ")],
-        ["Also seen by", esc(S.bg.team.trim())]
+        ["Also seen by", esc(S.bg.team.trim())],
+        ["Since last visit", S.carried && S.chg.bg === "no" ? "No changes reported" : ""]
       ])}</section>` : ""}
       <section><h3>Medications and allergies</h3>${dl([
         ["Medications", medsD.length ? medsD.join("<br>") : "None listed"],
+        ["Changes since last visit", !S.carried ? "" : S.chg.meds === "yes" ? (esc(S.chg.medNote.trim()) || "Yes (see list)") : S.chg.meds === "no" ? "None reported" : ""],
         ["Allergies", esc(S.bg.allergies.trim()) || "None listed"]
       ])}</section>
       ${qD.length ? `<section><h3>Patient's questions</h3><ol>${qD.map(li).join("")}</ol></section>` : ""}
@@ -1175,6 +1248,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const bgBits = [
       cond.length ? `<p><b>Conditions:</b></p><ul>${cond.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "",
       S.bg.changes.trim() ? `<p><b>Recent changes:</b> ${esc(S.bg.changes).replace(/\n/g, "<br>")}</p>` : "",
+      S.carried && S.chg.meds ? `<p><b>Medication changes since last visit:</b> ${S.chg.meds === "yes" ? esc(S.chg.medNote.trim()) || "yes" : "none"}</p>` : "",
       S.bg.team.trim() ? `<p><b>Also seeing:</b> ${esc(S.bg.team)}</p>` : "",
       S.bg.allergies.trim() ? `<p><b>Allergies:</b> ${esc(S.bg.allergies)}</p>` : ""
     ].join("");
@@ -1414,6 +1488,41 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (dlg.open && $("jr-back").hidden && $("jr-title").textContent === "Your journey") { jRenderSafe(true); $("jr-back").focus(); }
     else openJourney("safe");
   });
+
+  // ---------- river strip: the journey map, in the flow ----------
+  let stripAt = null;
+  function renderStrip(el, live) {
+    const n = JSTOPS.length, cur = jCur();
+    // getting-ready stops share the left of the river; the visit and after get room of their own
+    const before = JSTOPS.filter(st => !st.ph).length;
+    const xs = JSTOPS.map((st, i) => !st.ph ? 5 + i * (63 / Math.max(1, before - 1)) : st.ph === "room" ? 78 : 95);
+    let d = `M 0 37`;
+    xs.forEach((x, i) => { const px = i ? xs[i - 1] : 0; const y = i % 2 ? 31 : 43; d += ` C ${(px + x) / 2} ${i % 2 ? 43 : 31} ${(px + x) / 2} ${y} ${x} ${y}`; });
+    d += ` C 97 37 99 37 100 37`;
+    const docks = JSTOPS.map((s, i) => `<span class="rs-dock${live && cur > -1 && i < cur ? " done" : ""}" style="--c:${JPH[s.ph || "before"].c};left:${xs[i]}%"></span>`).join("");
+    const mid = a => (xs[a[0]] + xs[a[a.length - 1]]) / 2;
+    const short = { before: "Getting ready", room: "Visit", after: "After" };
+    const ph = [["before", [0, before - 1]], ["room", [before]], ["after", [n - 1]]].map(([k, a]) => (k === "after" ? `<span class="rs-ph" style="--c:${JPH[k].c};left:auto;right:6px;transform:none">` : `<span class="rs-ph" style="--c:${JPH[k].c};left:${mid(a)}%">`) + short[k] + "</span>").join("");
+    const boatX = cur < 0 ? xs[0] : xs[cur];
+    el.innerHTML = `<svg viewBox="0 0 100 74" preserveAspectRatio="none" aria-hidden="true">
+        <path d="${d}" fill="none" stroke="var(--bank)" stroke-width="16" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+        <path d="${d}" fill="none" stroke="var(--river)" stroke-width="11" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+        <path class="jr-flow" d="${d}" fill="none" stroke="var(--glint)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>
+      ${docks}${ph}<span class="rs-boat" style="left:${live && stripAt != null ? stripAt : boatX}%">${IC.boat}</span>${live ? '<span class="rs-map">Map</span>' : ""}`;
+    if (live) {
+      const boat = el.querySelector(".rs-boat");
+      requestAnimationFrame(() => requestAnimationFrame(() => { boat.style.left = boatX + "%"; }));
+      stripAt = boatX;
+      el.setAttribute("aria-label", cur > -1 ? `Your journey: stop ${cur + 1} of ${n}, ${JSTOPS[cur].t}. Open the map.` : "Open your journey map");
+    }
+  }
+  $("river-strip").addEventListener("click", () => openJourney("map"));
+  function renderNextLegs() {
+    $("next-legs").innerHTML = JSTOPS.filter(s => s.ph).map(s => `<div class="leg" style="--c:${JPH[s.ph].c}">
+      <span class="k">Next on your journey · ${JPH[s.ph].name}</span><h3>${esc(s.t)}</h3>${s.info}</div>`).join("");
+  }
+  renderStrip($("welcome-strip"), false);
+  $("welcome-strip").addEventListener("click", () => openJourney("map"));
 
   // ---------- start ----------
   fillFields(); applyMode();
