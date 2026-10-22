@@ -142,6 +142,10 @@ fieldset.plain { border: none; padding: 0; margin: 0; }
 .sheet .check li { list-style: none; margin-left: -1.4em; }
 .sheet .check li::before { content: "\2610  "; }
 .sheet .empty { color: #6B7884; font-style: italic; }
+.sheet .dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+.sheet .dl dt { font-weight: 700; } .sheet .dl dd { margin: 0; }
+@media (max-width: 480px) { .sheet .dl { grid-template-columns: 1fr; } .sheet .dl dd { margin-bottom: 6px; } }
+.sheet .fine { margin-top: 18px; font-size: 0.82rem; color: #4A5866; border-top: 1px solid #C9D2DB; padding-top: 8px; }
 .ready { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; }
 
 footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: center; align-items: center;
@@ -352,22 +356,21 @@ footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display
   <section class="screen" id="s-sheets" hidden>
     <div class="no-print" style="display:flex;flex-direction:column;gap:16px">
       <h2>You're ready</h2>
+      <p>You have three pages, each for a different person.</p>
       <ol class="ready">
-        <li>Print your page and take it with you.</li>
-        <li>Send the full list to family who help.</li>
-        <li>Bring your medications, or the list on your page.</li>
+        <li><b>Summary for the doctor.</b> Print it and hand it over when you sit down.</li>
+        <li><b>My page.</b> Print it for yourself. Read your questions from it and jot down what the doctor says.</li>
+        <li><b>Full list for family.</b> Send it to family who help.</li>
       </ol>
-      <div class="tabs" role="tablist" aria-label="Which sheet">
-        <button type="button" class="btn secondary" role="tab" id="tab-p" aria-selected="true" aria-controls="sheet-p">My page for the doctor</button>
+      <div class="tabs" role="tablist" aria-label="Which page">
+        <button type="button" class="btn secondary" role="tab" id="tab-d" aria-selected="true" aria-controls="sheet-d">Summary for the doctor</button>
+        <button type="button" class="btn secondary" role="tab" id="tab-p" aria-selected="false" aria-controls="sheet-p">My page</button>
         <button type="button" class="btn secondary" role="tab" id="tab-c" aria-selected="false" aria-controls="sheet-c">Full list for family</button>
       </div>
-      <div class="row" id="acts-p">
-        <button type="button" class="btn primary" id="print-p">Print my page</button>
-        <button type="button" class="btn secondary" data-copy>Copy as text</button>
-      </div>
-      <div class="row" id="acts-c" hidden>
-        <button type="button" class="btn primary" id="share">Send to family</button>
-        <button type="button" class="btn secondary" id="print-c">Print this list</button>
+      <p class="muted" id="tab-about"></p>
+      <div class="row">
+        <button type="button" class="btn primary" id="share" hidden>Send to family</button>
+        <button type="button" class="btn primary" id="print-this">Print this page</button>
         <button type="button" class="btn secondary" data-copy>Copy as text</button>
       </div>
       <p class="status" id="sheet-status" role="status" aria-live="polite"></p>
@@ -380,7 +383,8 @@ footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display
         </div>
       </div>
     </div>
-    <div class="sheet" id="sheet-p" role="tabpanel" aria-labelledby="tab-p"></div>
+    <div class="sheet" id="sheet-d" role="tabpanel" aria-labelledby="tab-d"></div>
+    <div class="sheet" id="sheet-p" role="tabpanel" aria-labelledby="tab-p" hidden></div>
     <div class="sheet" id="sheet-c" role="tabpanel" aria-labelledby="tab-c" hidden></div>
     <div class="card no-print">
       <h3>Keep a copy</h3>
@@ -977,19 +981,41 @@ footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display
   const lines = t => t.split(/\n+/).map(s => s.trim()).filter(Boolean);
   function buildSheets() {
     const tell = S.tell.filter(t => t.trim());
+    // answers like "not sure" help the family, but are noise for the doctor
+    const UNSURE = /^(not sure|unsure|i'?m not sure|don'?t know|i don'?t know|no idea|can'?t say)\W*$/i;
+    const facts = tell.filter(t => { const i = t.indexOf(": "); return !UNSURE.test((i > -1 ? t.slice(i + 2) : t).trim()); });
     const { top, rest } = allQuestions();
     const li = q => `<li${q.top ? ' class="top"' : ""}>${q.top ? '<span class="star" aria-label="most important">★</span> ' : ""}${esc(q.t)}</li>`;
     const shortRest = rest.slice(0, Math.max(0, 6 - top.length));
     const recordAsk = S.sugg.includes(RECORD_Q);
-    $("sheet-p").innerHTML = header("My appointment") + `
+    $("sheet-p").innerHTML = header("My page") + `
       <section><h3>Start with</h3><p class="say">"I have some questions I'd like to go through. May I start?"</p>
-      ${recordAsk ? `<p style="margin-top:8px">Then: "Is it okay if I record this appointment on my phone?"</p>` : ""}</section>
-      <section><h3>Tell them</h3>${tell.length ? `<ul>${tell.slice(0, 8).map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
-      <section><h3>Ask them</h3>${top.length + shortRest.length ? `<ol>${top.concat(shortRest).map(li).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}
+      <p style="margin-top:8px">Hand the doctor your summary sheet.</p>
+      ${recordAsk ? `<p style="margin-top:4px">Then ask: "Is it okay if I record this appointment on my phone?"</p>` : ""}</section>
+      <section><h3>Make sure I mention</h3>${facts.length ? `<ul>${facts.slice(0, 8).map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
+      <section><h3>My questions</h3>${top.length + shortRest.length ? `<ol>${top.concat(shortRest).map(li).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}
       ${rest.length > shortRest.length ? `<p style="margin-top:6px;color:#3B4A57">More questions are on the full list.</p>` : ""}</section>
-      <section><h3>My medications</h3>${medsHTML()}${S.bg.allergies.trim() ? `<p style="margin-top:6px"><b>Allergies:</b> ${esc(S.bg.allergies)}</p>` : ""}</section>
-      <section><h3>What the doctor said</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div></section>`;
+      <section><h3>My notes: what the doctor says</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div><div class="blank"></div>
+        <p style="margin-top:8px">Next appointment: ______________________</p></section>`;
     const cond = lines(S.bg.conditions);
+    const dl = rows => `<dl class="dl">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>`;
+    const medsD = S.meds.filter(x => x.n.trim()).map(x => esc([x.n, x.d.trim() || "dose not known", x.w].filter(v => v && v.trim()).join(", ")));
+    const qD = top.concat(rest).slice(0, 8);
+    $("sheet-d").innerHTML = `<h2>Patient summary${S.who.trim() ? " · " + esc(S.who) : ""}</h2>
+      <div class="meta">${[S.seeing, fmtDate(S.date), S.time].filter(x => x && x.trim()).map(x => `<span>${esc(x)}</span>`).join("")}</div>
+      <section><h3>Reason for visit</h3><p>${esc(S.purpose) || '<span class="empty">Not given</span>'}</p></section>
+      ${facts.length ? `<section><h3>About this concern</h3><ul>${facts.map(t => `<li>${esc(t)}</li>`).join("")}</ul></section>` : ""}
+      ${cond.length || S.bg.changes.trim() || S.bg.team.trim() ? `<section><h3>Health background</h3>${dl([
+        ["Conditions", cond.map(esc).join("; ")],
+        ["Recent changes", esc(S.bg.changes.trim()).replace(/\n+/g, "; ")],
+        ["Also seen by", esc(S.bg.team.trim())]
+      ])}</section>` : ""}
+      <section><h3>Medications and allergies</h3>${dl([
+        ["Medications", medsD.length ? medsD.join("<br>") : "None listed"],
+        ["Allergies", esc(S.bg.allergies.trim()) || "None listed"]
+      ])}</section>
+      ${qD.length ? `<section><h3>Patient's questions</h3><ol>${qD.map(li).join("")}</ol></section>` : ""}
+      <p class="fine">Prepared by the patient and family before the visit, in their own words. Not a medical record.</p>`;
     const bgBits = [
       cond.length ? `<p><b>Conditions:</b></p><ul>${cond.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "",
       S.bg.changes.trim() ? `<p><b>Recent changes:</b> ${esc(S.bg.changes).replace(/\n/g, "<br>")}</p>` : "",
@@ -1009,20 +1035,26 @@ footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display
         <p style="margin-top:6px">To do:</p><div class="blank"></div><div class="blank"></div>
         <p style="margin-top:6px">Questions not answered (bring next time):</p><div class="blank"></div><div class="blank"></div></section>`;
   }
-  const sheets = [$("sheet-p"), $("sheet-c")], tabs = [$("tab-p"), $("tab-c")];
+  const sheets = [$("sheet-d"), $("sheet-p"), $("sheet-c")], tabs = [$("tab-d"), $("tab-p"), $("tab-c")];
+  const TAB_ABOUT = [
+    "For the doctor to read. Hand it over when you sit down.",
+    "For you. Read your questions from it, and write down what the doctor says.",
+    "For family who help. Everything in one place."
+  ];
+  let curTab = 0;
   function setTab(i) {
-    tabs.forEach((t, k) => t.setAttribute("aria-selected", k === i));
+    curTab = i;
+    tabs.forEach((t, k) => { t.setAttribute("aria-selected", k === i); t.tabIndex = k === i ? 0 : -1; });
     sheets.forEach((s, k) => s.hidden = k !== i);
-    $("acts-p").hidden = i !== 0; $("acts-c").hidden = i !== 1;
+    $("tab-about").textContent = TAB_ABOUT[i];
+    $("share").hidden = i !== 2;
     $("sheet-status").textContent = ""; $("share-pick").hidden = true;
   }
   tabs.forEach((t, i) => t.addEventListener("click", () => setTab(i)));
   tabs.forEach((t, i) => t.addEventListener("keydown", e => {
-    if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const n = (i + 1) % 2; setTab(n); tabs[n].focus(); }
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const n = (i + (e.key === "ArrowRight" ? 1 : 2)) % 3; setTab(n); tabs[n].focus(); }
   }));
-  const printSheet = i => { buildSheets(); setTab(i); window.print(); };
-  $("print-p").addEventListener("click", () => printSheet(0));
-  $("print-c").addEventListener("click", () => printSheet(1));
+  $("print-this").addEventListener("click", () => { buildSheets(); setTab(curTab); window.print(); });
   window.addEventListener("beforeprint", buildSheets);
   const sheetText = el => el.innerText.replace(/\n{3,}/g, "\n\n").trim();
   document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
