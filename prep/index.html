@@ -131,6 +131,8 @@ textarea { min-height: 180px; resize: vertical; }
 .carefile { margin-top: 6px; }
 .cl-q { font-family: var(--display); font-size: 1.35rem; line-height: 1.35; }
 .cl-count { font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.voice-state { font-weight: 700; color: var(--accent); min-height: 1.4em; }
+.voice-state.listening::before { content: "\25CF  "; color: var(--danger); }
 .cl-sum { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
 .btn:disabled { opacity: .6; cursor: progress; }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
@@ -237,6 +239,18 @@ textarea { min-height: 180px; resize: vertical; }
       <label for="story">What they said</label>
       <textarea id="story"></textarea>
     </div>
+    <div class="voice-opt">
+      <label class="sugg" for="voice-1">
+        <input type="checkbox" id="voice-1" class="voice-toggle">
+        <span><b>Use voice.</b> Questions are read aloud and what they say is typed in. Nothing moves on until they say "carry on" or you tap Next.
+        <span class="why">Voice typing uses the browser's speech service: Chrome sends the sound to Google, Safari to Apple, to turn it into words.</span></span>
+      </label>
+    </div>
+    <div class="row" id="story-voice-row" hidden>
+      <button type="button" class="btn primary" id="story-voice">Ask out loud and listen</button>
+      <button type="button" class="btn secondary" id="story-stop">Stop listening</button>
+    </div>
+    <p class="voice-state" id="story-state" role="status" aria-live="polite"></p>
     <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
   </div>
 
@@ -252,6 +266,13 @@ textarea { min-height: 180px; resize: vertical; }
       <span>I understand that their health background, medications and answers are sent to Claude, an AI by Anthropic, to write questions. Their name and the appointment date are not sent. Nothing is saved on this website.</span>
     </label>
     <p class="error" id="cl-consent-error" hidden>Tick the box above first, so you've agreed to send it.</p>
+<div class="voice-opt">
+      <label class="sugg" for="voice-2">
+        <input type="checkbox" id="voice-2" class="voice-toggle">
+        <span><b>Use voice.</b> Questions are read aloud and what they say is typed in. Nothing moves on until they say "carry on" or you tap Next.
+        <span class="why">Voice typing uses the browser's speech service: Chrome sends the sound to Google, Safari to Apple, to turn it into words.</span></span>
+      </label>
+    </div>
     <div class="row">
       <button type="button" class="btn primary" id="cl-go">Ask me questions</button>
       <span class="status" id="cl-status" role="status" aria-live="polite"></span>
@@ -376,10 +397,10 @@ textarea { min-height: 180px; resize: vertical; }
     story: "Example: My toenails are thick and look like they have a fungus. The outside of my left foot burns, mostly at night, and more after a busy day. There's no cut.",
     tell: ["Burning on the outside of the left foot, no cut", "Started a few months ago", "Worst at night and after a lot of walking"],
     ask: [{t:"What is causing the burning?", top:true}, {t:"Is there a treatment for the nail fungus?", top:true}],
-    sugg: [3, 6, 7], ai: [], clarify: { qs: [], i: 0, added: false },
+    sugg: [3, 6, 7], ai: [], clarify: { qs: [], i: 0, added: false }, voice: false,
     meds: [{n:"Example medication", d:"25/100", w:"3 times a day"}, {n:"Vitamin D3", d:"1,000 units", w:"Morning"}, {n:"Magnesium", d:"", w:""}]
   };
-  const blank = () => ({ who:"", seeing:"", date:"", time:"", purpose:"", bg:{conditions:"",changes:"",team:"",allergies:""}, story:"", tell:[""], ask:[{t:"",top:false}], sugg:[], ai:[], clarify:{ qs:[], i:0, added:false }, meds:[{n:"",d:"",w:""}] });
+  const blank = () => ({ who:"", seeing:"", date:"", time:"", purpose:"", bg:{conditions:"",changes:"",team:"",allergies:""}, story:"", tell:[""], ask:[{t:"",top:false}], sugg:[], ai:[], clarify:{ qs:[], i:0, added:false }, voice:false, meds:[{n:"",d:"",w:""}] });
   const clone = o => JSON.parse(JSON.stringify(o));
   function normalize(x) {
     const b = blank();
@@ -396,6 +417,7 @@ textarea { min-height: 180px; resize: vertical; }
       b.clarify.i = Math.min(Math.max(0, Number(x.clarify.i) || 0), b.clarify.qs.length);
       b.clarify.added = !!x.clarify.added;
     }
+    b.voice = !!x.voice;
     if (Array.isArray(x.meds) && x.meds.length) b.meds = x.meds.map(m => ({ n: str(m && m.n), d: str(m && m.d), w: str(m && m.w) }));
     return b;
   }
@@ -439,6 +461,7 @@ textarea { min-height: 180px; resize: vertical; }
     });
   }
   function go(i) {
+    if (typeof Voice !== "undefined") Voice.stop();
     step = Math.max(0, Math.min(panels.length - 1, i));
     panels.forEach((p, k) => p.hidden = k !== step);
     if (step === panels.length - 1) buildSheets();
@@ -560,6 +583,97 @@ textarea { min-height: 180px; resize: vertical; }
     return data.questions;
   }
 
+  // ---- voice: read aloud, type what they say, never move on by itself
+  const Voice = (() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const canSpeak = "speechSynthesis" in window;
+    let rec = null, active = false, target = null, onCarry = null, silenceT = null, prompted = false, show = () => {};
+    const speak = text => new Promise(res => {
+      if (!canSpeak) return res();
+      try {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.85; u.lang = "en-CA";
+        u.onend = () => res(); u.onerror = () => res();
+        speechSynthesis.speak(u);
+      } catch (err) { console.warn("Could not read aloud", err); res(); }
+    });
+    function armSilence() {
+      clearTimeout(silenceT);
+      if (prompted) return;
+      silenceT = setTimeout(async () => {
+        if (!active) return;
+        prompted = true; pauseRec(); show("speaking");
+        await speak("Should I continue, or do you need more time?");
+        if (active) startRec();
+      }, 15000);
+    }
+    function startRec() {
+      if (!SR || !target) { show(SR ? "off" : "typing"); return; }
+      let r;
+      try { r = new SR(); } catch (err) { console.warn("Voice typing unavailable", err); show("typing"); return; }
+      rec = r;
+      r.lang = "en-CA"; r.continuous = true; r.interimResults = true;
+      const base = target.value.trim() ? target.value.trim() + " " : "";
+      r.onresult = e => {
+        let fin = "", interim = "";
+        for (let i = 0; i < e.results.length; i++) {
+          if (e.results[i].isFinal) fin += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
+        }
+        const m = fin.match(/\bcarry on\W*$/i);
+        if (m) {
+          target.value = (base + fin.slice(0, m.index)).trim();
+          target.dispatchEvent(new Event("input"));
+          const done = onCarry; stop(); if (done) done();
+          return;
+        }
+        target.value = (base + fin + interim).trim();
+        target.dispatchEvent(new Event("input"));
+        armSilence();
+      };
+      r.onerror = e => {
+        console.warn("Voice typing error", e.error);
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") { active = false; rec = null; show("blocked"); }
+      };
+      r.onend = () => { if (active && rec === r) startRec(); };
+      try { r.start(); show("listening"); armSilence(); }
+      catch (err) { console.warn("Could not start listening", err); show("typing"); }
+    }
+    function pauseRec() { clearTimeout(silenceT); if (rec) { const r = rec; rec = null; try { r.stop(); } catch (err) { console.warn(err); } } }
+    function stop() { active = false; pauseRec(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } show("off"); }
+    async function ask(text, el, carry, view) {
+      stop(); show = view || (() => {}); active = true; target = el; onCarry = carry; prompted = false;
+      show("speaking"); await speak(text);
+      if (active) startRec();
+    }
+    return { ask, stop, speak, canListen: !!SR };
+  })();
+  const VOICE_MSG = {
+    speaking: "Reading it aloud…",
+    listening: "Listening. When they're done, they can say \u201ccarry on\u201d, or you tap Next.",
+    blocked: "The microphone is blocked. Allow it in the browser settings, or type the answer.",
+    typing: "This browser can read aloud but can't type what they say. Type the answer, or use the microphone on the keyboard.",
+    off: ""
+  };
+  const voiceView = id => st => { const el = $(id); if (!el) return; el.textContent = VOICE_MSG[st] || ""; el.classList.toggle("listening", st === "listening"); };
+  function syncVoice() {
+    document.querySelectorAll(".voice-toggle").forEach(b => b.checked = S.voice);
+    $("story-voice-row").hidden = !S.voice;
+    if (!S.voice) Voice.stop();
+  }
+  document.querySelectorAll(".voice-toggle").forEach(box => box.addEventListener("change", () => { S.voice = box.checked; syncVoice(); renderClarify(); changed(); }));
+  $("story-voice").addEventListener("click", () => {
+    Voice.ask("What's on your mind about this appointment? Take your time. I'll wait. When you've finished, say carry on.",
+      $("story"), () => { $("story-state").textContent = "Got it. Tap Carry on when you're ready."; Voice.speak("Thank you."); }, voiceView("story-state"));
+  });
+  $("story-stop").addEventListener("click", () => Voice.stop());
+  const INTRO = "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say carry on. ";
+  function voiceAsk(intro) {
+    const c = S.clarify;
+    if (!S.voice || c.i >= c.qs.length) { Voice.stop(); return; }
+    Voice.ask((intro ? INTRO : "") + c.qs[c.i].q, $("cl-answer"), () => $("cl-next").click(), voiceView("cl-vstate"));
+  }
+
   // ---- follow-up interview about today's concern, one question at a time
   function renderClarify() {
     const c = S.clarify, box = $("cl-card");
@@ -569,6 +683,9 @@ textarea { min-height: 180px; resize: vertical; }
       const q = c.qs[c.i], last = c.i === c.qs.length - 1;
       box.innerHTML = `<p class="cl-count">Question ${c.i + 1} of ${c.qs.length}</p>
         <p class="cl-q" id="cl-qtext" tabindex="-1">${esc(q.q)}</p>
+        ${S.voice ? `<p class="voice-state" id="cl-vstate" role="status" aria-live="polite"></p>
+        <div class="row"><button type="button" class="btn secondary" id="cl-again">Read it again</button>
+        <button type="button" class="btn secondary" id="cl-stop">Stop listening</button></div>` : ""}
         <div class="field"><label for="cl-answer">Their answer</label>
         <textarea id="cl-answer" style="min-height:110px">${esc(q.a)}</textarea></div>
         <div class="nav-row">
@@ -577,9 +694,11 @@ textarea { min-height: 180px; resize: vertical; }
           <button type="button" class="btn primary" id="cl-next">${last ? "Finish" : "Next question"}</button>
         </div>`;
       $("cl-answer").addEventListener("input", e => { q.a = e.target.value; changed(); });
-      if ($("cl-prev")) $("cl-prev").addEventListener("click", () => { c.i--; renderClarify(); changed(); $("cl-qtext").focus(); });
-      $("cl-skip").addEventListener("click", () => { q.a = ""; c.i++; renderClarify(); changed(); focusClarify(); });
-      $("cl-next").addEventListener("click", () => { c.i++; renderClarify(); changed(); focusClarify(); });
+      if ($("cl-prev")) $("cl-prev").addEventListener("click", () => { c.i--; renderClarify(); changed(); $("cl-qtext").focus(); voiceAsk(); });
+      $("cl-skip").addEventListener("click", () => { q.a = ""; c.i++; renderClarify(); changed(); focusClarify(); voiceAsk(); });
+      $("cl-next").addEventListener("click", () => { c.i++; renderClarify(); changed(); focusClarify(); voiceAsk(); });
+      if ($("cl-again")) $("cl-again").addEventListener("click", () => voiceAsk());
+      if ($("cl-stop")) $("cl-stop").addEventListener("click", () => Voice.stop());
     } else {
       const got = c.qs.filter(q => q.a.trim());
       box.innerHTML = `<h3 id="cl-qtext" tabindex="-1">What they told you</h3>
@@ -609,7 +728,7 @@ textarea { min-height: 180px; resize: vertical; }
       payload.mode = "clarify"; payload.details = [];
       const qs = await callClaude(payload);
       S.clarify = { qs: qs.map(q => ({ q: q.q, label: q.label || "", a: "" })), i: 0, added: false };
-      renderClarify(); changed(); status.textContent = ""; focusClarify();
+      renderClarify(); changed(); status.textContent = ""; focusClarify(); voiceAsk(true);
     } catch (err) {
       console.error("Follow-up questions failed", err);
       status.textContent = err.message || "Couldn't reach Claude. Check the internet connection and try again.";
@@ -784,7 +903,7 @@ textarea { min-height: 180px; resize: vertical; }
   $("app").addEventListener("submit", e => e.preventDefault());
 
   function renderAll() { fillSimple(); renderTell(); renderAsk(); renderSugg(); renderAi(); renderClarify(); renderMeds(); }
-  renderAll(); renderNav();
+  renderAll(); syncVoice(); renderNav();
   if (fromDevice) cfStatus("Picked up where you left off on this device.");
 })();
 </script>
