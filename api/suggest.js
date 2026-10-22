@@ -84,6 +84,37 @@ function buildPrompt(p) {
   return lines.join('\n\n');
 }
 
+// Claude must answer by filling in this form (forced tool use), so the reply is always structured data.
+const QUESTION_TOOL = {
+  name: 'give_questions',
+  description: 'Return the questions for the patient or family.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      questions: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 10,
+        items: {
+          type: 'object',
+          properties: {
+            q: { type: 'string', description: 'The question, in plain words.' },
+            why: { type: 'string', description: 'Suggestions only: why it matters, under 20 words.' },
+            label: { type: 'string', description: 'Interview only: 2 to 5 words naming the fact for the doctor.' },
+          },
+          required: ['q'],
+        },
+      },
+    },
+    required: ['questions'],
+  },
+};
+const tidy = (list) => (Array.isArray(list) ? list : [])
+  .map((x) => ({ q: clean(x && x.q, 300), why: clean(x && x.why, 200), label: clean(x && x.label, 60) }))
+  .filter((x) => x.q)
+  .slice(0, 10);
+
+// Fallback for any plain-text reply: find the JSON object in it.
 function parseQuestions(text) {
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
@@ -154,10 +185,12 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1200,
+        max_tokens: 2500,
         inference_geo: 'us',
-        system: mode === 'clarify' ? CLARIFY : SYSTEM,
+        system: (mode === 'clarify' ? CLARIFY : SYSTEM).replace(/Reply with JSON only[\s\S]*$/, 'Give your answer with the give_questions tool.'),
         messages: [{ role: 'user', content: buildPrompt(p) }],
+        tools: [QUESTION_TOOL],
+        tool_choice: { type: 'tool', name: 'give_questions' },
       }),
     });
 
@@ -171,10 +204,15 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    const text = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
-    const questions = parseQuestions(text);
+    const blocks = data.content || [];
+    const tool = blocks.find((b) => b.type === 'tool_use' && b.name === 'give_questions');
+    let questions = tool ? tidy(tool.input && tool.input.questions) : null;
     if (!questions || !questions.length) {
-      console.error('Suggestion reply could not be read');
+      questions = parseQuestions(blocks.filter((b) => b.type === 'text').map((b) => b.text).join(''));
+    }
+    if (!questions || !questions.length) {
+      // Shape only, never content: which blocks came back and why the reply stopped.
+      console.error('Suggestion reply could not be read', data.stop_reason, blocks.map((b) => b.type).join(','));
       return res.status(502).json({
         ok: false,
         error: 'The suggestions came back in a form we could not read. Please try again.',
