@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="description" content="Get ready for a medical appointment: one set of answers becomes a one-page sheet for the patient and a full list for the caregiver.">
+<meta name="description" content="Get ready for a medical appointment, one question at a time. You leave with a one-page sheet for the doctor and a list to share with family.">
 <title>Appointment Prep</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Literata:opsz,wght@7..72,500;7..72,650&display=swap">
 <style>
-/* Layout: one calm column, one step at a time; the result is a letter-size sheet that prints on one page */
+/* Layout: one calm column, one screen per step, a fixed Back / Next pair; the result is a letter-size sheet that prints on one page */
 :root {
   --bg: #F3F5F7; --surface: #FFFFFF; --ink: #17212B; --muted: #4A5866;
   --line: #C9D2DB; --accent: #1F5C7A; --accent-ink: #FFFFFF; --accent-soft: #E3EEF4;
-  --star: #8A5A00; --star-soft: #FFF3D6; --danger: #A12C2C;
+  --star: #8A5A00; --star-soft: #FFF3D6; --danger: #A12C2C; --ok: #2E6B3A;
   --shadow-tint: 23,52,70;
   --display: "Literata", Georgia, "Times New Roman", serif;
   --body: "Atkinson Hyperlegible", "Segoe UI", Verdana, sans-serif;
@@ -22,86 +22,117 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0F161D; --surface: #18222C; --ink: #EAF0F5; --muted: #A9B7C4;
   --line: #34434F; --accent: #7EC0DE; --accent-ink: #0B1A22; --accent-soft: #1D3442;
-  --star: #F2C25C; --star-soft: #3A2E12; --danger: #F08A8A; --shadow-tint: 0,0,0; color-scheme: dark } }
+  --star: #F2C25C; --star-soft: #3A2E12; --danger: #F08A8A; --ok: #8FD19E; --shadow-tint: 0,0,0; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #0F161D; --surface: #18222C; --ink: #EAF0F5; --muted: #A9B7C4;
   --line: #34434F; --accent: #7EC0DE; --accent-ink: #0B1A22; --accent-soft: #1D3442;
-  --star: #F2C25C; --star-soft: #3A2E12; --danger: #F08A8A; --shadow-tint: 0,0,0; color-scheme: dark }
+  --star: #F2C25C; --star-soft: #3A2E12; --danger: #F08A8A; --ok: #8FD19E; --shadow-tint: 0,0,0; color-scheme: dark }
 
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 19px; line-height: 1.6; }
-.wrap { max-width: 760px; margin: 0 auto; padding-block: 24px 64px;
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 19px; line-height: 1.6; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap { max-width: 720px; margin: 0 auto; padding-block: 16px 48px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 h1, h2, h3 { font-family: var(--display); font-weight: 650; text-wrap: balance; line-height: 1.25; margin: 0; }
-h1 { font-size: 1.9rem; } h2 { font-size: 1.5rem; } h3 { font-size: 1.15rem; }
+h1 { font-size: 2rem; } h2 { font-size: 1.6rem; } h3 { font-size: 1.15rem; }
 p { margin: 0; }
 .muted { color: var(--muted); }
-header.top { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
-.eyebrow { font-size: 0.85rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.lead { font-size: 1.1rem; }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #cl-qtext:focus { outline: none; }
 
-/* progress */
-nav.steps { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-nav.steps button { min-height: 44px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line);
-  background: var(--surface); color: var(--ink); font: inherit; font-size: 0.9rem; cursor: pointer; }
-nav.steps button[aria-current="step"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
-nav.steps button .tick { margin-right: 4px; }
+.appbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 720px; margin: 0 auto; }
+.brand { font-family: var(--display); font-weight: 650; font-size: 1.1rem; }
+.saved { font-size: 0.9rem; color: var(--muted); }
+.saved.ok::before { content: "\2713  "; color: var(--ok); font-weight: 700; }
+.saved.warn { color: var(--danger); font-weight: 700; }
 
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px;
-  display: flex; flex-direction: column; gap: 18px; }
-.hint { background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 0; padding: 14px 16px; }
+.progress { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.progress p { font-size: 0.95rem; color: var(--muted); font-weight: 700; }
+.bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.bar > div { height: 100%; background: var(--accent); border-radius: 999px; transition: width .3s; }
+
+.screen { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+@media (max-width: 480px) { .screen { padding: 18px; } }
+.hint { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 14px 16px; }
 .hint strong { display: block; margin-bottom: 4px; }
+.card { border: 1.5px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.ai-box { border: 1.5px solid var(--accent); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; background: var(--accent-soft); }
+.ai-box ul { margin: 0; padding-left: 1.2em; }
+.ticks { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.ticks li::before { content: "\2713  "; color: var(--accent); font-weight: 700; }
 
 label { font-weight: 700; display: block; margin-bottom: 6px; }
 .field { display: flex; flex-direction: column; }
 .help { color: var(--muted); font-size: 0.95rem; margin-top: -2px; margin-bottom: 6px; }
-input[type=text], input[type=date], textarea, select {
+input[type=text], input[type=date], textarea {
   font: inherit; color: var(--ink); background: var(--bg); border: 1.5px solid var(--line); border-radius: 10px;
   padding: 10px 12px; min-height: 48px; width: 100%; }
-textarea { min-height: 180px; resize: vertical; }
-:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+textarea { min-height: 160px; resize: vertical; }
+.error { color: var(--danger); font-weight: 700; margin-top: 6px; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.two { display: flex; gap: 12px; flex-wrap: wrap; } .two > .field { flex: 1; min-width: 180px; }
 
-/* buttons with layered, tinted shadows */
 .btn { font: inherit; font-weight: 700; min-height: 48px; padding: 10px 20px; border-radius: 12px; cursor: pointer;
-  border: 1px solid transparent; transition: transform .15s, box-shadow .15s; }
+  border: 1px solid transparent; transition: transform .15s, box-shadow .15s; display: inline-flex; align-items: center; justify-content: center; text-align: center; }
 .btn.primary { background: var(--accent); color: var(--accent-ink);
   box-shadow: 0 1px 2px rgba(var(--shadow-tint),.25), 0 6px 18px rgba(var(--shadow-tint),.18); }
 .btn.primary:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(var(--shadow-tint),.25), 0 10px 26px rgba(var(--shadow-tint),.22); }
 .btn.primary:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0,0,0,.25); }
-.btn.secondary { background: var(--surface); color: var(--ink); border-color: var(--line);
-  box-shadow: 0 1px 2px rgba(var(--shadow-tint),.12); }
+.btn.secondary { background: var(--surface); color: var(--ink); border-color: var(--line); box-shadow: 0 1px 2px rgba(var(--shadow-tint),.12); }
 .btn.secondary:active { box-shadow: inset 0 2px 4px rgba(var(--shadow-tint),.2); }
-.btn.link { background: none; border: none; color: var(--accent); text-decoration: underline; padding: 10px 8px; box-shadow: none; }
-.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.nav-row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.btn.link { background: none; border: none; color: var(--accent); text-decoration: underline; padding: 10px 6px; box-shadow: none; font-weight: 700; }
+.btn.big { min-height: 56px; font-size: 1.1rem; padding: 12px 28px; }
+.btn:disabled { opacity: .6; cursor: progress; }
+.actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; }
+.actions .spacer { flex: 1; }
 
-/* list editor */
+.choices { border: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.choices legend { font-family: var(--display); font-weight: 650; font-size: 1.6rem; margin-bottom: 12px; padding: 0; }
+.choice { display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border: 2px solid var(--line); border-radius: 14px; cursor: pointer; font-weight: 400; margin: 0; }
+.choice input { width: 26px; height: 26px; margin-top: 3px; flex-shrink: 0; accent-color: var(--accent); }
+.choice b { display: block; font-size: 1.15rem; }
+.choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+
 .list { display: flex; flex-direction: column; gap: 10px; }
-.item { display: flex; gap: 8px; align-items: flex-start; }
-.item input[type=text] { flex: 1; min-width: 0; }
+.item { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.item input[type=text] { flex: 1 1 240px; min-width: 0; }
 .icon-btn { min-width: 48px; min-height: 48px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface);
-  color: var(--ink); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; padding: 4px 8px; }
+  color: var(--ink); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; padding: 4px 10px; }
 .icon-btn.star[aria-pressed="true"] { background: var(--star-soft); color: var(--star); border-color: var(--star); }
 .med { display: grid; grid-template-columns: 2fr 1fr 1.4fr auto; gap: 8px; align-items: end; }
 .med .field label { font-size: 0.85rem; margin-bottom: 2px; }
 @media (max-width: 560px) { .med { grid-template-columns: 1fr 1fr; } .med .field:first-child { grid-column: 1 / -1; } }
 .med-wrap { border-bottom: 1px dashed var(--line); padding-bottom: 12px; }
-
-/* suggestions */
-.sugg { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; cursor: pointer; }
+.sugg { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; cursor: pointer; font-weight: 400; margin: 0; background: var(--surface); }
 .sugg input { width: 24px; height: 24px; margin-top: 4px; flex-shrink: 0; accent-color: var(--accent); }
 .sugg:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.sugg span.added { font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-left: 6px; }
+.sugg .added { font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-left: 6px; }
+.sugg .why { display: block; color: var(--muted); font-size: 0.92rem; margin-top: 2px; }
+fieldset.plain { border: none; padding: 0; margin: 0; }
 
-/* results */
+.voice-panel { display: flex; flex-direction: column; gap: 10px; }
+.voice-state { font-weight: 700; color: var(--accent); min-height: 1.4em; }
+.voice-state.listening::before { content: "\25CF  "; color: var(--danger); }
+.cl-q { font-family: var(--display); font-size: 1.4rem; line-height: 1.35; }
+.cl-count { font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.cl-sum { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+.status { min-height: 1.4em; font-weight: 700; color: var(--accent); }
+
 .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
-.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.tabs [aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .sheet { background: #FFFFFF; color: #111A22; border: 1px solid var(--line); border-radius: 6px;
-  padding: 36px 40px; font-size: 17px; line-height: 1.5; max-width: 8.5in; margin: 0 auto; }
-.sheet h2 { font-size: 1.55rem; color: #111A22; }
+  padding: 32px 36px; font-size: 17px; line-height: 1.5; max-width: 8.5in; margin: 0 auto; width: 100%; }
+@media (max-width: 480px) { .sheet { padding: 20px 16px; font-size: 16px; } }
+.sheet h2 { font-size: 1.5rem; color: #111A22; }
 .sheet h3 { font-family: var(--body); font-size: 0.95rem; letter-spacing: 0.06em; text-transform: uppercase; color: #3B4A57;
   border-bottom: 2px solid #111A22; padding-bottom: 3px; margin-bottom: 8px; }
-.sheet section { break-inside: avoid; page-break-inside: avoid; margin-top: 18px; }
-.sheet .say { font-family: var(--display); font-size: 1.25rem; border: 2px solid #111A22; border-radius: 8px; padding: 12px 16px; }
+.sheet section { break-inside: avoid; page-break-inside: avoid; margin-top: 16px; }
+.sheet .say { font-family: var(--display); font-size: 1.2rem; border: 2px solid #111A22; border-radius: 8px; padding: 12px 16px; }
 .sheet ol, .sheet ul { margin: 0; padding-left: 1.4em; }
 .sheet li { margin-bottom: 4px; }
 .sheet .top { font-weight: 700; }
@@ -109,116 +140,157 @@ textarea { min-height: 180px; resize: vertical; }
 .sheet .blank { border-bottom: 1.5px solid #8794A0; min-height: 30px; margin-top: 6px; }
 .sheet .meta { display: flex; flex-wrap: wrap; gap: 4px 20px; color: #3B4A57; font-size: 0.95rem; margin-top: 4px; }
 .sheet .check li { list-style: none; margin-left: -1.4em; }
-.sheet .check li::before { content: "☐ "; }
-.empty { color: #6B7884; font-style: italic; }
-.note { font-size: 0.95rem; color: var(--muted); }
-.status { min-height: 1.5em; font-weight: 700; color: var(--accent); }
+.sheet .check li::before { content: "\2610  "; }
+.sheet .empty { color: #6B7884; font-style: italic; }
+.ready { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; }
+
+footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: center; align-items: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); font-size: 0.95rem; color: var(--muted); }
 
 @media print {
   @page { size: letter; margin: 0.5in; }
   body { background: #fff; }
-  .no-print, nav.steps, header.top, .panel > *:not(.sheet-holder) { display: none !important; }
-  .panel { border: none; padding: 0; background: #fff; }
+  .appbar, .progress, .actions, footer.foot, .no-print { display: none !important; }
+  .wrap { padding: 0; max-width: none; }
+  .screen { border: none; padding: 0; background: #fff; }
   .sheet { border: none; padding: 0; max-width: none; }
-  .sheet[hidden] { display: none !important; }
 }
-[hidden] { display: none !important; }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.ai-box { border: 1.5px solid var(--accent); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; background: var(--accent-soft); }
-.ai-box .sugg { background: var(--surface); }
-.sugg .why { display: block; color: var(--muted); font-size: 0.92rem; margin-top: 2px; }
-.error { color: var(--danger); font-weight: 700; }
-.carefile { margin-top: 6px; }
-.cl-q { font-family: var(--display); font-size: 1.35rem; line-height: 1.35; }
-.cl-count { font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-.voice-state { font-weight: 700; color: var(--accent); min-height: 1.4em; }
-.voice-state.listening::before { content: "\25CF  "; color: var(--danger); }
-.cl-sum { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
-.btn:disabled { opacity: .6; cursor: progress; }
-@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .btn, .bar > div { transition: none; } }
 </style>
-
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <span class="eyebrow">Appointment prep</span>
-    <h1>Get ready for the appointment</h1>
-    <p class="muted">Work through it together, one step at a time. Your answers stay on this device. This website doesn't keep them.</p>
-    <div class="row no-print carefile">
-      <button type="button" class="btn secondary" id="cf-save">Save care file</button>
-      <label class="btn secondary" for="cf-open" style="display:inline-flex;align-items:center;margin:0">Open care file</label>
-      <input type="file" id="cf-open" accept=".json,application/json" class="visually-hidden">
-      <button type="button" class="btn link" id="cf-forget">Remove from this device</button>
+
+<header class="appbar">
+  <span class="brand">Appointment Prep</span>
+  <span class="saved" id="saved" role="status" aria-live="polite"></span>
+</header>
+
+<main class="wrap">
+
+  <div class="progress" id="progress" hidden>
+    <p id="pg-label"></p>
+    <div class="bar" aria-hidden="true"><div id="pg-bar"></div></div>
+  </div>
+
+  <!-- WELCOME -->
+  <section class="screen" id="s-welcome">
+    <div id="w-new" style="display:flex;flex-direction:column;gap:16px">
+      <h1>Get ready for your appointment</h1>
+      <p class="lead">Answer a few questions, one at a time. At the end you'll have a one-page sheet to take to the doctor, and a list to share with family.</p>
+      <ul class="ticks">
+        <li>Takes about 15 minutes.</li>
+        <li>You can talk or type.</li>
+        <li>You can stop and come back. Your answers are saved on this phone or computer.</li>
+        <li>Helping a family member? Sit together and use their words.</li>
+      </ul>
+      <div><button type="button" class="btn primary big" id="w-start">Start</button></div>
     </div>
-    <p class="status" id="cf-status" role="status" aria-live="polite"></p>
-    <div id="cf-forget-confirm" class="hint no-print" hidden>
-      <strong>Remove everything from this device?</strong>
-      This erases the answers from this phone or computer. Save a care file first if you want to keep them.
-      <div class="row" style="margin-top:10px">
-        <button type="button" class="btn primary" id="cf-forget-yes">Yes, remove it</button>
-        <button type="button" class="btn secondary" id="cf-forget-no">Keep it</button>
+    <div id="w-back" style="display:flex;flex-direction:column;gap:16px" hidden>
+      <h1>Welcome back</h1>
+      <div class="card">
+        <p class="muted">You were getting ready for:</p>
+        <p class="lead"><b id="w-summary"></b></p>
+        <p class="muted" id="w-where"></p>
       </div>
+      <div class="row">
+        <button type="button" class="btn primary big" id="w-continue">Continue where I left off</button>
+        <button type="button" class="btn secondary" id="w-new-appt">Start a new appointment</button>
+      </div>
+      <div id="w-new-confirm" class="hint" hidden></div>
     </div>
-  </header>
-
-  <nav class="steps" aria-label="Steps" id="stepnav"></nav>
-
-  <form id="app" novalidate>
-
-  <div class="panel" data-name="Start">
-    <h2>Before you begin</h2>
-    <div class="hint">
-      <strong>Say this first</strong>
-      "We'll take this slowly. I'll ask one thing at a time, and I won't move on until you say 'carry on'."
+    <div class="card">
+      <h3>Using another phone or computer?</h3>
+      <p class="muted">If you downloaded a copy of your answers before, open it here to carry on.</p>
+      <div>
+        <label class="btn secondary" for="file-open" style="margin:0">Open a copy I downloaded</label>
+        <input type="file" id="file-open" accept=".json,application/json" class="visually-hidden">
+      </div>
+      <p class="status" id="file-status" role="status" aria-live="polite"></p>
     </div>
-    <div class="hint">
-      <strong>If they go quiet</strong>
-      Wait. After about 15 seconds, ask: "Should I continue, or do you need more time?"
+  </section>
+
+  <!-- 1 HOW -->
+  <section class="screen" id="s-how" hidden>
+    <fieldset class="choices">
+      <legend>How would you like to answer?</legend>
+      <label class="choice" for="mode-voice">
+        <input type="radio" name="mode" id="mode-voice" value="voice">
+        <span><b>Talk</b>I'll read each question out loud and type what you say. I'll wait as long as you need. When you've finished, say "carry on".</span>
+      </label>
+      <label class="choice" for="mode-type">
+        <input type="radio" name="mode" id="mode-type" value="type">
+        <span><b>Read and type</b>Read each question on the screen and type your answers.</span>
+      </label>
+    </fieldset>
+    <p class="error" id="mode-error" hidden>Choose Talk or Read and type to carry on.</p>
+    <div class="hint" id="voice-note" hidden>
+      <strong>Before you start talking</strong>
+      <span id="voice-note-text">Your phone will ask to use the microphone. Tap Allow. To turn your voice into words, Chrome sends the sound to Google and Safari sends it to Apple.</span>
+    </div>
+    <p class="muted">You can change this at any time from the bottom of the page.</p>
+  </section>
+
+  <!-- 2 APPOINTMENT -->
+  <section class="screen" id="s-appt" hidden>
+    <h2>About the appointment</h2>
+    <p class="muted">Only the reason for the visit is needed. Fill in the rest if you know it.</p>
+    <div class="field">
+      <label for="purpose">What is the appointment for? (required)</label>
+      <p class="help" id="purpose-help">A check-up, or something specific? For example: a burning feeling in my left foot.</p>
+      <input type="text" id="purpose" aria-describedby="purpose-help" autocomplete="off" required>
+      <p class="error" id="purpose-error" hidden>Add a few words about what the appointment is for, then tap Next.</p>
     </div>
     <div class="field">
-      <label for="who">Name of the person going to the appointment</label>
-      <p class="help" id="who-help">Stays on this device. It's never sent for suggestions.</p>
-      <input type="text" id="who" aria-describedby="who-help" autocomplete="off">
-    </div>
-    <div class="field">
-      <label for="seeing">Who are they seeing?</label>
+      <label for="seeing">Who are you seeing?</label>
       <p class="help" id="seeing-help">For example: neurologist, family doctor, foot care clinic.</p>
       <input type="text" id="seeing" aria-describedby="seeing-help" autocomplete="off">
     </div>
-    <div class="row">
-      <div class="field" style="flex:1;min-width:180px">
-        <label for="date">Date</label>
-        <input type="date" id="date">
-      </div>
-      <div class="field" style="flex:1;min-width:180px">
-        <label for="time">Time</label>
-        <input type="text" id="time" autocomplete="off">
+    <div class="two">
+      <div class="field"><label for="date">Date</label><input type="date" id="date"></div>
+      <div class="field"><label for="time">Time</label><input type="text" id="time" autocomplete="off"></div>
+    </div>
+    <div class="field">
+      <label for="who">Your name</label>
+      <p class="help" id="who-help">Only printed on your sheet. It's never sent anywhere.</p>
+      <input type="text" id="who" aria-describedby="who-help" autocomplete="off">
+    </div>
+  </section>
+
+  <!-- 3 OWN WORDS -->
+  <section class="screen" id="s-words" hidden>
+    <h2>In your own words</h2>
+    <p class="lead">What's on your mind about this appointment? Say it all, in any order. Nobody will interrupt.</p>
+    <div class="voice-panel" data-voice-only>
+      <p class="voice-state" id="words-state" role="status" aria-live="polite"></p>
+      <div class="row">
+        <button type="button" class="btn secondary" id="words-again">Ask me again</button>
+        <button type="button" class="btn secondary" id="words-stop">Stop listening</button>
       </div>
     </div>
     <div class="field">
-      <label for="purpose">What is this appointment for?</label>
-      <p class="help" id="purpose-help">A regular check-up, or something specific? Use their words.</p>
-      <input type="text" id="purpose" aria-describedby="purpose-help" autocomplete="off">
+      <label for="story" id="story-label">Your answer</label>
+      <textarea id="story" style="min-height:200px"></textarea>
     </div>
-    <div class="nav-row"><span></span><button type="button" class="btn primary" data-next>Carry on</button></div>
-  </div>
+  </section>
 
-  <div class="panel" data-name="Background" hidden>
-    <h2>Their health background</h2>
-    <p class="muted">The bigger picture helps the suggestions fit them, not just today's concern. Fill in what you know. All of it is optional. Leave out names of people and places.</p>
+  <!-- 4 BACKGROUND -->
+  <section class="screen" id="s-bg" hidden>
+    <h2>Your health background</h2>
+    <p class="muted">This helps the questions fit you, not just today's concern. Everything here is optional. Leave out names of people and places.</p>
     <div class="field">
       <label for="bg-conditions">Health conditions</label>
-      <p class="help" id="bg-conditions-help">One per line, with roughly when it started if you know. For example: Parkinson's disease, since 2019.</p>
-      <textarea id="bg-conditions" aria-describedby="bg-conditions-help" style="min-height:120px"></textarea>
+      <p class="help" id="bg-conditions-help">One per line, with roughly when it started. For example: Parkinson's disease, since 2019.</p>
+      <textarea id="bg-conditions" aria-describedby="bg-conditions-help" style="min-height:110px"></textarea>
+      <div class="row" data-voice-only style="margin-top:8px"><button type="button" class="btn secondary" data-dictate="bg-conditions">Speak this answer</button><span class="voice-state" id="bg-conditions-state" role="status" aria-live="polite"></span></div>
     </div>
     <div class="field">
       <label for="bg-changes">Recent changes</label>
-      <p class="help" id="bg-changes-help">Surgeries, hospital visits, new symptoms, medication changes, falls, in the last year or so.</p>
-      <textarea id="bg-changes" aria-describedby="bg-changes-help" style="min-height:120px"></textarea>
+      <p class="help" id="bg-changes-help">In the last year or so: surgeries, hospital visits, falls, new symptoms, medication changes.</p>
+      <textarea id="bg-changes" aria-describedby="bg-changes-help" style="min-height:110px"></textarea>
+      <div class="row" data-voice-only style="margin-top:8px"><button type="button" class="btn secondary" data-dictate="bg-changes">Speak this answer</button><span class="voice-state" id="bg-changes-state" role="status" aria-live="polite"></span></div>
     </div>
     <div class="field">
-      <label for="bg-team">Other doctors and care they see</label>
+      <label for="bg-team">Other doctors and care you see</label>
       <p class="help" id="bg-team-help">By type, not by name. For example: neurologist, urologist, physiotherapy.</p>
       <input type="text" id="bg-team" aria-describedby="bg-team-help" autocomplete="off">
     </div>
@@ -226,158 +298,142 @@ textarea { min-height: 180px; resize: vertical; }
       <label for="bg-allergies">Allergies</label>
       <input type="text" id="bg-allergies" autocomplete="off">
     </div>
-    <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
-  </div>
+  </section>
 
-  <div class="panel" data-name="Their words" hidden>
-    <h2>In their own words</h2>
-    <div class="hint">
-      <strong>Ask, then listen</strong>
-      "What's on your mind about this appointment?" Let them talk it all out. No questions yet. Write down what they say, in their words.
-    </div>
-    <div class="field">
-      <label for="story">What they said</label>
-      <textarea id="story"></textarea>
-    </div>
-    <div class="voice-opt">
-      <label class="sugg" for="voice-1">
-        <input type="checkbox" id="voice-1" class="voice-toggle">
-        <span><b>Use voice.</b> Questions are read aloud and what they say is typed in. Nothing moves on until they say "carry on" or you tap Next.
-        <span class="why">Voice typing uses the browser's speech service: Chrome sends the sound to Google, Safari to Apple, to turn it into words.</span></span>
-      </label>
-    </div>
-    <div class="row" id="story-voice-row" hidden>
-      <button type="button" class="btn primary" id="story-voice">Ask out loud and listen</button>
-      <button type="button" class="btn secondary" id="story-stop">Stop listening</button>
-    </div>
-    <p class="voice-state" id="story-state" role="status" aria-live="polite"></p>
-    <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
-  </div>
+  <!-- 5 MEDICATIONS -->
+  <section class="screen" id="s-meds" hidden>
+    <h2>Your medications</h2>
+    <p class="muted">Everything you take, including vitamins and things you take now and then. Not sure of a dose? Leave it blank. It prints as a line to fill in from the bottle.</p>
+    <div class="list" id="med-list"></div>
+    <div><button type="button" class="btn secondary" data-add="med">Add another medication</button></div>
+  </section>
 
-  <div class="panel" data-name="More detail" hidden>
+  <!-- 6 MORE DETAIL -->
+  <section class="screen" id="s-detail" hidden>
     <h2>A few more questions about it</h2>
-    <p class="muted">Claude asks about today's concern the way a doctor would: when it started, how bad it is, what helps. Their answers give the doctor a full picture from the start.</p>
-    <div class="hint">
-      <strong>Same rule as before</strong>
-      Read one question out. Wait for the answer. Tap Next only when they say carry on.
-    </div>
-    <label class="sugg" for="cl-consent">
-      <input type="checkbox" id="cl-consent" class="consent">
-      <span>I understand that their health background, medications and answers are sent to Claude, an AI by Anthropic, to write questions. Their name and the appointment date are not sent. Nothing is saved on this website.</span>
-    </label>
-    <p class="error" id="cl-consent-error" hidden>Tick the box above first, so you've agreed to send it.</p>
-<div class="voice-opt">
-      <label class="sugg" for="voice-2">
-        <input type="checkbox" id="voice-2" class="voice-toggle">
-        <span><b>Use voice.</b> Questions are read aloud and what they say is typed in. Nothing moves on until they say "carry on" or you tap Next.
-        <span class="why">Voice typing uses the browser's speech service: Chrome sends the sound to Google, Safari to Apple, to turn it into words.</span></span>
-      </label>
-    </div>
-    <div class="row">
-      <button type="button" class="btn primary" id="cl-go">Ask me questions</button>
-      <span class="status" id="cl-status" role="status" aria-live="polite"></span>
-    </div>
+    <p class="muted">The questions a doctor would ask about this, so they get the full picture from the start.</p>
+    <div id="detail-consent"></div>
+    <p class="status" id="detail-status" role="status" aria-live="polite"></p>
     <div id="cl-card" class="ai-box" hidden></div>
-    <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
-  </div>
+  </section>
 
-  <div class="panel" data-name="To tell" hidden>
-    <h2>What to tell them</h2>
-    <p class="muted">Short facts for the doctor: what's happening, where, since when, what makes it better or worse.</p>
+  <!-- 7 TELL -->
+  <section class="screen" id="s-tell" hidden>
+    <h2>What to tell the doctor</h2>
+    <p class="muted">Short facts the doctor should hear. Your answers from the last step are already here. Change anything that isn't right.</p>
     <div class="list" id="tell-list"></div>
     <div><button type="button" class="btn secondary" data-add="tell">Add another</button></div>
-    <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
-  </div>
+  </section>
 
-  <div class="panel" data-name="To ask" hidden>
-    <h2>What to ask</h2>
-    <p class="muted">Their own questions first. Tap <b>Top</b> on the ones that matter most. Those go first on the sheet, marked with a star.</p>
+  <!-- 8 ASK -->
+  <section class="screen" id="s-ask" hidden>
+    <h2>Your questions for the doctor</h2>
+    <p class="muted">Write the questions you already have. Tap <b>Most important</b> on the ones that matter most. They go first on your sheet.</p>
     <div class="list" id="ask-list"></div>
-    <div><button type="button" class="btn secondary" data-add="ask">Add another</button></div>
-    <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
-  </div>
+    <div><button type="button" class="btn secondary" data-add="ask">Add another question</button></div>
+  </section>
 
-  <div class="panel" data-name="Medications" hidden>
-    <h2>Medications</h2>
-    <p class="muted">Everything they take, including vitamins and things taken now and then. Not sure of a dose? Leave it blank. It prints as a line to fill in from the bottle.</p>
-    <div class="list" id="med-list"></div>
-    <div><button type="button" class="btn secondary" data-add="med">Add another</button></div>
-    <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>Carry on</button></div>
-  </div>
-
-  <div class="panel" data-name="Ideas" hidden>
-    <h2>Questions they might not think of</h2>
-    <p class="muted">Read each one out. Tick only the ones they want. They decide.</p>
-
-    <section class="ai-box" aria-labelledby="ai-h">
-      <h3 id="ai-h">Suggestions for this appointment</h3>
-      <p>Claude reads their background, medications and today's concern, and suggests questions to ask. It doesn't diagnose or give medical advice.</p>
-      <label class="sugg" for="ai-consent">
-        <input type="checkbox" id="ai-consent" class="consent">
-        <span>I understand that their health background, medications and answers are sent to Claude, an AI by Anthropic, to make suggestions. Their name and the appointment date are not sent. Nothing is saved on this website.</span>
-      </label>
-      <p class="error" id="ai-consent-error" hidden>Tick the box above first, so you've agreed to send it.</p>
-      <div class="row">
-        <button type="button" class="btn primary" id="ai-go">Suggest questions</button>
-        <span class="status" id="ai-status" role="status" aria-live="polite"></span>
-      </div>
-      <fieldset style="border:none;padding:0;margin:0">
-        <legend class="visually-hidden">Suggested for this appointment</legend>
-        <div class="list" id="ai-list"></div>
-      </fieldset>
-    </section>
-
+  <!-- 9 IDEAS -->
+  <section class="screen" id="s-ideas" hidden>
+    <h2>Questions you might not think of</h2>
+    <p class="muted">Tick the ones you want to ask. You decide.</p>
+    <div id="ideas-consent"></div>
+    <div id="ai-wrap" class="ai-box" hidden>
+      <h3>Suggested for this appointment</h3>
+      <p class="status" id="ai-status" role="status" aria-live="polite"></p>
+      <fieldset class="plain"><legend class="visually-hidden">Suggested for this appointment</legend><div class="list" id="ai-list"></div></fieldset>
+      <div><button type="button" class="btn secondary" id="ai-more">Suggest again</button></div>
+    </div>
     <h3>Common questions</h3>
-    <fieldset style="border:none;padding:0;margin:0">
-      <legend class="visually-hidden">Common questions</legend>
-      <div class="list" id="sugg-list"></div>
-    </fieldset>
-    <div class="nav-row"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn primary" data-next>See the sheets</button></div>
-  </div>
+    <fieldset class="plain"><legend class="visually-hidden">Common questions</legend><div class="list" id="sugg-list"></div></fieldset>
+  </section>
 
-  <div class="panel" data-name="Sheets" hidden>
-    <h2>Ready to take in</h2>
-    <p class="muted">Same answers, two lists. The patient's page is short. The caregiver's list has everything.</p>
-    <div class="tabs no-print" role="tablist" aria-label="Which sheet">
-      <button type="button" class="btn secondary" role="tab" id="tab-p" aria-selected="true" aria-controls="sheet-p">Patient's page</button>
-      <button type="button" class="btn secondary" role="tab" id="tab-c" aria-selected="false" aria-controls="sheet-c">Caregiver's list</button>
-    </div>
-    <div class="row no-print">
-      <button type="button" class="btn primary" id="print">Print this sheet</button>
-      <button type="button" class="btn primary" id="share">Send to family</button>
-      <button type="button" class="btn secondary" id="copy">Copy this sheet as text</button>
-      <span class="status" id="copy-status" role="status" aria-live="polite"></span>
-    </div>
-    <div id="share-pick" class="hint no-print" hidden>
-      <strong>How do you want to send it?</strong>
-      It sends the caregiver's list. Nothing is stored on this website.
-      <div class="row" style="margin-top:10px">
-        <button type="button" class="btn secondary" id="share-email">Email</button>
-        <button type="button" class="btn secondary" id="share-text">Text message</button>
+  <!-- 10 SHEETS -->
+  <section class="screen" id="s-sheets" hidden>
+    <div class="no-print" style="display:flex;flex-direction:column;gap:16px">
+      <h2>You're ready</h2>
+      <ol class="ready">
+        <li>Print your page and take it with you.</li>
+        <li>Send the full list to family who help.</li>
+        <li>Bring your medications, or the list on your page.</li>
+      </ol>
+      <div class="tabs" role="tablist" aria-label="Which sheet">
+        <button type="button" class="btn secondary" role="tab" id="tab-p" aria-selected="true" aria-controls="sheet-p">My page for the doctor</button>
+        <button type="button" class="btn secondary" role="tab" id="tab-c" aria-selected="false" aria-controls="sheet-c">Full list for family</button>
+      </div>
+      <div class="row" id="acts-p">
+        <button type="button" class="btn primary" id="print-p">Print my page</button>
+        <button type="button" class="btn secondary" data-copy>Copy as text</button>
+      </div>
+      <div class="row" id="acts-c" hidden>
+        <button type="button" class="btn primary" id="share">Send to family</button>
+        <button type="button" class="btn secondary" id="print-c">Print this list</button>
+        <button type="button" class="btn secondary" data-copy>Copy as text</button>
+      </div>
+      <p class="status" id="sheet-status" role="status" aria-live="polite"></p>
+      <div id="share-pick" class="hint" hidden>
+        <strong>How do you want to send it?</strong>
+        It goes from your own email or phone. Nothing is stored on this website.
+        <div class="row" style="margin-top:10px">
+          <button type="button" class="btn secondary" id="share-email">Email</button>
+          <button type="button" class="btn secondary" id="share-text">Text message</button>
+        </div>
       </div>
     </div>
-    <div class="sheet-holder">
-      <div class="sheet" id="sheet-p" role="tabpanel" aria-labelledby="tab-p"></div>
-      <div class="sheet" id="sheet-c" role="tabpanel" aria-labelledby="tab-c" hidden></div>
+    <div class="sheet" id="sheet-p" role="tabpanel" aria-labelledby="tab-p"></div>
+    <div class="sheet" id="sheet-c" role="tabpanel" aria-labelledby="tab-c" hidden></div>
+    <div class="card no-print">
+      <h3>Keep a copy</h3>
+      <p class="muted">Your answers are saved on this phone or computer, so you can come back any time. To keep them safe, or to use them on another device, download a copy. Keep it somewhere private.</p>
+      <div><button type="button" class="btn secondary" data-download>Download a copy</button></div>
     </div>
-    <div class="nav-row no-print"><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn link" id="fresh">Clear everything and start fresh</button></div>
-    <div id="fresh-confirm" class="hint no-print" hidden>
-      <strong>Clear everything?</strong>
-      This erases all the answers on this page and on this device. Save a care file first if you want to keep them.
-      <div class="row" style="margin-top:10px">
-        <button type="button" class="btn primary" id="fresh-yes">Yes, clear it</button>
-        <button type="button" class="btn secondary" id="fresh-no">Keep my answers</button>
-      </div>
+    <div class="card no-print">
+      <h3>Another appointment coming up?</h3>
+      <p class="muted">Start a new one. Your health background and medications stay, so you don't have to type them again.</p>
+      <div><button type="button" class="btn secondary" id="sheets-new">Start a new appointment</button></div>
+      <div id="sheets-new-confirm" class="hint" hidden></div>
+    </div>
+  </section>
+
+  <nav class="actions" id="actions" aria-label="Steps" hidden>
+    <button type="button" class="btn secondary" id="back">Back</button>
+    <span class="spacer"></span>
+    <button type="button" class="btn primary big" id="next">Next</button>
+  </nav>
+</main>
+
+<footer class="foot">
+  <span>Made by <a href="/">Pen &amp; Ink</a></span>
+  <button type="button" class="btn link" id="change-mode" hidden>Switch to typing</button>
+  <button type="button" class="btn link" data-download>Download a copy</button>
+  <button type="button" class="btn link" id="erase">Erase my answers from this device</button>
+</footer>
+<div class="wrap no-print" style="padding-block:0 32px">
+  <div id="erase-confirm" class="hint" hidden>
+    <strong>Erase everything from this device?</strong>
+    This removes all your answers from this phone or computer. Download a copy first if you want to keep them.
+    <div class="row" style="margin-top:10px">
+      <button type="button" class="btn primary" id="erase-yes">Yes, erase</button>
+      <button type="button" class="btn secondary" id="erase-no">Keep my answers</button>
     </div>
   </div>
-
-  </form>
-  <p class="note no-print" style="margin-top:24px;text-align:center">Made by <a href="/" style="color:var(--accent)">Pen &amp; Ink</a></p>
 </div>
 
 <script>
 (() => {
   const STORE_KEY = "pen-ink-prep-carefile";
+  const STEPS = [
+    { id: "how", name: "How you'll answer" },
+    { id: "appt", name: "The appointment" },
+    { id: "words", name: "In your own words" },
+    { id: "bg", name: "Health background" },
+    { id: "meds", name: "Medications" },
+    { id: "detail", name: "More about it" },
+    { id: "tell", name: "What to tell the doctor" },
+    { id: "ask", name: "Your questions" },
+    { id: "ideas", name: "Questions to consider", next: "See my sheets" },
+    { id: "sheets", name: "Your sheets" }
+  ];
   const SUGGESTIONS = [
     "What is causing this?",
     "Do I need any tests?",
@@ -390,206 +446,68 @@ textarea { min-height: 180px; resize: vertical; }
     "Is it okay if I record this appointment on my phone?"
   ];
   const RECORD_Q = SUGGESTIONS.length - 1;
-  const EXAMPLE = {
-    who: "Jean (example)", seeing: "Foot care clinic", date: "", time: "2:00 PM",
-    purpose: "Something is bothering me: a burning feeling in my left foot",
-    bg: { conditions: "Example: Parkinson's disease, since 2019", changes: "Example: bladder procedure this summer", team: "Neurologist, urologist", allergies: "" },
-    story: "Example: My toenails are thick and look like they have a fungus. The outside of my left foot burns, mostly at night, and more after a busy day. There's no cut.",
-    tell: ["Burning on the outside of the left foot, no cut", "Started a few months ago", "Worst at night and after a lot of walking"],
-    ask: [{t:"What is causing the burning?", top:true}, {t:"Is there a treatment for the nail fungus?", top:true}],
-    sugg: [3, 6, 7], ai: [], clarify: { qs: [], i: 0, added: false }, voice: false,
-    meds: [{n:"Example medication", d:"25/100", w:"3 times a day"}, {n:"Vitamin D3", d:"1,000 units", w:"Morning"}, {n:"Magnesium", d:"", w:""}]
-  };
-  const blank = () => ({ who:"", seeing:"", date:"", time:"", purpose:"", bg:{conditions:"",changes:"",team:"",allergies:""}, story:"", tell:[""], ask:[{t:"",top:false}], sugg:[], ai:[], clarify:{ qs:[], i:0, added:false }, voice:false, meds:[{n:"",d:"",w:""}] });
-  const clone = o => JSON.parse(JSON.stringify(o));
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const str = v => typeof v === "string" ? v : "";
+
+  // ---------- state ----------
+  const blankVisit = () => ({ seeing: "", date: "", time: "", purpose: "", story: "",
+    clarify: { qs: [], i: 0, done: false, merged: [] }, tell: [""], ask: [{ t: "", top: false }], ai: [], aiFetched: false, sugg: [] });
+  const blank = () => Object.assign({ v: 2, step: -1, mode: "", consent: null, who: "",
+    bg: { conditions: "", changes: "", team: "", allergies: "" }, meds: [{ n: "", d: "", w: "" }] }, blankVisit());
   function normalize(x) {
     const b = blank();
     if (!x || typeof x !== "object") return b;
-    const str = v => typeof v === "string" ? v : "";
-    ["who","seeing","date","time","purpose","story"].forEach(k => b[k] = str(x[k]));
-    if (x.bg && typeof x.bg === "object") ["conditions","changes","team","allergies"].forEach(k => b.bg[k] = str(x.bg[k]));
+    ["who", "seeing", "date", "time", "purpose", "story"].forEach(k => b[k] = str(x[k]));
+    b.mode = x.mode === "voice" || x.mode === "type" ? x.mode : "";
+    b.consent = x.consent === true ? true : x.consent === false ? false : null;
+    b.step = Number.isInteger(x.step) && x.step >= -1 && x.step < STEPS.length ? x.step : -1;
+    if (x.bg && typeof x.bg === "object") ["conditions", "changes", "team", "allergies"].forEach(k => b.bg[k] = str(x.bg[k]));
+    if (Array.isArray(x.meds) && x.meds.length) b.meds = x.meds.map(m => ({ n: str(m && m.n), d: str(m && m.d), w: str(m && m.w) }));
     if (Array.isArray(x.tell) && x.tell.length) b.tell = x.tell.map(str);
     if (Array.isArray(x.ask) && x.ask.length) b.ask = x.ask.map(q => ({ t: str(q && q.t), top: !!(q && q.top) }));
     if (Array.isArray(x.sugg)) b.sugg = x.sugg.filter(i => Number.isInteger(i) && i >= 0 && i < SUGGESTIONS.length);
     if (Array.isArray(x.ai)) b.ai = x.ai.map(q => ({ q: str(q && q.q), why: str(q && q.why), on: !!(q && q.on) })).filter(q => q.q);
+    b.aiFetched = !!x.aiFetched && b.ai.length > 0;
     if (x.clarify && Array.isArray(x.clarify.qs)) {
       b.clarify.qs = x.clarify.qs.map(q => ({ q: str(q && q.q), label: str(q && q.label), a: str(q && q.a) })).filter(q => q.q);
       b.clarify.i = Math.min(Math.max(0, Number(x.clarify.i) || 0), b.clarify.qs.length);
-      b.clarify.added = !!x.clarify.added;
+      b.clarify.done = !!x.clarify.done;
+      b.clarify.merged = Array.isArray(x.clarify.merged) ? x.clarify.merged.map(str) : [];
     }
-    b.voice = !!x.voice;
-    if (Array.isArray(x.meds) && x.meds.length) b.meds = x.meds.map(m => ({ n: str(m && m.n), d: str(m && m.d), w: str(m && m.w) }));
     return b;
   }
 
-  // ---- care file on this device
-  let fromDevice = false;
-  function loadLocal() {
-    try { const raw = localStorage.getItem(STORE_KEY); if (raw) { fromDevice = true; return normalize(JSON.parse(raw)); } }
-    catch (err) { console.warn("Could not read the care file on this device", err); }
-    return null;
+  let canStore = true;
+  function load() {
+    try { const raw = localStorage.getItem(STORE_KEY); return raw ? normalize(JSON.parse(raw)) : null; }
+    catch (err) { console.warn("Could not read saved answers", err); canStore = false; return null; }
   }
   let saveTimer = null;
-  function saveLocal() {
+  function setSaved(state) {
+    const el = $("saved");
+    el.className = "saved" + (state === "ok" ? " ok" : state === "warn" ? " warn" : "");
+    el.textContent = state === "ok" ? "Saved on this device" : state === "warn" ? "Not saved. Download a copy before you close this page." : state === "saving" ? "Saving…" : "";
+  }
+  function save() {
     clearTimeout(saveTimer);
+    setSaved("saving");
     saveTimer = setTimeout(() => {
-      try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); }
-      catch (err) { console.warn("Could not keep the care file on this device", err); }
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); canStore = true; setSaved("ok"); }
+      catch (err) { console.warn("Could not save answers on this device", err); canStore = false; setSaved("warn"); }
     }, 300);
   }
-  function forgetLocal() {
-    try { localStorage.removeItem(STORE_KEY); } catch (err) { console.warn("Could not remove the care file", err); }
-  }
+  let S = load() || blank();
+  let resumeStep = Math.max(0, S.step);
+  const hasVisit = () => !!(S.purpose.trim() || S.seeing.trim() || S.story.trim() || resumeStep > 0);
 
-  let S = loadLocal() || clone(EXAMPLE);
-  let step = 0;
-  const panels = [...document.querySelectorAll(".panel")];
-  const $ = id => document.getElementById(id);
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-  const changed = () => saveLocal();
-
-  // ---- navigation
-  function renderNav() {
-    const nav = $("stepnav"); nav.innerHTML = "";
-    panels.forEach((p, i) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.innerHTML = (i < step ? '<span class="tick" aria-hidden="true">✓</span>' : "") + (i + 1) + ". " + p.dataset.name;
-      if (i === step) b.setAttribute("aria-current", "step");
-      b.addEventListener("click", () => go(i));
-      nav.appendChild(b);
-    });
-  }
-  function go(i) {
-    if (typeof Voice !== "undefined") Voice.stop();
-    step = Math.max(0, Math.min(panels.length - 1, i));
-    panels.forEach((p, k) => p.hidden = k !== step);
-    if (step === panels.length - 1) buildSheets();
-    renderNav();
-    const h = panels[step].querySelector("h2");
-    h.setAttribute("tabindex", "-1"); h.focus();
-  }
-  document.querySelectorAll("[data-next]").forEach(b => b.addEventListener("click", () => go(step + 1)));
-  document.querySelectorAll("[data-prev]").forEach(b => b.addEventListener("click", () => go(step - 1)));
-
-  // ---- simple fields
-  const simple = ["who", "seeing", "date", "time", "purpose", "story"];
-  const bgFields = { "bg-conditions": "conditions", "bg-changes": "changes", "bg-team": "team", "bg-allergies": "allergies" };
-  function fillSimple() {
-    simple.forEach(k => $(k).value = S[k]);
-    Object.entries(bgFields).forEach(([id, k]) => $(id).value = S.bg[k]);
-  }
-  simple.forEach(k => $(k).addEventListener("input", e => { S[k] = e.target.value; changed(); }));
-  Object.entries(bgFields).forEach(([id, k]) => $(id).addEventListener("input", e => { S.bg[k] = e.target.value; changed(); }));
-
-  // ---- list editors
-  function renderTell() {
-    const box = $("tell-list"); box.innerHTML = "";
-    S.tell.forEach((v, i) => {
-      const row = document.createElement("div"); row.className = "item";
-      const id = "tell-" + i;
-      row.innerHTML = `<label for="${id}" class="visually-hidden">Thing to tell ${i + 1}</label>
-        <input type="text" id="${id}" value="${esc(v)}" autocomplete="off">
-        <button type="button" class="icon-btn" aria-label="Remove thing to tell ${i + 1}">Remove</button>`;
-      row.querySelector("input").addEventListener("input", e => { S.tell[i] = e.target.value; changed(); });
-      row.querySelector("button").addEventListener("click", () => { S.tell.splice(i, 1); if (!S.tell.length) S.tell.push(""); renderTell(); changed(); });
-      box.appendChild(row);
-    });
-  }
-  function renderAsk() {
-    const box = $("ask-list"); box.innerHTML = "";
-    S.ask.forEach((q, i) => {
-      const row = document.createElement("div"); row.className = "item";
-      const id = "ask-" + i;
-      row.innerHTML = `<label for="${id}" class="visually-hidden">Question ${i + 1}</label>
-        <input type="text" id="${id}" value="${esc(q.t)}" autocomplete="off">
-        <button type="button" class="icon-btn star" aria-pressed="${q.top}" aria-label="Mark question ${i + 1} as most important">★ Top</button>
-        <button type="button" class="icon-btn" aria-label="Remove question ${i + 1}">Remove</button>`;
-      const inp = row.querySelector("input");
-      const [star, rm] = row.querySelectorAll("button");
-      inp.addEventListener("input", e => { S.ask[i].t = e.target.value; changed(); });
-      star.addEventListener("click", () => { S.ask[i].top = !S.ask[i].top; star.setAttribute("aria-pressed", S.ask[i].top); changed(); });
-      rm.addEventListener("click", () => { S.ask.splice(i, 1); if (!S.ask.length) S.ask.push({t:"",top:false}); renderAsk(); changed(); });
-      box.appendChild(row);
-    });
-  }
-  function renderSugg() {
-    const box = $("sugg-list"); box.innerHTML = "";
-    SUGGESTIONS.forEach((q, i) => {
-      const lab = document.createElement("label"); lab.className = "sugg"; lab.setAttribute("for", "sugg-" + i);
-      const on = S.sugg.includes(i);
-      lab.innerHTML = `<input type="checkbox" id="sugg-${i}" ${on ? "checked" : ""}><span>${esc(q)}${on ? '<span class="added">Added</span>' : ""}</span>`;
-      lab.querySelector("input").addEventListener("change", e => {
-        if (e.target.checked) { if (!S.sugg.includes(i)) S.sugg.push(i); } else S.sugg = S.sugg.filter(x => x !== i);
-        renderSugg(); $("sugg-" + i).focus(); changed();
-      });
-      box.appendChild(lab);
-    });
-  }
-  function renderAi() {
-    const box = $("ai-list"); box.innerHTML = "";
-    S.ai.forEach((q, i) => {
-      const lab = document.createElement("label"); lab.className = "sugg"; lab.setAttribute("for", "ai-" + i);
-      lab.innerHTML = `<input type="checkbox" id="ai-${i}" ${q.on ? "checked" : ""}><span>${esc(q.q)}${q.on ? '<span class="added">Added</span>' : ""}${q.why ? `<span class="why">${esc(q.why)}</span>` : ""}</span>`;
-      lab.querySelector("input").addEventListener("change", e => { S.ai[i].on = e.target.checked; renderAi(); $("ai-" + i).focus(); changed(); });
-      box.appendChild(lab);
-    });
-  }
-  function renderMeds() {
-    const box = $("med-list"); box.innerHTML = "";
-    S.meds.forEach((m, i) => {
-      const w = document.createElement("div"); w.className = "med-wrap";
-      w.innerHTML = `<div class="med">
-        <div class="field"><label for="mn-${i}">Name</label><input type="text" id="mn-${i}" value="${esc(m.n)}" autocomplete="off"></div>
-        <div class="field"><label for="md-${i}">Dose</label><input type="text" id="md-${i}" value="${esc(m.d)}" autocomplete="off"></div>
-        <div class="field"><label for="mw-${i}">When</label><input type="text" id="mw-${i}" value="${esc(m.w)}" autocomplete="off"></div>
-        <button type="button" class="icon-btn" aria-label="Remove medication ${i + 1}">Remove</button></div>`;
-      const [n, d, wh] = w.querySelectorAll("input");
-      n.addEventListener("input", e => { S.meds[i].n = e.target.value; changed(); });
-      d.addEventListener("input", e => { S.meds[i].d = e.target.value; changed(); });
-      wh.addEventListener("input", e => { S.meds[i].w = e.target.value; changed(); });
-      w.querySelector("button").addEventListener("click", () => { S.meds.splice(i, 1); if (!S.meds.length) S.meds.push({n:"",d:"",w:""}); renderMeds(); changed(); });
-      box.appendChild(w);
-    });
-  }
-  document.querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => {
-    const k = b.dataset.add;
-    if (k === "tell") { S.tell.push(""); renderTell(); $("tell-" + (S.tell.length - 1)).focus(); }
-    if (k === "ask") { S.ask.push({t:"",top:false}); renderAsk(); $("ask-" + (S.ask.length - 1)).focus(); }
-    if (k === "med") { S.meds.push({n:"",d:"",w:""}); renderMeds(); $("mn-" + (S.meds.length - 1)).focus(); }
-    changed();
-  }));
-
-  // ---- shared consent: ticking either box ticks both
-  document.querySelectorAll(".consent").forEach(box => box.addEventListener("change", () => {
-    document.querySelectorAll(".consent").forEach(b => b.checked = box.checked);
-    $("ai-consent-error").hidden = true; $("cl-consent-error").hidden = true;
-  }));
-  const details = () => S.clarify.qs.filter(q => q.a.trim()).map(q => (q.label || q.q) + ": " + q.a.trim());
-  function picture() {
-    return {
-      seeing: S.seeing, purpose: S.purpose, story: S.story,
-      conditions: S.bg.conditions, changes: S.bg.changes, team: S.bg.team, allergies: S.bg.allergies,
-      meds: S.meds.filter(m => m.n.trim()).map(m => [m.n, m.d, m.w].filter(x => x.trim()).join(", ")),
-      details: S.clarify.added ? [] : details(),
-      tell: S.tell.filter(t => t.trim()),
-      ask: S.ask.map(q => q.t).filter(t => t.trim()).concat(S.ai.filter(q => q.on).map(q => q.q))
-    };
-  }
-  async function callClaude(payload) {
-    const r = await fetch("/api/suggest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok || !data.ok) throw new Error(data.error || "Not available right now. Try again in a minute.");
-    return data.questions;
-  }
-
-  // ---- voice: read aloud, type what they say, never move on by itself
+  // ---------- voice: read aloud, type what they say, never move on by itself ----------
   const Voice = (() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const canSpeak = "speechSynthesis" in window;
-    let rec = null, active = false, target = null, onCarry = null, silenceT = null, prompted = false, show = () => {};
+    let rec = null, active = false, target = null, onCarry = null, silenceT = null, prompted = false, view = () => {};
     const speak = text => new Promise(res => {
-      if (!canSpeak) return res();
+      if (!canSpeak || !text) return res();
       try {
         speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
@@ -603,15 +521,15 @@ textarea { min-height: 180px; resize: vertical; }
       if (prompted) return;
       silenceT = setTimeout(async () => {
         if (!active) return;
-        prompted = true; pauseRec(); show("speaking");
+        prompted = true; pauseRec(); view("speaking");
         await speak("Should I continue, or do you need more time?");
         if (active) startRec();
       }, 15000);
     }
     function startRec() {
-      if (!SR || !target) { show(SR ? "off" : "typing"); return; }
+      if (!SR || !target) { view("typing"); return; }
       let r;
-      try { r = new SR(); } catch (err) { console.warn("Voice typing unavailable", err); show("typing"); return; }
+      try { r = new SR(); } catch (err) { console.warn("Voice typing unavailable", err); view("typing"); return; }
       rec = r;
       r.lang = "en-CA"; r.continuous = true; r.interimResults = true;
       const base = target.value.trim() ? target.value.trim() + " " : "";
@@ -633,140 +551,419 @@ textarea { min-height: 180px; resize: vertical; }
       };
       r.onerror = e => {
         console.warn("Voice typing error", e.error);
-        if (e.error === "not-allowed" || e.error === "service-not-allowed") { active = false; rec = null; show("blocked"); }
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") { active = false; rec = null; view("blocked"); }
       };
       r.onend = () => { if (active && rec === r) startRec(); };
-      try { r.start(); show("listening"); armSilence(); }
-      catch (err) { console.warn("Could not start listening", err); show("typing"); }
+      try { r.start(); view("listening"); armSilence(); }
+      catch (err) { console.warn("Could not start listening", err); view("typing"); }
     }
     function pauseRec() { clearTimeout(silenceT); if (rec) { const r = rec; rec = null; try { r.stop(); } catch (err) { console.warn(err); } } }
-    function stop() { active = false; pauseRec(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } show("off"); }
-    async function ask(text, el, carry, view) {
-      stop(); show = view || (() => {}); active = true; target = el; onCarry = carry; prompted = false;
-      show("speaking"); await speak(text);
+    function stop() { active = false; pauseRec(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } view("off"); }
+    async function ask(text, el, carry, v) {
+      stop(); view = v || (() => {}); active = true; target = el; onCarry = carry; prompted = !text;
+      if (text) { view("speaking"); await speak(text); }
       if (active) startRec();
     }
     return { ask, stop, speak, canListen: !!SR };
   })();
   const VOICE_MSG = {
-    speaking: "Reading it aloud…",
-    listening: "Listening. When they're done, they can say \u201ccarry on\u201d, or you tap Next.",
-    blocked: "The microphone is blocked. Allow it in the browser settings, or type the answer.",
-    typing: "This browser can read aloud but can't type what they say. Type the answer, or use the microphone on the keyboard.",
+    speaking: "Reading it out loud…",
+    listening: "Listening. Take your time. When you've finished, say “carry on”.",
+    blocked: "The microphone is blocked. Allow it in your browser settings, or type your answer.",
+    typing: "This browser can't type what you say. Type your answer, or use the microphone on your keyboard.",
     off: ""
   };
   const voiceView = id => st => { const el = $(id); if (!el) return; el.textContent = VOICE_MSG[st] || ""; el.classList.toggle("listening", st === "listening"); };
-  function syncVoice() {
-    document.querySelectorAll(".voice-toggle").forEach(b => b.checked = S.voice);
-    $("story-voice-row").hidden = !S.voice;
-    if (!S.voice) Voice.stop();
-  }
-  document.querySelectorAll(".voice-toggle").forEach(box => box.addEventListener("change", () => { S.voice = box.checked; syncVoice(); renderClarify(); changed(); }));
-  $("story-voice").addEventListener("click", () => {
-    Voice.ask("What's on your mind about this appointment? Take your time. I'll wait. When you've finished, say carry on.",
-      $("story"), () => { $("story-state").textContent = "Got it. Tap Carry on when you're ready."; Voice.speak("Thank you."); }, voiceView("story-state"));
-  });
-  $("story-stop").addEventListener("click", () => Voice.stop());
-  const INTRO = "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say carry on. ";
-  function voiceAsk(intro) {
-    const c = S.clarify;
-    if (!S.voice || c.i >= c.qs.length) { Voice.stop(); return; }
-    Voice.ask((intro ? INTRO : "") + c.qs[c.i].q, $("cl-answer"), () => $("cl-next").click(), voiceView("cl-vstate"));
+  const isVoice = () => S.mode === "voice";
+  function applyMode() {
+    document.querySelectorAll("[data-voice-only]").forEach(el => el.hidden = !isVoice());
+    $("story-label").textContent = isVoice() ? "What you said (you can fix any words)" : "Your answer";
+    $("change-mode").hidden = !S.mode;
+    $("change-mode").textContent = isVoice() ? "Switch to typing" : "Switch to talking";
+    $("mode-voice").checked = S.mode === "voice"; $("mode-type").checked = S.mode === "type";
+    $("voice-note").hidden = !isVoice();
+    if (isVoice() && !Voice.canListen) $("voice-note-text").textContent = "This browser can read the questions out loud but can't type what you say. For talking, use Chrome or Safari. You can still use the microphone on your keyboard.";
   }
 
-  // ---- follow-up interview about today's concern, one question at a time
+  // ---------- navigation ----------
+  const screens = { welcome: $("s-welcome") };
+  STEPS.forEach(s => screens[s.id] = $("s-" + s.id));
+  function show(step) {
+    Voice.stop();
+    S.step = step; save();
+    Object.values(screens).forEach(el => el.hidden = true);
+    const onWelcome = step < 0;
+    $("progress").hidden = onWelcome; $("actions").hidden = onWelcome;
+    window.scrollTo(0, 0);
+    if (onWelcome) { renderWelcome(); screens.welcome.hidden = false; focusHeading(screens.welcome); return; }
+    const s = STEPS[step];
+    resumeStep = step;
+    screens[s.id].hidden = false;
+    $("pg-label").textContent = `Step ${step + 1} of ${STEPS.length} · ${s.name}`;
+    $("pg-bar").style.width = Math.round(((step + 1) / STEPS.length) * 100) + "%";
+    $("back").textContent = step === 0 ? "Back to start" : "Back";
+    $("next").hidden = step === STEPS.length - 1;
+    $("next").textContent = s.next || "Next";
+    focusHeading(screens[s.id]);
+    onEnter(s.id);
+  }
+  function focusHeading(el) {
+    const h = [...el.querySelectorAll("h1, h2, legend")].find(x => !x.closest("[hidden]"));
+    if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
+  }
+  $("back").addEventListener("click", () => show(S.step - 1));
+  $("next").addEventListener("click", () => { if (validate(STEPS[S.step].id)) show(S.step + 1); });
+  function validate(id) {
+    if (id === "how" && !S.mode) { $("mode-error").hidden = false; $("mode-voice").focus(); return false; }
+    if (id === "appt" && !S.purpose.trim()) { $("purpose-error").hidden = false; $("purpose").focus(); return false; }
+    return true;
+  }
+  function onEnter(id) {
+    if (id === "words" && isVoice()) askWords();
+    if (id === "meds") renderMeds();
+    if (id === "detail") enterDetail();
+    if (id === "tell") renderTell();
+    if (id === "ask") renderAsk();
+    if (id === "ideas") enterIdeas();
+    if (id === "sheets") { buildSheets(); setTab(0); }
+  }
+
+  // ---------- welcome ----------
+  function fmtDate(v) {
+    if (!v) return "";
+    const d = new Date(v + "T12:00:00");
+    return isNaN(d) ? v : d.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  }
+  function renderWelcome() {
+    const back = hasVisit();
+    $("w-new").hidden = back; $("w-back").hidden = !back;
+    if (back) {
+      $("w-summary").textContent = [S.seeing, fmtDate(S.date)].filter(Boolean).join(", ") || S.purpose || "Your appointment";
+      $("w-where").textContent = `You were on step ${resumeStep + 1} of ${STEPS.length}: ${STEPS[resumeStep].name}.`;
+    }
+  }
+  $("w-start").addEventListener("click", () => show(0));
+  $("w-continue").addEventListener("click", () => show(resumeStep));
+  function newVisitConfirm(boxId, focusBack) {
+    const box = $(boxId);
+    box.innerHTML = `<strong>Start a new appointment?</strong>
+      This clears the answers for this appointment. Your health background, medications and settings stay.
+      <div class="row" style="margin-top:10px">
+        <button type="button" class="btn primary" data-yes>Yes, start a new one</button>
+        <button type="button" class="btn secondary" data-no>Cancel</button></div>`;
+    box.hidden = false;
+    box.querySelector("[data-yes]").addEventListener("click", () => {
+      Object.assign(S, blankVisit()); box.hidden = true; fillFields(); show(S.mode ? 1 : 0);
+    });
+    box.querySelector("[data-no]").addEventListener("click", () => { box.hidden = true; $(focusBack).focus(); });
+    box.querySelector("[data-yes]").focus();
+  }
+  $("w-new-appt").addEventListener("click", () => newVisitConfirm("w-new-confirm", "w-new-appt"));
+  $("sheets-new").addEventListener("click", () => newVisitConfirm("sheets-new-confirm", "sheets-new"));
+
+  // ---------- open / download a copy ----------
+  $("file-open").addEventListener("change", e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (!parsed || parsed.app !== "pen-ink-prep") throw new Error("Not a copy from this page");
+        S = normalize(parsed.data); resumeStep = Math.max(0, S.step);
+        fillFields(); applyMode(); show(-1);
+        $("file-status").textContent = "Opened. Your answers are back.";
+      } catch (err) {
+        console.warn("Could not open the copy", err);
+        $("file-status").textContent = "That file isn't a copy from this page. Choose the file ending in .json that you downloaded here.";
+      }
+      e.target.value = "";
+    };
+    reader.onerror = () => { console.warn("File read failed", reader.error); $("file-status").textContent = "Couldn't read that file. Try choosing it again."; };
+    reader.readAsText(f);
+  });
+  function download() {
+    const name = ("appointment-prep-" + (S.date || new Date().toISOString().slice(0, 10))).replace(/[^\w\-]+/g, "");
+    const blob = new Blob([JSON.stringify({ app: "pen-ink-prep", version: 2, saved: new Date().toISOString(), data: S }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = name + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    const msg = `Downloaded "${name}.json" to your Downloads. To use it later, choose "Open a copy I downloaded" on the first screen.`;
+    if (!$("s-sheets").hidden) $("sheet-status").textContent = msg; else { $("saved").className = "saved ok"; $("saved").textContent = "Copy downloaded"; }
+  }
+  document.querySelectorAll("[data-download]").forEach(b => b.addEventListener("click", download));
+
+  // ---------- erase ----------
+  $("erase").addEventListener("click", () => { $("erase-confirm").hidden = false; $("erase-yes").focus(); });
+  $("erase-no").addEventListener("click", () => { $("erase-confirm").hidden = true; $("erase").focus(); });
+  $("erase-yes").addEventListener("click", () => {
+    S = blank(); resumeStep = 0; fillFields(); applyMode(); $("erase-confirm").hidden = true;
+    show(-1); clearTimeout(saveTimer);
+    try { localStorage.removeItem(STORE_KEY); } catch (err) { console.warn("Could not erase", err); }
+    $("saved").className = "saved"; $("saved").textContent = "Erased from this device";
+  });
+
+  // ---------- talk or type ----------
+  document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener("change", () => {
+    S.mode = r.value; $("mode-error").hidden = true; applyMode(); save();
+    if (isVoice()) Voice.speak("Hello. I'll read the questions out loud, and I'll wait for you.");
+  }));
+  $("change-mode").addEventListener("click", () => {
+    S.mode = isVoice() ? "type" : "voice"; applyMode(); save(); Voice.stop();
+    const id = S.step >= 0 ? STEPS[S.step].id : "";
+    if (id === "words" && isVoice()) askWords();
+    if (id === "detail") { renderClarify(); voiceAsk(false); }
+  });
+
+  // ---------- simple fields ----------
+  const simple = ["who", "seeing", "date", "time", "purpose", "story"];
+  const bgFields = { "bg-conditions": "conditions", "bg-changes": "changes", "bg-team": "team", "bg-allergies": "allergies" };
+  function fillFields() {
+    simple.forEach(k => $(k).value = S[k]);
+    Object.entries(bgFields).forEach(([id, k]) => $(id).value = S.bg[k]);
+  }
+  simple.forEach(k => $(k).addEventListener("input", e => { S[k] = e.target.value; if (k === "purpose") $("purpose-error").hidden = true; save(); }));
+  Object.entries(bgFields).forEach(([id, k]) => $(id).addEventListener("input", e => { S.bg[k] = e.target.value; save(); }));
+
+  // ---------- own words by voice ----------
+  function askWords() {
+    Voice.ask("What's on your mind about this appointment? Say it all, in any order. Take your time. I'll wait. When you've finished, say carry on.",
+      $("story"), () => { show(S.step + 1); Voice.speak("Thank you."); }, voiceView("words-state"));
+  }
+  $("words-again").addEventListener("click", askWords);
+  $("words-stop").addEventListener("click", () => Voice.stop());
+  document.querySelectorAll("[data-dictate]").forEach(b => b.addEventListener("click", () => {
+    const id = b.dataset.dictate;
+    Voice.ask("", $(id), () => {}, voiceView(id + "-state"));
+  }));
+
+  // ---------- list editors ----------
+  function renderTell() {
+    const box = $("tell-list"); box.innerHTML = "";
+    if (!S.tell.length) S.tell.push("");
+    S.tell.forEach((v, i) => {
+      const row = document.createElement("div"); row.className = "item";
+      row.innerHTML = `<label for="tell-${i}" class="visually-hidden">Thing to tell the doctor ${i + 1}</label>
+        <input type="text" id="tell-${i}" value="${esc(v)}" autocomplete="off">
+        <button type="button" class="icon-btn" aria-label="Remove item ${i + 1}">Remove</button>`;
+      row.querySelector("input").addEventListener("input", e => { S.tell[i] = e.target.value; save(); });
+      row.querySelector("button").addEventListener("click", () => { S.tell.splice(i, 1); renderTell(); save(); });
+      box.appendChild(row);
+    });
+  }
+  function renderAsk() {
+    const box = $("ask-list"); box.innerHTML = "";
+    if (!S.ask.length) S.ask.push({ t: "", top: false });
+    S.ask.forEach((q, i) => {
+      const row = document.createElement("div"); row.className = "item";
+      row.innerHTML = `<label for="ask-${i}" class="visually-hidden">Question ${i + 1}</label>
+        <input type="text" id="ask-${i}" value="${esc(q.t)}" autocomplete="off">
+        <button type="button" class="icon-btn star" aria-pressed="${q.top}">★ Most important</button>
+        <button type="button" class="icon-btn" aria-label="Remove question ${i + 1}">Remove</button>`;
+      const [star, rm] = row.querySelectorAll("button");
+      row.querySelector("input").addEventListener("input", e => { S.ask[i].t = e.target.value; save(); });
+      star.addEventListener("click", () => { S.ask[i].top = !S.ask[i].top; star.setAttribute("aria-pressed", S.ask[i].top); save(); });
+      rm.addEventListener("click", () => { S.ask.splice(i, 1); renderAsk(); save(); });
+      box.appendChild(row);
+    });
+  }
+  function renderMeds() {
+    const box = $("med-list"); box.innerHTML = "";
+    if (!S.meds.length) S.meds.push({ n: "", d: "", w: "" });
+    S.meds.forEach((m, i) => {
+      const w = document.createElement("div"); w.className = "med-wrap";
+      w.innerHTML = `<div class="med">
+        <div class="field"><label for="mn-${i}">Medication</label><input type="text" id="mn-${i}" value="${esc(m.n)}" autocomplete="off"></div>
+        <div class="field"><label for="md-${i}">Dose</label><input type="text" id="md-${i}" value="${esc(m.d)}" autocomplete="off"></div>
+        <div class="field"><label for="mw-${i}">When</label><input type="text" id="mw-${i}" value="${esc(m.w)}" autocomplete="off"></div>
+        <button type="button" class="icon-btn" aria-label="Remove medication ${i + 1}">Remove</button></div>`;
+      const [n, d, wh] = w.querySelectorAll("input");
+      n.addEventListener("input", e => { S.meds[i].n = e.target.value; save(); });
+      d.addEventListener("input", e => { S.meds[i].d = e.target.value; save(); });
+      wh.addEventListener("input", e => { S.meds[i].w = e.target.value; save(); });
+      w.querySelector("button").addEventListener("click", () => { S.meds.splice(i, 1); renderMeds(); save(); });
+      box.appendChild(w);
+    });
+  }
+  document.querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => {
+    const k = b.dataset.add;
+    if (k === "tell") { S.tell.push(""); renderTell(); $("tell-" + (S.tell.length - 1)).focus(); }
+    if (k === "ask") { S.ask.push({ t: "", top: false }); renderAsk(); $("ask-" + (S.ask.length - 1)).focus(); }
+    if (k === "med") { S.meds.push({ n: "", d: "", w: "" }); renderMeds(); $("mn-" + (S.meds.length - 1)).focus(); }
+    save();
+  }));
+
+  // ---------- Claude ----------
+  function consentHTML() {
+    if (S.consent === false) return `<div class="card"><p>You chose not to use Claude. You can still fill everything in yourself, then tap Next.</p>
+      <div><button type="button" class="btn secondary" data-consent="yes">Use Claude after all</button></div></div>`;
+    return `<div class="ai-box"><h3>Get help from Claude</h3>
+      <p>Claude is an AI assistant made by Anthropic. It can ask you about this concern and suggest questions for the doctor. It doesn't diagnose or give medical advice.</p>
+      <ul>
+        <li><b>Sent to Claude:</b> what the appointment is for, your health background, medications and answers.</li>
+        <li><b>Not sent:</b> your name, or the appointment date and time.</li>
+        <li>Nothing is kept on this website. It's processed in the United States, and Anthropic deletes it within 30 days.</li>
+      </ul>
+      <div class="row"><button type="button" class="btn primary" data-consent="yes">Yes, use Claude</button>
+      <button type="button" class="btn secondary" data-consent="no">No thanks</button></div></div>`;
+  }
+  function renderConsent(boxId, after) {
+    const box = $(boxId);
+    if (S.consent === true) { box.innerHTML = ""; return; }
+    box.innerHTML = consentHTML();
+    box.querySelectorAll("[data-consent]").forEach(b => b.addEventListener("click", () => {
+      S.consent = b.dataset.consent === "yes"; save(); after();
+    }));
+  }
+  const details = () => S.clarify.qs.filter(q => q.a.trim()).map(q => (q.label || q.q) + ": " + q.a.trim());
+  function picture(extra) {
+    return Object.assign({
+      seeing: S.seeing, purpose: S.purpose, story: S.story,
+      conditions: S.bg.conditions, changes: S.bg.changes, team: S.bg.team, allergies: S.bg.allergies,
+      meds: S.meds.filter(m => m.n.trim()).map(m => [m.n, m.d, m.w].filter(x => x.trim()).join(", ")),
+      details: [],
+      tell: S.tell.filter(t => t.trim()),
+      ask: S.ask.map(q => q.t).filter(t => t.trim()).concat(S.ai.filter(q => q.on).map(q => q.q))
+    }, extra || {});
+  }
+  async function callClaude(payload) {
+    let r;
+    try { r = await fetch("/api/suggest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }); }
+    catch (err) { console.error("Network error", err); throw new Error("Couldn't reach Claude. Check your internet connection and try again."); }
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.ok) throw new Error(data.error || "Not available right now. Try again in a minute.");
+    return data.questions;
+  }
+
+  // ---------- more detail: one question at a time ----------
+  function enterDetail() {
+    renderConsent("detail-consent", enterDetail);
+    renderClarify();
+    if (S.consent === true && !S.clarify.qs.length) fetchClarify();
+    else voiceAsk(false);
+  }
+  async function fetchClarify() {
+    const status = $("detail-status");
+    status.textContent = "Claude is writing questions about this. It takes about 15 seconds.";
+    try {
+      const qs = await callClaude(picture({ mode: "clarify" }));
+      S.clarify = { qs: qs.map(q => ({ q: q.q, label: q.label || "", a: "" })), i: 0, done: false, merged: S.clarify.merged || [] };
+      save(); status.textContent = "";
+      if (STEPS[S.step].id !== "detail") return;
+      renderClarify(); focusQ(); voiceAsk(true);
+    } catch (err) {
+      status.innerHTML = `${esc(err.message)} <button type="button" class="btn link" id="cl-retry">Try again</button>`;
+      $("cl-retry").addEventListener("click", fetchClarify);
+    }
+  }
+  function mergeDetails() {
+    const c = S.clarify;
+    S.tell = S.tell.filter(t => t.trim() && !c.merged.includes(t));
+    c.merged = details();
+    c.merged.forEach(d => { if (!S.tell.includes(d)) S.tell.push(d); });
+    c.done = true; save();
+  }
   function renderClarify() {
     const c = S.clarify, box = $("cl-card");
-    if (!c.qs.length) { box.hidden = true; box.innerHTML = ""; return; }
+    if (S.consent !== true || !c.qs.length) { box.hidden = true; box.innerHTML = ""; return; }
     box.hidden = false;
     if (c.i < c.qs.length) {
       const q = c.qs[c.i], last = c.i === c.qs.length - 1;
       box.innerHTML = `<p class="cl-count">Question ${c.i + 1} of ${c.qs.length}</p>
         <p class="cl-q" id="cl-qtext" tabindex="-1">${esc(q.q)}</p>
-        ${S.voice ? `<p class="voice-state" id="cl-vstate" role="status" aria-live="polite"></p>
-        <div class="row"><button type="button" class="btn secondary" id="cl-again">Read it again</button>
-        <button type="button" class="btn secondary" id="cl-stop">Stop listening</button></div>` : ""}
-        <div class="field"><label for="cl-answer">Their answer</label>
-        <textarea id="cl-answer" style="min-height:110px">${esc(q.a)}</textarea></div>
-        <div class="nav-row">
-          <div class="row">${c.i > 0 ? '<button type="button" class="btn secondary" id="cl-prev">Back</button>' : ""}
-          <button type="button" class="btn secondary" id="cl-skip">Skip this one</button></div>
-          <button type="button" class="btn primary" id="cl-next">${last ? "Finish" : "Next question"}</button>
+        ${isVoice() ? `<p class="voice-state" id="cl-vstate" role="status" aria-live="polite"></p>
+          <div class="row"><button type="button" class="btn secondary" id="cl-again">Read it again</button>
+          <button type="button" class="btn secondary" id="cl-stop">Stop listening</button></div>` : ""}
+        <div class="field"><label for="cl-answer">${isVoice() ? "What you said (you can fix any words)" : "Your answer"}</label>
+          <textarea id="cl-answer" style="min-height:110px">${esc(q.a)}</textarea></div>
+        <div class="row">
+          <button type="button" class="btn primary" id="cl-next">${last ? "Finish these questions" : "Next question"}</button>
+          <button type="button" class="btn secondary" id="cl-skip">Skip this one</button>
+          ${c.i > 0 ? '<button type="button" class="btn link" id="cl-prev">Previous question</button>' : ""}
         </div>`;
-      $("cl-answer").addEventListener("input", e => { q.a = e.target.value; changed(); });
-      if ($("cl-prev")) $("cl-prev").addEventListener("click", () => { c.i--; renderClarify(); changed(); $("cl-qtext").focus(); voiceAsk(); });
-      $("cl-skip").addEventListener("click", () => { q.a = ""; c.i++; renderClarify(); changed(); focusClarify(); voiceAsk(); });
-      $("cl-next").addEventListener("click", () => { c.i++; renderClarify(); changed(); focusClarify(); voiceAsk(); });
-      if ($("cl-again")) $("cl-again").addEventListener("click", () => voiceAsk());
+      $("cl-answer").addEventListener("input", e => { q.a = e.target.value; save(); });
+      const move = d => {
+        Voice.stop();
+        c.i += d;
+        if (c.i >= c.qs.length) { mergeDetails(); if (isVoice()) Voice.speak("That's all my questions. Thank you. Tap Next when you're ready."); }
+        save(); renderClarify(); focusQ();
+        if (c.i < c.qs.length) voiceAsk(false);
+      };
+      $("cl-next").addEventListener("click", () => move(1));
+      $("cl-skip").addEventListener("click", () => { q.a = ""; move(1); });
+      if ($("cl-prev")) $("cl-prev").addEventListener("click", () => move(-1));
+      if ($("cl-again")) $("cl-again").addEventListener("click", () => voiceAsk(false));
       if ($("cl-stop")) $("cl-stop").addEventListener("click", () => Voice.stop());
     } else {
       const got = c.qs.filter(q => q.a.trim());
-      box.innerHTML = `<h3 id="cl-qtext" tabindex="-1">What they told you</h3>
-        ${got.length ? `<ul class="cl-sum">${got.map(q => `<li><b>${esc(q.label || q.q)}:</b> ${esc(q.a)}</li>`).join("")}</ul>` : `<p class="muted">No answers yet.</p>`}
-        <div class="row">
-          ${got.length ? `<button type="button" class="btn primary" id="cl-add" ${c.added ? "disabled" : ""}>${c.added ? "Added to what to tell them" : "Add to what to tell them"}</button>` : ""}
-          <button type="button" class="btn secondary" id="cl-redo">Change an answer</button>
-        </div>`;
-      if ($("cl-add") && !c.added) $("cl-add").addEventListener("click", () => {
-        S.tell = S.tell.filter(t => t.trim());
-        details().forEach(d => { if (!S.tell.includes(d)) S.tell.push(d); });
-        if (!S.tell.length) S.tell.push("");
-        c.added = true; renderTell(); renderClarify(); changed();
-        $("cl-status").textContent = "Added. You'll see them on the next step.";
-      });
-      $("cl-redo").addEventListener("click", () => { c.i = 0; c.added = false; renderClarify(); changed(); $("cl-qtext").focus(); });
+      box.innerHTML = `<h3 id="cl-qtext" tabindex="-1">Done. Here's what you said</h3>
+        ${got.length ? `<ul class="cl-sum">${got.map(q => `<li><b>${esc(q.label || q.q)}:</b> ${esc(q.a)}</li>`).join("")}</ul>
+          <p>These are added to <b>What to tell the doctor</b>. Tap <b>Next</b> to check them.</p>` : `<p>No answers this time. Tap <b>Next</b> to carry on.</p>`}
+        <div class="row"><button type="button" class="btn secondary" id="cl-redo">Change an answer</button>
+        <button type="button" class="btn link" id="cl-new">Ask me different questions</button></div>`;
+      $("cl-redo").addEventListener("click", () => { c.i = 0; save(); renderClarify(); focusQ(); voiceAsk(false); });
+      $("cl-new").addEventListener("click", () => { S.clarify.qs = []; S.clarify.i = 0; save(); renderClarify(); fetchClarify(); });
     }
   }
-  const focusClarify = () => { const el = $("cl-qtext"); if (el) el.focus(); };
-  $("cl-go").addEventListener("click", async () => {
-    if (!$("cl-consent").checked) { $("cl-consent-error").hidden = false; $("cl-consent").focus(); return; }
-    const payload = picture();
-    if (!payload.purpose && !payload.story) { $("cl-status").textContent = "Fill in what the appointment is for, or what they said, first."; return; }
-    const btn = $("cl-go"), status = $("cl-status");
-    btn.disabled = true; status.textContent = "Writing questions about their concern. This takes about 15 seconds.";
-    try {
-      payload.mode = "clarify"; payload.details = [];
-      const qs = await callClaude(payload);
-      S.clarify = { qs: qs.map(q => ({ q: q.q, label: q.label || "", a: "" })), i: 0, added: false };
-      renderClarify(); changed(); status.textContent = ""; focusClarify(); voiceAsk(true);
-    } catch (err) {
-      console.error("Follow-up questions failed", err);
-      status.textContent = err.message || "Couldn't reach Claude. Check the internet connection and try again.";
-    } finally { btn.disabled = false; }
-  });
+  const focusQ = () => { const el = $("cl-qtext"); if (el) el.focus(); };
+  const INTRO = "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say carry on. ";
+  function voiceAsk(intro) {
+    const c = S.clarify;
+    if (!isVoice() || S.consent !== true || c.i >= c.qs.length || !$("cl-answer")) return;
+    Voice.ask((intro ? INTRO : "") + c.qs[c.i].q, $("cl-answer"), () => $("cl-next").click(), voiceView("cl-vstate"));
+  }
 
-  // ---- AI suggestions (name, date and time are never sent)
-  $("ai-go").addEventListener("click", async () => {
-    if (!$("ai-consent").checked) { $("ai-consent-error").hidden = false; $("ai-consent").focus(); return; }
-    const payload = picture();
-    const btn = $("ai-go"), status = $("ai-status");
-    btn.disabled = true; status.textContent = "Thinking about their whole picture. This takes about 15 seconds.";
+  // ---------- suggestions ----------
+  function enterIdeas() {
+    renderConsent("ideas-consent", enterIdeas);
+    renderSugg(); renderAi();
+    if (S.consent === true && !S.aiFetched) fetchAi();
+  }
+  async function fetchAi() {
+    $("ai-wrap").hidden = false;
+    const status = $("ai-status"), btn = $("ai-more");
+    btn.disabled = true; status.textContent = "Claude is looking at your whole picture. It takes about 15 seconds.";
     try {
-      const data = { questions: await callClaude(payload) };
-      const kept = S.ai.filter(q => q.on);
-      const seen = new Set(kept.map(q => q.q.toLowerCase()));
-      S.ai = kept.concat(data.questions.filter(q => !seen.has(q.q.toLowerCase())).map(q => ({ q: q.q, why: q.why, on: false })));
-      renderAi(); changed();
-      status.textContent = data.questions.length + " suggestions below. Tick the ones they want.";
-    } catch (err) {
-      console.error("Suggestion request failed", err);
-      status.textContent = err.message || "Couldn't reach the suggestions. Check the internet connection and try again.";
-    } finally { btn.disabled = false; }
-  });
+      const qs = await callClaude(picture({ details: S.clarify.done ? [] : details() }));
+      const kept = S.ai.filter(q => q.on), seen = new Set(kept.map(q => q.q.toLowerCase()));
+      S.ai = kept.concat(qs.filter(q => !seen.has(q.q.toLowerCase())).map(q => ({ q: q.q, why: q.why, on: false })));
+      S.aiFetched = true; save(); renderAi();
+      status.textContent = "Tick the ones you want to ask.";
+    } catch (err) { status.textContent = err.message; }
+    finally { btn.disabled = false; }
+  }
+  $("ai-more").addEventListener("click", fetchAi);
+  function renderAi() {
+    $("ai-wrap").hidden = S.consent !== true;
+    const box = $("ai-list"); box.innerHTML = "";
+    S.ai.forEach((q, i) => {
+      const lab = document.createElement("label"); lab.className = "sugg"; lab.setAttribute("for", "ai-" + i);
+      lab.innerHTML = `<input type="checkbox" id="ai-${i}" ${q.on ? "checked" : ""}><span>${esc(q.q)}${q.on ? '<span class="added">Added</span>' : ""}${q.why ? `<span class="why">${esc(q.why)}</span>` : ""}</span>`;
+      lab.querySelector("input").addEventListener("change", e => { S.ai[i].on = e.target.checked; renderAi(); $("ai-" + i).focus(); save(); });
+      box.appendChild(lab);
+    });
+  }
+  function renderSugg() {
+    const box = $("sugg-list"); box.innerHTML = "";
+    SUGGESTIONS.forEach((q, i) => {
+      const lab = document.createElement("label"); lab.className = "sugg"; lab.setAttribute("for", "sugg-" + i);
+      const on = S.sugg.includes(i);
+      lab.innerHTML = `<input type="checkbox" id="sugg-${i}" ${on ? "checked" : ""}><span>${esc(q)}${on ? '<span class="added">Added</span>' : ""}</span>`;
+      lab.querySelector("input").addEventListener("change", e => {
+        if (e.target.checked) { if (!S.sugg.includes(i)) S.sugg.push(i); } else S.sugg = S.sugg.filter(x => x !== i);
+        renderSugg(); $("sugg-" + i).focus(); save();
+      });
+      box.appendChild(lab);
+    });
+  }
 
-  // ---- sheets
+  // ---------- sheets ----------
   function allQuestions() {
     const own = S.ask.filter(q => q.t.trim());
     const ai = S.ai.filter(q => q.on).map(q => ({ t: q.q, top: false }));
     const extra = S.sugg.slice().sort((a, b) => a - b).filter(i => i !== RECORD_Q).map(i => ({ t: SUGGESTIONS[i], top: false }));
-    const top = own.filter(q => q.top), rest = own.filter(q => !q.top);
-    return { top, rest: rest.concat(ai, extra) };
-  }
-  const recordAsk = () => S.sugg.includes(RECORD_Q);
-  function fmtDate(v) {
-    if (!v) return "";
-    const d = new Date(v + "T12:00:00");
-    return isNaN(d) ? v : d.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    return { top: own.filter(q => q.top), rest: own.filter(q => !q.top).concat(ai, extra) };
   }
   function header(title) {
     const bits = [S.seeing, fmtDate(S.date), S.time].filter(x => x && x.trim()).map(esc);
@@ -782,129 +979,82 @@ textarea { min-height: 180px; resize: vertical; }
     const tell = S.tell.filter(t => t.trim());
     const { top, rest } = allQuestions();
     const li = q => `<li${q.top ? ' class="top"' : ""}>${q.top ? '<span class="star" aria-label="most important">★</span> ' : ""}${esc(q.t)}</li>`;
-    const qs = top.concat(rest).map(li).join("");
     const shortRest = rest.slice(0, Math.max(0, 6 - top.length));
-    const pq = top.concat(shortRest).map(li).join("");
-    const cond = lines(S.bg.conditions);
+    const recordAsk = S.sugg.includes(RECORD_Q);
     $("sheet-p").innerHTML = header("My appointment") + `
       <section><h3>Start with</h3><p class="say">"I have some questions I'd like to go through. May I start?"</p>
-      ${recordAsk() ? `<p style="margin-top:8px">Then: "Is it okay if I record this appointment on my phone?"</p>` : ""}</section>
-      <section><h3>Tell them</h3>${tell.length ? `<ul>${tell.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
-      <section><h3>Ask them</h3>${pq ? `<ol>${pq}</ol>` : `<p class="empty">No questions added yet.</p>`}
-      ${rest.length > shortRest.length ? `<p style="margin-top:6px;color:#3B4A57">More questions are on the caregiver's list.</p>` : ""}</section>
+      ${recordAsk ? `<p style="margin-top:8px">Then: "Is it okay if I record this appointment on my phone?"</p>` : ""}</section>
+      <section><h3>Tell them</h3>${tell.length ? `<ul>${tell.slice(0, 8).map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
+      <section><h3>Ask them</h3>${top.length + shortRest.length ? `<ol>${top.concat(shortRest).map(li).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}
+      ${rest.length > shortRest.length ? `<p style="margin-top:6px;color:#3B4A57">More questions are on the full list.</p>` : ""}</section>
       <section><h3>My medications</h3>${medsHTML()}${S.bg.allergies.trim() ? `<p style="margin-top:6px"><b>Allergies:</b> ${esc(S.bg.allergies)}</p>` : ""}</section>
-      <section><h3>What they said</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div></section>`;
+      <section><h3>What the doctor said</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div></section>`;
+    const cond = lines(S.bg.conditions);
     const bgBits = [
       cond.length ? `<p><b>Conditions:</b></p><ul>${cond.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "",
       S.bg.changes.trim() ? `<p><b>Recent changes:</b> ${esc(S.bg.changes).replace(/\n/g, "<br>")}</p>` : "",
       S.bg.team.trim() ? `<p><b>Also seeing:</b> ${esc(S.bg.team)}</p>` : "",
       S.bg.allergies.trim() ? `<p><b>Allergies:</b> ${esc(S.bg.allergies)}</p>` : ""
     ].join("");
-    $("sheet-c").innerHTML = header("Caregiver's list") + `
+    $("sheet-c").innerHTML = header("Full list for family") + `
       ${S.purpose.trim() ? `<section><h3>Appointment is for</h3><p>${esc(S.purpose)}</p></section>` : ""}
       ${bgBits ? `<section><h3>Health background</h3>${bgBits}</section>` : ""}
-      ${!S.clarify.added && details().length ? `<section><h3>More detail</h3><ul>${details().map(d => `<li>${esc(d)}</li>`).join("")}</ul></section>` : ""}
       ${S.story.trim() ? `<section><h3>In their words</h3><p>${esc(S.story).replace(/\n/g, "<br>")}</p></section>` : ""}
       <section><h3>Make sure the doctor hears</h3>${tell.length ? `<ul class="check">${tell.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
-      <section><h3>All questions</h3>${qs ? `<ol>${qs}</ol>` : `<p class="empty">No questions added yet.</p>`}</section>
+      <section><h3>All questions</h3>${top.length + rest.length ? `<ol>${top.concat(rest).map(li).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}</section>
       <section><h3>Medications</h3>${medsHTML()}</section>
-      <section><h3>Bring</h3><ul class="check"><li>This list and the patient's page</li><li>Medication bottles, or the list above</li><li>Health card</li>${recordAsk() ? "<li>Phone charged, to record</li>" : ""}</ul></section>
+      <section><h3>Bring</h3><ul class="check"><li>The patient's page and this list</li><li>Medication bottles, or the list above</li><li>Health card</li>${recordAsk ? "<li>Phone charged, to record</li>" : ""}</ul></section>
       <section><h3>After the appointment</h3>
         <p>Next appointment: ______________________</p>
         <p style="margin-top:6px">To do:</p><div class="blank"></div><div class="blank"></div>
         <p style="margin-top:6px">Questions not answered (bring next time):</p><div class="blank"></div><div class="blank"></div></section>`;
   }
-  const sheetText = el => el.innerText.replace(/\n{3,}/g, "\n\n").trim();
-
-  // tabs
-  const tabs = [$("tab-p"), $("tab-c")], sheets = [$("sheet-p"), $("sheet-c")];
-  tabs.forEach((t, i) => t.addEventListener("click", () => {
-    tabs.forEach((x, k) => x.setAttribute("aria-selected", k === i));
+  const sheets = [$("sheet-p"), $("sheet-c")], tabs = [$("tab-p"), $("tab-c")];
+  function setTab(i) {
+    tabs.forEach((t, k) => t.setAttribute("aria-selected", k === i));
     sheets.forEach((s, k) => s.hidden = k !== i);
-    $("copy-status").textContent = "";
-  }));
+    $("acts-p").hidden = i !== 0; $("acts-c").hidden = i !== 1;
+    $("sheet-status").textContent = ""; $("share-pick").hidden = true;
+  }
+  tabs.forEach((t, i) => t.addEventListener("click", () => setTab(i)));
   tabs.forEach((t, i) => t.addEventListener("keydown", e => {
-    if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const n = tabs[(i + 1) % 2]; n.click(); n.focus(); }
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const n = (i + 1) % 2; setTab(n); tabs[n].focus(); }
   }));
-  $("copy").addEventListener("click", () => {
+  const printSheet = i => { buildSheets(); setTab(i); window.print(); };
+  $("print-p").addEventListener("click", () => printSheet(0));
+  $("print-c").addEventListener("click", () => printSheet(1));
+  window.addEventListener("beforeprint", buildSheets);
+  const sheetText = el => el.innerText.replace(/\n{3,}/g, "\n\n").trim();
+  document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
     const el = sheets.find(s => !s.hidden);
-    const done = () => $("copy-status").textContent = "Copied. Paste it into an email or a document.";
     const fallback = () => {
       const r = document.createRange(); r.selectNodeContents(el);
       const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
-      $("copy-status").textContent = "Couldn't copy automatically. The sheet is selected: press Ctrl+C (or Cmd+C) to copy it.";
+      $("sheet-status").textContent = "Couldn't copy automatically. The text is selected: press Ctrl+C (or Cmd+C) to copy it.";
     };
-    try { navigator.clipboard.writeText(sheetText(el)).then(done, err => { console.warn("clipboard", err); fallback(); }); }
+    try { navigator.clipboard.writeText(sheetText(el)).then(() => $("sheet-status").textContent = "Copied. Paste it into an email or a document.", err => { console.warn("clipboard", err); fallback(); }); }
     catch (err) { console.warn("clipboard", err); fallback(); }
-  });
-  $("print").addEventListener("click", () => { buildSheets(); window.print(); });
-  window.addEventListener("beforeprint", buildSheets);
-
-  // send to family
-  function familyText() { buildSheets(); return sheetText($("sheet-c")); }
+  }));
   function familySubject() {
     const who = S.who.trim(), when = fmtDate(S.date);
     return "Appointment prep" + (who ? " for " + who : "") + (when ? ", " + when : "");
   }
   $("share").addEventListener("click", async () => {
-    const text = familyText();
+    buildSheets();
+    const text = sheetText($("sheet-c"));
     if (navigator.share) {
       try { await navigator.share({ title: familySubject(), text }); return; }
       catch (err) { if (err && err.name === "AbortError") return; console.warn("share", err); }
     }
     $("share-pick").hidden = false; $("share-email").focus();
   });
-  $("share-email").addEventListener("click", () => {
-    location.href = "mailto:?subject=" + encodeURIComponent(familySubject()) + "&body=" + encodeURIComponent(familyText());
-  });
-  $("share-text").addEventListener("click", () => { location.href = "sms:?&body=" + encodeURIComponent(familyText()); });
+  $("share-email").addEventListener("click", () => { location.href = "mailto:?subject=" + encodeURIComponent(familySubject()) + "&body=" + encodeURIComponent(sheetText($("sheet-c"))); });
+  $("share-text").addEventListener("click", () => { location.href = "sms:?&body=" + encodeURIComponent(sheetText($("sheet-c"))); });
 
-  // care file: save / open / remove
-  const cfStatus = msg => $("cf-status").textContent = msg;
-  $("cf-save").addEventListener("click", () => {
-    const name = (S.who.trim() || "care-file").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "care-file";
-    const blob = new Blob([JSON.stringify({ app: "pen-ink-prep", version: 1, saved: new Date().toISOString(), data: S }, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = name + ".json";
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    cfStatus("Saved as " + name + ".json in your Downloads. Keep it somewhere private.");
-  });
-  $("cf-open").addEventListener("change", e => {
-    const f = e.target.files && e.target.files[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(reader.result);
-        if (!parsed || parsed.app !== "pen-ink-prep") throw new Error("Not a care file");
-        S = normalize(parsed.data); renderAll(); changed(); go(0);
-        cfStatus("Opened " + f.name + ".");
-      } catch (err) {
-        console.warn("Could not open care file", err);
-        cfStatus("That file isn't a care file from this page. Choose the .json file you saved here.");
-      }
-      e.target.value = "";
-    };
-    reader.onerror = () => { console.warn("File read failed", reader.error); cfStatus("Couldn't read that file. Try choosing it again."); };
-    reader.readAsText(f);
-  });
-  $("cf-forget").addEventListener("click", () => { $("cf-forget-confirm").hidden = false; $("cf-forget-yes").focus(); });
-  $("cf-forget-no").addEventListener("click", () => { $("cf-forget-confirm").hidden = true; $("cf-forget").focus(); });
-  $("cf-forget-yes").addEventListener("click", () => {
-    clearTimeout(saveTimer); forgetLocal(); S = blank(); renderAll();
-    $("cf-forget-confirm").hidden = true; go(0); cfStatus("Removed from this device.");
-  });
-
-  // start fresh
-  $("fresh").addEventListener("click", () => { $("fresh-confirm").hidden = false; $("fresh-yes").focus(); });
-  $("fresh-no").addEventListener("click", () => { $("fresh-confirm").hidden = true; $("fresh").focus(); });
-  $("fresh-yes").addEventListener("click", () => { clearTimeout(saveTimer); forgetLocal(); S = blank(); $("fresh-confirm").hidden = true; renderAll(); go(0); });
-  $("app").addEventListener("submit", e => e.preventDefault());
-
-  function renderAll() { fillSimple(); renderTell(); renderAsk(); renderSugg(); renderAi(); renderClarify(); renderMeds(); }
-  renderAll(); syncVoice(); renderNav();
-  if (fromDevice) cfStatus("Picked up where you left off on this device.");
+  // ---------- start ----------
+  fillFields(); applyMode();
+  if (!canStore) setSaved("warn");
+  show(-1);
 })();
 </script>
 </body>
