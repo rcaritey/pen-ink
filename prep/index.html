@@ -1219,6 +1219,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     S.step = step; save();
     Object.values(screens).forEach(el => el.hidden = true);
     const onWelcome = step < 0;
+    try { history.replaceState(null, "", onWelcome ? location.pathname : "#" + STEPS[step].id); } catch (err) { console.warn(err); }
     $("progress").hidden = onWelcome; $("actions").hidden = onWelcome;
     window.scrollTo(0, 0);
     if (onWelcome) { renderWelcome(); screens.welcome.hidden = false; focusHeading(screens.welcome); return; }
@@ -1332,7 +1333,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   document.querySelectorAll(".start-choice").forEach(b => b.addEventListener("click", () => {
     S.mode = b.dataset.mode; applyMode(); save();
     greet = true;
-    show(0);
+    const t = linkTarget; linkTarget = -1;
+    show(t > -1 ? t : 0);
   }));
   $("w-map-link").addEventListener("click", () => openJourney("map"));
   // each section of the glance opens the map at that stage
@@ -2197,11 +2199,30 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (here) requestAnimationFrame(() => here.scrollIntoView({ block: "center" }));
     else $("jr-body").scrollTop = 0;
   }
+  // Links straight to a stage: /prep#ask (a step) or /prep#room (the start of a section).
+  // If Talk or Read and type hasn't been chosen yet, the welcome asks first, then goes there.
+  let linkTarget = -1;
+  function stepFromHash() {
+    const h = decodeURIComponent(location.hash.slice(1)).toLowerCase();
+    if (!h) return -1;
+    let i = STEPS.findIndex(x => x.id.toLowerCase() === h);
+    if (i < 0) i = STEPS.findIndex(x => x.sec === h);
+    return i;
+  }
+  function goToStep(i) {
+    if (dlg.open) dlg.close();
+    if (S.mode) { show(i); return; }
+    linkTarget = i; show(-1);
+    const c = document.querySelector(".start-choice"); if (c) { c.scrollIntoView({ block: "center" }); c.focus(); }
+  }
+  function goToHash() { const i = stepFromHash(); if (i < 0) return false; goToStep(i); return true; }
   function jInfo(root, i) {
     const s = JSTOPS[i], box = root.querySelector(".jr-info"), cur = root === $("jr-body") ? jCur() : -1;
     const body = s.info || (cur < 0 ? `<p>${esc(s.s)}</p>` : `<p>${esc(s.s)} You'll get here after the stops before it.</p>`);
     box.style.setProperty("--c", JPH[s.ph].c);
-    box.innerHTML = `<h3>${JPH[s.ph].name} ${jNum(i)}: ${esc(s.t)}</h3>${body}<div><button type="button" class="btn secondary" data-info-close>Got it</button></div>`;
+    box.innerHTML = `<h3>${JPH[s.ph].name} ${jNum(i)}: ${esc(s.t)}</h3>${body}<div class="row">${s.steps.length ? `<a class="btn primary" style="text-decoration:none" href="#${STEPS[s.steps[0]].id}" data-go="${s.steps[0]}">Go to this step</a>` : ""}<button type="button" class="btn secondary" data-info-close>Got it</button></div>`;
+    const go = box.querySelector("[data-go]");
+    if (go) go.addEventListener("click", e => { e.preventDefault(); goToStep(Number(go.dataset.go)); });
     box.hidden = false; box.querySelector("[data-info-close]").focus();
   }
   function jClick(e) {
@@ -2370,7 +2391,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   fillFields(); applyMode(); applyLang();
   addMics(document.querySelector("main"));
   if (!canStore) setSaved("warn");
-  show(-1);
+  window.addEventListener("hashchange", () => { if (stepFromHash() !== S.step) goToHash(); });
+  if (!goToHash()) show(-1);
 })();
 </script>
 </body>
