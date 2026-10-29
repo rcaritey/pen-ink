@@ -1,0 +1,40 @@
+{
+  "routes": [
+    {
+      "src": "/prep/?",
+      "has": [
+        {
+          "type": "host",
+          "value": "^(www\\.)?(presentcare\\.ca|presentsante\\.ca|presentsante\\.com|pen-ink-git-present-try-olivier-s-projects5\\.vercel\\.app)$"
+        }
+      ],
+      "status": 307,
+      "headers": {
+        "Location": "/try"
+      }
+    },
+    {
+      "src": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "^(www\\.)?(presentcare\\.ca|presentsante\\.ca|presentsante\\.com|pen-ink-git-present-try-olivier-s-projects5\\.vercel\\.app)$"
+        }
+      ],
+      "dest": "/presentcare/index.html"
+    },
+    {
+      "src": "/try/?",
+      "has": [
+        {
+          "type": "host",
+          "value": "^(www\\.)?(presentcare\\.ca|presentsante\\.ca|presentsante\\.com|pen-ink-git-present-try-olivier-s-projects5\\.vercel\\.app)$"
+        }
+      ],
+      "dest": "/prep/index.html"
+    },
+    {
+      "handle": "filesystem"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Présent",
+  "short_name": "Présent",
+  "icons": [
+    {
+      "src": "/presentcare/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/presentcare/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/presentcare/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#f8f2e7",
+  "background_color": "#f8f2e7",
+  "display": "standalone",
+  "start_url": "/"
+}
