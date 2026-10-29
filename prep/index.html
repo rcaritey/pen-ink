@@ -927,6 +927,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     b.time = toTime24(b.time);
     b.mode = x.mode === "voice" || x.mode === "type" ? x.mode : "";
     b.voiceName = str(x.voiceName);
+    b.voiceV2 = x.voiceV2 ? 1 : 0;
     b.lang = x.lang === "fr" ? "fr" : "en"; b.docLang = x.docLang === "fr" ? "fr" : "en"; b.fixOff = !!x.fixOff;
     if (x.tr && typeof x.tr === "object") Object.keys(x.tr).slice(0, 600).forEach(k => { if (typeof x.tr[k] === "string") b.tr[k] = x.tr[k]; });
     b.consent = x.consent === true ? true : x.consent === false ? false : null;
@@ -1085,7 +1086,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // Natural voices from Microsoft (processed in Canada) when the website has them switched on.
     // The browser's own voice is the fallback, so reading aloud never stops working.
     const CLOUD = {
-      en: [["en-CA-ClaraNeural", "Clara"], ["en-CA-LiamNeural", "Liam"], ["en-US-AvaNeural", "Ava"], ["en-US-AndrewNeural", "Andrew"]],
+      en: [["en-CA-Liam:DragonHDOmniLatestNeural", "Liam"], ["en-CA-ClaraNeural", "Clara"], ["en-US-AvaNeural", "Ava"], ["en-US-AndrewNeural", "Andrew"]],
       fr: [["fr-CA-SylvieNeural", "Sylvie"], ["fr-CA-ThierryNeural", "Thierry"], ["fr-CA-AntoineNeural", "Antoine"], ["fr-FR-DeniseNeural", "Denise (France)"], ["fr-FR-HenriNeural", "Henri (France)"]]
     };
     let cloudOn = false, cloudVoice = "";
@@ -2533,6 +2534,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function uiLang() { document.documentElement.lang = S.lang === "fr" ? "fr-CA" : "en-CA"; uiApply(document.body); }
 
   // ---------- start ----------
+  // 29 Oct 2026: English moves to Liam HD (Canadian, livelier). An English voice saved before then is
+  // reset once, so every device hears him; a later choice from "Try a different voice" stays.
+  if (!S.voiceV2) { if (/^en-/.test(S.voiceName || "")) S.voiceName = ""; S.voiceV2 = 1; save(); }
   if (S.voiceName) Voice.pickVoice(S.voiceName);
   fillFields(); applyMode(); applyLang();
   addMics(document.querySelector("main"));
