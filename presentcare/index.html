@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Présent — appointment support for patients and families</title>
+<meta name="description" content="Présent helps patients and families walk into every appointment prepared and walk out knowing what to do next. A Pen & Ink project, Toronto.">
+<!-- Keep out of search results until the name is cleared. Delete this line to allow indexing. -->
+<meta name="robots" content="noindex">
+<link rel="icon" href="/presentcare/favicon.ico" sizes="any">
+<link rel="icon" href="/presentcare/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/presentcare/apple-touch-icon.png">
+<link rel="manifest" href="/presentcare/site.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Présent">
+<meta name="theme-color" content="#f8f2e7">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,SOFT,wght@9..144,100,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f5f1ea;
+    --ink: #1a1a1a;
+    --ink-soft: #4a4540;
+    --brick: #8b3a3a;
+    --rule: #d9d1c4;
+    --card: #fbf8f3;
+    --focus: #1a1a1a;
+    --shadow-tint: 139, 58, 58;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #1c1a18;
+      --ink: #f2ede4;
+      --ink-soft: #c9c1b5;
+      --brick: #e08a7f;
+      --rule: #3a3530;
+      --card: #24211e;
+      --focus: #f2ede4;
+      --shadow-tint: 0, 0, 0;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Libre Caslon Text", Georgia, "Times New Roman", serif;
+    font-size: 1.1875rem;   /* 19px */
+    line-height: 1.6;
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 0 1rem; }
+
+  /* Header */
+  header .wrap {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; padding-top: 1.25rem; padding-bottom: 1.25rem;
+  }
+  .wordmark { font-size: 1.375rem; font-weight: 700; letter-spacing: .01em; text-decoration: none; color: var(--ink); }
+  .wordmark .acc { color: var(--brick); }
+  .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .logo { font-family: "Fraunces", Georgia, serif; font-weight: 500; letter-spacing: -.01em; line-height: 1; white-space: nowrap; display: inline-block; padding-top: .3em; }
+  .logo .e { position: relative; display: inline-block; color: inherit; }
+  .logo .bub { position: absolute; left: -.1em; top: -.12em; width: .73em; height: .56em; }
+  .logo .b2 { stroke: var(--paper); }
+  .wordmark .logo { font-size: 1.6rem; }
+  .lang { display: flex; gap: .5rem; }
+  .lang button {
+    min-width: 44px; min-height: 44px; padding: 0 .9rem;
+    font: inherit; font-size: 1rem; cursor: pointer;
+    color: var(--ink); background: var(--card);
+    border: 1px solid var(--rule); border-radius: 999px;
+    box-shadow: 0 1px 2px rgba(var(--shadow-tint), .10), 0 4px 12px rgba(var(--shadow-tint), .06);
+    transition: box-shadow .2s ease, transform .2s ease;
+  }
+  .lang button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .lang button:hover { box-shadow: 0 2px 4px rgba(var(--shadow-tint), .14), 0 8px 20px rgba(var(--shadow-tint), .10); transform: translateY(-1px); }
+  .lang button:active { box-shadow: inset 0 2px 4px rgba(var(--shadow-tint), .20); transform: translateY(0); }
+
+  /* Hero */
+  .hero { padding: 3rem 0 2rem; }
+  .kicker { margin: 0 0 1rem; font-size: clamp(1.1rem, 3vw, 1.3rem); letter-spacing: .01em; color: var(--ink-soft); }
+  h1 {
+    margin: 0; font-weight: 400;
+    font-size: clamp(3.5rem, 15vw, 7.5rem);
+    line-height: 1; letter-spacing: -.01em;
+  }
+  h1 .acc { color: var(--brick); }
+  .lede { margin: 1.5rem 0 0; font-size: clamp(1.3rem, 3.6vw, 1.6rem); line-height: 1.45; max-width: 34ch; }
+
+  /* Three meanings */
+  .meanings { list-style: none; margin: 2.5rem 0 0; padding: 0; border-top: 1px solid var(--rule); }
+  .meanings li { padding: 1.5rem 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: 2.5rem 1fr; gap: .25rem 1rem; }
+  .num { font-size: 1.5rem; color: var(--brick); line-height: 1.3; }
+  .meanings h2 { margin: 0; font-size: 1.6rem; font-weight: 700; line-height: 1.3; }
+  .meanings h2 em { font-style: italic; color: var(--brick); font-weight: 700; }
+  .meanings p { margin: .35rem 0 0; color: var(--ink-soft); grid-column: 2; }
+
+  /* Status + call to action */
+  .status { margin: 3rem 0 0; padding: 1.5rem; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; }
+  .status p { margin: 0 0 1.25rem; }
+  .cta {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 48px; padding: .75rem 1.5rem;
+    font: inherit; font-size: 1.125rem; font-weight: 700; text-decoration: none;
+    color: #fff; background: #8b3a3a; border-radius: 999px;
+    box-shadow: 0 1px 2px rgba(110, 40, 40, .30), 0 8px 24px rgba(139, 58, 58, .22), inset 0 1px 0 rgba(255,255,255,.15);
+    transition: box-shadow .2s ease, transform .2s ease;
+  }
+  .cta:hover { box-shadow: 0 2px 4px rgba(110, 40, 40, .32), 0 14px 32px rgba(139, 58, 58, .28), inset 0 1px 0 rgba(255,255,255,.15); transform: translateY(-2px); }
+  .cta:active { box-shadow: inset 0 3px 6px rgba(60, 20, 20, .40); transform: translateY(0); }
+  .email-note { display: block; margin-top: .75rem; font-size: 1rem; color: var(--ink-soft); }
+
+  /* Footer */
+  footer { margin-top: 3.5rem; padding: 1.5rem 0 2.5rem; border-top: 1px solid var(--rule); font-size: 1rem; color: var(--ink-soft); }
+  footer p { margin: .25rem 0; }
+  footer a { color: var(--ink); text-underline-offset: 3px; }
+
+  /* Focus: always visible, 3:1+ contrast */
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+  /* Language panes */
+  [data-lang] { display: none; }
+  html[lang="en"] [data-lang="en"], html[lang="fr"] [data-lang="fr"] { display: revert; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+    .lang button:hover, .cta:hover { transform: none; }
+  }
+  @media (max-width: 30rem) {
+    .meanings li { grid-template-columns: 1.75rem 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="wordmark" href="#top"><span class="sr">Présent</span><span class="logo" aria-hidden="true">pr<span class="e">e<svg class="bub" viewBox="0 0 30 23" aria-hidden="true"><path d="M4 1 H15 a3.5 3.5 0 0 1 3.5 3.5 V9 a3.5 3.5 0 0 1 -3.5 3.5 H9 L4.5 16 V12.5 H4 a3.5 3.5 0 0 1 -3.5 -3.5 V4.5 A3.5 3.5 0 0 1 4 1 Z" fill="#b86b4b"/><path class="b2" d="M13 8 H25 a3.5 3.5 0 0 1 3.5 3.5 V15.5 a3.5 3.5 0 0 1 -3.5 3.5 H24.5 V22 L21 19 H13 a3.5 3.5 0 0 1 -3.5 -3.5 V11.5 A3.5 3.5 0 0 1 13 8 Z" fill="#93ab92" stroke-width="1.6"/><circle cx="15.2" cy="13.6" r="1.3" fill="#fffbf4"/><circle cx="19" cy="13.6" r="1.3" fill="#fffbf4"/><circle cx="22.8" cy="13.6" r="1.3" fill="#fffbf4"/></svg></span>sent</span></a>
+    <div class="lang" role="group" aria-label="Language / Langue">
+      <button type="button" id="btn-en" lang="en" aria-pressed="true">English</button>
+      <button type="button" id="btn-fr" lang="fr" aria-pressed="false">Français</button>
+    </div>
+  </div>
+</header>
+
+<main id="top" class="wrap">
+
+  <!-- ENGLISH -->
+  <section data-lang="en" lang="en" aria-labelledby="h-en">
+    <div class="hero">
+      <p class="kicker">Every appointment: prepared, heard, remembered.</p>
+      <h1 id="h-en"><span class="sr">Présent</span><span class="logo" aria-hidden="true">pr<span class="e">e<svg class="bub" viewBox="0 0 30 23" aria-hidden="true"><path d="M4 1 H15 a3.5 3.5 0 0 1 3.5 3.5 V9 a3.5 3.5 0 0 1 -3.5 3.5 H9 L4.5 16 V12.5 H4 a3.5 3.5 0 0 1 -3.5 -3.5 V4.5 A3.5 3.5 0 0 1 4 1 Z" fill="#b86b4b"/><path class="b2" d="M13 8 H25 a3.5 3.5 0 0 1 3.5 3.5 V15.5 a3.5 3.5 0 0 1 -3.5 3.5 H24.5 V22 L21 19 H13 a3.5 3.5 0 0 1 -3.5 -3.5 V11.5 A3.5 3.5 0 0 1 13 8 Z" fill="#93ab92" stroke-width="1.6"/><circle cx="15.2" cy="13.6" r="1.3" fill="#fffbf4"/><circle cx="19" cy="13.6" r="1.3" fill="#fffbf4"/><circle cx="22.8" cy="13.6" r="1.3" fill="#fffbf4"/></svg></span>sent</span></h1>
+      <p class="lede">Walk into every appointment prepared. Walk out knowing what to do next.</p>
+    </div>
+
+    <ol class="meanings">
+      <li>
+        <span class="num" aria-hidden="true">1</span>
+        <h2>Be <em>present</em>.</h2>
+        <p>Arrive calm and prepared, not overwhelmed. A voice guide helps you gather your thoughts before the visit.</p>
+      </li>
+      <li>
+        <span class="num" aria-hidden="true">2</span>
+        <h2><em>Present</em> what matters.</h2>
+        <p>Say what is on your mind, in your own words and your own language. You leave with a one-page list for your doctor.</p>
+      </li>
+      <li>
+        <span class="num" aria-hidden="true">3</span>
+        <h2>Keep your people <em>present</em>.</h2>
+        <p>Everyone who helps with care stays in the loop, even when they cannot be in the room.</p>
+      </li>
+    </ol>
+
+    <div class="status">
+      <p><strong>Coming soon.</strong> We are inviting a small number of Toronto families to try an early version, starting with people living with Parkinson's and the people who help them.</p>
+      <a class="cta" href="mailto:hello@pen-ink.ca?subject=Pr%C3%A9sent" target="_blank" rel="noopener">Write to us</a>
+      <span class="email-note">hello@pen-ink.ca</span>
+    </div>
+  </section>
+
+  <!-- FRANÇAIS -->
+  <section data-lang="fr" lang="fr" aria-labelledby="h-fr">
+    <div class="hero">
+      <p class="kicker">Chaque rendez-vous&nbsp;: préparé, entendu, retenu.</p>
+      <h1 id="h-fr"><span class="sr">Présent</span><span class="logo" aria-hidden="true">pr<span class="e">e<svg class="bub" viewBox="0 0 30 23" aria-hidden="true"><path d="M4 1 H15 a3.5 3.5 0 0 1 3.5 3.5 V9 a3.5 3.5 0 0 1 -3.5 3.5 H9 L4.5 16 V12.5 H4 a3.5 3.5 0 0 1 -3.5 -3.5 V4.5 A3.5 3.5 0 0 1 4 1 Z" fill="#b86b4b"/><path class="b2" d="M13 8 H25 a3.5 3.5 0 0 1 3.5 3.5 V15.5 a3.5 3.5 0 0 1 -3.5 3.5 H24.5 V22 L21 19 H13 a3.5 3.5 0 0 1 -3.5 -3.5 V11.5 A3.5 3.5 0 0 1 13 8 Z" fill="#93ab92" stroke-width="1.6"/><circle cx="15.2" cy="13.6" r="1.3" fill="#fffbf4"/><circle cx="19" cy="13.6" r="1.3" fill="#fffbf4"/><circle cx="22.8" cy="13.6" r="1.3" fill="#fffbf4"/></svg></span>sent</span></h1>
+      <p class="lede">Arrivez à chaque rendez-vous préparé. Repartez en sachant quoi faire ensuite.</p>
+    </div>
+
+    <ol class="meanings">
+      <li>
+        <span class="num" aria-hidden="true">1</span>
+        <h2>Soyez <em>présent</em>.</h2>
+        <p>Arrivez calme et préparé, pas dépassé. Un guide vocal vous aide à rassembler vos idées avant la visite.</p>
+      </li>
+      <li>
+        <span class="num" aria-hidden="true">2</span>
+        <h2><em>Présentez</em> ce qui compte.</h2>
+        <p>Dites ce qui vous préoccupe, avec vos mots et dans votre langue. Vous repartez avec une liste d'une page pour votre médecin.</p>
+      </li>
+      <li>
+        <span class="num" aria-hidden="true">3</span>
+        <h2>Gardez vos proches <em>présents</em>.</h2>
+        <p>Toutes les personnes qui vous aident restent informées, même lorsqu'elles ne peuvent pas être dans la salle.</p>
+      </li>
+    </ol>
+
+    <div class="status">
+      <p><strong>Bientôt disponible.</strong> Nous invitons quelques familles de Toronto à essayer une première version, en commençant par les personnes atteintes de la maladie de Parkinson et leurs proches aidants.</p>
+      <a class="cta" href="mailto:hello@pen-ink.ca?subject=Pr%C3%A9sent" target="_blank" rel="noopener">Écrivez-nous</a>
+      <span class="email-note">hello@pen-ink.ca</span>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p data-lang="en" lang="en">A <a href="https://pen-ink.ca" target="_blank" rel="noopener">Pen &amp; Ink</a> project · Toronto. This page collects no information about you.</p>
+    <p data-lang="fr" lang="fr">Un projet de <a href="https://pen-ink.ca" target="_blank" rel="noopener">Pen &amp; Ink</a> · Toronto. Cette page ne recueille aucune information sur vous.</p>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btnEn = document.getElementById('btn-en');
+    var btnFr = document.getElementById('btn-fr');
+    var titles = {
+      en: 'Présent — appointment support for patients and families',
+      fr: 'Présent — soutien aux rendez-vous pour les patients et leurs proches'
+    };
+
+    function setLang(lang, save) {
+      root.setAttribute('lang', lang);
+      btnEn.setAttribute('aria-pressed', String(lang === 'en'));
+      btnFr.setAttribute('aria-pressed', String(lang === 'fr'));
+      document.title = titles[lang];
+      if (save) {
+        try { localStorage.setItem('present-lang', lang); }
+        catch (e) { console.warn('Could not save language choice:', e); }
+      }
+    }
+
+    var start = 'en';
+    try {
+      var saved = localStorage.getItem('present-lang');
+      if (saved === 'en' || saved === 'fr') { start = saved; }
+      else if ((navigator.language || '').toLowerCase().indexOf('fr') === 0) { start = 'fr'; }
+    } catch (e) {
+      console.warn('Could not read saved language choice:', e);
+      if ((navigator.language || '').toLowerCase().indexOf('fr') === 0) { start = 'fr'; }
+    }
+    setLang(start, false);
+
+    btnEn.addEventListener('click', function () { setLang('en', true); });
+    btnFr.addEventListener('click', function () { setLang('fr', true); });
+  })();
+</script>
+</body>
+</html>

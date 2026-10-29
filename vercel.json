@@ -1,0 +1,40 @@
+{
+  "routes": [
+    {
+      "src": "/prep/?",
+      "has": [
+        {
+          "type": "host",
+          "value": "^(www\\.)?(presentcare\\.ca|presentsante\\.ca|presentsante\\.com)$"
+        }
+      ],
+      "status": 307,
+      "headers": {
+        "Location": "/try"
+      }
+    },
+    {
+      "src": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "^(www\\.)?(presentcare\\.ca|presentsante\\.ca|presentsante\\.com)$"
+        }
+      ],
+      "dest": "/presentcare/index.html"
+    },
+    {
+      "src": "/try/?",
+      "has": [
+        {
+          "type": "host",
+          "value": "^(www\\.)?(presentcare\\.ca|presentsante\\.ca|presentsante\\.com)$"
+        }
+      ],
+      "dest": "/prep/index.html"
+    },
+    {
+      "handle": "filesystem"
+    }
+  ]
+}
