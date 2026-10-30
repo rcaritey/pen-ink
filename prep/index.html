@@ -1224,7 +1224,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const AC = window.AudioContext || window.webkitAudioContext;
     let actx = null, src = null, audioDone = null;
     const clips = new Map();
-    const ctx = () => { if (!actx && AC) { try { actx = new AC(); } catch (err) { console.warn(err); } } return actx; };
+    const ctx = () => {
+      if (!actx && AC) {
+        try { actx = new AC(); } catch (err) { console.warn(err); }
+        // an alarm or phone call takes the sound away: pause neatly instead of getting stuck mid-sentence
+        if (actx) actx.onstatechange = () => { log("sound " + actx.state); if (actx.state === "interrupted" && api.active() && !api.held()) api.pause(); };
+      }
+      return actx;
+    };
+    // leaving the app (another app, the lock screen, an alarm screen) pauses too
+    document.addEventListener("visibilitychange", () => { if (document.hidden && api.active() && !api.held()) { log("app hidden, pausing"); api.pause(); } });
     // phones only allow sound that starts from a tap, so wake the sound system on every tap until it's running
     const unlock = () => {
       const c = ctx(); if (!c) return;
@@ -1554,8 +1563,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       chosen = list[(i + 1) % list.length];
       return chosen.name;
     }
-    function pause() { if (!active || held) return; held = true; pauseRec(); quiet(); view("paused"); }
-    function resume() { if (!active || !held) return; held = false; view(confirming ? "confirm" : "listening"); startRec(); }
+    let cutShort = false;
+    function pause() { if (!active || held) return; cutShort = talking && !confirming; held = true; pauseRec(); quiet(); view("paused"); }
+    // if the question was cut off (by Pause, an alarm or a call), ask it again before listening
+    function resume() { if (!active || !held) return; held = false; if (cutShort && lastQ) { cutShort = false; sayThen(lastQ); return; } view(confirming ? "confirm" : "listening"); startRec(); }
     // Ask for the microphone while the tap that chose Talk still counts, so listening can start on its own later.
     function prime() {
       if (!SR || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
@@ -1745,9 +1756,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function updateBar() {
     const conf = Voice.confirming(), talk = Voice.talking(), carry = Voice.hasCarry(), nx = $("next");
     $("vb-talk").hidden = !talk;
-    const tap = Voice.needTap();
-    $("vb-done").hidden = !tap && (talk || (!carry && !conf && nx.hidden));
-    $("vb-done").textContent = tap ? "Tap to answer" : conf ? "Yes, that's right" : carry ? "I'm done" : nx.textContent;
+    const tap = Voice.needTap(), held = Voice.held();
+    $("vb-done").hidden = !tap && !held && (talk || (!carry && !conf && nx.hidden));
+    $("vb-done").textContent = held ? "Resume" : tap ? "Tap to answer" : conf ? "Yes, that's right" : carry ? "I'm done" : nx.textContent;
     $("vb-pause").hidden = !conf && !Voice.active();
     $("vb-pause").textContent = conf ? "Change it" : Voice.held() ? "Resume" : "Pause";
     if (conf) $("vb-pause").removeAttribute("aria-pressed"); else $("vb-pause").setAttribute("aria-pressed", String(Voice.held()));
@@ -1772,6 +1783,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   $("vb-panel-close").addEventListener("click", () => { $("vb-panel").hidden = true; $("vb-settings").setAttribute("aria-expanded", "false"); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && Voice.talking()) Voice.interrupt(); });
   $("vb-done").addEventListener("click", () => {
+    if (Voice.held()) { Voice.resume(); updateBar(); return; }
     if (Voice.needTap()) { Voice.tapListen(); updateBar(); return; }
     if (Voice.confirming()) { const st = STEPS[S.step]; Voice.stop(); if (st && st.id === "words") show(S.step + 1); else $("next").click(); return; }
     if (Voice.active()) Voice.carry(); else $("next").click();
