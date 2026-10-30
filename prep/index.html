@@ -1385,8 +1385,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       let r;
       try { r = new SR(); } catch (err) { console.warn("Voice typing unavailable", err); view("typing"); return; }
       rec = r;
-      // iPhones are steadier listening one phrase at a time and starting again; computers keep one long session.
-      r.lang = S.lang === "fr" ? "fr-CA" : "en-CA"; r.continuous = !IOS; r.interimResults = true;
+      // One long listening session everywhere: an iPhone often refuses to restart the microphone without a tap,
+      // so restarting after every phrase would keep asking for taps.
+      r.lang = S.lang === "fr" ? "fr-CA" : "en-CA"; r.continuous = true; r.interimResults = true;
       let alive = false; const ping = () => { alive = true; };
       r.onspeechstart = ping; r.onaudiostart = () => log("audio on");
       clearTimeout(wdT);
@@ -1401,7 +1402,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const done = new Set();
       let lastFinal = "";
       let pending = "";
-      r.onstart = () => { everStarted = true; needTap = false; log("listening"); };
+      r.onstart = () => { everStarted = true; needTap = false; retried = false; log("listening"); };
       r.onresult = e => {
         if (rec !== r) return;
         alive = true;
@@ -1450,7 +1451,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (e.error === "not-allowed" || e.error === "service-not-allowed") {
           rec = null;
           // Worked before, so it's the phone wanting a fresh tap (iPhones do this after speaking), not a blocked microphone.
-          if (everStarted) { needTap = true; view("tap"); } else { active = false; view("blocked"); }
+          // Try once more on its own first; only then ask for a tap.
+          if (everStarted && !retried) { retried = true; log("retrying"); setTimeout(() => { if (active && !held && !rec && !talking) startRec(); }, 600); }
+          else if (everStarted) { needTap = true; view("tap"); } else { active = false; view("blocked"); }
         }
       };
       // iPhones often stop listening without ever confirming the last words. Keep them (and act on "carry on" in them).
@@ -1459,13 +1462,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (rec !== r) return;
         clearTimeout(cmdT);
         const t = pending; pending = ""; rec = null;
+        if (needTap) return;
         if (t && active && !held && !talking && onFinal(t)) return;
         if (active && !held && !rec) startRec();
       };
       try { r.start(); if (!talking) { view(confirming ? "confirm" : "listening"); armSilence(); } }
       catch (err) { console.warn("Could not start listening", err); rec = null; if (everStarted) { needTap = true; view("tap"); } else view("typing"); }
     }
-    let cmdT = null, wdT = null, everStarted = false, needTap = false;
+    let cmdT = null, wdT = null, everStarted = false, needTap = false, retried = false;
     // Test switch: add ?debug to the address to see what the microphone is doing, at the top of the screen.
     const DEBUG = /[?&]debug/.test(location.search);
     function log(m) {
@@ -1733,6 +1737,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (field === "-") { guideView("speaking"); Voice.speak(line).then(() => guideView("off")); return; }
     Voice.ask(line, field ? $(field) : null, next, guideView, { readback: !!field, q: say(k) });
   }
+  $("guide").addEventListener("click", e => { if (Voice.needTap() && !e.target.closest("button")) { Voice.tapListen(); updateBar(); } });
   $("guide-face").addEventListener("click", () => { const st = STEPS[S.step]; if (st) guide(st.id, true); });
   // Voice controls: I'm done, Pause / Resume, Start this question again, Stop talking, settings.
   // One bar at the bottom. The big button is always the one thing to do next:
