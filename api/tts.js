@@ -42,12 +42,15 @@ export default async function handler(req, res) {
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   const text = String((body && body.text) || '').trim().slice(0, MAX);
-  const voice = VOICES[body && body.voice] ? body.voice : DEFAULT_VOICE;
+  let voice = VOICES[body && body.voice] ? body.voice : DEFAULT_VOICE;
+  // "Slower" voice setting: HD voices ignore speed, so use the standard twin and slow it down.
+  const slow = !!(body && body.slow);
+  if (slow && TWIN[voice]) voice = TWIN[voice];
   if (!text) return res.status(400).json({ error: 'empty' });
 
   try {
-    let r = await synth(key, region, text, voice).catch(() => null);
-    if ((!r || !r.ok) && TWIN[voice]) { console.error('tts hd unavailable', r && r.status); r = await synth(key, region, text, TWIN[voice]); }
+    let r = await synth(key, region, text, voice, slow).catch(() => null);
+    if ((!r || !r.ok) && TWIN[voice]) { console.error('tts hd unavailable', r && r.status); r = await synth(key, region, text, TWIN[voice], slow); }
     if (!r || !r.ok) { console.error('tts upstream', r && r.status); return res.status(502).json({ error: 'upstream' }); }
     const buf = Buffer.from(await r.arrayBuffer());
     res.setHeader('Content-Type', 'audio/mpeg');
@@ -58,10 +61,10 @@ export default async function handler(req, res) {
   }
 }
 
-function synth(key, region, text, voice) {
+function synth(key, region, text, voice, slow) {
   // Standard voices read slightly slower than default, easier for older listeners. HD voices take
   // no speed or pitch changes: they find their own pace and tune.
-  const inner = isHd(voice) ? esc(text) : `<prosody rate="-8%">${esc(text)}</prosody>`;
+  const inner = isHd(voice) ? esc(text) : `<prosody rate="${slow ? '-22%' : '-8%'}">${esc(text)}</prosody>`;
   const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${VOICES[voice]}">` +
     `<voice name="${voice}">${inner}</voice></speak>`;
   return fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
