@@ -134,7 +134,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 @keyframes vbars { 0%, 100% { height: 6px; } 50% { height: 18px; } }
 @media (prefers-reduced-motion: reduce) { .vdot::after, .vdot i { animation: none !important; } }
 .guide .guide-q { font-size: 1.6rem; line-height: 1.35; font-weight: 600; color: var(--ink); margin: 10px 0 0 !important; }
-.guide-ans { margin-top: 14px; background: var(--bg); border: 2px dashed var(--line); border-radius: 14px; padding: 12px 14px; }
+.guide-ans { scroll-margin-bottom: 200px; margin-top: 14px; background: var(--bg); border: 2px dashed var(--line); border-radius: 14px; padding: 12px 14px; }
 .guide[data-st="listening"] .guide-ans { border-color: var(--accent); border-style: solid; }
 .guide-ans .ga-k { display: block; font-size: .9rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .guide .ga-t { font-size: 1.4rem; line-height: 1.4; color: var(--ink); margin: 4px 0 0 !important; max-height: 40vh; overflow: auto; white-space: pre-wrap; }
@@ -1400,6 +1400,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       // Words still being heard show in the status line until they're final.
       const done = new Set();
       let lastFinal = "";
+      let pending = "";
       r.onstart = () => { everStarted = true; needTap = false; log("listening"); };
       r.onresult = e => {
         if (rec !== r) return;
@@ -1425,15 +1426,17 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           // some phones repeat the whole phrase so far in each result; keep only the new part
           if (lastFinal && t.trim().length > lastFinal.length && t.trim().toLowerCase().startsWith(lastFinal.toLowerCase())) t = t.trim().slice(lastFinal.length);
           lastFinal = e.results[i][0].transcript.trim();
+          pending = "";
           if (onFinal(t)) return;
         }
         // iPhones can take many seconds to mark words as final. A command heard and held steady
         // for a moment ("carry on", "yes", "repeat") is acted on without waiting.
         const it = interim.trim();
+        pending = talking ? "" : it;
         if (it && !talking && isCommand(it)) {
           cmdT = setTimeout(() => {
             if (rec !== r) return;
-            rec = null; try { r.abort(); } catch (err) { console.warn(err); }
+            rec = null; pending = ""; try { r.abort(); } catch (err) { console.warn(err); }
             onFinal(it);
             if (active && !held && !rec && !talking) startRec();
           }, 800);
@@ -1450,7 +1453,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           if (everStarted) { needTap = true; view("tap"); } else { active = false; view("blocked"); }
         }
       };
-      r.onend = () => { alive = true; log("ended"); if (active && rec === r && !held) { rec = null; startRec(); } };
+      // iPhones often stop listening without ever confirming the last words. Keep them (and act on "carry on" in them).
+      r.onend = () => {
+        alive = true; log("ended" + (pending ? " — keeping: " + pending : ""));
+        if (rec !== r) return;
+        clearTimeout(cmdT);
+        const t = pending; pending = ""; rec = null;
+        if (t && active && !held && !talking && onFinal(t)) return;
+        if (active && !held && !rec) startRec();
+      };
       try { r.start(); if (!talking) { view(confirming ? "confirm" : "listening"); armSilence(); } }
       catch (err) { console.warn("Could not start listening", err); rec = null; if (everStarted) { needTap = true; view("tap"); } else view("typing"); }
     }
@@ -1699,6 +1710,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (lastHeard) { const n = document.createElement("span"); n.className = "ga-now"; n.textContent = (have ? " " : "") + lastHeard + "\u2026"; t.append(n); }
     if (!have && !lastHeard) { const n = document.createElement("span"); n.className = "ga-empty"; n.textContent = S.lang === "fr" ? "Vos mots s'afficheront ici pendant que vous parlez." : "Your words will show here as you speak."; t.append(n); }
     t.scrollTop = t.scrollHeight;
+    // keep the words in sight above the bottom buttons
+    if (lastHeard || have) { const r = box.getBoundingClientRect(), dock = $("vdock").getBoundingClientRect().top || innerHeight;
+      if (r.bottom > dock - 8 || r.top < 0) box.scrollIntoView({ block: "end", behavior: "smooth" }); }
   }
   document.addEventListener("input", e => { if (e.target === Voice.targetEl()) showAnswer(); }, true);
   // On screen, leave out the spoken how-to sentences ("When you've finished, say carry on.") so the answer box stays in view.
