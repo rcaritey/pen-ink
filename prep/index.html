@@ -1277,7 +1277,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // while listening, so talking over the app is on by default only on computers and Android; tapping always works.
     const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     const bargeOn = () => !!SR && (S.barge === null || S.barge === undefined ? !IOS : S.barge);
-    const CMD = /\b(carry on|continue|continuez|next|suivant|done|fini|help|aide|repeat|repete|repetez|again|yes|oui|no|non)\b/;
+    const CMD = /\b(carry on|carrie on|kerry on|carryon|continue|continuez|next|suivant|done|fini|help|aide|repeat|repete|repetez|again|yes|oui|no|non)\b/;
     const STOPW = /\b(stop|wait|pause|hold on|hang on|sorry|excuse me|attends|attendez|arrete|arretez|pardon)\b/;
     function isBarge(t) {
       const w = words(t), novel = w.filter(x => !talkWords.has(x));
@@ -1304,7 +1304,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // Pause holds everything right where it is; nothing moves on by itself.
     let held = false, confirming = false, readback = false, turnWords = [], turnStartVal = "", checking = false, lastQ = "";
     // Things people say TO the app rather than as their answer: help, repeat, and replies to "Should I continue?"
-    const lc = t => t.toLowerCase().replace(/[’]/g, "'").replace(/[.!?,;:]+/g, " ").replace(/\s+/g, " ").trim();
+    const lc = t => t.toLowerCase().replace(/[’]/g, "'").replace(/[.!?,;:]+/g, " ").replace(/(\w)-(\w)/g, "$1 $2")
+      .replace(/\b(carrie|kerry|cary|carey|carri) on\b/g, "carry on").replace(/\bcarryon\b/g, "carry on").replace(/\bi am done\b/g, "i'm done")
+      .replace(/\s+/g, " ").trim();
     const RE_HELP = /^(help|help me|help please|i need help|i don't understand|i do not understand|i'm confused|i am confused|i'm not sure what to say|what do i do|what do i say|what should i say|what am i supposed to say|how does this work|aide|aide-moi|aidez-moi|à l'aide|je ne comprends pas|je comprends pas|qu'est-ce que je dois dire|qu'est-ce que je dis|comment ça marche)$/;
     const RE_REPEAT = /^(repeat|repeat that|repeat it|repeat the question|please repeat|say that again|say it again|can you repeat that|can you repeat|could you repeat that|what was the question|what's the question|pardon|sorry what|what|what did you say|répète|répétez|répète la question|répétez la question|peux-tu répéter|pouvez-vous répéter|quelle était la question|quoi|comment)$/;
     const RE_ASK = /^(what|what's|whats|why|how|who|which|where|can you|could you|do i|do you|should i|does|is it|is that|am i|qu'est-ce|que veut|ça veut|pourquoi|comment|est-ce que|dois-je|faut-il|c'est quoi)\b/;
@@ -1461,10 +1463,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (!box) { box = document.createElement("pre"); box.id = "vdebug"; box.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99;max-height:30vh;overflow:auto;margin:0;padding:6px 10px;font:12px/1.3 monospace;background:#000c;color:#fff;white-space:pre-wrap"; document.body.appendChild(box); }
       const d = new Date(); box.textContent = d.toTimeString().slice(3, 8) + " " + m + "\n" + box.textContent.slice(0, 3000);
     }
-    const CARRY_T = /(\bcarry on|\bcontinue|\bi'm done|\bcontinuez|\bon continue|\bc'est tout|\bj'ai fini)\W*$/i;
-    const CARRY_N = /(\bcarry on|\bcontinue|\bnext|\bi'm done|\bcontinuez|\bon continue|\bc'est tout|\bsuivant|\bj'ai fini)\W*$/i;
+    // Phones spell commands in odd ways ("carry-on", "Carrie on", "carryon", "I am done"), so match loosely.
+    const CARRY_T = /(\b(?:carry|carrie|kerry|cary|carey|carri)[\s\-]*on|\bcontinue|\bi'?\s*a?m[\s\-]*done|\bcontinuez|\bon continue|\bc'est tout|\bj'ai fini)\W*$/i;
+    const CARRY_N = /(\b(?:carry|carrie|kerry|cary|carey|carri)[\s\-]*on|\bcontinue|\bnext|\bi'?\s*a?m[\s\-]*done|\bcontinuez|\bon continue|\bc'est tout|\bsuivant|\bj'ai fini)\W*$/i;
     const CONF_NO = /(\bchange|\bno\b|\bagain\b|\bnon\b|\bchanger|\brecommence)/i;
-    const CONF_YES = /(\byes\b|\byeah\b|right|correct|\bcarry on|\bcontinue\b|\bnext\b|\boui\b|c'est ça|c'est bon|\bcontinuez|\bsuivant)/i;
+    const CONF_YES = /(\byes\b|\byeah\b|\byep\b|right|correct|\b(?:carry|carrie|kerry|cary|carey|carri)[\s\-]*on|\bcontinue\b|\bnext\b|\boui\b|c'est ça|c'est bon|\bcontinuez|\bsuivant)/i;
     function isCommand(t) {
       const x = lc(t);
       if (confirming) return x.split(" ").length <= 4 && (CONF_NO.test(x) || CONF_YES.test(x));
@@ -1490,6 +1493,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     function appendSpoken(raw) {
       let t = raw.replace(/\s+/g, " ").trim();
       if (!t || !target) return;
+      // names heard in capitals ("RAMA") are written "Rama", so the voice says the name instead of spelling it
+      if (target.id === "who") t = t.replace(/\b(\p{Lu})(\p{Lu}+)\b/gu, (m, x, y) => x + y.toLowerCase());
       if (/^(scratch that|undo that|delete that|efface ça|effacez ça|efface|effacez|annule ça|annule)\W*$/i.test(t)) {
         if (target._hist && target._hist.length) { target.value = target._hist.pop(); target.dispatchEvent(new Event("input", { bubbles: true })); target.dispatchEvent(new Event("voice-change")); }
         return;
@@ -1696,7 +1701,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     t.scrollTop = t.scrollHeight;
   }
   document.addEventListener("input", e => { if (e.target === Voice.targetEl()) showAnswer(); }, true);
-  function setGuide(text) { guideLine = text; $("guide-say").textContent = text; }
+  // On screen, leave out the spoken how-to sentences ("When you've finished, say carry on.") so the answer box stays in view.
+  const HOWTO = /(^|\s)[^.?!]*(say carry on|dites continuez|dites simplement continuez|just say carry on)[^.?!]*[.?!]/gi;
+  function setGuide(text) { guideLine = text; $("guide-say").textContent = text.replace(HOWTO, " ").replace(/\s+/g, " ").trim() || text; }
   function guide(id, again) {
     if (!isVoice()) return;
     if (id === "words") { setGuide(say("wordsQ")); return askWords(); }
