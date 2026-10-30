@@ -1118,9 +1118,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_appt: "Do you have an appointment coming up? Tell me in a few words what it's for, for example, a sore foot. When you've finished, say carry on.",
       g_bg: "Now your health. Tell me about any long-term conditions, like Parkinson's or diabetes. If there are none, just say carry on.",
       g_bg2: "Here's your health from last time. Has anything changed? Tap No or Yes on the screen, then say next.",
-      g_meds: "Next, your medicines. Check the list on the screen and add anything new. Say next when you're ready.",
-      g_tell: "Here's what you'll tell the doctor. Read it over and fix anything that's wrong. Say next when you're ready.",
-      g_ask: "Do you have your own questions for the doctor? Add them on the screen. Say next when you're ready.",
+      g_meds: "Now your medicines, including vitamins. Say one at a time, with the dose if you know it, for example, metformin 500 milligrams twice a day. After each one, say next one. When you've finished, say carry on.",
+      g_tell: "What should the doctor hear about this? Your answers so far are on the screen. Add anything else, one thing at a time, then say next one. When you've finished, say carry on.",
+      g_tell0: "What should the doctor hear about this? Tell me short facts, one at a time: what it is, where it is, since when, and how bad. After each one, say next one. When you've finished, say carry on.",
+      g_ask: "Do you have your own questions for the doctor? Say one at a time, then say next one. When you've finished, say carry on.",
       g_ideas: "Here are some questions you might not think of. Tick the ones you want, then say next.",
       g_priority: "Which questions matter most to you? Tick them on the screen, then say next.",
       g_sheets: "Your pages are ready. Print them, or keep them on your phone for the appointment. Tap Next when you're ready.",
@@ -1157,9 +1158,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_appt: "Avez-vous un rendez-vous bientôt ? Dites-moi en quelques mots pourquoi, par exemple, un pied qui fait mal. Quand vous avez fini, dites continuez.",
       g_bg: "Maintenant, votre santé. Dites-moi vos problèmes de santé de longue durée, comme le Parkinson ou le diabète. S'il n'y en a pas, dites simplement continuez.",
       g_bg2: "Voici votre santé, de la dernière fois. Est-ce que quelque chose a changé ? Touchez Non ou Oui à l'écran, puis dites suivant.",
-      g_meds: "Ensuite, vos médicaments. Vérifiez la liste à l'écran et ajoutez ce qui est nouveau. Dites suivant quand vous êtes prêt.",
-      g_tell: "Voici ce que vous allez dire au médecin. Relisez et corrigez ce qui ne va pas. Dites suivant quand vous êtes prêt.",
-      g_ask: "Avez-vous vos propres questions pour le médecin ? Ajoutez-les à l'écran. Dites suivant quand vous êtes prêt.",
+      g_meds: "Maintenant vos médicaments, vitamines comprises. Dites-les un à la fois, avec la dose si vous la connaissez, par exemple, metformine 500 milligrammes deux fois par jour. Après chacun, dites un autre. Quand vous avez fini, dites continuez.",
+      g_tell: "Que doit savoir le médecin à ce sujet ? Vos réponses sont déjà à l'écran. Ajoutez autre chose, une chose à la fois, puis dites un autre. Quand vous avez fini, dites continuez.",
+      g_tell0: "Que doit savoir le médecin à ce sujet ? Dites-moi des faits courts, un à la fois : ce que c'est, où, depuis quand, et à quel point c'est fort. Après chacun, dites un autre. Quand vous avez fini, dites continuez.",
+      g_ask: "Avez-vous vos propres questions pour le médecin ? Dites-les une à la fois, puis dites une autre. Quand vous avez fini, dites continuez.",
       g_ideas: "Voici des questions auxquelles vous n'auriez peut-être pas pensé. Cochez celles que vous voulez, puis dites suivant.",
       g_priority: "Quelles questions comptent le plus pour vous ? Cochez-les à l'écran, puis dites suivant.",
       g_sheets: "Vos pages sont prêtes. Imprimez-les, ou gardez-les sur votre téléphone pour le rendez-vous. Touchez Suivant quand vous êtes prêt.",
@@ -1311,6 +1313,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       } catch (err) { console.warn("Could not read aloud", err); res(); }
     });
     // Pause holds everything right where it is; nothing moves on by itself.
+    let listNext = null;
     let held = false, confirming = false, readback = false, turnWords = [], turnStartVal = "", checking = false, lastQ = "";
     // Things people say TO the app rather than as their answer: help, repeat, and replies to "Should I continue?"
     const lc = t => t.toLowerCase().replace(/[’]/g, "'").replace(/[.!?,;:]+/g, " ").replace(/(\w)-(\w)/g, "$1 $2")
@@ -1492,8 +1495,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const CARRY_N = /(\b(?:carry|carrie|kerry|cary|carey|carri)[\s\-]*on|\bcontinue|\bnext|\bi'?\s*a?m[\s\-]*done|\bcontinuez|\bon continue|\bc'est tout|\bsuivant|\bj'ai fini)\W*$/i;
     const CONF_NO = /(\bchange|\bno\b|\bagain\b|\bnon\b|\bchanger|\brecommence)/i;
     const CONF_YES = /(\byes\b|\byeah\b|\byep\b|right|correct|\b(?:carry|carrie|kerry|cary|carey|carri)[\s\-]*on|\bcontinue\b|\bnext\b|\boui\b|c'est ça|c'est bon|\bcontinuez|\bsuivant)/i;
+    const NEXT_ITEM = /(\bnext one|\banother one|\badd another|\bnew one|\bnext item|\bnext line|\bun autre|\bune autre|\bsuivante?)\W*$/i;
     function isCommand(t) {
       const x = lc(t);
+      if (listNext && !confirming && (NEXT_ITEM.test(x) || /^next( please)?$/.test(x))) return true;
       if (confirming) return x.split(" ").length <= 4 && (CONF_NO.test(x) || CONF_YES.test(x));
       if (checking && (RE_GO.test(x) || RE_MORE.test(x))) return true;
       if (RE_REPEAT.test(x) || RE_HELP.test(x)) return true;
@@ -1507,6 +1512,17 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         return false;
       }
       if (handled(t)) return true;
+      if (listNext) {
+        if (/^\W*next\W*(please)?\W*$/i.test(t)) { carryOn(); return true; }   // a bare "next" means done here
+        const n = t.match(NEXT_ITEM);
+        if (n) {
+          appendSpoken(t.slice(0, n.index));
+          if (turnWords.length) turnWords[turnWords.length - 1] = turnWords[turnWords.length - 1].replace(/[.;,]?$/, ";");
+          if (target && !target.isConnected && target.id && document.getElementById(target.id)) target = document.getElementById(target.id);
+          if (target && target.value.trim()) { target = listNext(); turnStartVal = target.value; view("listening"); }
+          return false;
+        }
+      }
       const m = t.match(target ? CARRY_T : CARRY_N);
       if (m) { appendSpoken(t.slice(0, m.index)); carryOn(); return true; }
       appendSpoken(t);
@@ -1516,6 +1532,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     let lastSpokeAt = 0;
     function appendSpoken(raw) {
       let t = raw.replace(/\s+/g, " ").trim();
+      // lists redraw themselves; always write into the box that is on the page now
+      if (target && !target.isConnected && target.id && document.getElementById(target.id)) target = document.getElementById(target.id);
       if (!t || !target) return;
       // names heard in capitals ("RAMA") are written "Rama", so the voice says the name instead of spelling it
       if (target.id === "who") t = t.replace(/\b(\p{Lu})(\p{Lu}+)\b/gu, (m, x, y) => x + y.toLowerCase());
@@ -1548,6 +1566,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       stop(); const v0 = opts.keepView ? v : (v || (() => {}));
       view = opts.keepView ? v0 : (st, heard) => { v0(st, heard); if (api.onState) api.onState(st); };
       active = true; target = el; onCarry = carry; prompted = !text;
+      listNext = opts.listNext || null;
       readback = !!opts.readback; turnWords = []; turnStartVal = el ? el.value : ""; held = false; confirming = false; checking = false;
       if (!opts.keepView || opts.q) lastQ = opts.q || text;
       const g = gen;
@@ -1720,7 +1739,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     box.hidden = !el || !isVoice();
     if (box.hidden) return;
     t.textContent = "";
-    const have = el.value.trim();
+    const have = listOn ? [...$(listOn.box).querySelectorAll('[id^="' + listOn.pre + '"]')].filter(x => /\d+$/.test(x.id)).map(x => x.value.trim()).filter(Boolean).map(v => "\u2022 " + v).join("\n") : el.value.trim();
     if (have) t.append(have);
     if (lastHeard) { const n = document.createElement("span"); n.className = "ga-now"; n.textContent = (have ? " " : "") + lastHeard + "\u2026"; t.append(n); }
     if (!have && !lastHeard) { const n = document.createElement("span"); n.className = "ga-empty"; n.textContent = S.lang === "fr" ? "Vos mots s'afficheront ici pendant que vous parlez." : "Your words will show here as you speak."; t.append(n); }
@@ -1729,10 +1748,23 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (lastHeard || have) { const r = box.getBoundingClientRect(), dock = $("vdock").getBoundingClientRect().top || innerHeight;
       if (r.bottom > dock - 8 || r.top < 0) box.scrollIntoView({ block: "end", behavior: "smooth" }); }
   }
-  document.addEventListener("input", e => { if (e.target === Voice.targetEl()) showAnswer(); }, true);
+  document.addEventListener("input", e => { if (e.target === Voice.targetEl() || (listOn && e.target.closest && e.target.closest("#" + listOn.box))) showAnswer(); }, true);
   // On screen, leave out the spoken how-to sentences ("When you've finished, say carry on.") so the answer box stays in view.
   const HOWTO = /(^|\s)[^.?!]*(say carry on|dites continuez|dites simplement continuez|just say carry on)[^.?!]*[.?!]/gi;
   function setGuide(text) { guideLine = text; $("guide-say").textContent = text.replace(HOWTO, " ").replace(/\s+/g, " ").trim() || text; }
+  const LISTS = { tell: { add: "tell", pre: "tell-", box: "tell-list" }, ask: { add: "ask", pre: "ask-", box: "ask-list" }, meds: { add: "med", pre: "mn-", box: "med-list" } };
+  let listOn = null;
+  // the first empty line in the list, or a new one (fresh = always a new line unless the last is empty)
+  function listSlot(L, fresh) {
+    const items = [...$(L.box).querySelectorAll('[id^="' + L.pre + '"]')].filter(el => /\d+$/.test(el.id));
+    const empty = fresh ? (items.length && !items[items.length - 1].value.trim() ? items[items.length - 1] : null) : items.find(el => !el.value.trim());
+    if (empty) return empty;
+    document.querySelector('[data-add="' + L.add + '"]').click();
+    const all = [...$(L.box).querySelectorAll('[id^="' + L.pre + '"]')].filter(el => /\d+$/.test(el.id));
+    const el = all[all.length - 1];
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // no keyboard popping up while talking
+    return el;
+  }
   function guide(id, again) {
     if (!isVoice()) return;
     if (id === "words") { setGuide(say("wordsQ")); return askWords(); }
@@ -1746,6 +1778,18 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     setGuide(say(k));
     const next = () => $("next").click();
     if (field === "-") { guideView("speaking"); Voice.speak(line).then(() => guideView("off")); return; }
+    // List pages: each thing said goes on its own line; "next one" starts a new line.
+    const L = LISTS[id];
+    if (L) {
+      if (id === "tell" && !S.tell.some(t => t.trim())) { k = "g_tell0"; }
+      const ln = (greet && !again ? say("hello") + " " : "") + say(k); greet = false;
+      setGuide(say(k)); listOn = L;
+      // wait for the page to draw its list, so an empty line isn't added twice
+      const id0 = S.step;
+      setTimeout(() => { if (S.step !== id0 || !isVoice()) return; Voice.ask(ln, listSlot(L, false), next, guideView, { readback: true, q: say(k), listNext: () => listSlot(L, true) }); }, 0);
+      return;
+    }
+    listOn = null;
     Voice.ask(line, field ? $(field) : null, next, guideView, { readback: !!field, q: say(k) });
   }
   $("guide").addEventListener("click", e => { if (Voice.needTap() && !e.target.closest("button")) { Voice.tapListen(); updateBar(); } });
