@@ -1036,6 +1036,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       heard: "Here's what I heard:", heardQ: "Is that right? Say yes, or say change it.",
       again: "Okay, let's try that again. Go ahead whenever you're ready.",
       sorry: "I didn't catch anything. Please try again, or type it if that's easier.",
+      help: "Here's how it works. Answer in your own words; there are no wrong answers. When you've finished, say carry on. Say repeat to hear the question again, or ask me what something means.",
+      moreTime: "Of course. Take your time. Say carry on when you're ready.",
+      moment: "One moment.",
       more: "and more. It's all on the screen.",
       words: "What's on your mind about this appointment? Say it all, in any order. Take your time. I'll wait. When you've finished, say carry on.",
       wordsQ: "What's on your mind about this appointment?",
@@ -1070,6 +1073,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       heard: "Voici ce que j'ai entendu :", heardQ: "Est-ce bien ça ? Dites oui, ou dites changer.",
       again: "D'accord, on recommence. Allez-y quand vous êtes prêt.",
       sorry: "Je n'ai rien entendu. Essayez encore, ou écrivez-le si c'est plus simple.",
+      help: "Voici comment ça marche. Répondez avec vos mots ; il n'y a pas de mauvaise réponse. Quand vous avez fini, dites continuez. Dites répète pour réentendre la question, ou demandez-moi ce que veut dire un mot.",
+      moreTime: "Bien sûr. Prenez votre temps. Dites continuez quand vous êtes prêt.",
+      moment: "Un instant.",
       more: "et plus encore. Tout est à l'écran.",
       words: "Qu'est-ce qui vous préoccupe pour ce rendez-vous ? Dites tout, dans l'ordre que vous voulez. Prenez votre temps, j'attends. Quand vous avez fini, dites continuez.",
       wordsQ: "Qu'est-ce qui vous préoccupe pour ce rendez-vous ?",
@@ -1190,12 +1196,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // while listening, so talking over the app is on by default only on computers and Android; tapping always works.
     const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     const bargeOn = () => !!SR && (S.barge === null || S.barge === undefined ? !IOS : S.barge);
+    const CMD = /\b(carry on|continue|continuez|next|suivant|done|fini|help|aide|repeat|repete|repetez|again|yes|oui|no|non)\b/;
     const STOPW = /\b(stop|wait|pause|hold on|hang on|sorry|excuse me|attends|attendez|arrete|arretez|pardon)\b/;
     function isBarge(t) {
       const w = words(t), novel = w.filter(x => !talkWords.has(x));
       if (STOPW.test(novel.join(" "))) return true;
       // a short "yes" / "no" answers the read-back even though the app itself says "say yes"
       if (confirming && w.length <= 3 && !w.includes("say") && !w.includes("dites") && /\b(yes|yeah|yep|no|nope|change|oui|non|changer)\b/.test(w.join(" "))) return true;
+      // a short command ("carry on", "help", "repeat") counts even though the app's own sentence contains it
+      if (w.length <= 4 && !w.includes("say") && !w.includes("dites") && !w.includes("tap") && CMD.test(w.join(" "))) return true;
       return novel.length >= 2;
     }
     function interrupt() { if (talking) quiet(); }
@@ -1212,7 +1221,43 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       } catch (err) { console.warn("Could not read aloud", err); res(); }
     });
     // Pause holds everything right where it is; nothing moves on by itself.
-    let held = false, confirming = false, readback = false, turnWords = [], turnStartVal = "";
+    let held = false, confirming = false, readback = false, turnWords = [], turnStartVal = "", checking = false, lastQ = "";
+    // Things people say TO the app rather than as their answer: help, repeat, and replies to "Should I continue?"
+    const lc = t => t.toLowerCase().replace(/[’]/g, "'").replace(/[.!?,;:]+/g, " ").replace(/\s+/g, " ").trim();
+    const RE_HELP = /^(help|help me|help please|i need help|i don't understand|i do not understand|i'm confused|i am confused|i'm not sure what to say|what do i do|what do i say|what should i say|what am i supposed to say|how does this work|aide|aide-moi|aidez-moi|à l'aide|je ne comprends pas|je comprends pas|qu'est-ce que je dois dire|qu'est-ce que je dis|comment ça marche)$/;
+    const RE_REPEAT = /^(repeat|repeat that|repeat it|repeat the question|please repeat|say that again|say it again|can you repeat that|can you repeat|could you repeat that|what was the question|what's the question|pardon|sorry what|what|what did you say|répète|répétez|répète la question|répétez la question|peux-tu répéter|pouvez-vous répéter|quelle était la question|quoi|comment)$/;
+    const RE_ASK = /^(what|what's|whats|why|how|who|which|where|can you|could you|do i|do you|should i|does|is it|is that|am i|qu'est-ce|que veut|ça veut|pourquoi|comment|est-ce que|dois-je|faut-il|c'est quoi)\b/;
+    const RE_ASK2 = /\b(mean|means|meaning|you|should i|do i|need to|have to|example|for instance|count|veut dire|vous|dois|faut|exemple|quoi)\b/;
+    const RE_GO = /^(yes|yeah|yep|yes please|sure|please|ok|okay|go on|go ahead|continue|carry on|keep going|next|i'm done|i am done|done|yes continue|yes carry on|oui|oui continue|oui continuez|vas-y|allez-y|continue|continuez|suivant|j'ai fini|c'est bon)$/;
+    const RE_MORE = /^(no|nope|not yet|no not yet|more time|i need more time|wait|hold on|hang on|give me a (minute|moment|second)|one (minute|moment|second)|non|pas encore|plus de temps|attends|attendez|un instant|une minute)$/;
+    async function sayThen(line, keepChecking) {
+      const g = gen; if (!bargeOn()) pauseRec(); view("speaking");
+      await speak(line);
+      if (!keepChecking) checking = false;
+      if (active && !held && g === gen) startRec();
+    }
+    // returns true when the phrase was for the app, not part of the answer
+    function handled(t) {
+      const x = lc(t); if (!x) return false;
+      if (checking) {
+        if (RE_GO.test(x)) { checking = false; carryOn(); return true; }
+        if (RE_MORE.test(x)) { sayThen(say("moreTime")); return true; }
+        checking = false;
+      }
+      if (RE_REPEAT.test(x)) { if (lastQ) sayThen(lastQ); return true; }
+      if (RE_HELP.test(x)) { sayThen(say("help")); return true; }
+      if (x.split(" ").length <= 25 && RE_ASK.test(x) && RE_ASK2.test(x) && api.onHelp) { askHelp(x); return true; }
+      return false;
+    }
+    async function askHelp(q) {
+      const g = gen; if (!bargeOn()) pauseRec(); view("speaking");
+      const pending = api.onHelp(q, lastQ);
+      await speak(say("moment"));
+      let answer = null; try { answer = await pending; } catch (err) { console.warn("Help unavailable", err); }
+      if (g !== gen || !active) return;
+      await speak(answer || say("help"));
+      if (active && !held && g === gen) startRec();
+    }
     function armSilence() {
       clearTimeout(silenceT);
       if (prompted || !target || held || confirming || talking) return;
@@ -1221,7 +1266,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       silenceT = setTimeout(async () => {
         if (!active || held) return;
         prompted = true; if (!bargeOn()) pauseRec(); view("speaking");
-        const g = gen; await speak(say("silence"));
+        const g = gen; checking = true; await speak(say("silence"));
         if (active && !held && g === gen) startRec();
       }, ms);
     }
@@ -1280,13 +1325,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           if (done.has(i)) continue;
           done.add(i);
           // some phones repeat the whole phrase so far in each result; keep only the new part
-          if (lastFinal && t.trim().toLowerCase().startsWith(lastFinal.toLowerCase())) t = t.trim().slice(lastFinal.length);
+          if (lastFinal && t.trim().length > lastFinal.length && t.trim().toLowerCase().startsWith(lastFinal.toLowerCase())) t = t.trim().slice(lastFinal.length);
           lastFinal = e.results[i][0].transcript.trim();
           if (confirming) {
             if (/(\bchange|\bno\b|\bagain\b|\bnon\b|\bchanger|\brecommence)/i.test(t)) { redo(); return; }
             if (/(\byes\b|\byeah\b|right|correct|\bcarry on|\bcontinue\b|\bnext\b|\boui\b|c'est ça|c'est bon|\bcontinuez|\bsuivant)/i.test(t)) { const next = onCarry; stop(); if (next) next(); return; }
             continue;
           }
+          if (handled(t)) return;
           const m = t.match(target ? /(\bcarry on|\bcontinue|\bi'm done|\bcontinuez|\bon continue|\bc'est tout|\bj'ai fini)\W*$/i : /(\bcarry on|\bcontinue|\bnext|\bi'm done|\bcontinuez|\bon continue|\bc'est tout|\bsuivant|\bj'ai fini)\W*$/i);
           if (m) {
             appendSpoken(t.slice(0, m.index));
@@ -1339,7 +1385,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       stop(); const v0 = opts.keepView ? v : (v || (() => {}));
       view = opts.keepView ? v0 : (st, heard) => { v0(st, heard); if (api.onState) api.onState(st); };
       active = true; target = el; onCarry = carry; prompted = !text;
-      readback = !!opts.readback; turnWords = []; turnStartVal = el ? el.value : ""; held = false; confirming = false;
+      readback = !!opts.readback; turnWords = []; turnStartVal = el ? el.value : ""; held = false; confirming = false; checking = false;
+      if (!opts.keepView || opts.q) lastQ = opts.q || text;
       const g = gen;
       if (text) { view("speaking"); const sp = speak(text); if (bargeOn()) startRec(); await sp; }
       if (active && !held && g === gen) startRec();
@@ -1362,7 +1409,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     const api = { ask, stop, speak, interrupt, talking: () => talking, bargeOn, pause, resume, prime, redo, restoreTurn, carry: () => { if (active) carryOn(); },
       held: () => held, active: () => active, confirming: () => confirming, hasCarry: () => active && !!onCarry, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
-      voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null };
+      voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null };
     return api;
   })();
   const VOICE_MSG = {
@@ -1502,7 +1549,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     setGuide(say(k));
     const next = () => $("next").click();
     if (field === "-") { guideView("speaking"); Voice.speak(line).then(() => guideView("off")); return; }
-    Voice.ask(line, field ? $(field) : null, next, guideView, { readback: !!field });
+    Voice.ask(line, field ? $(field) : null, next, guideView, { readback: !!field, q: say(k) });
   }
   $("guide-face").addEventListener("click", () => { const st = STEPS[S.step]; if (st) guide(st.id, true); });
   // Voice controls: I'm done, Pause / Resume, Start this question again, Stop talking, settings.
@@ -1517,6 +1564,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   Voice.onState = updateBar;
   // While the app is speaking, one big button cuts it off and starts listening.
+  // Questions about the app or a question ("what does that mean?") are answered by Claude, only if the person agreed to Claude.
+  Voice.onHelp = (q, current) => {
+    if (S.consent !== true) return Promise.resolve(null);
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 12000);
+    return fetch("/api/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
+      body: JSON.stringify({ mode: "help", lang: S.lang, question: current, text: q }) })
+      .then(r => r.ok ? r.json() : null).then(d => (d && d.ok && d.answer) ? d.answer : null).catch(() => null);
+  };
   Voice.onTalk = on => { $("vb-talk").hidden = !on; if (on) $("vbar").hidden = false; };
   $("vb-talk").addEventListener("click", () => { Voice.interrupt(); $("vb-talk").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && Voice.talking()) Voice.interrupt(); });
