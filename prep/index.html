@@ -1112,7 +1112,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       intro: "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say carry on. ",
       silence: "Should I continue, or do you need more time?",
       thanks: "Thank you.",
-      done: "That's all my questions. Thank you. Say next when you're ready.",
+      done: "That's all my questions. Thank you. Say carry on when you're ready.",
       g_name: "First, what's your name? If you're helping someone, say their name. It only goes on your printed pages. When you've finished, say carry on.",
       thanks: "Thanks, {n}.",
       g_appt: "Do you have an appointment coming up? Tell me in a few words what it's for, for example, a sore foot. When you've finished, say carry on.",
@@ -1124,8 +1124,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_ask: "Do you have your own questions for the doctor? Say one at a time, then say next one. When you've finished, say carry on.",
       g_ideas: "Here are some questions you might not think of. Tick the ones you want, then say next.",
       g_priority: "Which questions matter most to you? Tick them on the screen, then say next.",
-      g_sheets: "Your pages are ready. Print them, or keep them on your phone for the appointment. Tap Next when you're ready.",
-      g_visit: "At the appointment, hand the doctor your summary, and ask your questions from My page. If you'd like to record, ask first. When you're back home, tap I'm back from the appointment.",
+      g_sheets: "Your pages are ready. Print them, or keep them on your phone for the appointment. When you're ready, say carry on.",
+      g_visit: "At the appointment, hand the doctor your summary, and ask your questions from My page. If you'd like to record, ask first. I'll turn the microphone off now, so nothing is heard during your visit. When you're back home, tap I'm back from the appointment.",
       g_recap: "Welcome back. What did the doctor say? Tell me while it's fresh. When you've finished, say carry on.",
       g_recap2: "What happens next? For example, book blood work. Add each thing to do on the screen, then say next.",
       g_who: "Who are you seeing? For example, a neurologist. The date and time go on the screen. If you'd rather skip this, just say carry on.",
@@ -1136,7 +1136,39 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_recapmore: "Is there anything else you'd like to ask next time? If not, just say carry on.",
       g_recapfu: "Was another appointment booked or suggested? Who with? If not, just say carry on.",
       g_share: "Here's your recap. You can send it to family who help, so nobody has to tell it all again.",
-      sample: "Hi. This is how I'll sound when I read your questions."
+      sample: "Hi. This is how I'll sound when I read your questions.",
+      gotIt: "Got it.",
+      sayYN: " Say yes or no.",
+      consentQ: "May I use Claude to ask you a few more questions and suggest questions for the doctor? Claude is an AI made by Anthropic. It doesn't diagnose or give medical advice.",
+      consentNo: "No problem. I'll use the standard questions doctors ask.",
+      bgChk: "Since your last appointment, has anything changed in your health?",
+      medChk: "Since your last appointment, have any medicines been started, stopped or changed?",
+      medNote: "What changed? For example, started magnesium in September. When you've finished, say carry on.",
+      medHave: "You have {n} on your list: {list}. Do you take any other medicines, including vitamins?",
+      medAny: "Now your medicines. Do you take any medicines, including vitamins?",
+      medName: "What's the medicine called? When you've finished, say carry on.",
+      medDose: "What dose? For example, 500 milligrams. If you don't know, say skip.",
+      medWhen: "When do you take it? For example, twice a day with food. If you're not sure, say skip.",
+      medMore: "Any other medicines?",
+      apptDate: "What day is the appointment? For example, next Tuesday, or November 4th. If you don't know yet, say skip.",
+      apptTime: "What time? For example, 2:30 in the afternoon. Or say skip.",
+      fuWith: "Was another appointment booked or suggested? Who is it with? If not, just say carry on.",
+      fuDate: "What day? Or say skip.",
+      dateAgain: "Sorry, I didn't get the date.",
+      timeAgain: "Sorry, I didn't get the time.",
+      docLang: "Should the pages for the doctor be in English or French?",
+      ideasWait: "One moment. Claude is looking at your whole picture.",
+      ideasIntro: "Here are some questions other people ask. I'll read them one at a time. Say yes to add one, or no to skip it. Say that's all to stop.",
+      ideasNone: "There are no suggestions to go through.",
+      pickAdd: "{q}. Add it?",
+      prioIntro: "Which questions matter most to you? I'll read them one at a time. Say yes if it's one of the most important.",
+      prioEach: "{q}. One of the most important?",
+      prioNone: "Please choose at least one, so the doctor gets to it first.",
+      prioNew: "Is there a question we missed? Say it, or say carry on.",
+      openIntro: "Let's check your questions. For each one, say yes if the doctor answered it, or no if not.",
+      openEach: "{q}. Did that get answered?",
+      g_recap2l: "What happens next? For example, book blood work. Say one thing at a time, then say next one. When you've finished, say carry on.",
+      nextPage: "Say carry on for the next page."
     },
     fr: {
       hello: "Bonjour. Je suis la voix de l'application. Je pose une chose à la fois et je vous attends. Quand vous avez fini, dites continuez, ou touchez J'ai fini. Vous pouvez toucher Pause à tout moment.",
@@ -1152,7 +1184,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       intro: "On prend notre temps. Je pose une question à la fois, et j'attends. Quand vous avez fini de répondre, dites continuez. ",
       silence: "Voulez-vous que je continue, ou avez-vous besoin de plus de temps ?",
       thanks: "Merci.",
-      done: "C'est tout pour mes questions. Merci. Dites suivant quand vous êtes prêt.",
+      done: "C'est tout pour mes questions. Merci. Dites continuez quand vous êtes prêt.",
       g_name: "D'abord, comment vous appelez-vous ? Si vous aidez quelqu'un, dites son nom. Il va seulement sur vos pages imprimées. Quand vous avez fini, dites continuez.",
       thanks: "Merci, {n}.",
       g_appt: "Avez-vous un rendez-vous bientôt ? Dites-moi en quelques mots pourquoi, par exemple, un pied qui fait mal. Quand vous avez fini, dites continuez.",
@@ -1164,8 +1196,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_ask: "Avez-vous vos propres questions pour le médecin ? Dites-les une à la fois, puis dites une autre. Quand vous avez fini, dites continuez.",
       g_ideas: "Voici des questions auxquelles vous n'auriez peut-être pas pensé. Cochez celles que vous voulez, puis dites suivant.",
       g_priority: "Quelles questions comptent le plus pour vous ? Cochez-les à l'écran, puis dites suivant.",
-      g_sheets: "Vos pages sont prêtes. Imprimez-les, ou gardez-les sur votre téléphone pour le rendez-vous. Touchez Suivant quand vous êtes prêt.",
-      g_visit: "Au rendez-vous, donnez le résumé au médecin, et posez vos questions de Ma page. Si vous voulez enregistrer, demandez d'abord. De retour à la maison, touchez « Je suis de retour du rendez-vous ».",
+      g_sheets: "Vos pages sont prêtes. Imprimez-les, ou gardez-les sur votre téléphone pour le rendez-vous. Quand vous êtes prêt, dites continuez.",
+      g_visit: "Au rendez-vous, donnez le résumé au médecin, et posez vos questions de Ma page. Si vous voulez enregistrer, demandez d'abord. Je coupe le micro maintenant, pour que rien ne soit entendu pendant votre visite. De retour à la maison, touchez « Je suis de retour du rendez-vous ».",
       g_recap: "Bon retour. Qu'est-ce que le médecin a dit ? Dites-le pendant que c'est frais. Quand vous avez fini, dites continuez.",
       g_recap2: "Et ensuite ? Par exemple, une prise de sang. Ajoutez chaque chose à faire à l'écran, puis dites suivant.",
       g_who: "Qui allez-vous voir ? Par exemple, un neurologue. La date et l'heure se remplissent à l'écran. Si vous préférez passer, dites simplement continuez.",
@@ -1176,7 +1208,39 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_recapmore: "Y a-t-il autre chose que vous aimeriez demander la prochaine fois ? Sinon, dites simplement continuez.",
       g_recapfu: "Un autre rendez-vous a-t-il été pris ou suggéré ? Avec qui ? Sinon, dites simplement continuez.",
       g_share: "Voici votre résumé. Vous pouvez l'envoyer à la famille qui vous aide, pour que personne n'ait à tout répéter.",
-      sample: "Bonjour. Voici ma voix quand je lis vos questions."
+      sample: "Bonjour. Voici ma voix quand je lis vos questions.",
+      gotIt: "C'est noté.",
+      sayYN: " Dites oui ou non.",
+      consentQ: "Puis-je utiliser Claude pour vous poser quelques questions de plus et suggérer des questions pour le médecin ? Claude est une IA d'Anthropic. Il ne pose pas de diagnostic et ne donne pas de conseils médicaux.",
+      consentNo: "Pas de problème. J'utiliserai les questions habituelles des médecins.",
+      bgChk: "Depuis votre dernier rendez-vous, est-ce que quelque chose a changé dans votre santé ?",
+      medChk: "Depuis votre dernier rendez-vous, est-ce qu'un médicament a été commencé, arrêté ou changé ?",
+      medNote: "Qu'est-ce qui a changé ? Par exemple, commencé le magnésium en septembre. Quand vous avez fini, dites continuez.",
+      medHave: "Vous avez {n} sur votre liste : {list}. Prenez-vous d'autres médicaments, vitamines comprises ?",
+      medAny: "Maintenant vos médicaments. Prenez-vous des médicaments, vitamines comprises ?",
+      medName: "Comment s'appelle le médicament ? Quand vous avez fini, dites continuez.",
+      medDose: "Quelle dose ? Par exemple, 500 milligrammes. Si vous ne savez pas, dites passer.",
+      medWhen: "Quand le prenez-vous ? Par exemple, deux fois par jour avec un repas. Si vous n'êtes pas sûr, dites passer.",
+      medMore: "D'autres médicaments ?",
+      apptDate: "Quel jour est le rendez-vous ? Par exemple, mardi prochain, ou le 4 novembre. Si vous ne savez pas encore, dites passer.",
+      apptTime: "À quelle heure ? Par exemple, 14 h 30. Ou dites passer.",
+      fuWith: "Un autre rendez-vous a-t-il été pris ou suggéré ? Avec qui ? Sinon, dites simplement continuez.",
+      fuDate: "Quel jour ? Ou dites passer.",
+      dateAgain: "Désolée, je n'ai pas compris la date.",
+      timeAgain: "Désolée, je n'ai pas compris l'heure.",
+      docLang: "Les pages pour le médecin, en anglais ou en français ?",
+      ideasWait: "Un instant. Claude regarde l'ensemble de votre situation.",
+      ideasIntro: "Voici des questions que d'autres posent. Je les lis une à la fois. Dites oui pour en ajouter une, ou non pour passer. Dites c'est tout pour arrêter.",
+      ideasNone: "Il n'y a pas de suggestions à passer en revue.",
+      pickAdd: "{q}. On l'ajoute ?",
+      prioIntro: "Quelles questions comptent le plus pour vous ? Je les lis une à la fois. Dites oui si c'est une des plus importantes.",
+      prioEach: "{q}. Une des plus importantes ?",
+      prioNone: "Choisissez-en au moins une, pour que le médecin y réponde en premier.",
+      prioNew: "Y a-t-il une question qu'on a oubliée ? Dites-la, ou dites continuez.",
+      openIntro: "Vérifions vos questions. Pour chacune, dites oui si le médecin y a répondu, ou non sinon.",
+      openEach: "{q}. A-t-on répondu à celle-là ?",
+      g_recap2l: "Et ensuite ? Par exemple, faire une prise de sang. Dites une chose à la fois, puis dites un autre. Quand vous avez fini, dites continuez.",
+      nextPage: "Dites continuez pour la page suivante."
     }
   };
   const say = k => (SAY[S.lang] || SAY.en)[k];
@@ -1313,7 +1377,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       } catch (err) { console.warn("Could not read aloud", err); res(); }
     });
     // Pause holds everything right where it is; nothing moves on by itself.
-    let listNext = null;
+    let listNext = null, phraseHook = null, answerHook = null;
     let held = false, confirming = false, readback = false, turnWords = [], turnStartVal = "", checking = false, lastQ = "";
     // Things people say TO the app rather than as their answer: help, repeat, and replies to "Should I continue?"
     const lc = t => t.toLowerCase().replace(/[’]/g, "'").replace(/[.!?,;:]+/g, " ").replace(/(\w)-(\w)/g, "$1 $2")
@@ -1498,6 +1562,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const NEXT_ITEM = /(\bnext one|\banother one|\badd another|\bnew one|\bnext item|\bnext line|\bun autre|\bune autre|\bsuivante?)\W*$/i;
     function isCommand(t) {
       const x = lc(t);
+      if (answerHook && !confirming && answerHook(t)) return true;
       if (listNext && !confirming && (NEXT_ITEM.test(x) || /^next( please)?$/.test(x))) return true;
       if (confirming) return x.split(" ").length <= 4 && (CONF_NO.test(x) || CONF_YES.test(x));
       if (checking && (RE_GO.test(x) || RE_MORE.test(x))) return true;
@@ -1512,6 +1577,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         return false;
       }
       if (handled(t)) return true;
+      if (phraseHook && phraseHook(t)) return true;
       if (listNext) {
         if (/^\W*next\W*(please)?\W*$/i.test(t)) { carryOn(); return true; }   // a bare "next" means done here
         const n = t.match(NEXT_ITEM);
@@ -1566,7 +1632,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       stop(); const v0 = opts.keepView ? v : (v || (() => {}));
       view = opts.keepView ? v0 : (st, heard) => { v0(st, heard); if (api.onState) api.onState(st); };
       active = true; target = el; onCarry = carry; prompted = !text;
-      listNext = opts.listNext || null;
+      listNext = opts.listNext || null; phraseHook = opts.onPhrase || null; answerHook = opts.isAnswer || null;
       readback = !!opts.readback; turnWords = []; turnStartVal = el ? el.value : ""; held = false; confirming = false; checking = false;
       if (!opts.keepView || opts.q) lastQ = opts.q || text;
       const g = gen;
@@ -1714,7 +1780,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   // The beaver leads in talking mode: it says what this page is for, then listens.
   const GUIDE = { name: ["g_name", "who"], appt: ["g_appt", "purpose"], bg: ["g_bg", "bg-conditions"], meds: ["g_meds", null], tell: ["g_tell", null], ask: ["g_ask", null],
-    ideas: ["g_ideas", null], priority: ["g_priority", null], sheets: ["g_sheets", "-"], visit: ["g_visit", "-"], recap: ["g_recap", "rc-said"],
+    ideas: ["g_ideas", null], priority: ["g_priority", null], sheets: ["g_sheets", null], visit: ["g_visit", "-"], recap: ["g_recap", "rc-said"],
     recap2: ["g_recap2", null], share: ["g_share", "-"],
     who: ["g_who", "seeing"], bgchg: ["g_bgchg", "bg-changes"], bgcare: ["g_bgcare", "bg-team"], bgallergy: ["g_bgallergy", "bg-allergies"],
     recapq: ["g_recapq", null], recapmore: ["g_recapmore", "rc-more"], recapfu: ["g_recapfu", "rc-with"] };
@@ -1752,7 +1818,186 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   // On screen, leave out the spoken how-to sentences ("When you've finished, say carry on.") so the answer box stays in view.
   const HOWTO = /(^|\s)[^.?!]*(say carry on|dites continuez|dites simplement continuez|just say carry on)[^.?!]*[.?!]/gi;
   function setGuide(text) { guideLine = text; $("guide-say").textContent = text.replace(HOWTO, " ").replace(/\s+/g, " ").trim() || text; }
-  const LISTS = { tell: { add: "tell", pre: "tell-", box: "tell-list" }, ask: { add: "ask", pre: "ask-", box: "ask-list" }, meds: { add: "med", pre: "mn-", box: "med-list" } };
+
+  // ---------- full voice: every field on every page can be answered by talking ----------
+  const norm = t => t.toLowerCase().replace(/[’]/g, "'").replace(/(\w)-(\w)/g, "$1 $2").replace(/[.!?,;:«»"]+/g, " ").replace(/\s+/g, " ").trim()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const RX_YES = /^(yes|yeah|yep|yup|sure|ok|okay|please|yes please|add it|keep it|correct|right|that's right|it did|it was|oui|ouais|d'accord|bien sur|oui merci|c'est ca)\b/;
+  const RX_NO = /^(no|nope|nah|no thanks|not that one|not really|skip it|it didn't|it wasn't|non|non merci|pas celle la|pas vraiment)\b/;
+  const RX_ENOUGH = /^(that's all|that is all|that's enough|enough|stop|no more|i'm done|done|carry on|c'est tout|ca suffit|j'ai fini|continuez)$/;
+  const RX_SKIP = /^(skip|skip it|skip this|pass|i don't know|don't know|not sure|i'm not sure|no idea|passer|passe|je ne sais pas|je sais pas|pas sur)$/;
+  const yesNo = t => RX_YES.test(t) ? "yes" : RX_NO.test(t) ? "no" : null;
+  const tapEl = el => { if (!el) return; if (el.type === "radio" || el.type === "checkbox") { if (!el.checked) el.click(); } else el.click(); };
+  const setVal = (el, v) => { if (!el) return; el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); };
+  const shown = el => !!el && !el.closest("[hidden]") && el.offsetParent !== null;
+
+  // Spoken dates: today, tomorrow, (next) Tuesday, November 4th, the 4th of November, 4 novembre, le 12...
+  const MONTHS = { january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
+    janvier: 0, fevrier: 1, mars: 2, avril: 3, mai: 4, juin: 5, juillet: 6, aout: 7, septembre: 8, octobre: 9, novembre: 10, decembre: 11 };
+  const DAYS = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6, dimanche: 0, lundi: 1, mardi: 2, mercredi: 3, jeudi: 4, vendredi: 5, samedi: 6 };
+  const NUMW = { one: 1, first: 1, two: 2, second: 2, three: 3, third: 3, four: 4, fourth: 4, five: 5, fifth: 5, six: 6, sixth: 6, seven: 7, seventh: 7, eight: 8, eighth: 8, nine: 9, ninth: 9,
+    ten: 10, tenth: 10, eleven: 11, eleventh: 11, twelve: 12, twelfth: 12, thirteen: 13, thirteenth: 13, fourteen: 14, fourteenth: 14, fifteen: 15, fifteenth: 15, sixteen: 16, sixteenth: 16,
+    seventeen: 17, seventeenth: 17, eighteen: 18, eighteenth: 18, nineteen: 19, nineteenth: 19, twenty: 20, twentieth: 20, thirty: 30, thirtieth: 30,
+    un: 1, premier: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16, vingt: 20, trente: 30 };
+  const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  function dayNum(t) {
+    let m = t.match(/\b(\d{1,2})(st|nd|rd|th|er)?\b/); if (m) return +m[1];
+    m = t.match(/\b(twenty|thirty|vingt|trente)[ -]?(one|first|two|second|three|third|four|fourth|five|fifth|six|sixth|seven|seventh|eight|eighth|nine|ninth|et un|un|deux|trois|quatre|cinq|six|sept|huit|neuf)?\b/);
+    if (m) return NUMW[m[1]] + (m[2] ? (NUMW[m[2].replace("et ", "")] || 0) : 0);
+    m = t.match(new RegExp("\\b(" + Object.keys(NUMW).join("|") + ")\\b")); return m ? NUMW[m[1]] : 0;
+  }
+  function parseDate(raw) {
+    const t = norm(raw), now = new Date(); now.setHours(12, 0, 0, 0);
+    if (/\b(today|aujourd'hui)\b/.test(t)) return now;
+    if (/\b(day after tomorrow|apres demain)\b/.test(t)) return new Date(now.getTime() + 2 * 864e5);
+    if (/\b(tomorrow|demain)\b/.test(t)) return new Date(now.getTime() + 864e5);
+    const mo = Object.keys(MONTHS).find(k => new RegExp("\\b" + k + "\\b").test(t));
+    if (mo) {
+      const d = dayNum(t.replace(new RegExp("\\b" + mo + "\\b"), " ").replace(/\b(19|20)\d\d\b/, " ")); if (!d || d > 31) return null;
+      const y = (t.match(/\b(20\d\d)\b/) || [])[1];
+      let out = new Date(y ? +y : now.getFullYear(), MONTHS[mo], d, 12);
+      if (!y && out < now) out = new Date(now.getFullYear() + 1, MONTHS[mo], d, 12);
+      return out;
+    }
+    const wd = Object.keys(DAYS).find(k => new RegExp("\\b" + k + "\\b").test(t));
+    if (wd) { let diff = (DAYS[wd] - now.getDay() + 7) % 7; if (diff === 0) diff = 7; if (/\b(next week|la semaine prochaine)\b/.test(t)) diff += 7; return new Date(now.getTime() + diff * 864e5); }
+    const m = t.match(/\b(?:the|le)\s+(\d{1,2})(?:st|nd|rd|th|er)?\b/);
+    if (m) { let out = new Date(now.getFullYear(), now.getMonth(), +m[1], 12); if (out < now) out = new Date(now.getFullYear(), now.getMonth() + 1, +m[1], 12); return out; }
+    return null;
+  }
+  // Spoken times: 2:30, 2 30 pm, two thirty, half past two, quarter to three, noon, 14 h 30, deux heures et demie
+  function parseTime(raw) {
+    const t = norm(raw).replace(/\bp m\b/g, "pm").replace(/\ba m\b/g, "am").replace(/\bo'?clock\b/g, "");
+    if (/\b(noon|midi)\b/.test(t)) return "12:00";
+    let h = null, mi = 0, pm = /\b(pm|afternoon|evening|soir|apres midi)\b/.test(t), am = /\b(am|morning|matin)\b/.test(t);
+    let m = t.match(/\b(\d{1,2})\s*(?::|h|heures?)\s*(\d{2})?\b/) || t.match(/\b(\d{1,2})\s+(\d{2})\b/) || t.match(/\b(\d{1,2})\s*(?=pm|am|\b(?:in the|du|de l)\b)/);
+    if (m) { h = +m[1]; mi = m[2] ? +m[2] : 0; }
+    else {
+      const w = Object.keys(NUMW).filter(k => NUMW[k] <= 12).join("|");
+      const half = t.match(new RegExp("\\bhalf past (" + w + ")\\b")), qp = t.match(new RegExp("\\bquarter past (" + w + ")\\b")), qt = t.match(new RegExp("\\bquarter to (" + w + ")\\b"));
+      if (half) { h = NUMW[half[1]]; mi = 30; } else if (qp) { h = NUMW[qp[1]]; mi = 15; } else if (qt) { h = NUMW[qt[1]] - 1; mi = 45; }
+      else { const a = t.match(new RegExp("\\b(" + w + ")(?:\\s+heures?)?(?:\\s+(fifteen|thirty|forty five|et demie|et quart|quinze|trente))?\\b"));
+        if (a) { h = NUMW[a[1]]; mi = { fifteen: 15, thirty: 30, "forty five": 45, "et demie": 30, "et quart": 15, quinze: 15, trente: 30 }[a[2]] || 0; } }
+    }
+    if (h === null || h > 23 || mi > 59) return null;
+    if (pm && h < 12) h += 12; else if (am && h === 12) h = 0; else if (!pm && !am && h >= 1 && h <= 6) h += 12;   // clinics: "at 2" means 2 pm
+    return String(h).padStart(2, "0") + ":" + String(mi).padStart(2, "0");
+  }
+  const sayDate = d => d.toLocaleDateString(S.lang === "fr" ? "fr-CA" : "en-CA", { weekday: "long", month: "long", day: "numeric" });
+  const sayTime = hm => { const [h, m] = hm.split(":").map(Number); return S.lang === "fr" ? h + " h " + (m ? String(m).padStart(2, "0") : "") : new Date(2000, 0, 1, h, m).toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit" }); };
+
+  // Parts: one small spoken question each. kinds: text (a box), list (lines), yesno, date, time, choice.
+  function runParts(parts, done, pre0) {
+    const myStep = S.step; let i = -1;
+    const go = pre => {
+      if (S.step !== myStep || !isVoice()) return;
+      i++;
+      while (i < parts.length && parts[i].when && !parts[i].when()) i++;
+      if (i >= parts.length) { listOn = null; return done(pre || ""); }
+      const p = parts[i], text = typeof p.say === "function" ? p.say() : p.say;
+      const spoken = (pre || "") + text + (p.kind === "yesno" ? say("sayYN") : "");
+      setGuide(text); listOn = p.kind === "list" ? p.list : null;
+      const skipHook = t => { if (RX_SKIP.test(norm(t))) { Voice.stop(); go(""); return true; } return false; };
+      const after = ack => { if (p.then) p.then(); go(ack === false ? "" : say("gotIt") + " "); };
+      if (p.kind === "text") {
+        const el = $(typeof p.field === "function" ? p.field() : p.field);
+        return Voice.ask(spoken, el, () => after(p.readback !== false ? false : undefined), guideView, { readback: p.readback !== false, q: text, onPhrase: skipHook });
+      }
+      if (p.kind === "list") {
+        return setTimeout(() => { if (S.step !== myStep) return; Voice.ask(spoken, listSlot(p.list, false), () => after(false), guideView, { readback: true, q: text, listNext: () => listSlot(p.list, true) }); }, 0);
+      }
+      // answers understood straight away: yes/no, a date, a time, one of a few choices
+      const answer = (raw, dry) => {
+        const t = norm(raw);
+        if (p.kind === "yesno") {
+          if (p.group && RX_ENOUGH.test(t)) { if (!dry) { while (parts[i + 1] && parts[i + 1].group === p.group) i++; } return ""; }
+          const v = yesNo(t); if (!v) return undefined;
+          if (!dry) { const r = p.on(v); if (r === "again") { i--; return "again"; } }
+          return p.ack === false ? "" : (p.group ? "" : say("gotIt") + " ");
+        }
+        if (p.kind === "date") { const d = parseDate(t); if (!d) return dry ? undefined : "retry"; if (!dry) { setVal($(p.field), ymd(d)); const tm = p.timeField && parseTime(t.replace(/\b(\d{1,2})(st|nd|rd|th)\b/g, "")); if (tm && /\d\s*(:|h|pm|am)|\bat\b|\ba \d/.test(t)) { setVal($(p.timeField), tm); p.gotTime = true; return say("gotIt").replace(/\.$/, ": ") + sayDate(d) + ", " + sayTime(tm) + ". "; } } return say("gotIt").replace(/\.$/, ": ") + sayDate(d) + ". "; }
+        if (p.kind === "time") { const tm = parseTime(t); if (!tm) return dry ? undefined : "retry"; if (!dry) setVal($(p.field), tm); return say("gotIt").replace(/\.$/, ": ") + sayTime(tm) + ". "; }
+        if (p.kind === "choice") { const c = p.choices.find(c => c.rx.test(t)); if (!c) return undefined; if (!dry) tapEl($(c.el)); return say("gotIt") + " "; }
+        return undefined;
+      };
+      Voice.ask(spoken, null, () => go(""), guideView, { q: text,
+        isAnswer: t => answer(t, true) !== undefined,
+        onPhrase: t => {
+          if (skipHook(t)) return true;
+          const probe = answer(t, true);
+          if (probe === undefined && !((p.kind === "date" || p.kind === "time") && norm(t))) return false;
+          Voice.stop();   // before acting: an answer can start the next thing (Claude's questions, a new page)
+          const r = probe === undefined ? "retry" : answer(t, false);
+          if (r === "retry") { i--; go(say(p.kind === "time" ? "timeAgain" : "dateAgain") + " "); return true; }
+          if (r === "again") { go(""); return true; }
+          if (p.then) p.then();
+          go(r); return true;
+        } });
+    };
+    go(pre0 || "");
+  }
+  const yn = (sayKey, yesEl, noEl, more) => Object.assign({ kind: "yesno", say: () => say(sayKey), on: v => tapEl($(v === "yes" ? yesEl : noEl)) }, more || {});
+  const consentPart = box => ({ kind: "yesno", when: () => S.consent === null && !!$(box).querySelector('[data-consent="yes"]'), say: () => say("consentQ"), ack: false,
+    on: v => { const b = $(box).querySelector('[data-consent="' + v + '"]'); if (b) b.click(); } });
+  // "Add this one?" for each unticked box in a list
+  const pickParts = (boxSel, sayKey, group, invert, onlyNew) => [...document.querySelectorAll(boxSel + ' input[type="checkbox"]')].map(c => c.id)
+    .map(id => ({ kind: "yesno", group, ack: false, when: () => !!$(id) && !(onlyNew && $(id).checked),
+      say: () => { const q = (((($(id) || {}).closest ? $(id).closest("label").querySelector("span").firstChild : null) || {}).textContent || "").trim(); return say(sayKey).replace("{q}.", /[.?!]$/.test(q) ? q : q + "."); },
+      on: v => { const cb = $(id), want = invert ? v === "no" : v === "yes"; if (cb && cb.checked !== want) cb.click(); } }));
+  const waitFor = (ok, ms) => new Promise(res => { const t0 = Date.now(); (function poll() { if (ok() || Date.now() - t0 > ms) return res(); setTimeout(poll, 300); })(); });
+
+  // pages whose questions come in several parts
+  function partsFor(id) {
+    const next = () => $("next").click();
+    if (id === "who") return [
+      { kind: "choice", when: () => shown($("doclang-set")), say: () => say("docLang"), choices: [{ rx: /\b(english|anglais)\b/, el: "dl-en" }, { rx: /\b(french|francais)\b/, el: "dl-fr" }] },
+      { kind: "text", field: "seeing", say: () => say("g_who").replace(/ The date and time go on the screen\.| La date et l'heure se remplissent à l'écran\./, "") },
+      { kind: "date", field: "date", timeField: "time", say: () => say("apptDate") },
+      { kind: "time", field: "time", when: () => !!$("date").value && !$("time").value, say: () => say("apptTime") }];
+    if (id === "bg") return [
+      yn("bgChk", "bg-yes", "bg-no", { when: () => shown($("bg-check")) }),
+      // on a return visit, only ask about conditions again if something changed
+      { kind: "text", field: "bg-conditions", when: () => shown($("bg-conditions")) && (!shown($("bg-check")) || $("bg-yes").checked), say: () => say("g_bg") }];
+    if (id === "meds") {
+      const named = () => S.meds.filter(m => m.n.trim()).map(m => m.n.trim());
+      // the first empty medication row, or a new one
+      const row = () => {
+        let k = S.meds.findIndex(m => !m.n.trim());
+        if (k < 0) { document.querySelector('[data-add="med"]').click(); k = S.meds.length - 1; }
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        return k;
+      };
+      const list = [];
+      // one medicine: name, dose, when, then "Any other medicines?" which adds another round after itself
+      const round = () => {
+        let k = -1;
+        const more = { kind: "yesno", ack: false, say: () => say("medMore"), on: v => { if (v === "yes") list.splice(list.indexOf(more) + 1, 0, ...round()); } };
+        return [
+          { kind: "text", field: () => { k = row(); return "mn-" + k; }, say: () => say("medName") },
+          { kind: "text", field: () => "md-" + k, readback: false, say: () => say("medDose") },
+          { kind: "text", field: () => "mw-" + k, readback: false, say: () => say("medWhen") },
+          more];
+      };
+      const any = { kind: "yesno", ack: false,
+        say: () => named().length ? say("medHave").replace("{n}", named().length).replace("{list}", named().join(", ")) : say("medAny"),
+        on: v => { if (v === "yes") list.splice(list.indexOf(any) + 1, 0, ...round()); } };
+      list.push(
+        yn("medChk", "med-yes", "med-no", { when: () => shown($("med-check")) }),
+        { kind: "text", field: "med-note", when: () => shown($("med-note")), say: () => say("medNote") },
+        any);
+      return list;
+    }
+    if (id === "ideas") return null;   // handled below (Claude may need a moment)
+    if (id === "priority") return null;
+    if (id === "recapq") return null;
+    if (id === "recap2") return [{ kind: "list", list: LISTS.recap2, say: () => say("g_recap2l") }];
+    if (id === "recapfu") return [
+      { kind: "text", field: "rc-with", say: () => say("fuWith") },
+      { kind: "date", field: "rc-date", timeField: "rc-time", when: () => !!$("rc-with").value.trim(), say: () => say("fuDate") },
+      { kind: "time", field: "rc-time", when: () => !!$("rc-with").value.trim() && !$("rc-time").value, say: () => say("apptTime") }];
+    return null;
+  }
+  const LISTS = { recap2: { add: "todo", pre: "todo-", box: "rc-todo-list" }, tell: { add: "tell", pre: "tell-", box: "tell-list" }, ask: { add: "ask", pre: "ask-", box: "ask-list" }, meds: { add: "med", pre: "mn-", box: "med-list" } };
   let listOn = null;
   // the first empty line in the list, or a new one (fresh = always a new line unless the last is empty)
   function listSlot(L, fresh) {
@@ -1768,7 +2013,44 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function guide(id, again) {
     if (!isVoice()) return;
     if (id === "words") { setGuide(say("wordsQ")); return askWords(); }
-    if (id === "detail") { setGuide(say("intro").trim()); return; }
+    const hi = () => { const h = greet && !again ? say("hello") + " " : ""; greet = false; return h; };
+    const nextPage = () => $("next").click();
+    if (id === "detail") {
+      setGuide(say("intro").trim());
+      if (S.consent === null) runParts([consentPart("detail-consent")], () => {}, hi());   // the answer starts Claude's questions or the standard ones
+      return;
+    }
+    if (id === "ideas") {
+      const go = async () => {
+        if (S.consent === true && !S.aiFetched) { setGuide(say("ideasWait")); await Voice.speak(say("ideasWait")); await waitFor(() => S.aiFetched && !$("ai-more").disabled, 40000); }
+        if (STEPS[S.step].id !== "ideas") return;
+        const parts = pickParts("#ai-list", "pickAdd", "i", false, true).concat(pickParts("#sugg-list", "pickAdd", "i", false, true));
+        if (!parts.some(x => x.when())) { setGuide(say("ideasNone")); Voice.ask(say("ideasNone") + " " + say("nextPage"), null, nextPage, guideView); return; }
+        runParts(parts, nextPage, say("ideasIntro") + " ");
+      };
+      if (S.consent === null) runParts([consentPart("ideas-consent")], () => setTimeout(go, 300), hi()); else go();
+      return;
+    }
+    if (id === "priority") {
+      const round = pre => runParts(pickParts("#pr-first", "prioEach", "p", false, false), () => {
+        if (!document.querySelector('#pr-first input:checked') && document.querySelector('#pr-first input')) return round(say("prioNone") + " ");
+        runParts([{ kind: "text", field: "pr-new", readback: true, say: () => say("prioNew"), then: () => { if ($("pr-new").value.trim()) $("pr-add").click(); } }], nextPage);
+      }, pre);
+      round(hi() + say("prioIntro") + " ");
+      return;
+    }
+    if (id === "recapq") {
+      const parts = pickParts("#rc-open-list", "openEach", "o", true, false);
+      if (!parts.length) { Voice.ask(say("nextPage"), null, nextPage, guideView); return; }
+      runParts(parts, nextPage, hi() + say("openIntro") + " ");
+      return;
+    }
+    const multi = partsFor(id);
+    if (multi) {
+      const thanks0 = id === "appt" && !again && S.who.trim() ? say("thanks").replace("{n}", S.who.trim().split(/\s+/)[0]) + " " : "";
+      runParts(multi, nextPage, hi() + thanks0);
+      return;
+    }
     const g = GUIDE[id]; if (!g) return;
     let k = g[0], field = g[1];
     if (id === "bg" && S.carried) { k = "g_bg2"; field = null; }
@@ -1848,7 +2130,6 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   document.querySelectorAll('input[name="vwait"]').forEach(r => r.addEventListener("change", () => { S.waitMs = Number(r.value); save(); }));
   document.querySelectorAll('input[name="vspeed"]').forEach(r => r.addEventListener("change", () => { S.slowVoice = r.value === "s"; save(); }));
   function onEnter(id) {
-    guide(id);
     if (id === "meds") renderMeds();
     if (id === "detail") enterDetail();
     if (id === "tell") {
@@ -1864,6 +2145,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (id.startsWith("recap")) renderRecap();
     if (id === "share") buildRecap();
     if (id === "bg" || id === "meds") renderChecks();
+    guide(id);   // after the page has drawn, so the voice can see every box and choice on it
   }
 
   // ---------- welcome ----------
@@ -2367,7 +2649,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function voiceAsk(intro) {
     const c = S.clarify;
     if (!isVoice() || c.i >= c.qs.length || !$("cl-answer")) return;
-    Voice.ask((intro ? say("intro") : "") + c.qs[c.i].q, $("cl-answer"), () => $("cl-next").click(), voiceView("cl-vstate"));
+    const cv = voiceView("cl-vstate");
+    setGuide(c.qs[c.i].q);
+    Voice.ask((intro ? say("intro") : "") + c.qs[c.i].q, $("cl-answer"), () => $("cl-next").click(), (st, heard) => { cv(st, heard); guideView(st, heard); }, { readback: true, q: c.qs[c.i].q });
   }
 
   // ---------- suggestions ----------
