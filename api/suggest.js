@@ -160,6 +160,23 @@ const FIX_SCHEMA = {
   additionalProperties: false,
 };
 
+const HELP = `You are the voice of Présent, an app that helps a patient prepare for a medical appointment by answering one question at a time, out loud.
+The patient may be older, may have Parkinson's disease, and may be unsure how the app works. While answering a question, they asked you something.
+You receive the question the app had just asked them and what they asked you.
+
+Answer in one or two short, warm, spoken sentences (under 45 words), in the language given. Then stop.
+- If they ask what the app's question means or what kind of answer fits, explain it simply and give one short example.
+- If they ask how the app works: they answer in their own words, say "carry on" when finished, "repeat" to hear the question again, and can tap Pause or Let me talk at any time. Every question can be skipped by saying carry on.
+- If they ask a medical question (what is wrong, what to take, whether something is serious), do not answer it. Say it's a good question for their doctor and that they can add it to their questions later in the app. If it sounds urgent (chest pain, trouble breathing, signs of a stroke, thoughts of self-harm), tell them to call 911 now.
+- Never diagnose or give medical advice. Plain words, no lists, no markdown. Do not repeat the app's question back word for word.`;
+
+const HELP_SCHEMA = {
+  type: 'object',
+  properties: { answer: { type: 'string' } },
+  required: ['answer'],
+  additionalProperties: false,
+};
+
 const TRANSLATE = `You translate a patient's own notes for their doctor.
 Translate each item faithfully into the target language. Keep the patient's meaning, tone and first-person voice. Keep medication names, numbers and doses exactly as written. Do not add, explain, summarise or correct anything.
 If an item is already in the target language, return it unchanged. Return the items in the same order, one translation per item.`;
@@ -219,7 +236,7 @@ export default async function handler(req, res) {
   const body = typeof req.body === 'object' && req.body ? req.body : (() => {
     try { return JSON.parse(req.body || '{}'); } catch { return {}; }
   })();
-  const mode = ['clarify', 'translate', 'fix'].includes(body.mode) ? body.mode : 'suggest';
+  const mode = ['clarify', 'translate', 'fix', 'help'].includes(body.mode) ? body.mode : 'suggest';
   const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -236,6 +253,17 @@ export default async function handler(req, res) {
       const got = Array.isArray(out.items) ? out.items.map((v) => clean(v, LIMITS.story)) : [];
       if (got.length !== items.length) return res.status(502).json({ ok: false, error: 'The translation came back incomplete. Please try again.' });
       return res.status(200).json({ ok: true, items: got });
+    }
+
+    // ---- spoken help: the patient asked the app something mid-question
+    if (mode === 'help') {
+      const ask = clean(body.text, 400);
+      if (!ask) return res.status(400).json({ ok: false, error: 'Nothing was asked.' });
+      const ctx = `Language: ${LANG_NAME[lang]}\nThe app had just asked: ${clean(body.question, 600) || 'not given'}\nThe patient asked: ${ask}`;
+      const out = await askClaude(HELP, ctx, HELP_SCHEMA, 300);
+      const answer = clean(out && out.answer, 400);
+      if (!answer) return res.status(502).json({ ok: false, error: UNAVAILABLE });
+      return res.status(200).json({ ok: true, answer });
     }
 
     // ---- "Did you mean...?" for voice-typed answers
