@@ -13,31 +13,31 @@
 <meta name="theme-color" content="#F8F2E7">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Fraunces:opsz,SOFT,wght@9..144,100,500..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Nunito:wght@600..900&display=swap">
 <style>
 /* Layout: one calm column, one screen per step, a fixed Back / Next pair; the result is a letter-size sheet that prints on one page */
 :root {
   --bg: #F8F2E7; --surface: #FFFBF4; --ink: #2B2019; --muted: #5E4C40;
-  --line: #D9CDB8; --accent: #9A4C30; --accent-ink: #FFFFFF; --accent-soft: #F3E1D6;
+  --line: #D9CDB8; --accent: #1B3A5C; --accent-ink: #FFFFFF; --accent-soft: #E2E9F1; --brand-navy: #1B3A5C; --brand-sage: #6A9672;
   --star: #8A5A00; --star-soft: #F6E4C0; --danger: #A12C2C; --ok: #2E6B3A;
-  --shadow-tint: 154,76,48;
-  --land: #F1E8D8; --bank: #E3D7C3; --tree: #DFE8DC; --river: #E6EDE4; --river-deep: #93AB92; --glint: #FFFBF4;
-  --boat: #B86B4B; --sail: #FFFBF4; --room: #1E3A2B; --after: #4F6E57;
-  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --shadow-tint: 27,58,92;
+  --land: #F1E8D8; --bank: #E3D7C3; --tree: #DFE8DC; --river: #E6EDE4; --river-deep: #76A07E; --glint: #FFFBF4;
+  --boat: #1B3A5C; --sail: #FFFBF4; --room: #1E3A2B; --after: #4F6E57;
+  --display: "Nunito", "Segoe UI", Verdana, sans-serif;
   --body: "Atkinson Hyperlegible", "Segoe UI", Verdana, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #1C1714; --surface: #262019; --ink: #F3EBE0; --muted: #C9B9A6;
-  --line: #4A3F35; --accent: #E9A07F; --accent-ink: #2B1A10; --accent-soft: #3D2A20;
+  --line: #4A3F35; --accent: #A9C3E3; --accent-ink: #0F1E30; --accent-soft: #1F2C3B; --brand-navy: #C9D8EA; --brand-sage: #9CC4A3;
   --star: #F2C25C; --star-soft: #3A2E12; --danger: #F08A8A; --ok: #8FD19E; --shadow-tint: 0,0,0;
   --land: #221C17; --bank: #3A3027; --tree: #2E3A30; --river: #2C3A2F; --river-deep: #6F8F76; --glint: #E6EDE4;
-  --boat: #E08A5E; --sail: #F3EBE0; --room: #A8C4AE; --after: #DCAB55; color-scheme: dark } }
+  --boat: #A9C3E3; --sail: #F3EBE0; --room: #A8C4AE; --after: #DCAB55; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #1C1714; --surface: #262019; --ink: #F3EBE0; --muted: #C9B9A6;
-  --line: #4A3F35; --accent: #E9A07F; --accent-ink: #2B1A10; --accent-soft: #3D2A20;
+  --line: #4A3F35; --accent: #A9C3E3; --accent-ink: #0F1E30; --accent-soft: #1F2C3B; --brand-navy: #C9D8EA; --brand-sage: #9CC4A3;
   --star: #F2C25C; --star-soft: #3A2E12; --danger: #F08A8A; --ok: #8FD19E; --shadow-tint: 0,0,0;
   --land: #221C17; --bank: #3A3027; --tree: #2E3A30; --river: #2C3A2F; --river-deep: #6F8F76; --glint: #E6EDE4;
-  --boat: #E08A5E; --sail: #F3EBE0; --room: #A8C4AE; --after: #DCAB55; color-scheme: dark }
+  --boat: #A9C3E3; --sail: #F3EBE0; --room: #A8C4AE; --after: #DCAB55; color-scheme: dark }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -45,7 +45,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--b
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .wrap { max-width: 720px; margin: 0 auto; padding-block: 16px 48px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-h1, h2, h3 { font-family: var(--display); font-weight: 650; text-wrap: balance; line-height: 1.25; margin: 0; }
+h1, h2, h3 { font-family: var(--display); font-weight: 800; text-wrap: balance; line-height: 1.25; margin: 0; }
 h1 { font-size: 2rem; } h2 { font-size: 1.6rem; } h3 { font-size: 1.15rem; }
 p { margin: 0; }
 .muted { color: var(--muted); }
@@ -57,10 +57,9 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 .appbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 12px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   max-width: 720px; margin: 0 auto; }
-.brand { font-family: var(--display); font-weight: 500; font-size: 1.6rem; letter-spacing: -.01em; line-height: 1; padding-top: .3em; color: var(--ink); white-space: nowrap; }
-.brand .e { position: relative; display: inline-block; color: inherit; }
-.brand .bub { position: absolute; left: -.1em; top: -.12em; width: .73em; height: .56em; }
-.brand .b2 { stroke: var(--bg); }
+.brand { display: inline-flex; align-items: center; gap: .3em; font-family: var(--display); font-weight: 800; font-size: 1.6rem; letter-spacing: -.02em; line-height: 1; white-space: nowrap; }
+.brand .mark svg { display: block; width: 1.45em; height: auto; }
+.brand .w1 { color: var(--brand-navy); } .brand .w2 { color: var(--brand-sage); }
 .tagline { font-size: 1.05rem; color: var(--muted); }
 .saved { font-size: 0.9rem; color: var(--muted); }
 .saved.ok::before { content: "\2713  "; color: var(--ok); font-weight: 700; }
@@ -422,7 +421,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 <body>
 
 <header class="appbar">
-  <span class="brand"><span class="visually-hidden">WellHeard</span><span aria-hidden="true">WellH<span class="e">e<svg class="bub" viewBox="0 0 30 23" aria-hidden="true"><path d="M4 1 H15 a3.5 3.5 0 0 1 3.5 3.5 V9 a3.5 3.5 0 0 1 -3.5 3.5 H9 L4.5 16 V12.5 H4 a3.5 3.5 0 0 1 -3.5 -3.5 V4.5 A3.5 3.5 0 0 1 4 1 Z" fill="#B86B4B"/><path class="b2" d="M13 8 H25 a3.5 3.5 0 0 1 3.5 3.5 V15.5 a3.5 3.5 0 0 1 -3.5 3.5 H24.5 V22 L21 19 H13 a3.5 3.5 0 0 1 -3.5 -3.5 V11.5 A3.5 3.5 0 0 1 13 8 Z" fill="#93AB92" stroke-width="1.6"/><circle cx="15.2" cy="13.6" r="1.3" fill="#FFFBF4"/><circle cx="19" cy="13.6" r="1.3" fill="#FFFBF4"/><circle cx="22.8" cy="13.6" r="1.3" fill="#FFFBF4"/></svg></span>ard</span></span>
+  <span class="brand"><span class="visually-hidden">WellHeard</span><span class="mark"><svg viewBox="0 0 64 56" aria-hidden="true"><path d="M42 12 a18 16 0 1 1 6 30.5 L56 51 L41 44 a18 16 0 0 1 1 -32 Z" fill="#76A07E"/><path d="M26 4 a22 18 0 1 1 -4 35.7 L8 49 L13.5 35 A22 18 0 0 1 26 4 Z" fill="#1B3A5C" stroke="var(--bg)" stroke-width="3" paint-order="stroke"/><path d="M16.5 22 L23.5 29 L35.5 15.5" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span aria-hidden="true"><span class="w1">Well</span><span class="w2">Heard</span></span></span>
   <span class="right">
     <span class="saved" id="saved" role="status" aria-live="polite"></span>
     <button type="button" class="jr-open" id="jr-open" aria-haspopup="dialog">
@@ -2672,8 +2671,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const J_LOW = jthrough([[200, 1210], [120, 1330], [280, 1460], [200, 1560], [200, 1620]]);
   const J_MAIN = J_UP + " C 300 1060 310 1180 200 1210" + J_LOW.replace(/^M [\d.]+ [\d.]+/, "");
   const IC = {
-    boat: `<svg viewBox="4 4 56 56" aria-hidden="true"><path d="M20 8 H36 a14 14 0 0 1 0 28 H22 L12 44 V34 a14 14 0 0 1 8 -26 Z" fill="#B86B4B"/><path d="M30 24 H46 a12 12 0 0 1 4 23.3 V56 L42 48 H30 a12 12 0 0 1 0 -24 Z" fill="#93AB92" stroke="#FFFBF4" stroke-width="3"/><circle cx="32" cy="36" r="2.6" fill="#FFFBF4"/><circle cx="39" cy="36" r="2.6" fill="#FFFBF4"/><circle cx="46" cy="36" r="2.6" fill="#FFFBF4"/></svg>`,
-    beaver: `<svg viewBox="4 4 56 56" aria-hidden="true"><path d="M20 8 H36 a14 14 0 0 1 0 28 H22 L12 44 V34 a14 14 0 0 1 8 -26 Z" fill="#B86B4B"/><path d="M30 24 H46 a12 12 0 0 1 4 23.3 V56 L42 48 H30 a12 12 0 0 1 0 -24 Z" fill="#93AB92" stroke="#FFFBF4" stroke-width="3"/><circle cx="32" cy="36" r="2.6" fill="#FFFBF4"/><circle cx="39" cy="36" r="2.6" fill="#FFFBF4"/><circle cx="46" cy="36" r="2.6" fill="#FFFBF4"/></svg>`,
+    boat: `<svg viewBox="-2 -2 68 60" aria-hidden="true"><path d="M42 12 a18 16 0 1 1 6 30.5 L56 51 L41 44 a18 16 0 0 1 1 -32 Z" fill="#76A07E"/><path d="M26 4 a22 18 0 1 1 -4 35.7 L8 49 L13.5 35 A22 18 0 0 1 26 4 Z" fill="#1B3A5C" stroke="#FFFBF4" stroke-width="3" paint-order="stroke"/><path d="M16.5 22 L23.5 29 L35.5 15.5" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    beaver: `<svg viewBox="-2 -2 68 60" aria-hidden="true"><path d="M42 12 a18 16 0 1 1 6 30.5 L56 51 L41 44 a18 16 0 0 1 1 -32 Z" fill="#76A07E"/><path d="M26 4 a22 18 0 1 1 -4 35.7 L8 49 L13.5 35 A22 18 0 0 1 26 4 Z" fill="#1B3A5C" stroke="#FFFBF4" stroke-width="3" paint-order="stroke"/><path d="M16.5 22 L23.5 29 L35.5 15.5" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     shield: `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><path d="M20 4 L34 9 V19 C34 28 27 34 20 36 C13 34 6 28 6 19 V9 Z"/><path d="M14 20 L18.5 24.5 L27 15" stroke-linecap="round"/></svg>`,
     home: `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><path d="M8 26 L28 9 L48 26"/><path d="M13 22 V47 H43 V22"/><rect x="21" y="29" width="14" height="13" rx="1.5"/><path d="M24 33 H32 M24 37 H30" stroke-linecap="round"/></svg>`,
     spark: `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><path d="M28 8 C30 20 36 26 48 28 C36 30 30 36 28 48 C26 36 20 30 8 28 C20 26 26 20 28 8 Z"/></svg>`,
