@@ -1302,16 +1302,27 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       this._running = true; this._ending = false;
       CanadaRec.session("play-and-record");
       try {
-        this._stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+        this._stream = await Promise.race([
+          navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } }),
+          new Promise((_, no) => setTimeout(() => no(Object.assign(new Error("no answer from the microphone"), { name: "Timeout" })), 20000))]);
       } catch (err) {
         this._running = false;
-        const e = err && (err.name === "NotAllowedError" || err.name === "SecurityError") ? "not-allowed" : "audio-capture";
+        const e = err && (err.name === "NotAllowedError" || err.name === "SecurityError") ? "not-allowed" : err && err.name === "Timeout" ? "needs-tap" : "audio-capture";
         if (this.onerror) this.onerror({ error: e }); if (this.onend) this.onend(); return;
       }
       if (!this._running) { this._release(); return; }   // stopped while waiting for the microphone
+      // Use the app's own sound system, which the first tap already switched on. A new one made later,
+      // without a tap, stays "suspended" in most browsers and would never hear anything.
       const AC = window.AudioContext || window.webkitAudioContext;
-      try { this._ctx = new AC(); if (this._ctx.state !== "running") await this._ctx.resume(); }
-      catch (err) { console.warn("Listening could not start", err); this._release(); this._running = false; if (this.onerror) this.onerror({ error: "audio-capture" }); if (this.onend) this.onend(); return; }
+      const shared = CanadaRec.sharedCtx && CanadaRec.sharedCtx();
+      try {
+        this._ctx = shared || new AC(); this._ownCtx = !shared;
+        if (this._ctx.state !== "running") await Promise.race([this._ctx.resume(), new Promise(r => setTimeout(r, 1500))]);
+      } catch (err) { console.warn("Listening could not start", err); }
+      if (!this._ctx || this._ctx.state !== "running") {   // the browser wants a tap first
+        this._release(); this._running = false;
+        if (this.onerror) this.onerror({ error: "needs-tap" }); if (this.onend) this.onend(); return;
+      }
       const src = this._ctx.createMediaStreamSource(this._stream);
       const proc = this._ctx.createScriptProcessor(4096, 1, 1);
       const rate = this._ctx.sampleRate, step = rate / 16000;
@@ -1372,7 +1383,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     _release() {
       try { if (this._proc) { this._proc.onaudioprocess = null; this._proc.disconnect(); } if (this._src) this._src.disconnect(); } catch (err) { console.warn(err); }
       if (this._stream) this._stream.getTracks().forEach(t => t.stop());
-      if (this._ctx) this._ctx.close().catch(() => {});
+      if (this._ctx && this._ownCtx) this._ctx.close().catch(() => {});
       this._stream = this._ctx = this._proc = this._src = null;
       CanadaRec.hearing(false);
       CanadaRec.session("playback");
@@ -1448,6 +1459,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       }
       return actx;
     };
+    CanadaRec.sharedCtx = ctx;
     // leaving the app (another app, the lock screen, an alarm screen) pauses too
     document.addEventListener("visibilitychange", () => { if (document.hidden && api.active() && !api.held()) { log("app hidden, pausing"); api.pause(); } });
     // phones only allow sound that starts from a tap, so wake the sound system on every tap until it's running
@@ -1694,6 +1706,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       r.onerror = e => {
         alive = true; log("error: " + e.error);
         console.warn("Voice typing error", e.error);
+        if (e.error === "needs-tap") { rec = null; needTap = true; view("tap"); return; }
         if (e.error === "not-allowed" || e.error === "service-not-allowed") {
           rec = null;
           // Worked before, so it's the phone wanting a fresh tap (iPhones do this after speaking), not a blocked microphone.
@@ -2121,7 +2134,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   // Let me talk (while I speak), I'm done (while I listen), Yes, that's right (after the read-back), or Next.
   function updateBar() {
     const conf = Voice.confirming(), talk = Voice.talking(), carry = Voice.hasCarry(), nx = $("next");
-    $("vb-talk").hidden = true;   // one main button; while the app speaks, Pause is there
+    $("vb-talk").hidden = !talk || typingNow;   // while the app speaks: "Let me talk" stops it and listens
     const tap = Voice.needTap(), held = Voice.held() && !typingNow;
     $("vb-done").hidden = !typingNow && !tap && !held && (talk || (!carry && !conf && nx.hidden));
     $("vb-done").textContent = typingNow ? "Submit" : held ? "Resume" : tap ? "Tap to answer" : conf ? "Yes, that's right" : carry ? (S.lang === "fr" ? "Suivant" : "Next") : nx.textContent;
