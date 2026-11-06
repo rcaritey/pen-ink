@@ -811,6 +811,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <p class="help">One question per line.</p>
       <textarea id="ideas-new" class="grow" rows="1"></textarea>
       <div class="item-actions"><button type="button" class="btn secondary" id="ideas-add">Add a question</button></div>
+      <div class="hint add-check" id="ideas-check" hidden></div>
     </div>
     <ul class="added-list" id="ideas-added" aria-live="polite"></ul>
     <p class="muted small">Always on your pages: asking to record the visit, and who to contact before your next appointment.</p>
@@ -835,6 +836,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <label for="pr-new">A question we missed?</label>
       <textarea id="pr-new" class="grow" rows="1"></textarea>
       <div class="item-actions"><button type="button" class="btn secondary" id="pr-add">Add it</button></div>
+      <div class="hint add-check" id="pr-check" hidden></div>
     </div>
   </section>
 
@@ -1382,7 +1384,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           noise = noise * 0.95 + Math.min(rms, 0.05) * 0.05;
           pre.push(out); if (pre.length > 3) pre.shift();   // keep the start of the first word
           loudMs = loud ? loudMs + blockMs : 0;
-          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); }
+          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; this._gap = this._lastEnd ? performance.now() - this._lastEnd : 1e9; if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); }
           return;
         }
         buf.push(out);
@@ -1391,13 +1393,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         // Short replies ("yes", "next") are finished sooner; long answers keep a longer pause so a breath doesn't cut them.
         // When the app has just asked "Is that right?", every reply is short.
         const endMs = CanadaRec.quick || (!CanadaRec.listMode && len < 1600) ? 600 : END_MS;   // lists: a pause starts a new line, so keep it longer
-        if (quietMs >= endMs || len >= MAX_MS) { const b = buf; buf = []; speaking = false; loudMs = 0; this._send(b); }
+        if (quietMs >= endMs || len >= MAX_MS) { const b = buf; buf = []; speaking = false; loudMs = 0; this._lastEnd = performance.now() - quietMs; this._send(b, this._gap); }
       };
       src.connect(proc); proc.connect(this._ctx.destination);
       this._src = src; this._proc = proc; this._flush = () => { if (speaking && buf.length) { const b = buf; buf = []; speaking = false; this._send(b); } };
       if (this.onstart) this.onstart(); if (this.onaudiostart) this.onaudiostart();
     }
-    async _send(chunks) {
+    async _send(chunks, gap) {
       CanadaRec.hearing(false);
       let n = 0; chunks.forEach(c => n += c.length);
       if (n < 16000 * 0.2) return;   // under 0.2 s: a click (a quick "yes" is longer)
@@ -1416,7 +1418,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (!r.ok) console.warn("Listening service error", r.status);
         const text = d && d.ok ? String(d.text || "").trim() : "";
         if (text && this.onresult && (this._running || this._ending)) {
-          const res = [{ transcript: text, confidence: 1 }]; res.isFinal = true;
+          const res = [{ transcript: text, confidence: 1 }]; res.isFinal = true; res.gap = gap === undefined ? 1e9 : gap;
           this._results.push(res);
           this.onresult({ resultIndex: this._results.length - 1, results: this._results });
         }
@@ -1597,7 +1599,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       } catch (err) { console.warn("Could not read aloud", err); res(); }
     });
     // Pause holds everything right where it is; nothing moves on by itself.
-    let listNext = null, yesNo = null;
+    let listNext = null, yesNo = null, lastGap = 1e9, inPlace = false;
     const ERASE = /^\W*(?:please\s+)?(?:erase|erased|erases|eraser|erase that|erase it|erase this|a race|the race|race|races|erace|e race|he raised|i raised|raise|raised|erase please|scratch that|undo|undo that|delete|delete that|delete it|efface|effacez|efface ça|effacez ça|efface ca|annule|annule ça)\W*$/i;
     let held = false, confirming = false, readback = false, turnWords = [], turnStartVal = "", checking = false, lastQ = "";
     // Things people say TO the app rather than as their answer: help, repeat, and replies to "Should I continue?"
@@ -1626,7 +1628,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       }
       if (RE_REPEAT.test(x)) { if (lastQ) sayThen(lastQ); return true; }
       if (RE_HELP.test(x)) { sayThen(say("help")); return true; }
-      if (x.split(" ").length <= 25 && RE_ASK.test(x) && RE_ASK2.test(x) && api.onHelp) { askHelp(x); return true; }
+      const questionPage = target && /^(ask-\d+|ideas-new|pr-new|rc-more)$/.test(target.id);
+      if (!questionPage && x.split(" ").length <= 25 && RE_ASK.test(x) && RE_ASK2.test(x) && api.onHelp) { askHelp(x); return true; }
       return false;
     }
     async function askHelp(q) {
@@ -1739,7 +1742,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           // some phones repeat the whole phrase so far in each result; keep only the new part
           if (lastFinal && t.trim().length > lastFinal.length && t.trim().toLowerCase().startsWith(lastFinal.toLowerCase())) t = t.trim().slice(lastFinal.length);
           lastFinal = e.results[i][0].transcript.trim();
-          pending = "";
+          pending = ""; lastGap = e.results[i].gap === undefined ? 1e9 : e.results[i].gap;
           if (onFinal(t)) return;
         }
         // iPhones can take many seconds to mark words as final. A command heard and held steady
@@ -1833,11 +1836,20 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       }
       const m = t.match(target ? CARRY_T : CARRY_N);
       if (m) { appendSpoken(t.slice(0, m.index)); carryOn(); return true; }
-      appendSpoken(t);
-      if (listNext && SR === CanadaRec && target && target.value.trim()) {
-        if (turnWords.length) turnWords[turnWords.length - 1] = turnWords[turnWords.length - 1].replace(/[.;,]?$/, ";");
-        target = listNext(); turnStartVal = target.value; view("listening");
+      if (listNext && SR === CanadaRec && target) {
+        if (target && !target.isConnected && target.id && document.getElementById(target.id)) target = document.getElementById(target.id);
+        if (target.value.trim()) {
+          if (lastGap > 2000) {   // a real pause (2 seconds or more): new line
+            if (turnWords.length) turnWords[turnWords.length - 1] = turnWords[turnWords.length - 1].replace(/[.;,]?$/, ";");
+            target = listNext(); turnStartVal = target.value; view("listening");
+          } else {                // a breath: same line, and join the words ("...with my hair? Loss that..." -> "...with my hair loss that...")
+            target.value = target.value.replace(/[.?!]\s*$/, "");
+            if (turnWords.length) turnWords[turnWords.length - 1] = turnWords[turnWords.length - 1].replace(/[.?!]\s*$/, "");
+            if (/^\p{Lu}\p{Ll}/u.test(t) && !/^I\b/.test(t)) t = t.charAt(0).toLowerCase() + t.slice(1);
+          }
+        }
       }
+      appendSpoken(t);
       return false;
     }
     function tapListen() { needTap = false; held = false; if (active) { rec = null; startRec(); } }
@@ -1896,7 +1908,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       stop(); const v0 = opts.keepView ? v : (v || (() => {}));
       view = opts.keepView ? v0 : (st, heard) => { v0(st, heard); if (api.onState) api.onState(st); };
       active = true; target = el; onCarry = carry; prompted = !text;
-      listNext = opts.listNext || null; yesNo = opts.yesNo || null;
+      listNext = opts.listNext || null; yesNo = opts.yesNo || null; inPlace = !!opts.inPlace;
       readback = !!opts.readback; turnWords = []; turnStartVal = el ? el.value : ""; held = false; confirming = false; checking = false;
       if (!opts.keepView || opts.q) lastQ = opts.q || text;
       const g = gen;
@@ -1922,7 +1934,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       navigator.mediaDevices.getUserMedia({ audio: true }).then(st => st.getTracks().forEach(t => t.stop())).catch(err => console.warn("Microphone not allowed yet", err));
     }
     const api = { ask, stop, speak, interrupt, needTap: () => needTap, tapListen, targetEl: () => active ? target : null, talking: () => talking, bargeOn, pause, resume, prime, redo, restoreTurn, carry: () => { if (active) carryOn(); },
-      canada: () => SR === CanadaRec, held: () => held, active: () => active, confirming: () => confirming, hasCarry: () => active && !!onCarry, carryFn: () => active ? onCarry : null, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
+      canada: () => SR === CanadaRec, inPlace: () => inPlace, held: () => held, active: () => active, confirming: () => confirming, hasCarry: () => active && !!onCarry, carryFn: () => active ? onCarry : null, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
       voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null, fixWords: null, onErase: null };
     return api;
   })();
@@ -2145,9 +2157,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function showAnswer() {
     const el = Voice.targetEl(), box = $("guide-ans"), ed = $("guide-edit");
     // in talking mode the answer lives in "What I heard"; hide the page's own box for the same answer
-    document.querySelectorAll(".vtarget").forEach(x => { if (!el || !x.contains(el)) x.classList.remove("vtarget"); });
-    if (el && !listOn && el.closest(".field")) el.closest(".field").classList.add("vtarget");
-    box.hidden = !el || !isVoice();
+    const here = Voice.inPlace();
+    document.querySelectorAll(".vtarget").forEach(x => { if (!el || here || !x.contains(el)) x.classList.remove("vtarget"); });
+    if (el && !here && !listOn && el.closest(".field")) el.closest(".field").classList.add("vtarget");
+    box.hidden = !el || !isVoice() || here;
     if (box.hidden) return;
     if (document.activeElement === ed) return;   // they're typing: leave their text alone
     ed.value = answerText(); fitBox(ed);
@@ -2575,7 +2588,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         el.addEventListener("input", () => { if (btn.getAttribute("aria-pressed") !== "true") setLook(false); });
         btn.addEventListener("click", () => {
           if (btn.getAttribute("aria-pressed") === "true") { Voice.stop(); return; }
-          Voice.ask("", el, () => {}, (st, heard) => { setLook(st === "listening"); $("mic-msg").textContent = heard ? "Hearing: \u201c" + heard + "\u2026\u201d" : (MIC_MSG[st] || ""); });
+          Voice.ask("", el, () => {}, (st, heard) => { setLook(st === "listening"); $("mic-msg").textContent = heard ? "Hearing: \u201c" + heard + "\u2026\u201d" : (MIC_MSG[st] || ""); }, { inPlace: true });
         });
       }
       const tools = [undo, clear, btn].filter(Boolean);
@@ -3004,7 +3017,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const own = S.ask.map(q => q.t.trim()).filter(Boolean);
     $("ideas-added").innerHTML = own.length ? `<li class="muted small">${S.lang === "fr" ? "Vos questions" : "Your questions"}:</li>` + own.map(t => `<li>${esc(t)}</li>`).join("") : "";
   }
-  $("ideas-add").addEventListener("click", () => { addIdeasNew(); $("ideas-new").focus(); });
+  $("ideas-add").addEventListener("click", () => checkThenAdd("ideas-new", "ideas-check", () => addIdeasNew()));
   function renderSugg() {
     renderIdeasAdded();
     const box = $("sugg-list"); box.innerHTML = "";
@@ -3080,12 +3093,31 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     });
   }
   $("tell-back").addEventListener("click", () => show(STEPS.findIndex(x => x.id === "detail")));
-  $("pr-add").addEventListener("click", () => {
-    const t = $("pr-new").value.trim();
-    if (!t) { $("pr-new").focus(); return; }
-    S.ask = S.ask.filter(q => q.t.trim()); S.ask.push({ t, top: false });
-    $("pr-new").value = ""; $("pr-new").dispatchEvent(new Event("input", { bubbles: true })); save(); renderPriority();
-  });
+  // "Add it": first show (and say) the question back, then add it without jumping the page.
+  function checkThenAdd(fieldId, boxId, add) {
+    const field = $(fieldId), box = $(boxId), t = field.value.trim();
+    if (!t) { field.focus(); return; }
+    const fr = S.lang === "fr";
+    box.innerHTML = `<p><b>${fr ? "Ajouter cette question ?" : "Add this question?"}</b></p><p class="say">\u201c${esc(t)}\u201d</p>
+      <div class="row"><button type="button" class="btn primary" data-yes>${fr ? "Oui, l'ajouter" : "Yes, add it"}</button>
+      <button type="button" class="btn secondary" data-no>${fr ? "La changer" : "Change it"}</button></div>`;
+    box.hidden = false;
+    if (isVoice()) Voice.speak((fr ? "Ajouter cette question : " : "Add this question: ") + t + (fr ? " ? Touchez Oui pour l'ajouter." : "? Tap Yes, add it."));
+    box.querySelector("[data-no]").addEventListener("click", () => { box.hidden = true; field.focus(); });
+    box.querySelector("[data-yes]").addEventListener("click", () => {
+      const y0 = field.getBoundingClientRect().top;
+      add(t);
+      field.value = ""; field.dispatchEvent(new Event("input", { bubbles: true }));
+      box.innerHTML = `<p>\u2713 ${fr ? "Ajoutée" : "Added"}: \u201c${esc(t)}\u201d. ${fr ? "Elle est dans la liste ci-dessus." : "It's in the list above."}</p>`;
+      // stay where you were: the list above grew, so move down by the same amount
+      requestAnimationFrame(() => { window.scrollBy(0, field.getBoundingClientRect().top - y0); field.focus({ preventScroll: true }); });
+      setTimeout(() => { box.hidden = true; }, 6000);
+    });
+    box.querySelector("[data-yes]").focus({ preventScroll: true });
+  }
+  $("pr-add").addEventListener("click", () => checkThenAdd("pr-new", "pr-check", t => {
+    S.ask = S.ask.filter(q => q.t.trim()); S.ask.push({ t, top: false }); save(); renderPriority();
+  }));
   function header(title) {
     const bits = [S.seeing, fmtDate(S.date), fmtTime(S.time)].filter(x => x && x.trim()).map(esc);
     return `<h2>${esc(title)}${S.who.trim() ? " · " + esc(S.who) : ""}</h2>${bits.length ? `<div class="meta">${bits.map(b => `<span>${b}</span>`).join("")}</div>` : ""}`;
