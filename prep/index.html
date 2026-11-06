@@ -1598,6 +1598,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     });
     // Pause holds everything right where it is; nothing moves on by itself.
     let listNext = null, yesNo = null;
+    const ERASE = /^\W*(?:please\s+)?(?:erase|erased|erases|eraser|erase that|erase it|erase this|a race|the race|race|races|erace|e race|he raised|i raised|raise|raised|erase please|scratch that|undo|undo that|delete|delete that|delete it|efface|effacez|efface ça|effacez ça|efface ca|annule|annule ça)\W*$/i;
     let held = false, confirming = false, readback = false, turnWords = [], turnStartVal = "", checking = false, lastQ = "";
     // Things people say TO the app rather than as their answer: help, repeat, and replies to "Should I continue?"
     const lc = t => t.toLowerCase().replace(/[’]/g, "'").replace(/[.!?,;:]+/g, " ").replace(/(\w)-(\w)/g, "$1 $2")
@@ -1854,8 +1855,20 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
              .replace(/\s+/g, " ").trim();
         t = t.replace(/\b(\p{Lu})(\p{Lu}+)\b/gu, (m, x, y) => x + y.toLowerCase());
       }
-      if (/^(erase|erase that|erase it|scratch that|undo that|delete that|efface ça|effacez ça|efface|effacez|annule ça|annule)\W*$/i.test(t)) {
-        if (target._hist && target._hist.length) { target.value = target._hist.pop(); target.dispatchEvent(new Event("input", { bubbles: true })); target.dispatchEvent(new Event("voice-change")); }
+      // "Erase" said on its own. Voice typing often hears it as "a race", "the race", "erased", "he raised"...
+      if (ERASE.test(t)) {
+        let el = target, ok = !!(el._hist && el._hist.length);
+        // lists: after each phrase the app has moved on to a fresh empty line, so "erase" means the line before
+        if (!ok && listNext && !el.value.trim()) {
+          const m = el.id.match(/^(.*-)(\d+)$/);
+          for (let i = m ? Number(m[2]) - 1 : -1; i >= 0; i--) { const p = document.getElementById(m[1] + i); if (p && p.value.trim()) { el = p; ok = true; break; } }
+        }
+        if (ok) {
+          el.value = el._hist && el._hist.length ? el._hist.pop() : "";
+          el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("voice-change"));
+          if (turnWords.length) turnWords.pop();
+        }
+        if (api.onErase) api.onErase(!!ok);
         return;
       }
       target._hist = target._hist || []; target._hist.push(target.value); if (target._hist.length > 30) target._hist.shift();
@@ -1910,7 +1923,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     const api = { ask, stop, speak, interrupt, needTap: () => needTap, tapListen, targetEl: () => active ? target : null, talking: () => talking, bargeOn, pause, resume, prime, redo, restoreTurn, carry: () => { if (active) carryOn(); },
       canada: () => SR === CanadaRec, held: () => held, active: () => active, confirming: () => confirming, hasCarry: () => active && !!onCarry, carryFn: () => active ? onCarry : null, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
-      voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null, fixWords: null };
+      voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null, fixWords: null, onErase: null };
     return api;
   })();
   const VOICE_MSG = {
@@ -2655,6 +2668,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   };
   // Only health answers are checked (that's where medical words get misheard); the rest is read back straight away.
   const FIX_IDS = /^(bg-conditions|bg-changes|bg-team|bg-allergies|story|cl-answer|mn-\d+|tell-\d+|ask-\d+|rc-said)$/;
+  Voice.onErase = ok => {
+    const st = $("guide-state"); if (!st) return;
+    st.textContent = ok ? (S.lang === "fr" ? "Effacé \u2713" : "Erased \u2713") : (S.lang === "fr" ? "Rien à effacer" : "Nothing to erase");
+    clearTimeout(Voice._eT); Voice._eT = setTimeout(() => guideView(Voice.confirming() ? "confirm" : "listening"), 1800);
+  };
   Voice.fixWords = async (el, text) => {
     if (S.fixOff || S.consent !== true || !text || text.trim().length < 3 || !FIX_IDS.test(el.id)) return [];
     const data = await callApi({ mode: "fix", text: text.trim(), question: questionFor(el), lang: S.lang, purpose: S.purpose,
