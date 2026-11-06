@@ -518,6 +518,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         <p><b>No sound is reaching the app from your microphone.</b> It's probably muted.</p>
         <p id="mic-help-how"></p>
         <div class="row">
+          <a class="btn secondary" id="mic-help-open" href="ms-settings:sound" hidden>Open Sound settings</a>
           <button type="button" class="btn primary" id="mic-help-retry">I've fixed it, try again</button>
           <button type="button" class="btn secondary" id="mic-help-type">Type instead</button>
         </div>
@@ -1238,7 +1239,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       consent: "I can use Claude, an AI assistant, to catch words I mishear and to ask the questions a doctor would ask. Your name and the appointment date are never sent. Would you like me to use Claude? Say yes or no.",
       preparing: "One moment while I prepare a few questions. It takes about 15 seconds.",
       readPage: "Here's what your page says. Is anything wrong? Say yes to change something, or say next.",
-      sample: "Hi. This is how I'll sound when I ask you each question."
+      sample: "Hi. This is how I'll sound when I ask you each question.",
+      deadMore: "Do you need more time?",
+      deadMute: "I can't hear anything. Is your computer on mute?",
+      deadOff: "Or is the microphone on your computer switched off?",
+      deadPhone: "I can't hear anything. Is another app using your phone's microphone, like a call or a video chat?",
+      deadPhone2: "Or is the microphone switched off on a headset?",
+      deadFix: "Here's how to turn it on. It's on the screen. Or tap Type instead."
     },
     fr: {
       hello: "Bonjour. Je suis la voix de l'application. Je pose une chose à la fois et je vous attends. Quand vous avez fini une réponse, dites suivant. Pour retirer ce que vous venez de dire, dites efface ça. Vous pouvez me poser une question, ou toucher Pause, à tout moment.",
@@ -1283,7 +1290,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       consent: "Je peux utiliser Claude, un assistant d'intelligence artificielle, pour corriger les mots que j'entends mal et pour vous poser les questions qu'un médecin poserait. Votre nom et la date du rendez-vous ne sont jamais envoyés. Voulez-vous que j'utilise Claude ? Dites oui ou non.",
       preparing: "Un instant, je prépare quelques questions. Ça prend environ 15 secondes.",
       readPage: "Voici ce que dit votre page. Quelque chose ne va pas ? Dites oui pour changer quelque chose, ou dites suivant.",
-      sample: "Bonjour. Voici ma voix quand je vous pose chaque question."
+      sample: "Bonjour. Voici ma voix quand je vous pose chaque question.",
+      deadMore: "Avez-vous besoin de plus de temps ?",
+      deadMute: "Je n'entends rien. Le son de votre ordinateur est-il coupé ?",
+      deadOff: "Ou le micro de votre ordinateur est-il désactivé ?",
+      deadPhone: "Je n'entends rien. Une autre application utilise-t-elle le micro de votre téléphone, comme un appel ou une vidéo ?",
+      deadPhone2: "Ou le micro d'un casque est-il coupé ?",
+      deadFix: "Voici comment le réactiver. C'est à l'écran. Ou touchez Écrire à la place."
     }
   };
   // what the appointment is about, for questions like "Anything else the doctor should know about your sore foot?"
@@ -1342,18 +1355,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const proc = this._ctx.createScriptProcessor(4096, 1, 1);
       const rate = this._ctx.sampleRate, step = rate / 16000;
       // voice activity: a phrase starts when the sound rises well above the room's noise, and ends after a pause
-      let noise = 0.002, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [], lvlT = 0, deadMs = 0, dead = false;
-      const track = this._stream.getAudioTracks()[0];
-      if (track) { track.onmute = () => CanadaRec.silent(true); track.onunmute = () => CanadaRec.silent(false); if (track.muted) CanadaRec.silent(true); }
+      let noise = 0.002, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [], lvlT = 0, deadMs = 0;
       const END_MS = 1100, START_MS = 120, MAX_MS = 25000, blockMs = 4096 / rate * 1000;
       proc.onaudioprocess = ev => {
         if (!this._running) return;
         const x = ev.inputBuffer.getChannelData(0);
         let sum = 0, peak = 0; for (let i = 0; i < x.length; i++) { sum += x[i] * x[i]; const a = x[i] < 0 ? -x[i] : x[i]; if (a > peak) peak = a; }
         const rms = Math.sqrt(sum / x.length);
-        // muted on the computer (or by a headset switch): nothing at all comes through, for 2.5 seconds
-        if (peak < 1e-5) { deadMs += 4096 / rate * 1000; if (!dead && deadMs > 2500) { dead = true; CanadaRec.silent(true); } }
-        else { deadMs = 0; if (dead) { dead = false; CanadaRec.silent(false); } }
+        // muted on the computer (or by a headset switch): nothing at all comes through, not even room noise
+        if (peak < 1e-5) { deadMs += 4096 / rate * 1000; CanadaRec.dead(deadMs); }
+        else if (deadMs) { deadMs = 0; CanadaRec.dead(0); }
         // downsample to 16 kHz
         const out = new Float32Array(Math.floor(x.length / step));
         for (let i = 0; i < out.length; i++) out[i] = x[Math.floor(i * step)];
@@ -1408,7 +1419,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (this._stream) this._stream.getTracks().forEach(t => t.stop());
       if (this._ctx && this._ownCtx) this._ctx.close().catch(() => {});
       this._stream = this._ctx = this._proc = this._src = null;
-      CanadaRec.hearing(false); CanadaRec.level(0);
+      CanadaRec.hearing(false); CanadaRec.level(0); if (CanadaRec.deadNow) CanadaRec.dead(0);
       CanadaRec.session("playback");
     }
     _maybeEnd() { if (this._ending && !this._pending) { this._ending = false; if (this.onend) this.onend(); } }
@@ -1426,7 +1437,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // so the app's voice comes out of the main speaker.
     static session(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (err) { console.warn(err); } }
   }
-  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.silent = () => {};
+  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false;
   const canCanada = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext || window.webkitAudioContext));
   const NativeSR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -1620,6 +1631,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (!ms) return;
       silenceT = setTimeout(async () => {
         if (!active || held) return;
+        if (CanadaRec.deadNow) return;   // the muted-microphone steps handle this
         prompted = true; if (!bargeOn()) pauseRec(); view("speaking");
         const g = gen; checking = true; await speak(say("silence"));
         if (active && !held && g === gen) startRec();
@@ -2016,21 +2028,32 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   // Muted microphone: say so in plain words, how to fix it on this kind of device, or type instead.
   function micHelpHow() {
     const ua = navigator.userAgent;
-    if (/Windows/i.test(ua)) return "On this computer: if your keyboard has a microphone key (often F4 or F8, with a crossed-out microphone), press it. Or click Start, then Settings, then System, then Sound. Under Input, click your microphone, and if the microphone symbol next to Input volume is crossed out, click it.";
+    if (/Windows/i.test(ua)) return "On this computer: if your keyboard has a microphone key (often F4 or F8, with a crossed-out microphone), press it. Or tap Open Sound settings below. Under Input, click your microphone, and if the microphone symbol next to Input volume is crossed out, click it.";
     if (/Macintosh|Mac OS X/i.test(ua) && !/iPhone|iPad/i.test(ua)) return "On this Mac: open the Apple menu, then System Settings, then Sound. Under Input, choose your microphone and move Input volume to the right.";
     if (/iPhone|iPad|Android/i.test(ua)) return "Close any other app that might be using the microphone (a call, a voice memo, a video chat), then try again.";
     return "Check that your microphone isn't muted, on the computer or on a headset switch, then try again.";
   }
-  CanadaRec.silent = on => {
-    const box = $("mic-help"); if (!box) return;
-    if (on && isVoice() && Voice.active()) {
-      $("mic-help-how").textContent = micHelpHow();
-      // say it too, once, for people who aren't looking at the screen (the microphone is silent, so it won't hear itself)
-      if (box.hidden && !Voice.talking()) Voice.speak(S.lang === "fr" ? "Je n'entends rien de votre micro. Il est peut-être coupé. Les étapes pour le réactiver sont à l'écran, ou touchez Écrire à la place." : "I can't hear anything from your microphone. It may be muted. The steps to turn it on are on the screen, or tap Type instead.");
-      box.hidden = false;
+  // A muted microphone, step by step (Rama, 6 Nov 2026): first the usual check, then the likely cause, then the fix.
+  //   10 s: "Do you need more time?"   15 s: "Is your computer on mute?"
+  //   17.5 s: "Or is the microphone switched off?"   20 s: the fix, on screen
+  const MOBILE = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  const DEAD_STEPS = [
+    [10000, () => say("deadMore")],
+    [15000, () => say(MOBILE ? "deadPhone" : "deadMute")],
+    [17500, () => say(MOBILE ? "deadPhone2" : "deadOff")],
+    [20000, () => { $("mic-help-how").textContent = micHelpHow(); $("mic-help").hidden = false; return say("deadFix"); }]
+  ];
+  let deadStep = 0;
+  CanadaRec.dead = ms => {
+    CanadaRec.deadNow = ms > 0;
+    if (!ms) { deadStep = 0; $("mic-help").hidden = true; return; }
+    if (!isVoice() || !Voice.active() || Voice.held()) return;
+    while (deadStep < DEAD_STEPS.length && ms >= DEAD_STEPS[deadStep][0]) {
+      const line = DEAD_STEPS[deadStep][1](); deadStep++;
+      if (line && !Voice.talking()) Voice.speak(line).then(() => { if (Voice.active() && !Voice.held()) guideView("listening"); });   // the microphone sends nothing, so it won't hear itself
     }
-    else box.hidden = true;
   };
+  if (/Windows/i.test(navigator.userAgent)) $("mic-help-open").hidden = false;
   $("mic-help-retry").addEventListener("click", () => { $("mic-help").hidden = true; Voice.pause(); Voice.resume(); updateBar(); });
   $("mic-help-type").addEventListener("click", () => { $("mic-help").hidden = true; $("vb-stop").click(); });
   CanadaRec.level = v => { const m = $("mic-meter"); if (m) { m.style.setProperty("--lvl", v.toFixed(2)); m.classList.toggle("on", v > 0); } };
