@@ -141,6 +141,8 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 .guide .ga-t:focus { outline: 3px solid var(--accent); outline-offset: 4px; background: var(--surface); }
 .guide .ga-t::placeholder { color: var(--muted); font-size: 1.1rem; font-style: italic; opacity: 1; }
 .ga-k .ga-fix { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.mic-help { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.mic-help p { margin: 0 !important; font-size: 1.05rem; }
 .mic-meter { display: none; width: 64px; height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; flex: none; }
 .mic-meter.on { display: inline-block; }
 .mic-meter b { display: block; height: 100%; width: calc(var(--lvl, 0) * 100%); background: var(--ok); border-radius: 5px; }
@@ -511,6 +513,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <div class="guide-ans" id="guide-ans" hidden>
         <label class="ga-k" for="guide-edit">What I heard <span class="ga-fix">· tap to fix any words</span></label>
         <textarea class="ga-t" id="guide-edit" rows="2" placeholder="Your words will show here as you speak." spellcheck="true"></textarea>
+      </div>
+      <div class="hint mic-help" id="mic-help" role="alert" hidden>
+        <p><b>No sound is reaching the app from your microphone.</b> It's probably muted.</p>
+        <p id="mic-help-how"></p>
+        <div class="row">
+          <button type="button" class="btn primary" id="mic-help-retry">I've fixed it, try again</button>
+          <button type="button" class="btn secondary" id="mic-help-type">Type instead</button>
+        </div>
       </div>
       <p class="guide-tip" id="guide-tip">Say <b>“next”</b> when you've finished · <b>“erase”</b> to undo · ask me anything</p>
     </div>
@@ -1332,13 +1342,18 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const proc = this._ctx.createScriptProcessor(4096, 1, 1);
       const rate = this._ctx.sampleRate, step = rate / 16000;
       // voice activity: a phrase starts when the sound rises well above the room's noise, and ends after a pause
-      let noise = 0.002, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [], lvlT = 0;
+      let noise = 0.002, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [], lvlT = 0, deadMs = 0, dead = false;
+      const track = this._stream.getAudioTracks()[0];
+      if (track) { track.onmute = () => CanadaRec.silent(true); track.onunmute = () => CanadaRec.silent(false); if (track.muted) CanadaRec.silent(true); }
       const END_MS = 1100, START_MS = 120, MAX_MS = 25000, blockMs = 4096 / rate * 1000;
       proc.onaudioprocess = ev => {
         if (!this._running) return;
         const x = ev.inputBuffer.getChannelData(0);
-        let sum = 0; for (let i = 0; i < x.length; i++) sum += x[i] * x[i];
+        let sum = 0, peak = 0; for (let i = 0; i < x.length; i++) { sum += x[i] * x[i]; const a = x[i] < 0 ? -x[i] : x[i]; if (a > peak) peak = a; }
         const rms = Math.sqrt(sum / x.length);
+        // muted on the computer (or by a headset switch): nothing at all comes through, for 2.5 seconds
+        if (peak < 1e-5) { deadMs += 4096 / rate * 1000; if (!dead && deadMs > 2500) { dead = true; CanadaRec.silent(true); } }
+        else { deadMs = 0; if (dead) { dead = false; CanadaRec.silent(false); } }
         // downsample to 16 kHz
         const out = new Float32Array(Math.floor(x.length / step));
         for (let i = 0; i < out.length; i++) out[i] = x[Math.floor(i * step)];
@@ -1411,7 +1426,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // so the app's voice comes out of the main speaker.
     static session(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (err) { console.warn(err); } }
   }
-  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {};
+  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.silent = () => {};
   const canCanada = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext || window.webkitAudioContext));
   const NativeSR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -1917,7 +1932,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const screens = { welcome: $("s-welcome") };
   STEPS.forEach(s => screens[s.id] = $("s-" + s.id));
   function show(step) {
-    typingNow = false; listOn = null; Voice.stop(); $("mic-msg").textContent = "";
+    typingNow = false; listOn = null; Voice.stop(); $("mic-msg").textContent = ""; $("mic-help").hidden = true;
     $("guide").hidden = !isVoice();
     S.step = step; S.stepId = step >= 0 ? STEPS[step].id : ""; save();
     Object.values(screens).forEach(el => el.hidden = true);
@@ -1998,6 +2013,26 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   // while listening: "Hearing you..." during a phrase, "Writing it down..." while it's turned into words
   let micHearing = false, micWriting = 0, lastSt = "off";
   CanadaRec.hearing = on => { micHearing = on; if (lastSt === "listening") guideView("listening"); };
+  // Muted microphone: say so in plain words, how to fix it on this kind of device, or type instead.
+  function micHelpHow() {
+    const ua = navigator.userAgent;
+    if (/Windows/i.test(ua)) return "On this computer: if your keyboard has a microphone key (often F4 or F8, with a crossed-out microphone), press it. Or click Start, then Settings, then System, then Sound. Under Input, click your microphone, and if the microphone symbol next to Input volume is crossed out, click it.";
+    if (/Macintosh|Mac OS X/i.test(ua) && !/iPhone|iPad/i.test(ua)) return "On this Mac: open the Apple menu, then System Settings, then Sound. Under Input, choose your microphone and move Input volume to the right.";
+    if (/iPhone|iPad|Android/i.test(ua)) return "Close any other app that might be using the microphone (a call, a voice memo, a video chat), then try again.";
+    return "Check that your microphone isn't muted, on the computer or on a headset switch, then try again.";
+  }
+  CanadaRec.silent = on => {
+    const box = $("mic-help"); if (!box) return;
+    if (on && isVoice() && Voice.active()) {
+      $("mic-help-how").textContent = micHelpHow();
+      // say it too, once, for people who aren't looking at the screen (the microphone is silent, so it won't hear itself)
+      if (box.hidden && !Voice.talking()) Voice.speak(S.lang === "fr" ? "Je n'entends rien de votre micro. Il est peut-être coupé. Les étapes pour le réactiver sont à l'écran, ou touchez Écrire à la place." : "I can't hear anything from your microphone. It may be muted. The steps to turn it on are on the screen, or tap Type instead.");
+      box.hidden = false;
+    }
+    else box.hidden = true;
+  };
+  $("mic-help-retry").addEventListener("click", () => { $("mic-help").hidden = true; Voice.pause(); Voice.resume(); updateBar(); });
+  $("mic-help-type").addEventListener("click", () => { $("mic-help").hidden = true; $("vb-stop").click(); });
   CanadaRec.level = v => { const m = $("mic-meter"); if (m) { m.style.setProperty("--lvl", v.toFixed(2)); m.classList.toggle("on", v > 0); } };
   CanadaRec.writing = d => { micWriting = Math.max(0, micWriting + d); if (lastSt === "listening") guideView("listening"); };
   const guideView = (st, heard) => {
