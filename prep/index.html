@@ -1363,7 +1363,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         let sum = 0, peak = 0; for (let i = 0; i < x.length; i++) { sum += x[i] * x[i]; const a = x[i] < 0 ? -x[i] : x[i]; if (a > peak) peak = a; }
         const rms = Math.sqrt(sum / x.length);
         // muted on the computer (or by a headset switch): nothing at all comes through, not even room noise
-        if (peak < 1e-5) { deadMs += 4096 / rate * 1000; CanadaRec.dead(deadMs); }
+        // A muted Windows microphone isn't always perfectly flat: the browser's noise processing leaves a faint trace.
+        // A live microphone, even in a quiet room, picks up far more than this.
+        if (peak < 0.0015) { deadMs += 4096 / rate * 1000; CanadaRec.dead(deadMs); }
         else if (deadMs) { deadMs = 0; CanadaRec.dead(0); }
         // downsample to 16 kHz
         const out = new Float32Array(Math.floor(x.length / step));
@@ -1631,7 +1633,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (!ms) return;
       silenceT = setTimeout(async () => {
         if (!active || held) return;
-        if (CanadaRec.deadNow) return;   // the muted-microphone steps handle this
+        if (CanadaRec.deadNow || CanadaRec.quietSince) return;   // the muted-microphone steps handle this
         prompted = true; if (!bargeOn()) pauseRec(); view("speaking");
         const g = gen; checking = true; await speak(say("silence"));
         if (active && !held && g === gen) startRec();
@@ -2045,7 +2047,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   ];
   let deadStep = 0;
   CanadaRec.dead = ms => {
-    CanadaRec.deadNow = ms > 0;
+    CanadaRec.deadNow = ms > 0; CanadaRec.quietSince = ms > 0;
     if (!ms) { deadStep = 0; $("mic-help").hidden = true; return; }
     if (!isVoice() || !Voice.active() || Voice.held()) return;
     while (deadStep < DEAD_STEPS.length && ms >= DEAD_STEPS[deadStep][0]) {
