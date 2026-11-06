@@ -136,7 +136,15 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 .guide-ans { scroll-margin-bottom: 200px; margin-top: 14px; background: var(--bg); border: 2px dashed var(--line); border-radius: 14px; padding: 12px 14px; }
 .guide[data-st="listening"] .guide-ans { border-color: var(--accent); border-style: solid; }
 .guide-ans .ga-k { display: block; font-size: .9rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-.guide .ga-t { font-size: 1.4rem; line-height: 1.4; color: var(--ink); margin: 4px 0 0 !important; max-height: 40vh; overflow: auto; white-space: pre-wrap; }
+.guide .ga-t { display: block; width: 100%; font: inherit; font-size: 1.35rem; line-height: 1.4; color: var(--ink); margin: 4px 0 0 !important; max-height: 40vh; min-height: 2.8em;
+  overflow: auto; white-space: pre-wrap; resize: none; background: transparent; border: 0; padding: 4px 0; border-radius: 6px; }
+.guide .ga-t:focus { outline: 3px solid var(--accent); outline-offset: 4px; background: var(--surface); }
+.guide .ga-t::placeholder { color: var(--muted); font-size: 1.1rem; font-style: italic; opacity: 1; }
+.ga-k .ga-fix { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.guide-tip { margin-top: 12px !important; font-size: 1rem; color: var(--muted); }
+.guide[data-st="speaking"] .guide-tip { visibility: hidden; }
+/* talking mode: the answer is in "What I heard"; the page's own boxes would be a second card */
+body.voice-mode .vfield, body.voice-mode .vtarget { display: none !important; }
 .guide .ga-t .ga-now { color: var(--accent); }
 .guide .ga-t .ga-empty { color: var(--muted); font-size: 1.1rem; font-style: italic; }
 .vdock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--bg); border-top: 1px solid var(--line); box-shadow: 0 -6px 18px rgba(0,0,0,.08); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
@@ -149,7 +157,9 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 body.voice-mode #here-card-btn { display: none; }
 .vmore { display: flex; flex-direction: column; gap: 8px; max-width: 760px; margin: 0 auto 10px; }
 .vmore .btn { width: 100%; min-height: 52px; }
-body.voice-mode main { padding-bottom: 170px; }
+body.voice-mode main { padding-bottom: 24px; }
+body.voice-mode { padding-bottom: calc(190px + env(safe-area-inset-bottom)); }
+body.erasing .vdock { display: none !important; }
 body.voice-mode #actions { display: none !important; }
 body.voice-mode .vb-panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 75vh; overflow: auto; margin: 0; border-radius: 18px 18px 0 0; padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
 body.voice-mode .speak-hint, body.voice-mode .mic.guided { display: none !important; }
@@ -185,7 +195,32 @@ body.voice-mode [data-old-voice] { display: none !important; }
 .sheet .say-list { border: 2px solid #111A22; border-radius: 8px; padding: 10px 16px 10px 36px; }
 .sheet .say-list li { font-family: var(--display); font-size: 1.1rem; }
 .sheet .tr-line { display: block; font-size: 0.85em; color: #4A5866; font-style: italic; }
-.glance { position: relative; background: var(--land); border: 1px solid var(--line); border-radius: 18px; padding: 14px 8px 6px; }
+.glance { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px 16px 4px; }
+.sf-headline { font-family: var(--display); font-weight: 800; font-size: 1.45rem; line-height: 1.3; }
+.sf-promise { display: flex; gap: 14px; align-items: flex-start; background: var(--surface); border: 2px solid var(--c); border-radius: 14px; padding: 14px; }
+.sf-promise > svg { flex: none; width: 44px; height: 44px; color: var(--c); }
+.sf-promise b { display: block; font-family: var(--display); font-size: 1.2rem; line-height: 1.3; }
+.sf-promise span { display: block; color: var(--muted); font-size: .95rem; margin-top: 4px; }
+.how-more summary { cursor: pointer; font-weight: 700; color: var(--accent); min-height: 44px; display: flex; align-items: center; }
+.how-more[open] { display: flex; flex-direction: column; gap: 12px; }
+.how4 { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.how4 li { display: flex; gap: 14px; align-items: center; font-size: 1.1rem; line-height: 1.35; }
+.how4 b { font-family: var(--display); }
+.how4-ic { flex: none; width: 52px; height: 52px; border-radius: 14px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; }
+.how4-ic svg { width: 34px; height: 34px; }
+.ck-wrap { display: flex; flex-direction: column; gap: 18px; }
+.ck-phase h3 { color: var(--c); font-size: 1.1rem; margin-bottom: 8px; }
+.ck { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ck-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; text-align: left; font: inherit; color: var(--ink); cursor: pointer;
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+.ck-mark { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--c); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--surface); }
+.ck li.done .ck-mark { background: var(--c); }
+.ck li.here .ck-mark { color: var(--c); }
+.ck li.here .ck-item { border: 3px solid var(--star); box-shadow: 0 0 0 3px var(--star-soft); }
+.ck-txt { flex: 1; display: flex; flex-direction: column; }
+.ck-txt span { color: var(--muted); font-size: .95rem; line-height: 1.3; }
+.ck-here { flex: none; font-size: .8rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--star); }
+#here-card-btn { display: none !important; }
 .glance-river { position: absolute; left: 0; right: 0; top: 30px; width: 100%; height: 40px; }
 .glance-boat { position: absolute; left: 3%; top: 4px; width: 48px; }
 .glance-boat svg { width: 100%; height: auto; display: block; animation: jrbob 2.6s ease-in-out infinite; }
@@ -236,7 +271,7 @@ body.voice-mode [data-old-voice] { display: none !important; }
 label { font-weight: 700; display: block; margin-bottom: 6px; }
 .field { display: flex; flex-direction: column; }
 .help { color: var(--muted); font-size: 0.95rem; margin-top: -2px; margin-bottom: 6px; }
-input[type=text], input[type=date], input[type=time], textarea {
+input[type=text], input[type=date], input[type=time], select.time-pick, textarea {
   font: inherit; color: var(--ink); background: var(--bg); border: 1.5px solid var(--line); border-radius: 10px;
   padding: 10px 12px; min-height: 48px; width: 100%; }
 textarea { min-height: 160px; resize: vertical; }
@@ -254,6 +289,12 @@ textarea { min-height: 160px; resize: vertical; }
 .btn.secondary:active { box-shadow: inset 0 2px 4px rgba(var(--shadow-tint),.2); }
 .btn.link { background: none; border: none; color: var(--accent); text-decoration: underline; padding: 10px 6px; box-shadow: none; font-weight: 700; }
 .btn.big { min-height: 56px; font-size: 1.1rem; padding: 12px 28px; }
+.btn.danger { background: var(--surface); color: var(--danger); border: 2px solid var(--danger); box-shadow: 0 1px 2px rgba(161,44,44,.15), 0 4px 12px rgba(161,44,44,.10); }
+.btn.danger:active { box-shadow: inset 0 2px 4px rgba(161,44,44,.25); }
+.erase-box { display: flex; flex-direction: column; gap: 10px; }
+.erase-box h2 { font-size: 1.35rem; }
+.erase-box ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+.erase-btns { display: flex; flex-direction: column; gap: 10px; align-items: stretch; max-width: 420px; }
 .btn:disabled { opacity: .6; cursor: progress; }
 .actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; }
 .actions .spacer { flex: 1; }
@@ -307,6 +348,19 @@ fieldset.plain { border: none; padding: 0; margin: 0; }
 
 .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
 .tabs [aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.tiles { display: flex; flex-direction: column; gap: 10px; }
+.tile { position: relative; display: flex; flex-direction: column; gap: 2px; width: 100%; min-height: 72px; text-align: left; font: inherit; color: var(--ink); cursor: pointer;
+  background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 12px 52px 12px 16px;
+  box-shadow: 0 1px 2px rgba(var(--shadow-tint),.10), 0 4px 12px rgba(var(--shadow-tint),.06); }
+.tile b { font-family: var(--display); font-size: 1.15rem; }
+.tile span { color: var(--muted); font-size: .98rem; }
+.tile[aria-selected="true"] { border: 3px solid var(--accent); padding: 11px 51px 11px 15px; }
+.tile[aria-selected="true"]::after { content: "\2713"; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.added-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.added-list li:not(.muted)::before { content: "\2713  "; color: var(--ok); font-weight: 700; }
+body.print-all .sheet[hidden] { display: block !important; }
+@media print { body.print-all .sheet { break-after: page; } body.print-all .sheet:last-of-type { break-after: auto; } }
 .sheet { background: #FFFFFF; color: #111A22; border: 1px solid var(--line); border-radius: 6px;
   padding: 32px 36px; font-size: 17px; line-height: 1.5; max-width: 8.5in; margin: 0 auto; width: 100%; }
 @media (max-width: 480px) { .sheet { padding: 20px 16px; font-size: 16px; } }
@@ -425,7 +479,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <span class="right">
     <span class="saved" id="saved" role="status" aria-live="polite"></span>
     <button type="button" class="jr-open" id="jr-open" aria-haspopup="dialog">
-      <svg viewBox="0 0 26 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M2 4 C6 1 9 7 13 4 S20 1 24 4"/><path d="M2 10 C6 7 9 13 13 10 S20 7 24 10"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6 L5 8 L8 4"/><path d="M11 6 H21"/><path d="M3 13 L5 15 L8 11"/><path d="M11 13 H21"/><circle cx="5.5" cy="20" r="1.8"/><path d="M11 20 H21"/></svg>
       Your journey
     </button>
   </span>
@@ -450,9 +504,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       </div>
       <p class="guide-q" id="guide-say"></p>
       <div class="guide-ans" id="guide-ans" hidden>
-        <span class="ga-k">What I heard</span>
-        <p class="ga-t" id="guide-ans-t"></p>
+        <label class="ga-k" for="guide-edit">What I heard <span class="ga-fix">· tap to fix any words</span></label>
+        <textarea class="ga-t" id="guide-edit" rows="2" placeholder="Your words will show here as you speak." spellcheck="true"></textarea>
       </div>
+      <p class="guide-tip" id="guide-tip">Say <b>“next”</b> when you've finished · <b>“scratch that”</b> to undo · ask me anything</p>
     </div>
     <div class="vdock" id="vdock" data-voice-only hidden>
       <div class="vmore" id="vmore" hidden>
@@ -465,7 +520,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         <button type="button" class="btn secondary vb-small" id="vb-moreb" aria-expanded="false" aria-controls="vmore">More</button>
         <button type="button" class="btn secondary" id="vb-pause" aria-pressed="false">Pause</button>
         <button type="button" class="btn primary vb-main" id="vb-talk" hidden>Let me talk</button>
-        <button type="button" class="btn primary vb-main" id="vb-done">I'm done</button>
+        <button type="button" class="btn primary vb-main" id="vb-done">Next</button>
       </div>
     </div>
     <div class="vb-panel" id="vb-panel" hidden>
@@ -493,7 +548,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       </fieldset>
       <button type="button" class="btn primary" id="vb-panel-close">Done</button>
     </div>
-    <div class="sec-row"><p id="pg-label"></p><button type="button" class="btn link" id="map-link">Map of the full journey</button></div>
+    <div class="sec-row"><p id="pg-label"></p><button type="button" class="btn link" id="map-link">See all steps</button></div>
     <div class="segs" id="segs" aria-hidden="true"></div>
   </div>
 
@@ -506,18 +561,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         <p class="lead">One question at a time. You'll leave with a page for the doctor.</p>
       </div>
       <div class="glance">
-        <svg class="glance-river" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M0 20 C 40 6 60 34 100 20 S 160 6 200 20 S 260 34 300 20" fill="none" stroke="var(--bank)" stroke-width="30" vector-effect="non-scaling-stroke"/>
-          <path d="M0 20 C 40 6 60 34 100 20 S 160 6 200 20 S 260 34 300 20" fill="none" stroke="var(--river)" stroke-width="20" vector-effect="non-scaling-stroke"/>
-          <path class="jr-flow" d="M0 20 C 40 6 60 34 100 20 S 160 6 200 20 S 260 34 300 20" fill="none" stroke="var(--glint)" stroke-width="2" vector-effect="non-scaling-stroke"/>
-        </svg>
-        <span class="glance-boat" id="glance-boat" aria-hidden="true"></span>
-        <ol class="glance-stops" aria-label="Your journey">
-          <li style="--c:var(--accent)"><button type="button" class="glance-sec" data-sec="prep"><span class="dot" aria-hidden="true"></span><b>Appointment prep</b><span>5 short steps</span></button></li>
-          <li style="--c:var(--room)"><button type="button" class="glance-sec" data-sec="room"><span class="dot" aria-hidden="true"></span><b>In the room</b><span>2 steps</span></button></li>
-          <li style="--c:var(--after)"><button type="button" class="glance-sec" data-sec="after"><span class="dot" aria-hidden="true"></span><b>After</b><span>2 steps</span></button></li>
-        </ol>
-        <button type="button" class="btn link glance-map" id="w-map-link">See the full journey map</button>
+        <div id="w-how"></div>
+        <div class="row" style="justify-content:space-between">
+          <button type="button" class="btn link" id="w-hear">Hear it</button>
+          <button type="button" class="btn link" id="w-map-link">See all steps</button>
+        </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div class="lang-pick" role="radiogroup" aria-labelledby="lang-pick-label">
@@ -540,17 +588,17 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       </div>
     </div>
     <div id="w-back" style="display:flex;flex-direction:column;gap:16px" hidden>
-      <h1>Welcome back</h1>
+      <h1>Your appointments</h1>
       <div class="card">
-        <p class="muted">You were getting ready for:</p>
+        <p class="muted">Getting ready for:</p>
         <p class="lead"><b id="w-summary"></b></p>
         <p class="muted" id="w-where"></p>
       </div>
       <div class="row">
         <button type="button" class="btn primary big" id="w-continue">Continue where I left off</button>
-        <button type="button" class="btn secondary" id="w-new-appt">Start a new appointment</button>
+        <button type="button" class="btn secondary" id="w-new-appt">+ Prepare for a new appointment</button>
       </div>
-      <div><button type="button" class="btn link" id="w-map-btn">Map of the full journey</button></div>
+      <div><button type="button" class="btn link" id="w-map-btn">See all steps</button></div>
       <div id="w-new-confirm" class="hint" hidden></div>
     </div>
     <div class="open-copy">
@@ -567,12 +615,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <h2>Your name</h2>
     <div class="hint" id="voice-note" hidden>
       <strong>Before you start talking</strong>
-      <span id="voice-note-text">Your phone will ask to use the microphone. Tap Allow. To turn your voice into words, Chrome sends the sound to Google and Safari sends it to Apple.</span>
+      <span id="voice-note-text">Your phone will ask to use the microphone. Tap Allow.</span>
     </div>
-    <p class="muted speak-hint">Tap <b>Speak</b> to talk instead of type.</p>
     <div class="field">
       <label for="who">What's your name?</label>
-      <p class="help" id="who-help">If you're helping someone, give their name. It only goes on your printed pages and is never sent anywhere.</p>
+      <p class="help" id="who-help">Or the name of the person you're helping. It only goes on your printed pages.</p>
       <input type="text" id="who" aria-describedby="who-help" autocomplete="name">
     </div>
   </section>
@@ -605,6 +652,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <p class="help" id="seeing-help">For example: neurologist or family doctor.</p>
       <input type="text" id="seeing" aria-describedby="seeing-help" autocomplete="off">
     </div>
+    <input type="text" id="when-said" class="visually-hidden" tabindex="-1" aria-hidden="true" autocomplete="off">
     <div class="two">
       <div class="field"><label for="date">Date</label><input type="date" id="date"></div>
       <div class="field"><label for="time">Time</label><input type="time" id="time" step="300"></div>
@@ -666,9 +714,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   </section>
 
   <section class="screen" id="s-bgallergy" hidden>
-    <h2>Any allergies?</h2>
+    <h2>Allergies and cautions</h2>
     <div class="field">
-      <label for="bg-allergies">Allergies</label>
+      <label for="bg-allergies">Allergies, or anything the doctor should be careful about</label>
+      <p class="help">For example: penicillin, or a bad reaction to an anaesthetic.</p>
       <input type="text" id="bg-allergies" autocomplete="off">
     </div>
   </section>
@@ -688,38 +737,42 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <p class="help" id="med-note-help">For example: started magnesium in September.</p>
       <textarea id="med-note" aria-describedby="med-note-help" style="min-height:90px"></textarea>
     </div>
-    <p class="muted">Include vitamins. Not sure of a dose? Leave it blank.</p>
-    <div class="list" id="med-list"></div>
-    <div><button type="button" class="btn secondary" data-add="med">Add another medication</button></div>
+    <p class="muted vfield">Prescription medicines. Not sure of a dose? Leave it blank.</p>
+    <div class="list vfield" id="med-list"></div>
+    <div class="vfield"><button type="button" class="btn secondary" data-add="med">Add another medication</button></div>
+    <h3 class="vfield" style="margin-top:8px">Other things you take</h3>
+    <p class="muted vfield">Vitamins, supplements, herbal remedies, or anything from the drugstore without a prescription.</p>
+    <div class="list vfield" id="otc-list"></div>
+    <div class="vfield"><button type="button" class="btn secondary" data-add="otc">Add another</button></div>
   </section>
 
   <!-- 6 MORE DETAIL -->
   <section class="screen" id="s-detail" hidden>
-    <h2>A few more questions about it</h2>
+    <h2 id="detail-h">A few more questions</h2>
     <p class="muted">What a doctor would ask, so they get the full picture.</p>
     <div id="detail-consent"></div>
     <p class="status" id="detail-status" role="status" aria-live="polite"></p>
-    <div id="cl-card" class="ai-box" hidden></div>
+    <div id="cl-card" class="ai-box vfield" hidden></div>
   </section>
 
   <!-- 7 TELL -->
   <section class="screen" id="s-tell" hidden>
     <h2>What to tell the doctor</h2>
-    <p class="muted" id="tell-intro">Your answers are already here. Fix anything that's wrong.</p>
-    <div class="hint" id="tell-empty" hidden>
+    <p class="muted vfield" id="tell-intro">Your answers are already here. Fix anything that's wrong.</p>
+    <div class="hint vfield" id="tell-empty" hidden>
       Nothing here yet. Write short facts the doctor should hear: what it is, where, since when, and how bad.
       <div style="margin-top:8px"><button type="button" class="btn secondary" id="tell-back">Go back and answer a few questions</button></div>
     </div>
-    <div class="list" id="tell-list"></div>
-    <div><button type="button" class="btn secondary" data-add="tell">Add another</button></div>
+    <div class="list vfield" id="tell-list"></div>
+    <div class="vfield"><button type="button" class="btn secondary" data-add="tell">Add another</button></div>
   </section>
 
   <!-- 8 ASK -->
   <section class="screen" id="s-ask" hidden>
     <h2>Your questions for the doctor</h2>
-    <p class="muted">Tap <b>Most important</b> to put a question first.</p>
-    <div class="list" id="ask-list"></div>
-    <div><button type="button" class="btn secondary" data-add="ask">Add another question</button></div>
+    <p class="muted vfield">Tap <b>Most important</b> to put a question first.</p>
+    <div class="list vfield" id="ask-list"></div>
+    <div class="vfield"><button type="button" class="btn secondary" data-add="ask">Add another question</button></div>
   </section>
 
   <!-- 9 IDEAS -->
@@ -735,6 +788,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     </div>
     <h3>Common questions</h3>
     <fieldset class="plain"><legend class="visually-hidden">Common questions</legend><div class="list" id="sugg-list"></div></fieldset>
+    <div class="field">
+      <label for="ideas-new">Anything else you'd like to ask the doctor?</label>
+      <p class="help">One question per line.</p>
+      <textarea id="ideas-new" class="grow" rows="1"></textarea>
+      <div class="item-actions"><button type="button" class="btn secondary" id="ideas-add">Add a question</button></div>
+    </div>
+    <ul class="added-list" id="ideas-added" aria-live="polite"></ul>
+    <p class="muted small">Always on your pages: asking to record the visit, and who to contact before your next appointment.</p>
   </section>
 
   <!-- PREP 5, part 3 -->
@@ -763,21 +824,17 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <section class="screen" id="s-sheets" hidden>
     <div class="no-print" style="display:flex;flex-direction:column;gap:16px">
       <h2>Your pages</h2>
-      <p>Three pages, one for each person.</p>
-      <ol class="ready">
-        <li><b>Summary for the doctor.</b> Hand it over when you sit down.</li>
-        <li><b>My page.</b> Read your questions from it.</li>
-        <li><b>Full list for family.</b> Send it to them.</li>
-      </ol>
-      <div class="tabs" role="tablist" aria-label="Which page">
-        <button type="button" class="btn secondary" role="tab" id="tab-d" aria-selected="true" aria-controls="sheet-d">Summary for the doctor</button>
-        <button type="button" class="btn secondary" role="tab" id="tab-p" aria-selected="false" aria-controls="sheet-p">My page</button>
-        <button type="button" class="btn secondary" role="tab" id="tab-c" aria-selected="false" aria-controls="sheet-c">Full list for family</button>
+      <p class="muted">Tap a page to see it.</p>
+      <div class="tiles" role="tablist" aria-label="Which page">
+        <button type="button" class="tile" role="tab" id="tab-d" aria-selected="true" aria-controls="sheet-d"><b>Summary for the doctor</b><span>Hand it over when you sit down.</span></button>
+        <button type="button" class="tile" role="tab" id="tab-p" aria-selected="false" aria-controls="sheet-p"><b>My page</b><span>Read your questions from it, and take notes.</span></button>
+        <button type="button" class="tile" role="tab" id="tab-c" aria-selected="false" aria-controls="sheet-c"><b>Full list to share</b><span>Everything in one place, for people who help you.</span></button>
       </div>
-      <p class="muted" id="tab-about"></p>
+      <p class="muted" id="tab-about" hidden></p>
       <div class="row">
-        <button type="button" class="btn primary" id="share" hidden>Send to family</button>
         <button type="button" class="btn primary" id="print-this">Print this page</button>
+        <button type="button" class="btn primary" id="share" hidden>Send this page</button>
+        <button type="button" class="btn secondary" id="print-all">Save all 3 as a PDF</button>
         <button type="button" class="btn secondary" data-copy>Copy as text</button>
       </div>
       <p class="status" id="sheet-status" role="status" aria-live="polite"></p>
@@ -793,10 +850,20 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <div class="sheet" id="sheet-d" role="tabpanel" aria-labelledby="tab-d"></div>
     <div class="sheet" id="sheet-p" role="tabpanel" aria-labelledby="tab-p" hidden></div>
     <div class="sheet" id="sheet-c" role="tabpanel" aria-labelledby="tab-c" hidden></div>
+    <div class="card no-print ready-card">
+      <h3 id="ready-h">You're ready for your visit</h3>
+      <div class="row">
+        <button type="button" class="btn primary" id="cal-this">Add to my calendar</button>
+      </div>
+      <p class="muted small" id="cal-note" role="status" aria-live="polite">Opens your phone's calendar with the details filled in, and a reminder the day before. Nothing is sent anywhere.</p>
+      <p><b>After your visit, come back here.</b> I'll help you note what the doctor said, and what happens next.</p>
+      <div class="row"><button type="button" class="btn secondary" id="sheets-new2">Prepare for another appointment</button></div>
+      <div id="sheets-new2-confirm" class="hint" hidden></div>
+    </div>
     <div class="card no-print">
-      <h3>Keep a copy</h3>
-      <p class="muted">To use your answers on another device, download a copy.</p>
-      <div><button type="button" class="btn secondary" data-download>Download a copy</button></div>
+      <h3>Backup file</h3>
+      <p class="muted">To use your answers on another phone or computer, save a backup file, then open it there.</p>
+      <div><button type="button" class="btn secondary" data-download>Save a backup file</button></div>
     </div>
   </section>
 
@@ -874,7 +941,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <h2>Next steps and sharing</h2>
       <p>Here's your recap. Send it to family who help, so nobody has to retell it.</p>
       <div class="row">
-        <button type="button" class="btn primary" id="rc-share">Send to family</button>
+        <button type="button" class="btn primary" id="rc-share">Send</button>
         <button type="button" class="btn secondary" id="rc-print">Print</button>
         <button type="button" class="btn secondary" id="rc-copy">Copy as text</button>
       </div>
@@ -891,14 +958,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <div class="sheet" id="sheet-r"></div>
     <div class="card no-print">
       <h3>Get ready for your next appointment</h3>
+      <div class="row"><button type="button" class="btn secondary" id="cal-next">Add my next appointment to my calendar</button></div>
+      <p class="muted small" id="cal-next-note" role="status" aria-live="polite"></p>
       <p class="muted">Your health details and unanswered questions carry over.</p>
       <div><button type="button" class="btn primary" id="sheets-new">Start preparing for the next appointment</button></div>
       <div id="sheets-new-confirm" class="hint" hidden></div>
     </div>
     <div class="card no-print">
-      <h3>Keep a copy</h3>
-      <p class="muted">To use your answers on another device, download a copy.</p>
-      <div><button type="button" class="btn secondary" data-download>Download a copy</button></div>
+      <h3>Backup file</h3>
+      <p class="muted">To use your answers on another phone or computer, save a backup file, then open it there.</p>
+      <div><button type="button" class="btn secondary" data-download>Save a backup file</button></div>
     </div>
   </section>
 
@@ -917,17 +986,25 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <button type="button" class="btn link" id="change-mode" hidden>Switch to typing</button>
   <button type="button" class="btn link" id="change-voice" hidden>Try a different voice</button>
   <button type="button" class="btn link" id="change-lang">Parler en français</button>
-  <button type="button" class="btn link" data-download>Download a copy</button>
+  <button type="button" class="btn link" id="foot-pages">Save or print my pages</button>
+  <button type="button" class="btn link" data-download>Backup file</button>
   <button type="button" class="btn link" id="erase">Erase my answers from this device</button>
 </footer>
 <div class="wrap no-print" style="padding-block:0 32px">
-  <div id="erase-confirm" class="hint" hidden>
-    <strong>Erase everything from this device?</strong>
-    This removes all your answers from this phone or computer. Download a copy first if you want to keep them.
-    <div class="row" style="margin-top:10px">
-      <button type="button" class="btn primary" id="erase-yes">Yes, erase</button>
-      <button type="button" class="btn secondary" id="erase-no">Keep my answers</button>
+  <div id="erase-confirm" class="hint erase-box" role="alertdialog" aria-labelledby="erase-title" hidden>
+    <h2 id="erase-title" tabindex="-1">Erase everything from this phone?</h2>
+    <ul>
+      <li><b>This can't be undone.</b></li>
+      <li><b>We can't get it back for you.</b> We don't keep a copy.</li>
+      <li>Pages you've already printed or sent aren't affected.</li>
+      <li>Anything sent to Claude for suggested questions is deleted by Anthropic within 30 days.</li>
+    </ul>
+    <div class="erase-btns">
+      <button type="button" class="btn primary" id="erase-save">Save a backup first</button>
+      <button type="button" class="btn danger" id="erase-yes">Erase everything</button>
+      <button type="button" class="btn link" id="erase-no">Cancel</button>
     </div>
+    <p class="status" id="erase-status" role="status" aria-live="polite"></p>
   </div>
 </div>
 
@@ -945,9 +1022,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const STORE_KEY = "pen-ink-prep-carefile";
   // Three sections. Each step is a stop on the river; some stops have two screens.
   const SECTIONS = {
-    prep: { name: "Appointment prep", c: "var(--accent)" },
-    room: { name: "In the room", c: "var(--room)" },
-    after: { name: "After the appointment", c: "var(--after)" }
+    prep: { name: "Before your visit", c: "var(--accent)" },
+    room: { name: "At your visit", c: "var(--room)" },
+    after: { name: "After your visit", c: "var(--after)" }
   };
   const STEPS = [
     { id: "name", sec: "prep", stop: 0, name: "Your name", skip: true },
@@ -957,14 +1034,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     { id: "bg", sec: "prep", stop: 2, name: "Your health", skip: true },
     { id: "bgchg", sec: "prep", stop: 2, name: "Recent changes", skip: true },
     { id: "bgcare", sec: "prep", stop: 2, name: "Your care team", skip: true },
-    { id: "bgallergy", sec: "prep", stop: 2, name: "Allergies", skip: true },
+    { id: "bgallergy", sec: "prep", stop: 2, name: "Allergies and cautions", skip: true },
     { id: "meds", sec: "prep", stop: 2, name: "Your medications" },
     { id: "detail", sec: "prep", stop: 3, name: "More about it" },
     { id: "tell", sec: "prep", stop: 3, name: "What to tell the doctor" },
     { id: "ask", sec: "prep", stop: 4, name: "Your questions" },
     { id: "ideas", sec: "prep", stop: 4, name: "Questions to consider" },
     { id: "priority", sec: "prep", stop: 4, name: "What matters most", next: "Get my pages" },
-    { id: "sheets", sec: "room", stop: 5, name: "Your pages" },
+    { id: "sheets", sec: "prep", stop: 5, name: "Your pages" },
     { id: "visit", sec: "room", stop: 6, name: "At the appointment", next: "I'm back from the appointment" },
     { id: "recap", sec: "after", stop: 7, name: "What the doctor said" },
     { id: "recapq", sec: "after", stop: 7, name: "Unanswered questions" },
@@ -1022,8 +1099,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     chg: { bg: "", meds: "", medNote: "" },
     recap: { said: "", open: [], more: "", todo: [""], nextWith: "", nextDate: "", nextTime: "" },
     first: "", important: [], prioSeen: false });
-  const blank = () => Object.assign({ v: 3, step: -1, stepId: "", waitMs: 15000, slowVoice: false, barge: null, mode: "", consent: null, who: "", carried: false, voiceName: "", lang: "en", docLang: "en", tr: {}, fixOff: false,
-    bg: { conditions: "", changes: "", team: "", allergies: "" }, meds: [{ n: "", d: "", w: "" }] }, blankVisit());
+  const blank = () => Object.assign({ v: 3, step: -1, stepId: "", waitMs: 15000, slowVoice: false, barge: null, mode: "", consent: null, who: "", carried: false, voiceName: "", lang: "en", docLang: "en", tr: {}, tidy: {}, fixOff: false,
+    bg: { conditions: "", changes: "", team: "", allergies: "" }, meds: [{ n: "", d: "", w: "", o: false }] }, blankVisit());
   function normalize(x) {
     const b = blank();
     if (!x || typeof x !== "object") return b;
@@ -1037,13 +1114,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     b.voiceV2 = x.voiceV2 ? 1 : 0;
     b.lang = x.lang === "fr" ? "fr" : "en"; b.docLang = x.docLang === "fr" ? "fr" : "en"; b.fixOff = !!x.fixOff;
     if (x.tr && typeof x.tr === "object") Object.keys(x.tr).slice(0, 600).forEach(k => { if (typeof x.tr[k] === "string") b.tr[k] = x.tr[k]; });
+    if (x.tidy && typeof x.tidy === "object") Object.keys(x.tidy).slice(0, 400).forEach(k => { const v = x.tidy[k]; if (v && typeof v.t === "string") b.tidy[k] = { t: v.t, b: str(v.b) }; });
     b.consent = x.consent === true ? true : x.consent === false ? false : null;
     if (typeof x.stepId === "string" && x.stepId) b.step = STEPS.findIndex(s => s.id === x.stepId);
     else if (Number.isInteger(x.step) && x.step >= 0 && x.step < OLD_STEP_IDS.length) b.step = STEPS.findIndex(s => s.id === OLD_STEP_IDS[x.step]);
     else b.step = -1;
     b.stepId = b.step >= 0 ? STEPS[b.step].id : "";
     if (x.bg && typeof x.bg === "object") ["conditions", "changes", "team", "allergies"].forEach(k => b.bg[k] = str(x.bg[k]));
-    if (Array.isArray(x.meds) && x.meds.length) b.meds = x.meds.map(m => ({ n: str(m && m.n), d: str(m && m.d), w: str(m && m.w) }));
+    if (Array.isArray(x.meds) && x.meds.length) b.meds = x.meds.map(m => ({ n: str(m && m.n), d: str(m && m.d), w: str(m && m.w), o: !!(m && m.o) }));
     if (Array.isArray(x.tell) && x.tell.length) b.tell = x.tell.map(str);
     if (Array.isArray(x.ask) && x.ask.length) b.ask = x.ask.map(q => ({ t: str(q && q.t), top: !!(q && q.top) }));
     if (Array.isArray(x.sugg)) b.sugg = x.sugg.filter(i => Number.isInteger(i) && i >= 0 && i < SUGGESTIONS.length);
@@ -1098,93 +1176,223 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   let S = load() || blank();
   const SAY = {
     en: {
-      hello: "Hello. I'm the app's voice. I'll ask one thing at a time and wait for you. When you've finished, say carry on, or tap I'm done. You can tap Pause at any time.",
+      hello: "Hello. I'm the app's voice. I'll ask one thing at a time and wait for you. When you've finished an answer, say next. To take back what you just said, say scratch that. You can ask me anything, or tap Pause, at any time.",
       heard: "Here's what I heard:", heardQ: "Is that right? Say yes, or say change it.",
       again: "Okay, let's try that again. Go ahead whenever you're ready.",
       sorry: "I didn't catch anything. Please try again, or type it if that's easier.",
-      help: "Here's how it works. Answer in your own words; there are no wrong answers. When you've finished, say carry on. Say repeat to hear the question again, or ask me what something means.",
-      moreTime: "Of course. Take your time. Say carry on when you're ready.",
+      help: "Here's how it works. Answer in your own words; there are no wrong answers. When you've finished, say next. Say scratch that to take back the last part, say repeat to hear the question again, or ask me what something means.",
+      moreTime: "Of course. Take your time. Say next when you're ready.",
       moment: "One moment.",
       more: "and more. It's all on the screen.",
-      words: "What's on your mind about this appointment? Say it all, in any order. Take your time. I'll wait. When you've finished, say carry on.",
+      words: "What's on your mind about this appointment? Say it all, in any order. Take your time. I'll wait. When you've finished, say next.",
       wordsQ: "What's on your mind about this appointment?",
-      intro: "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say carry on. ",
+      intro: "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say next. ",
       silence: "Should I continue, or do you need more time?",
-      thanks: "Thank you.",
       done: "That's all my questions. Thank you. Say next when you're ready.",
-      g_name: "First, what's your name? If you're helping someone, say their name. It only goes on your printed pages. When you've finished, say carry on.",
+      g_name: "First, what's your name? If you're helping someone, say their name. It only goes on your printed pages. Then say next.",
       thanks: "Thanks, {n}.",
-      g_appt: "Do you have an appointment coming up? Tell me in a few words what it's for, for example, a sore foot. When you've finished, say carry on.",
-      g_bg: "Now your health. Tell me about any long-term conditions, like Parkinson's or diabetes. If there are none, just say carry on.",
+      g_appt: "What is the appointment for? Tell me in a few words, for example, a sore foot. Then say next.",
+      g_bg: "Now your health. Tell me about any long-term conditions, like Parkinson's or diabetes, one at a time. If there are none, just say next.",
       g_bg2: "Here's your health from last time. Has anything changed? Tap No or Yes on the screen, then say next.",
-      g_meds: "Now your medicines, including vitamins. Say one at a time, with the dose if you know it, for example, metformin 500 milligrams twice a day. After each one, say next one. When you've finished, say carry on.",
-      g_tell: "What should the doctor hear about this? Your answers so far are on the screen. Add anything else, one thing at a time, then say next one. When you've finished, say carry on.",
-      g_tell0: "What should the doctor hear about this? Tell me short facts, one at a time: what it is, where it is, since when, and how bad. After each one, say next one. When you've finished, say carry on.",
-      g_ask: "Do you have your own questions for the doctor? Say one at a time, then say next one. When you've finished, say carry on.",
-      g_ideas: "Here are some questions you might not think of. Tick the ones you want, then say next.",
+      g_meds: "Now your prescription medicines. Say one at a time, with the dose and when you take it, if you know. For example: metformin, 500 milligrams, twice a day. Pause between each one. When you've finished, say next.",
+      g_otc: "Do you take anything else? Vitamins, supplements, herbal remedies, or anything from the drugstore without a prescription? Say each one with a pause between them. If none, just say next.",
+      g_tell: "Anything else the doctor should know about {p}? What you've said so far is on the screen. When you've finished, say next.",
+      g_tell0: "What should the doctor know about {p}? Tell me short facts, one at a time: what it is, where, since when, and how bad. When you've finished, say next.",
+      g_ask: "Do you have your own questions for the doctor? Say them one at a time, with a pause between them. When you've finished, say next.",
+      g_ideas: "Here are some questions you might not think of. Tick the ones you want on the screen. At the bottom, you can add anything else you'd like to ask the doctor. Then say next.",
       g_priority: "Which questions matter most to you? Tick them on the screen, then say next.",
-      g_sheets: "Your pages are ready. Print them, or keep them on your phone for the appointment. Tap Next when you're ready.",
+      g_sheets: "Your pages are ready. I tidied the wording, but kept your meaning. Check them, then print them or keep them on your phone.",
       g_visit: "At the appointment, hand the doctor your summary, and ask your questions from My page. If you'd like to record, ask first. When you're back home, tap I'm back from the appointment.",
-      g_recap: "Welcome back. What did the doctor say? Tell me while it's fresh. When you've finished, say carry on.",
+      g_recap: "Welcome back. What did the doctor say? Tell me while it's fresh. When you've finished, say next.",
       g_recap2: "What happens next? For example, book blood work. Add each thing to do on the screen, then say next.",
-      g_who: "Who are you seeing? For example, a neurologist. The date and time go on the screen. If you'd rather skip this, just say carry on.",
-      g_bgchg: "Any changes in the last year, like a surgery, a hospital stay or a fall? If there are none, just say carry on.",
-      g_bgcare: "What other doctors or care do you see? By type is fine, for example, a urologist. If none, just say carry on.",
-      g_bgallergy: "Do you have any allergies? If none, just say carry on.",
+      g_who: "Who are you seeing? For example, a neurologist. Then say next.",
+      g_when: "What day and time is the appointment? For example: Wednesday, November 11th, at 10:30 in the morning. If you're not sure, just say next.",
+      g_bgchg: "Any changes in the last year, like a surgery, a hospital stay or a fall? If there are none, just say next.",
+      g_bgcare: "What other doctors or care do you see? By type is fine, for example, a urologist. If none, just say next.",
+      g_bgallergy: "Do you have any allergies, or anything the doctor should be careful about, like a bad reaction to an anaesthetic? If none, just say next.",
       g_recapq: "Which of your questions didn't get answered? Tick them on the screen, then say next.",
-      g_recapmore: "Is there anything else you'd like to ask next time? If not, just say carry on.",
-      g_recapfu: "Was another appointment booked or suggested? Who with? If not, just say carry on.",
-      g_share: "Here's your recap. You can send it to family who help, so nobody has to tell it all again.",
-      sample: "Hi. This is how I'll sound when I read your questions."
+      g_recapmore: "Is there anything else you'd like to ask next time? If not, just say next.",
+      g_recapfu: "Was another appointment booked or suggested? Who with? If not, just say next.",
+      g_share: "Here's your recap. You can send it to people who help you, so nobody has to tell it all again.",
+      consent: "I can use Claude, an AI assistant, to catch words I mishear and to ask the questions a doctor would ask. Your name and the appointment date are never sent. Would you like me to use Claude? Say yes or no.",
+      preparing: "One moment while I prepare a few questions. It takes about 15 seconds.",
+      readPage: "Here's what your page says. Is anything wrong? Say yes to change something, or say next.",
+      sample: "Hi. This is how I'll sound when I ask you each question."
     },
     fr: {
-      hello: "Bonjour. Je suis la voix de l'application. Je pose une chose à la fois et je vous attends. Quand vous avez fini, dites continuez, ou touchez J'ai fini. Vous pouvez toucher Pause à tout moment.",
+      hello: "Bonjour. Je suis la voix de l'application. Je pose une chose à la fois et je vous attends. Quand vous avez fini une réponse, dites suivant. Pour retirer ce que vous venez de dire, dites efface ça. Vous pouvez me poser une question, ou toucher Pause, à tout moment.",
       heard: "Voici ce que j'ai entendu :", heardQ: "Est-ce bien ça ? Dites oui, ou dites changer.",
       again: "D'accord, on recommence. Allez-y quand vous êtes prêt.",
       sorry: "Je n'ai rien entendu. Essayez encore, ou écrivez-le si c'est plus simple.",
-      help: "Voici comment ça marche. Répondez avec vos mots ; il n'y a pas de mauvaise réponse. Quand vous avez fini, dites continuez. Dites répète pour réentendre la question, ou demandez-moi ce que veut dire un mot.",
-      moreTime: "Bien sûr. Prenez votre temps. Dites continuez quand vous êtes prêt.",
+      help: "Voici comment ça marche. Répondez avec vos mots ; il n'y a pas de mauvaise réponse. Quand vous avez fini, dites suivant. Dites efface ça pour retirer la dernière partie, répète pour réentendre la question, ou demandez-moi ce que veut dire un mot.",
+      moreTime: "Bien sûr. Prenez votre temps. Dites suivant quand vous êtes prêt.",
       moment: "Un instant.",
       more: "et plus encore. Tout est à l'écran.",
-      words: "Qu'est-ce qui vous préoccupe pour ce rendez-vous ? Dites tout, dans l'ordre que vous voulez. Prenez votre temps, j'attends. Quand vous avez fini, dites continuez.",
+      words: "Qu'est-ce qui vous préoccupe pour ce rendez-vous ? Dites tout, dans l'ordre que vous voulez. Prenez votre temps, j'attends. Quand vous avez fini, dites suivant.",
       wordsQ: "Qu'est-ce qui vous préoccupe pour ce rendez-vous ?",
-      intro: "On prend notre temps. Je pose une question à la fois, et j'attends. Quand vous avez fini de répondre, dites continuez. ",
+      intro: "On prend notre temps. Je pose une question à la fois, et j'attends. Quand vous avez fini de répondre, dites suivant. ",
       silence: "Voulez-vous que je continue, ou avez-vous besoin de plus de temps ?",
-      thanks: "Merci.",
       done: "C'est tout pour mes questions. Merci. Dites suivant quand vous êtes prêt.",
-      g_name: "D'abord, comment vous appelez-vous ? Si vous aidez quelqu'un, dites son nom. Il va seulement sur vos pages imprimées. Quand vous avez fini, dites continuez.",
+      g_name: "D'abord, comment vous appelez-vous ? Si vous aidez quelqu'un, dites son nom. Il va seulement sur vos pages imprimées. Puis dites suivant.",
       thanks: "Merci, {n}.",
-      g_appt: "Avez-vous un rendez-vous bientôt ? Dites-moi en quelques mots pourquoi, par exemple, un pied qui fait mal. Quand vous avez fini, dites continuez.",
-      g_bg: "Maintenant, votre santé. Dites-moi vos problèmes de santé de longue durée, comme le Parkinson ou le diabète. S'il n'y en a pas, dites simplement continuez.",
+      g_appt: "Ce rendez-vous, c'est pour quoi ? Dites-le en quelques mots, par exemple, un pied qui fait mal. Puis dites suivant.",
+      g_bg: "Maintenant, votre santé. Dites-moi vos problèmes de santé de longue durée, comme le Parkinson ou le diabète, un à la fois. S'il n'y en a pas, dites simplement suivant.",
       g_bg2: "Voici votre santé, de la dernière fois. Est-ce que quelque chose a changé ? Touchez Non ou Oui à l'écran, puis dites suivant.",
-      g_meds: "Maintenant vos médicaments, vitamines comprises. Dites-les un à la fois, avec la dose si vous la connaissez, par exemple, metformine 500 milligrammes deux fois par jour. Après chacun, dites un autre. Quand vous avez fini, dites continuez.",
-      g_tell: "Que doit savoir le médecin à ce sujet ? Vos réponses sont déjà à l'écran. Ajoutez autre chose, une chose à la fois, puis dites un autre. Quand vous avez fini, dites continuez.",
-      g_tell0: "Que doit savoir le médecin à ce sujet ? Dites-moi des faits courts, un à la fois : ce que c'est, où, depuis quand, et à quel point c'est fort. Après chacun, dites un autre. Quand vous avez fini, dites continuez.",
-      g_ask: "Avez-vous vos propres questions pour le médecin ? Dites-les une à la fois, puis dites une autre. Quand vous avez fini, dites continuez.",
-      g_ideas: "Voici des questions auxquelles vous n'auriez peut-être pas pensé. Cochez celles que vous voulez, puis dites suivant.",
+      g_meds: "Maintenant vos médicaments sur ordonnance. Dites-les un à la fois, avec la dose et quand vous le prenez, si vous le savez. Par exemple : metformine, 500 milligrammes, deux fois par jour. Faites une pause entre chacun. Quand vous avez fini, dites suivant.",
+      g_otc: "Prenez-vous autre chose ? Des vitamines, des suppléments, des produits naturels, ou quelque chose de la pharmacie sans ordonnance ? Dites chacun avec une pause entre eux. Sinon, dites simplement suivant.",
+      g_tell: "Autre chose que le médecin devrait savoir au sujet de {p} ? Ce que vous avez dit est déjà à l'écran. Quand vous avez fini, dites suivant.",
+      g_tell0: "Que doit savoir le médecin au sujet de {p} ? Dites-moi des faits courts, un à la fois : ce que c'est, où, depuis quand, et à quel point c'est fort. Quand vous avez fini, dites suivant.",
+      g_ask: "Avez-vous vos propres questions pour le médecin ? Dites-les une à la fois, avec une pause entre elles. Quand vous avez fini, dites suivant.",
+      g_ideas: "Voici des questions auxquelles vous n'auriez peut-être pas pensé. Cochez celles que vous voulez à l'écran. En bas, vous pouvez ajouter autre chose à demander au médecin. Puis dites suivant.",
       g_priority: "Quelles questions comptent le plus pour vous ? Cochez-les à l'écran, puis dites suivant.",
-      g_sheets: "Vos pages sont prêtes. Imprimez-les, ou gardez-les sur votre téléphone pour le rendez-vous. Touchez Suivant quand vous êtes prêt.",
+      g_sheets: "Vos pages sont prêtes. J'ai simplifié la formulation, sans changer le sens. Vérifiez-les, puis imprimez-les ou gardez-les sur votre téléphone.",
       g_visit: "Au rendez-vous, donnez le résumé au médecin, et posez vos questions de Ma page. Si vous voulez enregistrer, demandez d'abord. De retour à la maison, touchez « Je suis de retour du rendez-vous ».",
-      g_recap: "Bon retour. Qu'est-ce que le médecin a dit ? Dites-le pendant que c'est frais. Quand vous avez fini, dites continuez.",
+      g_recap: "Bon retour. Qu'est-ce que le médecin a dit ? Dites-le pendant que c'est frais. Quand vous avez fini, dites suivant.",
       g_recap2: "Et ensuite ? Par exemple, une prise de sang. Ajoutez chaque chose à faire à l'écran, puis dites suivant.",
-      g_who: "Qui allez-vous voir ? Par exemple, un neurologue. La date et l'heure se remplissent à l'écran. Si vous préférez passer, dites simplement continuez.",
-      g_bgchg: "Des changements dans la dernière année, comme une opération, un séjour à l'hôpital ou une chute ? S'il n'y en a pas, dites simplement continuez.",
-      g_bgcare: "Quels autres médecins ou soins voyez-vous ? Le type suffit, par exemple, un urologue. Sinon, dites simplement continuez.",
-      g_bgallergy: "Avez-vous des allergies ? Sinon, dites simplement continuez.",
+      g_who: "Qui allez-vous voir ? Par exemple, un neurologue. Puis dites suivant.",
+      g_when: "Quel jour et à quelle heure est le rendez-vous ? Par exemple : mercredi 11 novembre, à 10 h 30. Si vous n'êtes pas sûr, dites simplement suivant.",
+      g_bgchg: "Des changements dans la dernière année, comme une opération, un séjour à l'hôpital ou une chute ? S'il n'y en a pas, dites simplement suivant.",
+      g_bgcare: "Quels autres médecins ou soins voyez-vous ? Le type suffit, par exemple, un urologue. Sinon, dites simplement suivant.",
+      g_bgallergy: "Avez-vous des allergies, ou quelque chose à quoi le médecin doit faire attention, comme une mauvaise réaction à une anesthésie ? Sinon, dites simplement suivant.",
       g_recapq: "Lesquelles de vos questions n'ont pas eu de réponse ? Cochez-les à l'écran, puis dites suivant.",
-      g_recapmore: "Y a-t-il autre chose que vous aimeriez demander la prochaine fois ? Sinon, dites simplement continuez.",
-      g_recapfu: "Un autre rendez-vous a-t-il été pris ou suggéré ? Avec qui ? Sinon, dites simplement continuez.",
-      g_share: "Voici votre résumé. Vous pouvez l'envoyer à la famille qui vous aide, pour que personne n'ait à tout répéter.",
-      sample: "Bonjour. Voici ma voix quand je lis vos questions."
+      g_recapmore: "Y a-t-il autre chose que vous aimeriez demander la prochaine fois ? Sinon, dites simplement suivant.",
+      g_recapfu: "Un autre rendez-vous a-t-il été pris ou suggéré ? Avec qui ? Sinon, dites simplement suivant.",
+      g_share: "Voici votre résumé. Vous pouvez l'envoyer aux personnes qui vous aident, pour que personne n'ait à tout répéter.",
+      consent: "Je peux utiliser Claude, un assistant d'intelligence artificielle, pour corriger les mots que j'entends mal et pour vous poser les questions qu'un médecin poserait. Votre nom et la date du rendez-vous ne sont jamais envoyés. Voulez-vous que j'utilise Claude ? Dites oui ou non.",
+      preparing: "Un instant, je prépare quelques questions. Ça prend environ 15 secondes.",
+      readPage: "Voici ce que dit votre page. Quelque chose ne va pas ? Dites oui pour changer quelque chose, ou dites suivant.",
+      sample: "Bonjour. Voici ma voix quand je vous pose chaque question."
     }
   };
-  const say = k => (SAY[S.lang] || SAY.en)[k];
+  // what the appointment is about, for questions like "Anything else the doctor should know about your sore foot?"
+  function topic() {
+    const t = S.purpose.trim().replace(/[.!?]+$/, "");
+    if (!t || t.split(/\s+/).length > 8) return S.lang === "fr" ? "ce rendez-vous" : "this appointment";
+    const low = t.charAt(0).toLowerCase() + t.slice(1);
+    if (S.lang === "fr") return low;
+    return /^(my|a|an|the|your|his|her|their)\b/i.test(low) ? low.replace(/^(my|a|an)\b/i, "your") : low;
+  }
+  const say = k => ((SAY[S.lang] || SAY.en)[k] || "").replace("{p}", topic());
   let resumeStep = Math.max(0, S.step);
   const hasVisit = () => !!(S.purpose.trim() || S.seeing.trim() || S.story.trim() || resumeStep > 0);
 
   // ---------- voice: read aloud, type what they say, never move on by itself ----------
+  // ---------- listening, processed in Canada ----------
+  // CanadaRec behaves like the browser's SpeechRecognition (start, stop, abort, onresult, onend...),
+  // but it records each phrase itself, cuts it at the pause, and sends it to /api/stt (Microsoft Azure,
+  // Canada Central). The browser's own recognition sends the sound to Apple or Google and is unreliable
+  // on iPhones. Words arrive after each pause, not word by word.
+  // The microphone is fully released whenever listening stops, so an iPhone plays the app's voice
+  // through the main speaker instead of the quiet earpiece.
+  class CanadaRec {
+    constructor() {
+      this.lang = "en-CA"; this.continuous = true; this.interimResults = false;
+      this.onstart = this.onresult = this.onerror = this.onend = this.onspeechstart = this.onaudiostart = null;
+      this._results = []; this._running = false; this._pending = 0; this._ending = false;
+    }
+    async start() {
+      if (this._running) return;
+      this._running = true; this._ending = false;
+      CanadaRec.session("play-and-record");
+      try {
+        this._stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+      } catch (err) {
+        this._running = false;
+        const e = err && (err.name === "NotAllowedError" || err.name === "SecurityError") ? "not-allowed" : "audio-capture";
+        if (this.onerror) this.onerror({ error: e }); if (this.onend) this.onend(); return;
+      }
+      if (!this._running) { this._release(); return; }   // stopped while waiting for the microphone
+      const AC = window.AudioContext || window.webkitAudioContext;
+      try { this._ctx = new AC(); if (this._ctx.state !== "running") await this._ctx.resume(); }
+      catch (err) { console.warn("Listening could not start", err); this._release(); this._running = false; if (this.onerror) this.onerror({ error: "audio-capture" }); if (this.onend) this.onend(); return; }
+      const src = this._ctx.createMediaStreamSource(this._stream);
+      const proc = this._ctx.createScriptProcessor(4096, 1, 1);
+      const rate = this._ctx.sampleRate, step = rate / 16000;
+      // voice activity: a phrase starts when the sound rises well above the room's noise, and ends after a pause
+      let noise = 0.004, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [];
+      const END_MS = 1100, START_MS = 120, MAX_MS = 25000, blockMs = 4096 / rate * 1000;
+      proc.onaudioprocess = ev => {
+        if (!this._running) return;
+        const x = ev.inputBuffer.getChannelData(0);
+        let sum = 0; for (let i = 0; i < x.length; i++) sum += x[i] * x[i];
+        const rms = Math.sqrt(sum / x.length);
+        // downsample to 16 kHz
+        const out = new Float32Array(Math.floor(x.length / step));
+        for (let i = 0; i < out.length; i++) out[i] = x[Math.floor(i * step)];
+        const loud = rms > Math.max(0.012, noise * 3.2);
+        if (!speaking) {
+          noise = noise * 0.95 + Math.min(rms, 0.05) * 0.05;
+          pre.push(out); if (pre.length > 3) pre.shift();   // keep the start of the first word
+          loudMs = loud ? loudMs + blockMs : 0;
+          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); }
+          return;
+        }
+        buf.push(out);
+        quietMs = loud ? 0 : quietMs + blockMs;
+        const len = buf.length * blockMs;
+        if (quietMs >= END_MS || len >= MAX_MS) { const b = buf; buf = []; speaking = false; loudMs = 0; this._send(b); }
+      };
+      src.connect(proc); proc.connect(this._ctx.destination);
+      this._src = src; this._proc = proc; this._flush = () => { if (speaking && buf.length) { const b = buf; buf = []; speaking = false; this._send(b); } };
+      if (this.onstart) this.onstart(); if (this.onaudiostart) this.onaudiostart();
+    }
+    async _send(chunks) {
+      CanadaRec.hearing(false);
+      let n = 0; chunks.forEach(c => n += c.length);
+      if (n < 16000 * 0.3) return;   // under 0.3 s: a cough or a click
+      const pcm = new Int16Array(n); let o = 0;
+      chunks.forEach(c => { for (let i = 0; i < c.length; i++) { const s = Math.max(-1, Math.min(1, c[i])); pcm[o++] = s < 0 ? s * 0x8000 : s * 0x7fff; } });
+      const wav = new DataView(new ArrayBuffer(44 + pcm.length * 2));
+      const w = (p, s) => { for (let i = 0; i < s.length; i++) wav.setUint8(p + i, s.charCodeAt(i)); };
+      w(0, "RIFF"); wav.setUint32(4, 36 + pcm.length * 2, true); w(8, "WAVE"); w(12, "fmt ");
+      wav.setUint32(16, 16, true); wav.setUint16(20, 1, true); wav.setUint16(22, 1, true); wav.setUint32(24, 16000, true);
+      wav.setUint32(28, 32000, true); wav.setUint16(32, 2, true); wav.setUint16(34, 16, true); w(36, "data"); wav.setUint32(40, pcm.length * 2, true);
+      for (let i = 0; i < pcm.length; i++) wav.setInt16(44 + i * 2, pcm[i], true);
+      this._pending++; CanadaRec.writing(1);
+      try {
+        const r = await fetch("/api/stt?lang=" + (/^fr/i.test(this.lang) ? "fr" : "en"), { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav.buffer });
+        const d = r.ok ? await r.json() : null;
+        if (!r.ok) console.warn("Listening service error", r.status);
+        const text = d && d.ok ? String(d.text || "").trim() : "";
+        if (text && this.onresult && (this._running || this._ending)) {
+          const res = [{ transcript: text, confidence: 1 }]; res.isFinal = true;
+          this._results.push(res);
+          this.onresult({ resultIndex: this._results.length - 1, results: this._results });
+        }
+      } catch (err) { console.warn("Couldn't reach the listening service", err); }
+      finally { this._pending--; CanadaRec.writing(-1); this._maybeEnd(); }
+    }
+    _release() {
+      try { if (this._proc) { this._proc.onaudioprocess = null; this._proc.disconnect(); } if (this._src) this._src.disconnect(); } catch (err) { console.warn(err); }
+      if (this._stream) this._stream.getTracks().forEach(t => t.stop());
+      if (this._ctx) this._ctx.close().catch(() => {});
+      this._stream = this._ctx = this._proc = this._src = null;
+      CanadaRec.hearing(false);
+      CanadaRec.session("playback");
+    }
+    _maybeEnd() { if (this._ending && !this._pending) { this._ending = false; if (this.onend) this.onend(); } }
+    stop() {   // finish the phrase being said, deliver it, then end
+      if (!this._running) return;
+      if (this._flush) this._flush();
+      this._running = false; this._ending = true; this._release(); this._maybeEnd();
+    }
+    abort() {  // drop everything, end now
+      const was = this._running || this._ending;
+      this._running = false; this._ending = false; this._release();
+      if (was && this.onend) this.onend();
+    }
+    // Safari 17+: tell the iPhone whether we're only playing sound or also recording,
+    // so the app's voice comes out of the main speaker.
+    static session(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (err) { console.warn(err); } }
+  }
+  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {};
+  const canCanada = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext || window.webkitAudioContext));
+  const NativeSR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
   const Voice = (() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    // Canada first; the browser's own recognition only if the Canadian service isn't switched on.
+    let SR = canCanada ? CanadaRec : NativeSR;
+    if (canCanada) fetch("/api/stt").then(r => r.ok ? r.json() : {}).then(d => { if (!(d && d.on)) SR = NativeSR; }).catch(() => {});
     const canSpeak = "speechSynthesis" in window;
     let rec = null, active = false, target = null, onCarry = null, silenceT = null, prompted = false, view = () => {};
     // Pick the most natural-sounding English voice on this device. Newer "Natural", "Neural",
@@ -1259,7 +1467,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           const n = c.createBufferSource(); n.buffer = buf; n.connect(c.destination); src = n;
           audioDone = () => { audioDone = null; src = null; res(true); };
           n.onended = () => audioDone && audioDone();
-          try { n.start(0); } catch (err) { audioDone = null; src = null; res(false); }
+          const safety = setTimeout(() => audioDone && audioDone(), (buf.duration + 3) * 1000);
+          const fin = audioDone; audioDone = () => { clearTimeout(safety); fin(); };
+          try { n.start(0); } catch (err) { clearTimeout(safety); audioDone = null; src = null; res(false); }
         });
       } catch (err) { console.warn("Natural voice unavailable", err); return false; }
     }
@@ -1280,6 +1490,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (!text) return;
       quiet();
       const n = ++talkN; talkWords = new Set(words(text)); setTalk(true); log("speaking");
+      if (!rec) CanadaRec.session("playback");
       try { if (!(cloudOn && await cloudSpeak(text))) await browserSpeak(text); }
       finally { if (n === talkN) setTalk(false); }
     };
@@ -1307,12 +1518,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (!chosen) pickVoice();
         if (chosen) { u.voice = chosen; u.lang = chosen.lang; } else u.lang = S.lang === "fr" ? "fr-CA" : "en-CA";
         u.rate = S.slowVoice ? 0.8 : 0.95; u.pitch = 1;
-        u.onend = () => res(); u.onerror = () => res();
+        // some phones never report the end of speech; don't wait forever
+        let over = false; const end = () => { if (!over) { over = true; clearTimeout(safety); res(); } };
+        const safety = setTimeout(end, 6000 + text.length * 90 * (S.slowVoice ? 1.3 : 1));
+        u.onend = end; u.onerror = end;
         speechSynthesis.speak(u);
       } catch (err) { console.warn("Could not read aloud", err); res(); }
     });
     // Pause holds everything right where it is; nothing moves on by itself.
-    let listNext = null;
+    let listNext = null, yesNo = null;
     let held = false, confirming = false, readback = false, turnWords = [], turnStartVal = "", checking = false, lastQ = "";
     // Things people say TO the app rather than as their answer: help, repeat, and replies to "Should I continue?"
     const lc = t => t.toLowerCase().replace(/[’]/g, "'").replace(/[.!?,;:]+/g, " ").replace(/(\w)-(\w)/g, "$1 $2")
@@ -1365,7 +1579,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       }, ms);
     }
     // Read back what was heard before moving on, so mishearings are caught (Parkinson's speech is misheard most).
-    const shortSaid = t => { const w = t.split(/\s+/); return w.length > 40 ? w.slice(0, 40).join(" ") + "… " + say("more") : t; };
+    const shortSaid = t => { t = t.replace(/;\s*$/, "").replace(/;\s*(?=\S)/g, "; "); const w = t.split(/\s+/); return w.length > 40 ? w.slice(0, 40).join(" ") + "… " + say("more") : t; };
     async function carryOn() {
       const next = onCarry, el = target, said = turnWords.join(" ").trim();
       if (el && readback && !confirming) {
@@ -1374,7 +1588,19 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           stop(); if (next) next(); return;
         }
         confirming = true; if (!bargeOn()) pauseRec(); view("confirm");
-        const heardText = shortSaid(said), g = gen;
+        let heard = said; const g = gen;
+        if (api.fixWords) {
+          // on list pages, check every line of the list
+          const list = el.closest(".list"), scope = list ? [...list.querySelectorAll('input[type="text"], textarea')] : [el];
+          const fixes = await Promise.race([api.fixWords(el, scope.map(x => x.value).join("\n")).catch(() => []), new Promise(r => setTimeout(() => r([]), 8000))]);
+          if (g !== gen || !active) return;
+          (fixes || []).forEach(f => {
+            if (!f || !f.from || !f.to) return;
+            heard = heard.split(f.from).join(f.to);
+            scope.forEach(x => { if (x.isConnected && x.value.includes(f.from)) { x._hist = x._hist || []; x._hist.push(x.value); x.value = x.value.split(f.from).join(f.to); x.dispatchEvent(new Event("input", { bubbles: true })); } });
+          });
+        }
+        const heardText = shortSaid(heard);
         await speak(say("heard") + " " + heardText + (/[.!?…]$/.test(heardText) ? " " : ". ") + say("heardQ"));
         if (active && !held && g === gen) { view("confirm"); startRec(); }
         return;
@@ -1403,7 +1629,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       r.onspeechstart = ping; r.onaudiostart = () => log("audio on");
       clearTimeout(wdT);
       // Watchdog: an iPhone microphone can go quiet with no error at all. If nothing at all happens, start it fresh.
-      if (IOS) wdT = setTimeout(function check() {
+      if (IOS && SR !== CanadaRec) wdT = setTimeout(function check() {
         if (rec !== r || !active || held) return;
         if (!alive) { log("watchdog restart"); rec = null; try { r.abort(); } catch (err) { console.warn(err); } startRec(); return; }
         alive = false; wdT = setTimeout(check, 10000);
@@ -1490,7 +1716,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const d = new Date(); box.textContent = d.toTimeString().slice(3, 8) + " " + m + "\n" + box.textContent.slice(0, 3000);
     }
     // Phones spell commands in odd ways ("carry-on", "Carrie on", "carryon", "I am done"), so match loosely.
-    const CARRY_T = /(\b(?:carry|carrie|kerry|cary|carey|carri)[\s\-]*on|\bcontinue|\bi'?\s*a?m[\s\-]*done|\bcontinuez|\bon continue|\bc'est tout|\bj'ai fini)\W*$/i;
+    const CARRY_T = /(\b(?:carry|carrie|kerry|cary|carey|carri)[\s\-]*on|\bcontinue|\bnext|\bi'?\s*a?m[\s\-]*done|\bthat'?s all|\bthat'?s it|\bcontinuez|\bon continue|\bc'est tout|\bsuivant|\bj'ai fini)\W*$/i;
     const CARRY_N = /(\b(?:carry|carrie|kerry|cary|carey|carri)[\s\-]*on|\bcontinue|\bnext|\bi'?\s*a?m[\s\-]*done|\bcontinuez|\bon continue|\bc'est tout|\bsuivant|\bj'ai fini)\W*$/i;
     const CONF_NO = /(\bchange|\bno\b|\bagain\b|\bnon\b|\bchanger|\brecommence)/i;
     const CONF_YES = /(\byes\b|\byeah\b|\byep\b|right|correct|\b(?:carry|carrie|kerry|cary|carey|carri)[\s\-]*on|\bcontinue\b|\bnext\b|\boui\b|c'est ça|c'est bon|\bcontinuez|\bsuivant)/i;
@@ -1505,6 +1731,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     // One finished phrase. Returns true when it moved things on (stop reading the rest).
     function onFinal(t) {
+      if (yesNo) {
+        const x = lc(t), f = yesNo;
+        if (/\b(yes|yeah|yep|yup|sure|ok|okay|please|go ahead|oui|d'accord|bien sur|bien sûr)\b/.test(x)) { yesNo = null; stop(); f(true); return true; }
+        if (/\b(no|nope|not really|no thanks|non|pas vraiment)\b/.test(x)) { yesNo = null; stop(); f(false); return true; }
+        if (handled(t)) return true;
+        sayThen(S.lang === "fr" ? "Dites oui ou non." : "Please say yes or no."); return true;
+      }
       if (confirming) {
         if (CONF_NO.test(t)) { redo(); return true; }
         if (CONF_YES.test(t)) { const next = onCarry; stop(); if (next) next(); return true; }
@@ -1525,6 +1758,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const m = t.match(target ? CARRY_T : CARRY_N);
       if (m) { appendSpoken(t.slice(0, m.index)); carryOn(); return true; }
       appendSpoken(t);
+      if (listNext && SR === CanadaRec && target && target.value.trim()) {
+        if (turnWords.length) turnWords[turnWords.length - 1] = turnWords[turnWords.length - 1].replace(/[.;,]?$/, ";");
+        target = listNext(); turnStartVal = target.value; view("listening");
+      }
       return false;
     }
     function tapListen() { needTap = false; held = false; if (active) { rec = null; startRec(); } }
@@ -1565,7 +1802,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       stop(); const v0 = opts.keepView ? v : (v || (() => {}));
       view = opts.keepView ? v0 : (st, heard) => { v0(st, heard); if (api.onState) api.onState(st); };
       active = true; target = el; onCarry = carry; prompted = !text;
-      listNext = opts.listNext || null;
+      listNext = opts.listNext || null; yesNo = opts.yesNo || null;
       readback = !!opts.readback; turnWords = []; turnStartVal = el ? el.value : ""; held = false; confirming = false; checking = false;
       if (!opts.keepView || opts.q) lastQ = opts.q || text;
       const g = gen;
@@ -1591,17 +1828,17 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       navigator.mediaDevices.getUserMedia({ audio: true }).then(st => st.getTracks().forEach(t => t.stop())).catch(err => console.warn("Microphone not allowed yet", err));
     }
     const api = { ask, stop, speak, interrupt, needTap: () => needTap, tapListen, targetEl: () => active ? target : null, talking: () => talking, bargeOn, pause, resume, prime, redo, restoreTurn, carry: () => { if (active) carryOn(); },
-      held: () => held, active: () => active, confirming: () => confirming, hasCarry: () => active && !!onCarry, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
-      voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null };
+      canada: () => SR === CanadaRec, held: () => held, active: () => active, confirming: () => confirming, hasCarry: () => active && !!onCarry, carryFn: () => active ? onCarry : null, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
+      voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null, fixWords: null };
     return api;
   })();
   const VOICE_MSG = {
     speaking: "Reading it out loud…",
-    listening: "Listening. Take your time. Say “scratch that” (or “efface ça”) to remove the last part, and “carry on” (or “continuez”) when you've finished.",
+    listening: "Listening. Say “next” when you've finished, or “scratch that” to undo.",
     blocked: "The microphone is blocked. Allow it in your browser settings, or type your answer.",
     typing: "This browser can't type what you say. Type your answer, or use the microphone on your keyboard.",
     paused: "Paused. Tap Resume when you're ready.",
-    confirm: "Is that right? Say “yes” or tap Yes. Say “change it” to try again.",
+    confirm: "Is that right? Say “yes”, or “change it”.",
     off: ""
   };
   const voiceView = id => (st, heard) => { const el = $(id); if (!el) return; el.textContent = heard ? "Hearing: \u201c" + heard + "\u2026\u201d" : (VOICE_MSG[st] || ""); el.classList.toggle("listening", st === "listening"); };
@@ -1620,6 +1857,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("change-lang").textContent = S.lang === "fr" ? "Speak in English" : "Parler en français";
     $("change-lang").setAttribute("lang", S.lang === "fr" ? "en" : "fr");
     Voice.pickVoice(S.voiceName);
+    try { $("w-how").innerHTML = how4HTML(); } catch (err) { /* drawn at start-up */ }
     uiLang();
   }
   function setLang(l) {
@@ -1646,7 +1884,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const screens = { welcome: $("s-welcome") };
   STEPS.forEach(s => screens[s.id] = $("s-" + s.id));
   function show(step) {
-    Voice.stop(); $("mic-msg").textContent = "";
+    typingNow = false; Voice.stop(); $("mic-msg").textContent = "";
+    $("guide").hidden = !isVoice();
     S.step = step; S.stepId = step >= 0 ? STEPS[step].id : ""; save();
     Object.values(screens).forEach(el => el.hidden = true);
     const onWelcome = step < 0;
@@ -1665,7 +1904,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     onEnter(s.id);
   }
   // On an optional page with nothing filled in, the button says Skip, so nobody has to type "none".
-  function pageEmpty(el) { return [...el.querySelectorAll("input[type=text], input[type=date], input[type=time], textarea")].every(f => !f.value.trim()); }
+  function pageEmpty(el) { return [...el.querySelectorAll("input[type=text], input[type=date], input[type=time], select.time-pick, textarea")].every(f => !f.value.trim()); }
   function nextLabel() {
     const s = STEPS[S.step]; if (!s) return;
     $("next").textContent = s.next || (s.skip && pageEmpty(screens[s.id]) ? "Skip" : "Next");
@@ -1681,7 +1920,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("here-k").innerHTML = `${n} · ${esc(sec.name)} · <b>You are here</b>`;
     $("here-t").textContent = st.t; $("here-s").textContent = st.s;
     $("here-boat").innerHTML = IC.boat;
-    $("pg-label").textContent = `${sec.name}: step ${n} of ${stops.length}` + (parts.length > 1 ? `, page ${part} of ${parts.length}` : "");
+    $("pg-label").textContent = `${sec.name} \u00b7 ${n} of ${stops.length}`;
     $("segs").innerHTML = stops.map((_, i) => `<span class="${i < n - 1 ? "on" : i === n - 1 ? (part < parts.length ? "half" : "on") : ""}"></span>`).join("");
   }
   function focusHeading(el) {
@@ -1689,7 +1928,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
   }
   $("back").addEventListener("click", () => show(S.step - 1));
-  $("next").addEventListener("click", () => { if (validate(STEPS[S.step].id)) show(S.step + 1); });
+  $("next").addEventListener("click", () => { if (STEPS[S.step].id === "ideas") addIdeasNew(); if (validate(STEPS[S.step].id)) show(S.step + 1); });
   function renderChecks() {
     $("bg-check").hidden = !S.carried; $("med-check").hidden = !S.carried;
     $("bg-no").checked = S.chg.bg === "no"; $("bg-yes").checked = S.chg.bg === "yes";
@@ -1713,45 +1952,95 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   // The beaver leads in talking mode: it says what this page is for, then listens.
   const GUIDE = { name: ["g_name", "who"], appt: ["g_appt", "purpose"], bg: ["g_bg", "bg-conditions"], meds: ["g_meds", null], tell: ["g_tell", null], ask: ["g_ask", null],
-    ideas: ["g_ideas", null], priority: ["g_priority", null], sheets: ["g_sheets", "-"], visit: ["g_visit", "-"], recap: ["g_recap", "rc-said"],
+    ideas: ["g_ideas", "ideas-new"], priority: ["g_priority", null], sheets: ["g_sheets", "-"], visit: ["g_visit", "-"], recap: ["g_recap", "rc-said"],
     recap2: ["g_recap2", null], share: ["g_share", "-"],
     who: ["g_who", "seeing"], bgchg: ["g_bgchg", "bg-changes"], bgcare: ["g_bgcare", "bg-team"], bgallergy: ["g_bgallergy", "bg-allergies"],
     recapq: ["g_recapq", null], recapmore: ["g_recapmore", "rc-more"], recapfu: ["g_recapfu", "rc-with"] };
   let greet = false, guideLine = "";
+
   const VSTAT = {
-    en: { tap: "Tap the big button to answer", speaking: "Speaking\u2026", listening: "Listening \u2014 go ahead", paused: "Paused", confirm: "Is that right?", off: "Not listening right now" },
-    fr: { tap: "Touchez le grand bouton pour répondre", speaking: "Je parle\u2026", listening: "J'écoute \u2014 allez-y", paused: "En pause", confirm: "Est-ce bien ça ?", off: "Je n'écoute pas pour l'instant" }
+    en: { tap: "Tap the big button to answer", speaking: "Speaking\u2026", listening: "Listening \u2014 go ahead", hearing: "Hearing you\u2026", writing: "Writing it down\u2026", paused: "Paused", confirm: "Is that right?", off: "Not listening right now", typing: "Type your answer" },
+    fr: { tap: "Touchez le grand bouton pour répondre", speaking: "Je parle\u2026", listening: "J'écoute \u2014 allez-y", hearing: "Je vous entends\u2026", writing: "J'écris\u2026", paused: "En pause", confirm: "Est-ce bien ça ?", off: "Je n'écoute pas pour l'instant", typing: "Écrivez votre réponse" }
   };
+  // while listening: "Hearing you..." during a phrase, "Writing it down..." while it's turned into words
+  let micHearing = false, micWriting = 0, lastSt = "off";
+  CanadaRec.hearing = on => { micHearing = on; if (lastSt === "listening") guideView("listening"); };
+  CanadaRec.writing = d => { micWriting = Math.max(0, micWriting + d); if (lastSt === "listening") guideView("listening"); };
   const guideView = (st, heard) => {
     const L = VSTAT[S.lang === "fr" ? "fr" : "en"];
-    const shown = heard ? "listening" : st;
-    $("guide").dataset.st = shown;
+    lastSt = st;
+    let shown = heard ? "listening" : st;
+    if (shown === "listening" && Voice.talking()) shown = "speaking";
+    if (shown === "listening" && micHearing) shown = "hearing"; else if (shown === "listening" && micWriting) shown = "writing";
+    if (typingNow && (st === "paused" || st === "off")) shown = "typing";
+    $("guide").dataset.st = shown === "hearing" || shown === "writing" ? "listening" : shown;
     $("guide-state").textContent = L[shown] || VOICE_MSG[shown] || L.off;
     lastHeard = heard || "";
     showAnswer();
     updateBar();
   };
-  // The person's words, big, right under the question: what's already in the box plus what is being heard now.
-  let lastHeard = "";
+  // The person's words, big, right under the question, in a box they can tap and type into.
+  let lastHeard = "", typingNow = false;
+  const listItems = L => [...$(L.box).querySelectorAll('[id^="' + L.pre + '"]')].filter(x => /\d+$/.test(x.id));
+  function answerText() {
+    const el = Voice.targetEl(); if (!el) return "";
+    if (listOn && (listOn.add === "med" || listOn.add === "otc")) return S.meds.filter(m => m.n.trim() && !!m.o === (listOn.add === "otc")).map(m => [m.n, m.d, m.w].map(x => x.trim()).filter(Boolean).join(", ")).join("\n");
+    if (listOn) return listItems(listOn).map(x => x.value.trim()).filter(Boolean).join("\n");
+    return el.value;
+  }
+  // grow the box to fit, without making the page jump (iPhones scroll the page when a box changes height)
+  function fitBox(el) {
+    const y = window.scrollY;
+    el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight + 4, Math.round(innerHeight * 0.4)) + "px";
+    if (window.scrollY !== y) window.scrollTo(0, y);
+  }
   function showAnswer() {
-    const el = Voice.targetEl(), box = $("guide-ans"), t = $("guide-ans-t");
+    const el = Voice.targetEl(), box = $("guide-ans"), ed = $("guide-edit");
+    // in talking mode the answer lives in "What I heard"; hide the page's own box for the same answer
+    document.querySelectorAll(".vtarget").forEach(x => { if (!el || !x.contains(el)) x.classList.remove("vtarget"); });
+    if (el && !listOn && el.closest(".field")) el.closest(".field").classList.add("vtarget");
     box.hidden = !el || !isVoice();
     if (box.hidden) return;
-    t.textContent = "";
-    const have = listOn ? [...$(listOn.box).querySelectorAll('[id^="' + listOn.pre + '"]')].filter(x => /\d+$/.test(x.id)).map(x => x.value.trim()).filter(Boolean).map(v => "\u2022 " + v).join("\n") : el.value.trim();
-    if (have) t.append(have);
-    if (lastHeard) { const n = document.createElement("span"); n.className = "ga-now"; n.textContent = (have ? " " : "") + lastHeard + "\u2026"; t.append(n); }
-    if (!have && !lastHeard) { const n = document.createElement("span"); n.className = "ga-empty"; n.textContent = S.lang === "fr" ? "Vos mots s'afficheront ici pendant que vous parlez." : "Your words will show here as you speak."; t.append(n); }
-    t.scrollTop = t.scrollHeight;
+    if (document.activeElement === ed) return;   // they're typing: leave their text alone
+    ed.value = answerText(); fitBox(ed);
+    ed.scrollTop = ed.scrollHeight;
     // keep the words in sight above the bottom buttons
-    if (lastHeard || have) { const r = box.getBoundingClientRect(), dock = $("vdock").getBoundingClientRect().top || innerHeight;
+    if (ed.value) { const r = box.getBoundingClientRect(), dock = $("vdock").getBoundingClientRect().top || innerHeight;
       if (r.bottom > dock - 8 || r.top < 0) box.scrollIntoView({ block: "end", behavior: "smooth" }); }
   }
   document.addEventListener("input", e => { if (e.target === Voice.targetEl() || (listOn && e.target.closest && e.target.closest("#" + listOn.box))) showAnswer(); }, true);
+  // typing in "What I heard": listening pauses, the words go into the answer, and a Submit button appears
+  function setListLines(L, raw) {
+    const ls = raw.split("\n").map(x => x.trim()).filter(Boolean);
+    if (L.add === "tell") { S.tell = ls.length ? ls : [""]; renderTell(); }
+    if (L.add === "ask") { S.ask = (ls.length ? ls : [""]).map(t => ({ t, top: !!(S.ask.find(q => q.t.trim() === t) || {}).top })); renderAsk(); }
+    if (L.add === "med" || L.add === "otc") {
+      const o = L.add === "otc", keep = S.meds.filter(m => !!m.o !== o && m.n.trim());
+      S.meds = keep.concat(ls.map(x => Object.assign(parseMed(x), { o })));
+      if (!S.meds.some(m => !m.o)) S.meds.unshift({ n: "", d: "", w: "", o: false });
+      renderMeds();
+    }
+    save();
+  }
+  $("guide-edit").addEventListener("input", e => {
+    const ed = e.target, el = Voice.targetEl();
+    if (!el) return;
+    if (!typingNow) { typingNow = true; if (Voice.active() && !Voice.held()) Voice.pause(); guideView("paused"); }
+    fitBox(ed);
+    if (listOn) setListLines(listOn, ed.value);
+    else { el.value = ed.value; el.dispatchEvent(new Event("input", { bubbles: true })); }
+    updateBar();
+  });
+  $("guide-edit").addEventListener("blur", () => { if (!typingNow) showAnswer(); });
+  function submitTyped() {
+    typingNow = false;
+    const go = Voice.carryFn(); Voice.stop();
+    if (go) go(); else $("next").click();
+  }
   // On screen, leave out the spoken how-to sentences ("When you've finished, say carry on.") so the answer box stays in view.
-  const HOWTO = /(^|\s)[^.?!]*(say carry on|dites continuez|dites simplement continuez|just say carry on)[^.?!]*[.?!]/gi;
+  const HOWTO = /(^|\s)[^.?!]*(say next|then say next|dites suivant|dites simplement suivant|puis dites suivant|just say next|say carry on|dites continuez)[^.?!]*[.?!]/gi;
   function setGuide(text) { guideLine = text; $("guide-say").textContent = text.replace(HOWTO, " ").replace(/\s+/g, " ").trim() || text; }
-  const LISTS = { tell: { add: "tell", pre: "tell-", box: "tell-list" }, ask: { add: "ask", pre: "ask-", box: "ask-list" }, meds: { add: "med", pre: "mn-", box: "med-list" } };
+  const LISTS = { tell: { add: "tell", pre: "tell-", box: "tell-list" }, ask: { add: "ask", pre: "ask-", box: "ask-list" }, meds: { add: "med", pre: "mn-", box: "med-list" }, otc: { add: "otc", pre: "mn-", box: "otc-list" } };
   let listOn = null;
   // the first empty line in the list, or a new one (fresh = always a new line unless the last is empty)
   function listSlot(L, fresh) {
@@ -1766,30 +2055,55 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   function guide(id, again) {
     if (!isVoice()) return;
+    $("guide").hidden = false;
     if (id === "words") { setGuide(say("wordsQ")); return askWords(); }
-    if (id === "detail") { setGuide(say("intro").trim()); return; }
+    if (id === "detail") { setGuide(say("preparing")); return; }   // enterDetail asks the questions
+    // Before the health questions, ask once (out loud) whether Claude may help.
+    if (id === "bg" && S.consent === null && voiceConsent(() => guide("bg", true))) return;
     const g = GUIDE[id]; if (!g) return;
     let k = g[0], field = g[1];
     if (id === "bg" && S.carried) { k = "g_bg2"; field = null; }
     // after the name, greet them by it once
     const thanks = id === "appt" && !again && S.who.trim() ? say("thanks").replace("{n}", S.who.trim().split(/\s+/)[0]) + " " : "";
-    const line = (greet && !again ? say("hello") + " " : "") + thanks + say(k); greet = false;
+    const hello = greet && !again ? say("hello") + " " : ""; greet = false;
+    const line = hello + thanks + say(k);
     setGuide(say(k));
     const next = () => $("next").click();
-    if (field === "-") { guideView("speaking"); Voice.speak(line).then(() => guideView("off")); return; }
-    // List pages: each thing said goes on its own line; "next one" starts a new line.
+    // pages with nothing to answer: read the page, then step aside so the page itself is the one card
+    if (field === "-") { guideView("speaking"); const st0 = S.step; Voice.speak(line).then(() => { guideView("off"); if (S.step === st0 && !Voice.active()) $("guide").hidden = true; }); return; }
+    // List pages: each thing said goes on its own line.
     const L = LISTS[id];
     if (L) {
       if (id === "tell" && !S.tell.some(t => t.trim())) { k = "g_tell0"; }
-      const ln = (greet && !again ? say("hello") + " " : "") + say(k); greet = false;
+      const ln = hello + say(k);
       setGuide(say(k)); listOn = L;
+      // medicines: after the prescriptions, ask about vitamins, supplements and drugstore products
+      const after = id === "meds" ? () => askList(LISTS.otc, "g_otc", next) : next;
       // wait for the page to draw its list, so an empty line isn't added twice
       const id0 = S.step;
-      setTimeout(() => { if (S.step !== id0 || !isVoice()) return; Voice.ask(ln, listSlot(L, false), next, guideView, { readback: true, q: say(k), listNext: () => listSlot(L, true) }); }, 0);
+      setTimeout(() => { if (S.step !== id0 || !isVoice()) return; askList(L, k, after, ln); }, 0);
       return;
     }
     listOn = null;
-    Voice.ask(line, field ? $(field) : null, next, guideView, { readback: !!field, q: say(k) });
+    // Who are you seeing? Then: what day and time?
+    const go = id === "who" ? askWhen : next;
+    Voice.ask(line, field ? $(field) : null, go, guideView, { readback: !!field, q: say(k) });
+  }
+  function askList(L, k, after, spoken) {
+    listOn = L; setGuide(say(k));
+    if (L.add === "otc") { tidyMeds(); renderMeds(); }
+    Voice.ask(spoken || say(k), listSlot(L, false), after, guideView, { readback: true, q: say(k), listNext: () => listSlot(L, true) });
+  }
+  // "Wednesday November 11th at 10:30 AM" -> the date and time boxes
+  function askWhen() {
+    const el = $("when-said"); el.value = "";
+    listOn = null; setGuide(say("g_when"));
+    Voice.ask(say("g_when"), el, () => {
+      const w = parseWhen(el.value);
+      if (w.date) { S.date = w.date; $("date").value = w.date; }
+      if (w.time) { S.time = w.time; setTimeValue($("time"), w.time); }
+      save(); $("next").click();
+    }, guideView, { readback: true, q: say("g_when") });
   }
   $("guide").addEventListener("click", e => { if (Voice.needTap() && !e.target.closest("button")) { Voice.tapListen(); updateBar(); } });
   $("guide-face").addEventListener("click", () => { const st = STEPS[S.step]; if (st) guide(st.id, true); });
@@ -1798,13 +2112,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   // Let me talk (while I speak), I'm done (while I listen), Yes, that's right (after the read-back), or Next.
   function updateBar() {
     const conf = Voice.confirming(), talk = Voice.talking(), carry = Voice.hasCarry(), nx = $("next");
-    $("vb-talk").hidden = !talk;
-    const tap = Voice.needTap(), held = Voice.held();
-    $("vb-done").hidden = !tap && !held && (talk || (!carry && !conf && nx.hidden));
-    $("vb-done").textContent = held ? "Resume" : tap ? "Tap to answer" : conf ? "Yes, that's right" : carry ? "I'm done" : nx.textContent;
-    $("vb-pause").hidden = !conf && !Voice.active();
-    $("vb-pause").textContent = conf ? "Change it" : Voice.held() ? "Resume" : "Pause";
-    if (conf) $("vb-pause").removeAttribute("aria-pressed"); else $("vb-pause").setAttribute("aria-pressed", String(Voice.held()));
+    $("vb-talk").hidden = true;   // one main button; while the app speaks, Pause is there
+    const tap = Voice.needTap(), held = Voice.held() && !typingNow;
+    $("vb-done").hidden = !typingNow && !tap && !held && (talk || (!carry && !conf && nx.hidden));
+    $("vb-done").textContent = typingNow ? "Submit" : held ? "Resume" : tap ? "Tap to answer" : conf ? "Yes, that's right" : carry ? (S.lang === "fr" ? "Suivant" : "Next") : nx.textContent;
+    $("vb-pause").hidden = !typingNow && !conf && !Voice.active();
+    $("vb-pause").textContent = typingNow ? "Talk instead" : conf ? "Change it" : held ? "Resume" : "Pause";
+    if (conf || typingNow) $("vb-pause").removeAttribute("aria-pressed"); else $("vb-pause").setAttribute("aria-pressed", String(held));
     $("vb-back").hidden = $("back").hidden;
     $("vb-again").hidden = !Voice.active();
   }
@@ -1815,7 +2129,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (S.consent !== true) return Promise.resolve(null);
     const ctl = new AbortController(); setTimeout(() => ctl.abort(), 12000);
     return fetch("/api/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
-      body: JSON.stringify({ mode: "help", lang: S.lang, question: current, text: q }) })
+      body: JSON.stringify(scrub({ mode: "help", lang: S.lang, question: current, text: q })) })
       .then(r => r.ok ? r.json() : null).then(d => (d && d.ok && d.answer) ? d.answer : null).catch(() => null);
   };
   Voice.onTalk = () => updateBar();
@@ -1826,12 +2140,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   $("vb-panel-close").addEventListener("click", () => { $("vb-panel").hidden = true; $("vb-settings").setAttribute("aria-expanded", "false"); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && Voice.talking()) Voice.interrupt(); });
   $("vb-done").addEventListener("click", () => {
+    if (typingNow) { submitTyped(); return; }
     if (Voice.held()) { Voice.resume(); updateBar(); return; }
     if (Voice.needTap()) { Voice.tapListen(); updateBar(); return; }
     if (Voice.confirming()) { const st = STEPS[S.step]; Voice.stop(); if (st && st.id === "words") show(S.step + 1); else $("next").click(); return; }
     if (Voice.active()) Voice.carry(); else $("next").click();
   });
-  $("vb-pause").addEventListener("click", () => { if (Voice.confirming()) { Voice.redo(); return; } if (Voice.held()) Voice.resume(); else Voice.pause(); updateBar(); });
+  $("vb-pause").addEventListener("click", () => { if (typingNow) { typingNow = false; $("guide-edit").blur(); Voice.resume(); updateBar(); return; } if (Voice.confirming()) { Voice.redo(); return; } if (Voice.held()) Voice.resume(); else Voice.pause(); updateBar(); });
   $("vb-again").addEventListener("click", () => {
     closeMore();
     if (Voice.confirming()) { Voice.redo(); return; }
@@ -1859,11 +2174,77 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (id === "ask") renderAsk();
     if (id === "ideas") enterIdeas();
     if (id === "priority") renderPriority();
-    if (id === "sheets") { buildSheets(); setTab(0); ensureTranslations("sheet-status").then(changed => { if (changed) buildSheets(); }); }
+    if (id === "sheets") {
+      buildSheets(); setTab(0);
+      $("ready-h").textContent = S.date ? (S.lang === "fr" ? "Vous êtes prêt pour votre rendez-vous du " : "You're ready for your visit on ") + fmtDate(S.date) : (S.lang === "fr" ? "Vous êtes prêt pour votre rendez-vous" : "You're ready for your visit");
+      ensureTranslations("sheet-status").then(changed => { if (changed) buildSheets(); });
+      ensureTidy("sheet-status").then(changed => { if (changed) buildSheets(); });
+    }
     if (id.startsWith("recap")) renderRecap();
     if (id === "share") buildRecap();
     if (id === "bg" || id === "meds") renderChecks();
   }
+
+  // ---------- day and time, said out loud ----------
+  const MONTHS = { jan: 0, january: 0, janvier: 0, feb: 1, february: 1, fevrier: 1, février: 1, mar: 2, march: 2, mars: 2, apr: 3, april: 3, avril: 3, may: 4, mai: 4,
+    jun: 5, june: 5, juin: 5, jul: 6, july: 6, juillet: 6, aug: 7, august: 7, aout: 7, août: 7, sep: 8, sept: 8, september: 8, septembre: 8,
+    oct: 9, october: 9, octobre: 9, nov: 10, november: 10, novembre: 10, dec: 11, december: 11, decembre: 11, décembre: 11 };
+  const DAYS = { sunday: 0, dimanche: 0, monday: 1, lundi: 1, tuesday: 2, mardi: 2, wednesday: 3, mercredi: 3, thursday: 4, jeudi: 4, friday: 5, vendredi: 5, saturday: 6, samedi: 6 };
+  const NUMW = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
+  const iso = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  function parseWhen(raw) {
+    const t = " " + String(raw || "").toLowerCase().replace(/[,]/g, " ").replace(/\s+/g, " ") + " ";
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    let date = "";
+    // "November 11", "11 November", "the 11th of November", "le 11 novembre"
+    const mNames = Object.keys(MONTHS).sort((a, b) => b.length - a.length).join("|");
+    let m = t.match(new RegExp("\\b(" + mNames + ")\\.? (?:the )?(\\d{1,2})(?:st|nd|rd|th)?\\b")) || null, mo = -1, dy = 0;
+    if (m) { mo = MONTHS[m[1]]; dy = +m[2]; }
+    else if ((m = t.match(new RegExp("\\b(\\d{1,2})(?:st|nd|rd|th|er)?(?: of)? (" + mNames + ")\\b")))) { mo = MONTHS[m[2]]; dy = +m[1]; }
+    if (mo > -1 && dy >= 1 && dy <= 31) {
+      const d = new Date(today.getFullYear(), mo, dy, 12);
+      if (d < today && (today - d) > 86400000 * 30) d.setFullYear(d.getFullYear() + 1);
+      date = iso(d);
+    } else if (/\b(tomorrow|demain)\b/.test(t)) { const d = new Date(today); d.setDate(d.getDate() + 1); date = iso(d); }
+    else if (/\b(today|aujourd'hui)\b/.test(t)) date = iso(today);
+    else {
+      const dn = Object.keys(DAYS).find(k => new RegExp("\\b" + k + "\\b").test(t));
+      if (dn !== undefined) { const d = new Date(today); let add = (DAYS[dn] - d.getDay() + 7) % 7; if (add === 0 && /\bnext\b|\bprochain\b/.test(t)) add = 7; d.setDate(d.getDate() + add); date = iso(d); }
+    }
+    // time: "10:30 AM", "10 30 in the morning", "2 pm", "half past ten", "noon", "14 h 30"
+    let time = "", h = -1, mi = 0;
+    if (/\b(noon|midday|midi)\b/.test(t)) { h = 12; }
+    else if ((m = t.match(/\bhalf past (\d{1,2}|\w+)\b/))) { h = +m[1] || NUMW[m[1]] || -1; mi = 30; }
+    else if ((m = t.match(/\bquarter past (\d{1,2}|\w+)\b/))) { h = +m[1] || NUMW[m[1]] || -1; mi = 15; }
+    else if ((m = t.match(/\bquarter to (\d{1,2}|\w+)\b/))) { h = (+m[1] || NUMW[m[1]] || 0) - 1; mi = 45; }
+    else if ((m = t.match(/\b(\d{1,2})(?::|\s?h\s?|\.)(\d{2})\b/))) { h = +m[1]; mi = +m[2]; }
+    else if ((m = t.match(/\b(\d{1,2}) (\d{2}) ?(?:a\.?m|p\.?m|in the|du|de)/))) { h = +m[1]; mi = +m[2]; }
+    else if ((m = t.match(/\b(\d{1,2}|\w+) ?(?:o'clock|a\.?m\.?|p\.?m\.?|heures?|h)\b/))) { h = +m[1] || NUMW[m[1]] || -1; }
+    if (h >= 0 && h <= 23 && mi >= 0 && mi < 60) {
+      const pm = /\b(p\.?m\.?|in the afternoon|in the evening|tonight|de l'après-midi|du soir)\b/.test(t), am = /\b(a\.?m\.?|in the morning|du matin)\b/.test(t);
+      if (pm && h < 12) h += 12; else if (am && h === 12) h = 0; else if (!pm && !am && h >= 1 && h <= 6) h += 12;   // clinics: "at 3" means 3 p.m.
+      time = String(h).padStart(2, "0") + ":" + String(mi).padStart(2, "0");
+    }
+    return { date, time };
+  }
+  // Times are picked from a list (every 15 minutes), not the phone's time wheel, which fills in the current time on its own.
+  function timeOptions(sel) {
+    const L = S.lang === "fr";
+    sel.innerHTML = `<option value="">${L ? "Choisir une heure" : "Choose a time"}</option>`;
+    for (let h = 6; h <= 21; h++) for (let m = 0; m < 60; m += 15) {
+      const v = String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+      sel.insertAdjacentHTML("beforeend", `<option value="${v}">${fmtTime(v)}</option>`);
+    }
+  }
+  function setTimeValue(sel, v) {
+    if (v && sel.tagName === "SELECT" && ![...sel.options].some(o => o.value === v)) sel.insertAdjacentHTML("beforeend", `<option value="${v}">${fmtTime(v)}</option>`);
+    sel.value = v || "";
+  }
+  ["time", "rc-time"].forEach(id => {
+    const old = $(id); if (!old) return;
+    const sel = document.createElement("select"); sel.id = id; sel.className = "time-pick";
+    old.replaceWith(sel); timeOptions(sel);
+  });
 
   // ---------- welcome ----------
   function fmtDate(v) {
@@ -1876,7 +2257,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("w-new").hidden = back; $("w-back").hidden = !back;
     if (back) {
       $("w-summary").textContent = [S.seeing, fmtDate(S.date)].filter(Boolean).join(", ") || S.purpose || "Your appointment";
-      $("w-where").textContent = `You were on step ${resumeStep + 1} of ${STEPS.length}: ${STEPS[resumeStep].name}.`;
+      const vi = STEPS.findIndex(x => x.id === "visit"), after = resumeStep >= vi && resumeStep < STEPS.findIndex(x => x.id === "share");
+      $("w-where").textContent = after ? "Back from your appointment?" : `You were on: ${STEPS[resumeStep].name}.`;
+      $("w-continue").textContent = after ? "How did it go?" : "Continue where I left off";
+      $("w-continue").dataset.go = after ? String(Math.max(resumeStep, vi + 1)) : String(resumeStep);
     }
   }
   document.querySelectorAll(".start-choice").forEach(b => b.addEventListener("click", () => {
@@ -1897,7 +2281,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   $("map-link").addEventListener("click", () => openJourney("map"));
   $("here-card-btn").addEventListener("click", () => openJourney("map"));
   $("here-card-btn").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openJourney("map"); } });
-  $("w-continue").addEventListener("click", () => show(resumeStep));
+  $("w-continue").addEventListener("click", () => show(Number($("w-continue").dataset.go || resumeStep)));
   function newVisitConfirm(boxId, focusBack) {
     const box = $(boxId);
     box.innerHTML = `<strong>Start a new appointment?</strong>
@@ -1954,10 +2338,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   document.querySelectorAll("[data-download]").forEach(b => b.addEventListener("click", download));
 
   // ---------- erase ----------
-  $("erase").addEventListener("click", () => { $("erase-confirm").hidden = false; $("erase-yes").focus(); });
-  $("erase-no").addEventListener("click", () => { $("erase-confirm").hidden = true; $("erase").focus(); });
+  $("erase").addEventListener("click", () => { Voice.stop(); $("erase-confirm").hidden = false; document.body.classList.add("erasing"); $("erase-status").textContent = ""; $("erase-confirm").scrollIntoView({ block: "center" }); $("erase-title").focus(); });
+  $("erase-no").addEventListener("click", () => { $("erase-confirm").hidden = true; document.body.classList.remove("erasing"); $("erase").focus(); });
+  $("erase-save").addEventListener("click", () => { download(); $("erase-status").textContent = "The backup file is in your Downloads. You can erase now, or cancel."; });
   $("erase-yes").addEventListener("click", () => {
-    S = blank(); resumeStep = 0; fillFields(); applyMode(); $("erase-confirm").hidden = true;
+    S = blank(); resumeStep = 0; fillFields(); applyMode(); $("erase-confirm").hidden = true; document.body.classList.remove("erasing");
     show(-1); clearTimeout(saveTimer);
     try { localStorage.removeItem(STORE_KEY); } catch (err) { console.warn("Could not erase", err); }
     $("saved").className = "saved"; $("saved").textContent = "Erased from this device";
@@ -1976,7 +2361,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const simple = ["who", "seeing", "date", "time", "purpose", "story"];
   const bgFields = { "bg-conditions": "conditions", "bg-changes": "changes", "bg-team": "team", "bg-allergies": "allergies" };
   function fillFields() {
-    simple.forEach(k => $(k).value = S[k]);
+    simple.forEach(k => { if (k === "time") setTimeValue($(k), S[k]); else $(k).value = S[k]; });
     Object.entries(bgFields).forEach(([id, k]) => $(id).value = S.bg[k]);
   }
   simple.forEach(k => $(k).addEventListener("input", e => { S[k] = e.target.value; if (k === "purpose") $("purpose-error").hidden = true; save(); }));
@@ -1995,7 +2380,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const STOP_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
   const MIC_MSG = {
     speaking: "", off: "",
-    listening: "Listening. Say \u201cscratch that\u201d (\u201cefface \u00e7a\u201d) to remove the last part. When you've finished, say \u201ccarry on\u201d (\u201ccontinuez\u201d) or tap Stop.",
+    listening: "Listening. Say \u201cnext\u201d when you've finished, or \u201cscratch that\u201d to undo.",
     blocked: "The microphone is blocked. Allow it in your browser settings, or type your answer.",
     typing: "This browser can't type what you say. Type your answer, or use the microphone on your keyboard."
   };
@@ -2004,7 +2389,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const remember = (el, before) => { el._hist = el._hist || []; el._hist.push(before); if (el._hist.length > 30) el._hist.shift(); };
   function addMics(root) {
     root.querySelectorAll('input[type="text"], textarea').forEach(el => {
-      if (el.dataset.mic) return;
+      if (el.dataset.mic || el.classList.contains("visually-hidden") || el.id === "guide-edit") return;
       el.dataset.mic = "1";
       const lab = document.querySelector(`label[for="${el.id}"]`);
       const name = lab ? lab.textContent.replace(/\s*\(.*?\)\s*/g, " ").trim() : "this answer";
@@ -2128,11 +2513,25 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       v => { q.a = v; const ta = $("cl-answer"); if (ta && S.clarify.i === qi) { remember(ta, ta.value); ta.value = v; } if (S.clarify.done) mergeDetails(); save(); },
       () => { q.fixes = (q.fixes || []).filter(f => !f.gone && q.a.includes(f.from)); save(); });
   }
-  Voice.onEnd = el => { checkWords(el); };
+  Voice.onEnd = el => {
+    if (/^mn-\d+$/.test(el.id)) { tidyMeds(); if (STEPS[S.step] && STEPS[S.step].id === "meds") renderMeds(); }
+    if (!isVoice()) checkWords(el);
+  };
+  Voice.fixWords = async (el, text) => {
+    if (S.fixOff || S.consent !== true || !text || text.trim().length < 3) return [];
+    const data = await callApi({ mode: "fix", text: text.trim(), question: questionFor(el), lang: S.lang, purpose: S.purpose,
+      conditions: S.bg.conditions, meds: S.meds.filter(m => m.n.trim()).map(m => m.n) });
+    return (data.fixes || []).filter(f => f && f.from && f.to);
+  };
 
   // ---------- list editors ----------
   // list answers grow to show everything they hold
-  function grow(el) { el.style.height = "auto"; el.style.height = Math.max(48, el.scrollHeight + 3) + "px"; }
+  function grow(el) {
+    const y = window.scrollY, want = Math.max(48, el.scrollHeight + 3);
+    if (parseFloat(el.style.height) >= want && el.scrollHeight <= el.clientHeight) return;   // already fits: don't touch it
+    el.style.height = "auto"; el.style.height = Math.max(48, el.scrollHeight + 3) + "px";
+    if (window.scrollY !== y) window.scrollTo(0, y);
+  }
   document.addEventListener("input", e => { if (e.target.classList && e.target.classList.contains("grow")) grow(e.target); });
   const growAll = root => requestAnimationFrame(() => root.querySelectorAll("textarea.grow").forEach(grow));
   function renderTell() {
@@ -2167,30 +2566,52 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     });
     addMics(box); growAll(box);
   }
+  // "Sertraline 50 mg at night" -> name, dose, when. Plain rules, nothing sent anywhere.
+  const DOSE = /(\d+(?:[.,]\d+)?(?:\s*(?:to|-|or)\s*\d+(?:[.,]\d+)?)?\s*(?:mg|milligrams?|mcg|micrograms?|µg|g\b|grams?|ml|millilit(?:er|re)s?|units?|iu\b|%|puffs?|drops?|tablets?|pills?|capsules?|comprimés?|gouttes?)(?:\s*(?:\/|per)\s*\w+)?)/i;
+  const WHEN = /\b(once a day|twice a day|three times a day|four times a day|once daily|twice daily|(?:once|twice|three times|four times)(?: a| per)? (?:day|week)|every (?:\d+ )?(?:hours?|days?|morning|night|evening|other day)|daily|in the morning|in the evening|in the afternoon|morning|evening|at night|at bedtime|bedtime|before bed|with (?:breakfast|lunch|dinner|supper|meals?|food)|before (?:breakfast|lunch|dinner|meals?)|as needed|when needed|if needed|weekly|monthly|le matin|le soir|au coucher|une fois par jour|deux fois par jour|trois fois par jour|au besoin)\b/gi;
+  function parseMed(line) {
+    let t = String(line || "").replace(/\s+/g, " ").trim();
+    const dm = t.match(DOSE); let d = "";
+    if (dm) { d = dm[1].replace(/milligrams?/i, "mg").replace(/micrograms?/i, "mcg").replace(/millilit(?:er|re)s?/i, "ml").replace(/\s+(mg|mcg|ml)\b/i, " $1"); t = t.replace(dm[1], " "); }
+    const ws = (t.match(WHEN) || []).map(x => x.toLowerCase());
+    t = t.replace(WHEN, " ");
+    const n = t.replace(/\b(at|in|the|a|of|and|take|i take|i'm on|on)\b/gi, " ").replace(/[.,;:]+/g, " ").replace(/\s+/g, " ").trim();
+    const name = n ? n.charAt(0).toUpperCase() + n.slice(1) : "";
+    return { n: name || String(line || "").trim(), d: d.trim(), w: [...new Set(ws)].join(", ") };
+  }
+  // a medicine said all in one line goes into its name box; split it into name, dose and when
+  function tidyMeds() {
+    let changed = false;
+    S.meds.forEach(m => { if (m.n.trim() && !m.d.trim() && !m.w.trim() && (DOSE.test(m.n) || new RegExp(WHEN.source, "i").test(m.n))) { Object.assign(m, parseMed(m.n)); changed = true; } });
+    if (changed) save();
+  }
   function renderMeds() {
-    const box = $("med-list"); box.innerHTML = "";
-    if (!S.meds.length) S.meds.push({ n: "", d: "", w: "" });
-    S.meds.forEach((m, i) => {
-      const w = document.createElement("div"); w.className = "med-wrap";
-      w.innerHTML = `<div class="med">
-        <div class="field"><label for="mn-${i}">Medication</label><input type="text" id="mn-${i}" value="${esc(m.n)}" autocomplete="off"></div>
-        <div class="field"><label for="md-${i}">Dose</label><input type="text" id="md-${i}" value="${esc(m.d)}" autocomplete="off"></div>
-        <div class="field"><label for="mw-${i}">When</label><input type="text" id="mw-${i}" value="${esc(m.w)}" autocomplete="off"></div>
-        <button type="button" class="icon-btn" aria-label="Remove medication ${i + 1}">Remove</button></div>`;
-      const [n, d, wh] = w.querySelectorAll("input");
-      n.addEventListener("input", e => { S.meds[i].n = e.target.value; save(); });
-      d.addEventListener("input", e => { S.meds[i].d = e.target.value; save(); });
-      wh.addEventListener("input", e => { S.meds[i].w = e.target.value; save(); });
-      w.querySelector(".icon-btn").addEventListener("click", () => { S.meds.splice(i, 1); renderMeds(); save(); });
-      box.appendChild(w);
+    [["med-list", false], ["otc-list", true]].forEach(([boxId, other]) => {
+      const box = $(boxId); box.innerHTML = "";
+      if (!other && !S.meds.some(m => !m.o)) S.meds.push({ n: "", d: "", w: "", o: false });
+      S.meds.forEach((m, i) => {
+        if (!!m.o !== other) return;
+        const w = document.createElement("div"); w.className = "med-wrap";
+        w.innerHTML = `<div class="med">
+          <div class="field"><label for="mn-${i}">${other ? "Product" : "Medication"}</label><input type="text" id="mn-${i}" value="${esc(m.n)}" autocomplete="off"></div>
+          <div class="field"><label for="md-${i}">Dose</label><input type="text" id="md-${i}" value="${esc(m.d)}" autocomplete="off"></div>
+          <div class="field"><label for="mw-${i}">When</label><input type="text" id="mw-${i}" value="${esc(m.w)}" autocomplete="off"></div>
+          <button type="button" class="icon-btn" aria-label="Remove ${other ? "item" : "medication"} ${i + 1}">Remove</button></div>`;
+        const [n, d, wh] = w.querySelectorAll("input");
+        n.addEventListener("input", e => { S.meds[i].n = e.target.value; save(); });
+        d.addEventListener("input", e => { S.meds[i].d = e.target.value; save(); });
+        wh.addEventListener("input", e => { S.meds[i].w = e.target.value; save(); });
+        w.querySelector(".icon-btn").addEventListener("click", () => { S.meds.splice(i, 1); renderMeds(); save(); });
+        box.appendChild(w);
+      });
+      addMics(box);
     });
-    addMics(box);
   }
   document.querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => {
     const k = b.dataset.add;
     if (k === "tell") { S.tell.push(""); renderTell(); $("tell-" + (S.tell.length - 1)).focus(); }
     if (k === "ask") { S.ask.push({ t: "", top: false }); renderAsk(); $("ask-" + (S.ask.length - 1)).focus(); }
-    if (k === "med") { S.meds.push({ n: "", d: "", w: "" }); renderMeds(); $("mn-" + (S.meds.length - 1)).focus(); }
+    if (k === "med" || k === "otc") { S.meds.push({ n: "", d: "", w: "", o: k === "otc" }); renderMeds(); $("mn-" + (S.meds.length - 1)).focus(); }
     if (k === "todo") { S.recap.todo.push(""); renderTodo(); $("todo-" + (S.recap.todo.length - 1)).focus(); }
     save();
   }));
@@ -2231,9 +2652,17 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       lang: S.lang, docLang: S.docLang
     }, extra || {});
   }
+  // The name never leaves the device, even when it's said inside an answer ("Rama's hand", "my son Rama").
+  function scrub(v) {
+    const parts = S.who.trim().split(/\s+/).filter(w => w.length >= 3).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    if (!parts.length) return v;
+    const re = new RegExp("\\b(" + parts.join("|") + ")('s)?\\b", "gi");
+    const go = x => typeof x === "string" ? x.replace(re, (m, n, sfx) => "[name]" + (sfx || "")) : Array.isArray(x) ? x.map(go) : x && typeof x === "object" ? Object.fromEntries(Object.entries(x).map(([k, y]) => [k, go(y)])) : x;
+    return go(v);
+  }
   async function callApi(payload, retried) {
     let r;
-    try { r = await fetch("/api/suggest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }); }
+    try { r = await fetch("/api/suggest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(scrub(payload)) }); }
     catch (err) { console.error("Network error", err); throw new Error("Couldn't reach Claude. Check your internet connection and try again."); }
     const data = await r.json().catch(() => ({}));
     if (r.status === 502 && !retried) return callApi(payload, true);
@@ -2242,7 +2671,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   async function callClaude(payload, retried) {
     let r;
-    try { r = await fetch("/api/suggest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }); }
+    try { r = await fetch("/api/suggest", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(scrub(payload)) }); }
     catch (err) { console.error("Network error", err); throw new Error("Couldn't reach Claude. Check your internet connection and try again."); }
     const data = await r.json().catch(() => ({}));
     if (r.status === 502 && !retried) return callClaude(payload, true);   // one quiet retry before showing an error
@@ -2254,31 +2683,35 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   // Built-in questions: the standard symptom history doctors use. Used without Claude, or if Claude is unavailable.
   const STANDARD_QS_FR = [
     { q: "Quand est-ce que ça a commencé ? C'est venu tout d'un coup ou petit à petit ?", fr: "Début", en: "When it started" },
-    { q: "Où exactement ? Est-ce que ça s'étend ailleurs ?", fr: "Endroit", en: "Where" },
-    { q: "Comment c'est, avec vos propres mots ?", fr: "Sensation", en: "What it feels like" },
-    { q: "De 0 à 10, c'est fort comment, au pire et un jour normal ?", fr: "Intensité (0 à 10)", en: "How bad (0 to 10)" },
-    { q: "Quand est-ce que ça arrive, et à quelle fréquence ? Est-ce que ça s'améliore, empire ou reste pareil ?", fr: "Moment et fréquence", en: "When and how often" },
+    { q: "Où exactement ? Et comment c'est, avec vos propres mots ?", fr: "Endroit et sensation", en: "Where, and what it feels like" },
+    { q: "De 0 à 10, c'est fort comment, au pire et un jour normal ? Qu'est-ce que ça vous empêche de faire ?", fr: "Intensité et vie quotidienne", en: "How bad, and daily life" },
     { q: "Qu'est-ce qui empire les choses ? Qu'est-ce qui aide ?", fr: "Ce qui empire ou aide", en: "Worse and better with" },
-    { q: "Qu'avez-vous déjà essayé, et est-ce que ça a aidé ?", fr: "Déjà essayé", en: "Tried so far" },
-    { q: "Est-ce qu'il y a autre chose qui vient avec ? Qu'est-ce que ça vous empêche de faire ?", fr: "Autres symptômes et vie quotidienne", en: "Other symptoms and daily life" }
+    { q: "Qu'avez-vous déjà essayé, et est-ce que ça a aidé ?", fr: "Déjà essayé", en: "Tried so far" }
   ];
   const STANDARD_QS = [
     { q: "When did it start? Did it come on suddenly or slowly?", label: "When it started" },
-    { q: "Where exactly is it? Does it spread anywhere?", label: "Where" },
-    { q: "What does it feel like, in your own words?", label: "What it feels like" },
-    { q: "How bad is it from 0 to 10, at its worst and on a normal day?", label: "How bad (0 to 10)" },
-    { q: "When does it happen, and how often? Is it getting better, worse, or staying the same?", label: "When and how often" },
+    { q: "Where exactly is it? And what does it feel like, in your own words?", label: "Where, and what it feels like" },
+    { q: "How bad is it from 0 to 10, at its worst and on a normal day? What does it stop you doing?", label: "How bad, and daily life" },
     { q: "What makes it worse? What makes it better?", label: "Worse and better with" },
-    { q: "What have you tried so far, and did it help?", label: "Tried so far" },
-    { q: "Does anything else come with it? What does it stop you doing?", label: "Other symptoms and daily life" }
+    { q: "What have you tried so far, and did it help?", label: "Tried so far" }
   ];
   function useStandard() {
     const set = S.lang === "fr" ? STANDARD_QS_FR.map(q => ({ q: q.q, label: S.docLang === "fr" ? q.fr : q.en })) : STANDARD_QS;
     S.clarify = { qs: set.map(q => ({ q: q.q, label: q.label, a: "", fixes: [] })), i: 0, done: false, merged: S.clarify.merged || [] };
     $("detail-status").textContent = ""; save(); renderClarify(); focusQ(); voiceAsk(true);
   }
+  // Talking mode: ask the Claude question out loud instead of waiting silently for a tap.
+  function voiceConsent(after) {
+    if (!isVoice() || S.consent !== null) return false;
+    const q = say("consent");
+    setGuide(q);
+    Voice.ask(q, null, () => {}, guideView, { q, yesNo: yes => { S.consent = yes; save(); after(); } });
+    return true;
+  }
   function enterDetail() {
+    $("detail-h").textContent = (S.lang === "fr" ? "Quelques questions de plus : " : "A few more questions about ") + topic();
     renderConsent("detail-consent", enterDetail);
+    if (voiceConsent(enterDetail)) return;
     renderClarify();
     if (S.consent === true && !S.clarify.qs.length) fetchClarify();
     else if (S.consent === false && !S.clarify.qs.length) useStandard();
@@ -2289,6 +2722,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const status = $("detail-status");
     const kept = more === true ? S.clarify.qs.filter(q => q.a.trim()) : [];
     status.textContent = kept.length ? "Claude is writing more questions. Your answers so far are kept." : "Claude is writing questions about this. It takes about 15 seconds.";
+    if (isVoice()) { setGuide(say("preparing")); guideView("speaking"); Voice.speak(say("preparing")).then(() => { if (!Voice.active()) guideView("off"); }); }
     try {
       const qs = await callClaude(picture({ mode: "clarify", details: kept.map(q => (q.label || q.q) + ": " + q.a.trim()), asked: S.clarify.qs.map(q => q.q) }));
       const seen = new Set(S.clarify.qs.map(q => q.q.trim().toLowerCase()));
@@ -2366,12 +2800,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function voiceAsk(intro) {
     const c = S.clarify;
     if (!isVoice() || c.i >= c.qs.length || !$("cl-answer")) return;
-    Voice.ask((intro ? say("intro") : "") + c.qs[c.i].q, $("cl-answer"), () => $("cl-next").click(), voiceView("cl-vstate"));
+    setGuide(c.qs[c.i].q);
+    const vs = voiceView("cl-vstate");
+    Voice.ask((intro ? say("intro") : "") + c.qs[c.i].q, $("cl-answer"), () => $("cl-next").click(), (st, heard) => { vs(st, heard); guideView(st, heard); }, { readback: true, q: c.qs[c.i].q });
   }
 
   // ---------- suggestions ----------
   function enterIdeas() {
     renderConsent("ideas-consent", enterIdeas);
+    if (voiceConsent(() => { enterIdeas(); guide("ideas", true); })) return;
     renderSugg(); renderAi();
     if (S.consent === true && !S.aiFetched) fetchAi();
   }
@@ -2399,9 +2836,24 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       box.appendChild(lab);
     });
   }
+  // questions typed or said at the bottom of the suggestions go into their own questions
+  function addIdeasNew() {
+    const box = $("ideas-new"), ls = lines(box.value);
+    if (!ls.length) return;
+    S.ask = S.ask.filter(q => q.t.trim());
+    ls.forEach(t => { if (!S.ask.some(q => q.t.trim().toLowerCase() === t.toLowerCase())) S.ask.push({ t, top: false }); });
+    box.value = ""; box.dispatchEvent(new Event("input", { bubbles: true })); save(); renderIdeasAdded();
+  }
+  function renderIdeasAdded() {
+    const own = S.ask.map(q => q.t.trim()).filter(Boolean);
+    $("ideas-added").innerHTML = own.length ? `<li class="muted small">${S.lang === "fr" ? "Vos questions" : "Your questions"}:</li>` + own.map(t => `<li>${esc(t)}</li>`).join("") : "";
+  }
+  $("ideas-add").addEventListener("click", () => { addIdeasNew(); $("ideas-new").focus(); });
   function renderSugg() {
+    renderIdeasAdded();
     const box = $("sugg-list"); box.innerHTML = "";
     SUGGESTIONS.forEach((_, i) => {
+      if (i === RECORD_Q) return;   // asking to record is always on the pages
       const q = sug(i);
       const lab = document.createElement("label"); lab.className = "sugg"; lab.setAttribute("for", "sugg-" + i);
       const on = S.sugg.includes(i);
@@ -2510,7 +2962,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     try {
       for (const [to, items] of jobs) {
         const data = await callApi({ mode: "translate", items, docLang: to });
-        items.forEach((x, i) => { if (data.items[i]) S.tr[tkey(to, x)] = data.items[i]; });
+        items.forEach((x, i) => { if (data.items[i]) S.tr[tkey(to, x)] = data.items[i].replace(/\[name\]/g, S.who.trim()); });
       }
       save(); if (st) st.textContent = "";
       return true;
@@ -2520,8 +2972,50 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       return false;
     } finally { trBusy = false; }
   }
+  // ---------- tidy the wording for the pages: same meaning, clearer words ----------
+  // With Claude (if they agreed): fixed spelling and run-ons, plus a short reminder for the patient's page.
+  // Without Claude: light clean-up on this device (capitals, full stops, filler words).
+  const FILLER = /\b(um+|uh+|erm|you know|i mean|kind of like|like,|well just that like|well just that|well,? just|sort of)\b\s*/gi;
+  function localTidy(x) {
+    let t = String(x || "").replace(/\s+/g, " ").trim();
+    const i = t.indexOf(": "), lab = i > -1 && i < 40 ? t.slice(0, i + 2) : "", body = lab ? t.slice(i + 2) : t;
+    let b = body.replace(FILLER, "").replace(/\s+([,.;:!?])/g, "$1").trim();
+    if (!b) b = body.trim();
+    b = b.charAt(0).toUpperCase() + b.slice(1);
+    if (!/[.!?]$/.test(b)) b += /^(what|why|how|when|where|who|which|is|are|can|could|should|do|does|will|would|may)\b/i.test(b) ? "?" : ".";
+    return lab + b;
+  }
+  function localBrief(x) {
+    const t = localTidy(x), i = t.indexOf(": "), body = (i > -1 && i < 40 ? t.slice(i + 2) : t);
+    const first = body.split(/(?<=[.!?;])\s/)[0].replace(/[.;]$/, "");
+    const w = first.split(/\s+/);
+    return w.length > 14 ? w.slice(0, 12).join(" ") + "…" : first;
+  }
+  const tidyT = x => { const k = (x || "").trim(); return (S.tidy[k] && S.tidy[k].t) || localTidy(k); };
+  const tidyB = x => { const k = (x || "").trim(); return (S.tidy[k] && S.tidy[k].b) || localBrief(k); };
+  let tidyBusy = false;
+  async function ensureTidy(statusId) {
+    if (S.consent !== true || S.lang === "fr" || tidyBusy) return false;   // French answers are translated instead
+    const own = S.ask.map(q => q.t.trim()).filter(Boolean);
+    const items = [...new Set([...S.tell.map(t => t.trim()), ...own, S.purpose.trim(), S.bg.changes.trim()].filter(Boolean))].filter(x => !S.tidy[x]);
+    if (!items.length) return false;
+    tidyBusy = true;
+    const st = $(statusId); if (st) st.textContent = "Tidying the wording on your pages. Your meaning stays the same…";
+    try {
+      const data = await callApi({ mode: "tidy", items });
+      const nm = s2 => String(s2 || "").replace(/\[name\]/g, S.who.trim() || "the patient");
+      items.forEach((x, i) => { const r = data.items[i]; if (r && r.t) S.tidy[x] = { t: nm(r.t), b: nm(r.b) }; });
+      save(); if (st) st.textContent = "";
+      return true;
+    } catch (err) {
+      console.warn("Tidy failed", err);
+      if (st) st.textContent = "";
+      return false;
+    } finally { tidyBusy = false; }
+  }
   function buildSheets() {
-    const D = x => tr(x, S.docLang), P = x => tr(x, S.lang);
+    const D = x => S.lang === "fr" ? tr(x, S.docLang) : tidyT(x), P = x => S.lang === "fr" ? tr(x, S.lang) : tidyT(x);
+    const B = x => S.lang === "fr" ? tr(x, S.lang) : tidyB(x);
     const both = x => { const d = D(x), p = P(x); return d === p ? esc(d) : `${esc(d)}<span class="tr-line">${esc(p)}</span>`; };
     const tell = S.tell.filter(t => t.trim());
     // answers like "not sure" help the family, but are noise for the doctor
@@ -2533,7 +3027,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const liX = f => q => `<li${q.top ? ' class="top"' : ""}>${q.top ? '<span class="star" aria-label="most important">★</span> ' : ""}${f(q.t)}</li>`;
     const li = liX(x => esc(D(x))), liBoth = liX(both), liP = liX(x => esc(P(x)));
     const shortRest = rest.slice(0, Math.max(0, 6 - top.length));
-    const recordAsk = S.sugg.includes(RECORD_Q);
+    const recordAsk = true;   // always ask to record (Rama, 5 Nov 2026)
+    const CQ = { en: "If I have questions or concerns before my next appointment, who should I contact, and how?", fr: "Si j'ai des questions ou des inquiétudes avant mon prochain rendez-vous, qui dois-je contacter, et comment ?" };
+    const CONTACT_Q = CQ[S.docLang] || CQ.en, CONTACT_P = CQ[S.lang] || CQ.en;
     $("sheet-p").innerHTML = header("My page") + `
       <section><h3>Start with</h3><p class="say">"I have some questions I'd like to go through. May I start?"</p>
       <p style="margin-top:8px">Hand the doctor your summary sheet.</p>
@@ -2541,15 +3037,19 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <ul class="if-list"><li><b>If yes:</b> start recording on your phone, for example with Voice Memos.</li>
         <li><b>If no:</b> that's fine. Ask: "Could you jot your answers on the sheet I gave you?" There is space under each question. Or take notes below, and read them back before you leave.</li></ul>`
       : `<p style="margin-top:4px">Ask: "Could you jot your answers on the sheet I gave you?" There is space under each question.</p>`}</section>
-      <section><h3>Make sure I mention</h3>${facts.length ? `<ul>${facts.slice(0, 8).map(t => `<li>${both(t)}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
+      <section><h3>Make sure I mention</h3>${facts.length ? `<ul>${facts.slice(0, 5).map(t => `<li>${esc(B(t))}</li>`).join("")}</ul>${facts.length > 5 ? `<p style="margin-top:6px;color:#3B4A57">The rest is on the doctor's summary.</p>` : ""}` : `<p class="empty">Nothing added yet.</p>`}</section>
       ${first ? `<section><h3>Most important to me</h3><ol class="say-list">${firsts.map(q => `<li>${both(q.t)}</li>`).join("")}</ol></section>` : ""}
       <section><h3>${first ? "My other questions" : "My questions"}</h3>${top.length + shortRest.length ? `<ol>${top.concat(shortRest).map(liBoth).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}
       ${rest.length > shortRest.length ? `<p style="margin-top:6px;color:#3B4A57">More questions are on the full list.</p>` : ""}</section>
+      <section><h3>${S.lang === "fr" ? "Avant de partir, demandez" : "Before you leave, ask"}</h3><p class="say">"${esc(CONTACT_P)}"</p>
+        <p style="margin-top:6px">${S.lang === "fr" ? "Qui et comment" : "Who and how"}: ________________________________</p></section>
       <section><h3>My notes: what the doctor says</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div><div class="blank"></div>
         <p style="margin-top:8px">Next appointment: ______________________</p></section>`;
-    const cond = lines(S.bg.conditions).map(D);
+    const cond = lines(S.bg.conditions).map(x => (S.lang === "fr" ? tr(x, S.docLang) : x).replace(/[.;,]+$/, ""));
     const dl = rows => `<dl class="dl">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>`;
-    const medsD = S.meds.filter(x => x.n.trim()).map(x => esc([x.n, x.d.trim() || "dose not known", D(x.w)].filter(v => v && v.trim()).join(", ")));
+    const W = w => S.lang === "fr" ? tr(w, S.docLang) : w;
+    const medLine = x => esc([x.n, x.d.trim() || "dose not known", W(x.w)].filter(v => v && v.trim()).join(", "));
+    const medsD = S.meds.filter(x => x.n.trim() && !x.o).map(medLine), otcD = S.meds.filter(x => x.n.trim() && x.o).map(medLine);
     const qD = top.concat(rest).slice(0, 8);
     const lined = n => `<div class="ans-lines" aria-hidden="true">${'<div class="blank"></div>'.repeat(n)}</div>`;
     $("sheet-d").innerHTML = `<h2>Patient summary${S.who.trim() ? " · " + esc(S.who) : ""}</h2>
@@ -2564,12 +3064,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       ])}</section>` : ""}
       <section><h3>Medications and allergies</h3>${dl([
         ["Medications", medsD.length ? medsD.join("<br>") : "None listed"],
+        ["Other things I take", otcD.join("<br>")],
         ["Changes since last visit", !S.carried ? "" : S.chg.meds === "yes" ? (esc(D(S.chg.medNote)) || "Yes (see list)") : S.chg.meds === "no" ? "None reported" : ""],
-        ["Allergies", esc(D(S.bg.allergies)) || "None listed"]
+        ["Allergies and cautions", esc(D(S.bg.allergies)) || "None listed"]
       ])}</section>
       ${first || qD.length ? `<p class="ans-note">Space is left under each question if you'd like to write your answer.</p>` : ""}
       ${first ? `<section><h3>Most important ${firsts.length > 1 ? "questions" : "question"} to the patient</h3><ol class="ans-q">${firsts.map(q => `<li><b>${esc(D(q.t))}</b>${lined(3)}</li>`).join("")}</ol></section>` : ""}
       ${qD.length ? `<section><h3>${first ? "Other questions" : "Patient's questions"}</h3><ol class="ans-q">${qD.map(q => `<li>${esc(D(q.t))}${lined(2)}</li>`).join("")}</ol></section>` : ""}
+      <section><h3>${S.docLang === "fr" ? "Entre les rendez-vous" : "Between appointments"}</h3><ol class="ans-q"><li>${esc(CONTACT_Q)}${lined(1)}</li></ol></section>
       <section class="how"><h3>How this summary was prepared</h3>
         <p>The patient answered questions at home, in their own words, with family. Questions followed a standard symptom history (onset, location, duration, character, what makes it worse or better, timing, severity) and checked their other conditions and medicines. ${S.consent === true ? "An AI assistant (Claude, by Anthropic) suggested questions only. It did not diagnose." : "No AI was used."}${S.lang === "fr" && S.docLang === "en" && S.consent === true ? " The patient answered in French; answers were translated by the same AI." : ""} Answers are as reported by the patient and have not been verified. Not a medical record. Method: pen-ink.ca/prep</p></section>`;
     const condP = lines(S.bg.conditions).map(P);
@@ -2578,9 +3080,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       S.bg.changes.trim() ? `<p><b>Recent changes:</b> ${esc(S.bg.changes).replace(/\n/g, "<br>")}</p>` : "",
       S.carried && S.chg.meds ? `<p><b>Medication changes since last visit:</b> ${S.chg.meds === "yes" ? esc(S.chg.medNote.trim()) || "yes" : "none"}</p>` : "",
       S.bg.team.trim() ? `<p><b>Also seeing:</b> ${esc(S.bg.team)}</p>` : "",
-      S.bg.allergies.trim() ? `<p><b>Allergies:</b> ${esc(S.bg.allergies)}</p>` : ""
+      S.bg.allergies.trim() ? `<p><b>Allergies and cautions:</b> ${esc(S.bg.allergies)}</p>` : ""
     ].join("");
-    $("sheet-c").innerHTML = header("Full list for family") + `
+    $("sheet-c").innerHTML = header("Full list to share") + `
       ${S.purpose.trim() ? `<section><h3>Appointment is for</h3><p>${esc(S.purpose)}</p></section>` : ""}
       ${bgBits ? `<section><h3>Health background</h3>${bgBits}</section>` : ""}
       ${S.story.trim() ? `<section><h3>In their words</h3><p>${esc(S.story).replace(/\n/g, "<br>")}</p></section>` : ""}
@@ -2598,7 +3100,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const TAB_ABOUT = [
     "For the doctor to read. Hand it over when you sit down.",
     "For you. Read your questions and take notes.",
-    "For family who help. Everything in one place."
+    "For people who help you. Everything in one place."
   ];
   let curTab = 0;
   function setTab(i) {
@@ -2614,6 +3116,50 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const n = (i + (e.key === "ArrowRight" ? 1 : 2)) % 3; setTab(n); tabs[n].focus(); }
   }));
   $("print-this").addEventListener("click", () => { buildSheets(); setTab(curTab); window.print(); });
+  // all three pages at once: on a phone, the print screen has "Save to Files" (a PDF)
+  function printAll() {
+    buildSheets(); document.body.classList.add("print-all");
+    const done = () => { document.body.classList.remove("print-all"); window.removeEventListener("afterprint", done); };
+    window.addEventListener("afterprint", done); setTimeout(done, 60000);
+    window.print();
+  }
+  $("print-all").addEventListener("click", printAll);
+  $("foot-pages").addEventListener("click", () => {
+    if (!S.purpose.trim()) { $("mic-msg").textContent = "Your pages are made at the end of Appointment prep. Answer the first few questions to get them."; return; }
+    printAll();
+  });
+  // ---------- add to calendar: a standard calendar file every phone and computer can open ----------
+  function icsEvent({ title, date, time, where, notes }) {
+    const pad = n => String(n).padStart(2, "0"), esc2 = t => String(t || "").replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+    const d = date.replace(/-/g, ""), stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+    let start, end;
+    if (time) { const [h, m] = time.split(":").map(Number); start = `DTSTART:${d}T${pad(h)}${pad(m)}00`; const e = new Date(2000, 0, 1, h, m + 60); end = `DTEND:${d}T${pad(e.getHours())}${pad(e.getMinutes())}00`; }
+    else { start = `DTSTART;VALUE=DATE:${d}`; const n = new Date(date + "T12:00:00"); n.setDate(n.getDate() + 1); end = `DTEND;VALUE=DATE:${iso(n).replace(/-/g, "")}`; }
+    return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Pen & Ink//WellHeard//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
+      `UID:${stamp}-${Math.random().toString(36).slice(2)}@pen-ink.ca`, `DTSTAMP:${stamp}`, start, end, `SUMMARY:${esc2(title)}`,
+      where ? `LOCATION:${esc2(where)}` : "", notes ? `DESCRIPTION:${esc2(notes)}` : "",
+      "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", `DESCRIPTION:${esc2(title)} tomorrow`, "END:VALARM",
+      "END:VEVENT", "END:VCALENDAR"].filter(Boolean).join("\r\n");
+  }
+  function addToCalendar(ev, statusId) {
+    if (!ev.date) { $(statusId).textContent = "Add the appointment date first (Back to “Who and when”), then try again."; return false; }
+    const blob = new Blob([icsEvent(ev)], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = "appointment.ics"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    $(statusId).textContent = "Your calendar should open. Tap Add to save it.";
+    return true;
+  }
+  $("cal-this").addEventListener("click", () => addToCalendar({
+    title: "Appointment" + (S.seeing.trim() ? ": " + S.seeing.trim() : ""), date: S.date, time: S.time,
+    notes: "Bring your WellHeard pages and your medications." + (S.purpose.trim() ? "\nFor: " + S.purpose.trim() : "")
+  }, "cal-note"));
+  $("cal-next").addEventListener("click", () => {
+    const r = S.recap, team = S.bg.team.trim() ? "" : "";
+    addToCalendar({ title: "Appointment" + (r.nextWith.trim() ? ": " + r.nextWith.trim() : ""), date: r.nextDate, time: r.nextTime,
+      notes: (lines(r.more).concat(r.open).length ? "Questions to bring: " + r.open.concat(lines(r.more)).join("; ") + "\n" : "") + "Prepare with WellHeard: pen-ink.ca/prep" + team }, "cal-next-note");
+  });
+  $("sheets-new2").addEventListener("click", () => newVisitConfirm("sheets-new2-confirm", "sheets-new2"));
   window.addEventListener("beforeprint", () => { buildSheets(); buildRecap(); });
   const sheetText = el => el.innerText.replace(/\n{3,}/g, "\n\n").trim();
   document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
@@ -2646,20 +3192,20 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const JH = 1600;
   const JPH = { prep: SECTIONS.prep, room: SECTIONS.room, after: SECTIONS.after };
   const JSTOPS = [
-    { ph: "prep", x: 120, y: 140, t: "The appointment", s: "What it's for, who and when." },
+    { ph: "prep", x: 120, y: 140, t: "About the appointment", s: "What it's for, who and when." },
     { ph: "prep", x: 280, y: 270, t: "In your own words", s: "Say it all. Nobody interrupts." },
     { ph: "prep", x: 120, y: 400, t: "Your health", s: "Background, medications, and what's changed." },
     { ph: "prep", x: 280, y: 530, t: "More about it", s: "What the doctor should hear." },
     { ph: "prep", x: 120, y: 660, t: "Your questions", s: "Yours, plus ones to consider." },
-    { ph: "room", x: 280, y: 800, t: "Your pages", s: "Print them. One is for the doctor." },
-    { ph: "room", x: 120, y: 930, t: "At the appointment", s: "Hand it over. Ask your questions.", info: `<p class="say">"I have some questions I'd like to go through. May I start?"</p>
+    { ph: "prep", x: 280, y: 800, t: "Your pages", s: "Print them, or keep them on your phone." },
+    { ph: "room", x: 120, y: 930, t: "At the appointment", s: "Hand over your page, ask your questions, record if the doctor agrees.", info: `<p class="say">"I have some questions I'd like to go through. May I start?"</p>
         <ul><li>Hand the doctor the summary sheet when you sit down.</li>
         <li>Read your questions from My page. Write the answers beside them.</li>
         <li>Want to record? Ask first: "Is it okay if I record this on my phone?"</li></ul>
         <p><b>If the doctor says yes:</b> record on your own phone. This website never records anything.</p>
         <p><b>If the doctor says no:</b> that's fine. Write notes on My page. Before you leave, ask: "Can I read back what I wrote to make sure I got it right?"</p>` },
-    { ph: "after", x: 120, y: 1330, t: "Recap", s: "What the doctor said, and what's next." },
-    { ph: "after", x: 280, y: 1460, t: "Next steps and sharing", s: "Send it to family. Get ready for next time." }
+    { ph: "after", x: 120, y: 1330, t: "What the doctor said", s: "Next appointment, things to do, who to contact." },
+    { ph: "after", x: 280, y: 1460, t: "Share and get ready for next time", s: "Send it to people who help you." }
   ];
   JSTOPS.forEach((st, i) => { st.steps = STEPS.map((x, k) => x.stop === i ? k : -1).filter(k => k > -1); });
   const jpct = (v, t) => (v / t * 100).toFixed(3) + "%";
@@ -2682,6 +3228,22 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     send: `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="14" width="40" height="28" rx="3"/><path d="M8 16 L28 31 L48 16"/></svg>`,
     no: `<svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="13" cy="13" r="10.5"/><path d="M5.5 5.5 L20.5 20.5"/></svg>`
   };
+  // "How this works" in four picture steps (welcome page and the How this works page)
+  IC.q = `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 12 H46 V38 H26 L16 46 V38 H10 Z"/><path d="M23 21 C23 17 33 17 33 22 C33 26 28 26 28 30"/><circle cx="28" cy="34" r=".8" fill="currentColor"/></svg>`;
+  IC.link = `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="14" cy="28" r="6"/><circle cx="42" cy="15" r="6"/><circle cx="42" cy="41" r="6"/><path d="M19.5 25.5 L36.5 17.5 M19.5 30.5 L36.5 38.5"/></svg>`;
+  IC.page = `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M14 6 H34 L44 16 V50 H14 Z"/><path d="M34 6 V16 H44"/><path d="M21 26 H37 M21 33 H37 M21 40 H31"/></svg>`;
+  const HOW4 = {
+    en: [["mic", "You talk first.", "Say what's on your mind. No one interrupts."],
+         ["q", "We ask what a doctor would.", "When it started, where, how bad, what helps."],
+         ["link", "We connect the dots.", "Your other conditions and medicines, only where they matter."],
+         ["page", "You get your pages.", "One for you, one for the doctor, one to share."]],
+    fr: [["mic", "Vous parlez d'abord.", "Dites ce qui vous préoccupe. Personne ne vous interrompt."],
+         ["q", "On pose les questions d'un médecin.", "Quand ça a commencé, où, à quel point, ce qui aide."],
+         ["link", "On fait les liens.", "Vos autres problèmes de santé et médicaments, seulement quand ça compte."],
+         ["page", "Vous recevez vos pages.", "Une pour vous, une pour le médecin, une à partager."]]
+  };
+  const how4HTML = () => `<ol class="how4">${(HOW4[S.lang] || HOW4.en).map(([ic, b, t], i) => `<li><span class="how4-ic">${IC[ic]}</span><span><b>${i + 1}. ${esc(b)}</b> ${esc(t)}</span></li>`).join("")}</ol>`;
+  const how4Say = () => (HOW4[S.lang] || HOW4.en).map(([, b, t], i) => `${i + 1}. ${b} ${t}`).join(" ");
   const dlg = $("jr");
   let jPath = null, jTotal = 0, jLens = [], jLaunch = 0, jBoatAt = 0;
   function jSetupPath() {
@@ -2746,13 +3308,41 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     jBoatAt = cur < 0 ? jLaunch : jLens[cur]; jPlaceBoat(root, jBoatAt);
     return root.querySelector(".jr-stop.here");
   }
+  // The journey as one simple checklist: Before / At / After your visit, with "You are here".
+  function jRenderChecklistInto(root, live) {
+    const cur = live ? jCur() : -1;
+    const phase = ph => {
+      const items = JSTOPS.map((s, i) => [s, i]).filter(([s]) => s.ph === ph);
+      return `<section class="ck-phase" style="--c:${JPH[ph].c}"><h3>${esc(JPH[ph].name)}</h3><ol class="ck">${items.map(([s, i]) => {
+        const here = i === cur, done = cur > -1 && i < cur;
+        const mark = done ? "✓" : here ? "●" : "";
+        return `<li class="${here ? "here" : done ? "done" : ""}"><button type="button" class="ck-item" data-ck="${i}" ${here ? 'aria-current="step"' : ""}>
+          <span class="ck-mark" aria-hidden="true">${mark}</span><span class="ck-txt"><b>${esc(s.t)}</b><span>${esc(s.s)}</span></span>
+          ${here ? `<span class="ck-here">${S.lang === "fr" ? "Vous êtes ici" : "You are here"}</span>` : ""}<span class="visually-hidden">${done ? "Done." : here ? "You are here." : ""}</span></button></li>`;
+      }).join("")}</ol></section>`;
+    };
+    root.innerHTML = `${live && cur > -1 ? `<p class="muted jr-intro">Tap any step to go to it.</p>` : ""}
+      <div class="ck-wrap">${phase("prep")}${phase("room")}${phase("after")}</div>
+      <div class="jr-info" hidden></div>
+      ${live ? `<button type="button" class="jr-safe-link" data-open-how>${IC.spark}<span><b>How this works</b><span>The approach, in plain words. Also for doctors.</span></span></button>
+      <button type="button" class="jr-safe-link" data-open-safe>${IC.shield}<span><b>How your information stays safe</b><span>Where your answers are kept, and what is sent.</span></span></button>` : ""}`;
+    return root.querySelector(".ck li.here button");
+  }
   function jRenderMap() {
     jView = "map";
-    $("jr-title").textContent = "Map of the full journey"; $("jr-back").hidden = true;
-    const here = jRenderMapInto($("jr-body"), true);
+    $("jr-title").textContent = "Your journey"; $("jr-back").hidden = true;
+    const here = jRenderChecklistInto($("jr-body"), true);
     if (here) requestAnimationFrame(() => here.scrollIntoView({ block: "center" }));
     else $("jr-body").scrollTop = 0;
   }
+  $("jr-body").addEventListener("click", e => {
+    const b = e.target.closest("[data-ck]"); if (!b) return;
+    const i = Number(b.dataset.ck), s = JSTOPS[i], cur = jCur();
+    if (cur < 0) { jInfo($("jr-body"), i); return; }
+    if (s.steps.includes(S.step)) { dlg.close(); return; }
+    if (!S.purpose.trim() && s.steps[0] > 0) { jInfo($("jr-body"), i); $("jr-body").querySelector(".jr-info p").insertAdjacentHTML("beforebegin", "<p><b>First, say what the appointment is for (the first step).</b></p>"); return; }
+    dlg.close(); show(s.steps[0]);
+  });
   // Links straight to a stage: /prep#ask (a step) or /prep#room (the start of a section).
   // If Talk or Read and type hasn't been chosen yet, the welcome asks first, then goes there.
   let linkTarget = -1;
@@ -2792,7 +3382,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       jInfo(root, i); return;
     }
     if (e.target.closest("[data-info-close]")) { root.querySelector(".jr-info").hidden = true; return; }
-    if (e.target.closest("[data-sf-download]")) { download(); $("sf-status").textContent = "Downloaded a copy to your Downloads."; return; }
+    if (e.target.closest("[data-sf-download]")) { download(); $("sf-status").textContent = "The backup file is in your Downloads."; return; }
     if (e.target.closest("[data-sf-erase]")) { dlg.close(); $("erase").click(); $("erase-confirm").scrollIntoView({ block: "center" }); }
   }
   $("jr-body").addEventListener("click", jClick);
@@ -2803,42 +3393,39 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("jr-title").textContent = "How this works"; $("jr-back").hidden = !fromJourney;
     const step = (t, b) => `<section class="how-step"><h3>${t}</h3><p>${b}</p></section>`;
     $("jr-body").innerHTML = `<div class="sf">
-      <p class="lead">A simple method, built with a family living with Parkinson's, to help you get the most from every appointment.</p>
-      ${step("You speak first", "Your own words come first, and nobody interrupts. If you choose Talk, each question is read out loud and the app waits until you say \u201ccarry on\u201d.")}
+      <p class="lead">Built with a family managing several long-term conditions, to help you get the most from every appointment.</p>
+      <div><button type="button" class="btn secondary" id="how-hear">Hear it</button></div>
+      ${how4HTML()}
+      <details class="how-more"><summary>Tell me more</summary>
+      ${step("You talk first", "Your own words come first, and nobody interrupts. If you choose Talk, each question is read out loud and the app waits until you say “next”. Say “scratch that” to take back what you just said.")}
       ${step("The questions a doctor would ask", "The questions follow the standard way doctors take a history: when it started, where it is, what it feels like, what makes it better or worse, how often, and how bad. Then a few about your other conditions and medicines, only where they matter.")}
       ${step("Connecting the dots", "It checks whether today's concern could be linked to a long-term condition or a medicine, even when you're seeing a different kind of practitioner. If so, it suggests you ask. It never says something is linked. That's for your doctor.")}
       ${step("Safety first", "If something sounds like an emergency, it tells you to call 911. If something sounds worrying, it suggests calling your doctor or Health811 today.")}
-      ${step("You decide", "Claude, an AI assistant made by Anthropic, only suggests questions, and only if you say yes. It doesn't diagnose or give medical advice. You choose what goes on your pages.")}
-      ${step("Three pages, one for each person", "A summary for the doctor to read, your own page to ask from and take notes on, and a full list for family.")}
-      ${step("After the visit", "Write down what the doctor said and what happens next, and send it to family. Questions that didn't get answered carry over to your next appointment.")}
+      ${step("You decide", "Claude, an AI assistant made by Anthropic, only suggests questions and tidies wording, and only if you say yes. It doesn't diagnose or give medical advice. You choose what goes on your pages.")}
+      ${step("Three pages, one for each person", "A summary for the doctor to read, your own short page to ask from and take notes on, and a full list to share with people who help you.")}
+      ${step("After the visit", "Write down what the doctor said and what happens next, and share it. Questions that didn't get answered carry over to your next appointment.")}
       <section class="card"><h3>For doctors and clinicians</h3>
         <p>The summary is reported by the patient and organised for a quick read: reason for visit, details of the concern (onset, location, duration, character, what makes it worse or better, timing, severity), health background, medications with changes since the last visit, and the patient's questions with their top priority.</p>
         <p>Questions are prompted by a guide based on standard history-taking and common screening topics. No licensed questionnaire items or scores are used. It is not a medical record and has not been verified.</p>
         <p>Feedback is welcome: <b>hello@pen-ink.ca</b></p></section>
+      </details>
       <button type="button" class="jr-safe-link" data-open-safe>${IC.shield}<span><b>How your information stays safe</b><span>Where your answers are kept, and what is sent.</span></span></button>
     </div>`;
+    $("how-hear").addEventListener("click", () => Voice.speak(how4Say()));
     $("jr-body").scrollTop = 0;
   }
   function jRenderSafe(fromJourney) {
     jView = "safe";
     $("jr-title").textContent = "Your information"; $("jr-back").hidden = !fromJourney;
+    const canada = Voice.canada();
+    const promise = (ic, big, small, c) => `<div class="sf-promise" style="--c:${c || "var(--accent)"}">${IC[ic]}<div><b>${big}</b><span>${small}</span></div></div>`;
     $("jr-body").innerHTML = `<div class="sf">
-      <p class="lead">Your health story belongs to you and your family. Here is where your answers are kept, and when anything leaves this phone or computer.</p>
-      <section><h3>Where your answers live</h3>
-        <div class="sf-row">
-          <div class="sf-node home">${IC.home}<b>On this phone or computer</b><span>Saved in this browser only. Not on our website.</span></div>
-          <div class="sf-arrow">${IC.arrow}<span>Only if you say yes. No name, no date.</span></div>
-          <div class="sf-node" style="--c:var(--room)">${IC.spark}<b>Claude suggests questions</b><span>Processed in the United States. Anthropic deletes it within 30 days.</span></div>
-          <div class="sf-arrow">${IC.arrow.replace("<svg", '<svg class="back"')}<span>The questions come back to you</span></div>
-          <div class="sf-node home">${IC.home}<b>Back on your device</b><span>You choose which ones to keep.</span></div>
-        </div></section>
-      <section><h3>Your name stays behind</h3>
-        <div class="sf-node" style="--c:var(--boat)">${IC.tag}<b>Name, date and time are never sent</b><span>They are only printed on your pages.</span></div></section>
-      <section><h3>When you talk instead of type</h3>
-        <div class="sf-node" style="--c:var(--accent)">${IC.mic}<b>Your browser does the voice typing</b><span>Chrome sends the sound to Google, and Safari sends it to Apple. Prefer not to? Choose Read and type.</span></div>
-        <div class="sf-node" style="--c:var(--accent)">${IC.mic}<b>A natural voice reads the questions</b><span>Only the question being read is sent, to Microsoft in Canada. It is not kept.</span></div></section>
-      <section><h3>Sending pages to family</h3>
-        <div class="sf-node" style="--c:var(--after)">${IC.send}<b>From your own email or text messages</b><span>Nothing is stored on this website along the way.</span></div></section>
+      <p class="sf-headline">Your information stays on your phone. You choose what's shared.</p>
+      ${promise("home", "Your answers are saved on this phone only", "In this browser, not on our website. Erase them any time.")}
+      ${promise("tag", "Your name never leaves your phone", "Your name, and the appointment date and time, are only printed on your pages. If you say your name in an answer, it's taken out before anything is sent.", "var(--boat)")}
+      ${promise("spark", "Nothing goes to Claude unless you say yes", "If you agree, Claude (an AI assistant made by Anthropic) suggests questions and tidies wording. It's processed in the United States, and Anthropic deletes it within 30 days.", "var(--room)")}
+      ${promise("mic", canada ? "When you talk, your voice is turned into words in Canada" : "When you talk, your browser turns your voice into words", canada ? "Each phrase is sent to Microsoft Azure in Canada, turned into words, and not kept. The questions are read aloud the same way." : "This browser sends the sound to Apple (Safari) or Google (Chrome). Prefer not to? Choose Read and type.")}
+      ${promise("send", "Pages are sent from your own email or texts", "Nothing is stored on this website along the way.", "var(--after)")}
       <section><h3>What we never do</h3>
         <ul class="sf-never">
           <li>${IC.no}<span>Keep your answers on our website, or sell or share them.</span></li>
@@ -2847,8 +3434,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           <li>${IC.no}<span>Record your appointment. This website never records anything.</span></li>
         </ul></section>
       <section><h3>You're in control</h3>
-        <div class="row"><button type="button" class="btn secondary" data-sf-download>Download a copy</button>
-        <button type="button" class="btn secondary" data-sf-erase>Erase my answers from this device</button></div>
+        <div class="row"><button type="button" class="btn secondary" data-sf-download>Save a backup file</button>
+        <button type="button" class="btn secondary" data-sf-erase>Erase my answers from this phone</button></div>
         <p class="status" id="sf-status" role="status" aria-live="polite"></p></section>
     </div>`;
     $("jr-body").scrollTop = 0;
@@ -2874,7 +3461,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function renderRecap() {
     const r = S.recap;
     $("rc-said").value = r.said; $("rc-more").value = r.more;
-    $("rc-with").value = r.nextWith; $("rc-date").value = r.nextDate; $("rc-time").value = r.nextTime;
+    $("rc-with").value = r.nextWith; $("rc-date").value = r.nextDate; setTimeValue($("rc-time"), r.nextTime);
     const { top, rest } = allQuestions(), qs = top.concat(rest).map(q => q.t);
     const box = $("rc-open-list"); box.innerHTML = "";
     if (!qs.length) box.innerHTML = '<p class="muted">You didn\u2019t list any questions this time.</p>';
@@ -2937,7 +3524,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
     $(statusId).textContent = "Couldn't copy automatically. The text is selected: press Ctrl+C (or Cmd+C) to copy it.";
   }
-  $("glance-boat").innerHTML = IC.boat;
+  $("w-how").innerHTML = how4HTML();
+  $("w-hear").addEventListener("click", () => Voice.speak(how4Say()));
 
 
 

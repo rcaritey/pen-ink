@@ -49,7 +49,7 @@ Rules:
 - Questions only. Never diagnose, never suggest a cause, never give advice.
 - Skip anything their own words or the "More detail they gave" section already answer, and never repeat a question listed under "Questions already asked".
 - One thing per question. Short, warm, plain language, spoken to the patient as "you". The family will read each one aloud and wait for the answer.
-- 6 to 8 questions, most useful first. Most should be about the main concern; at most 3 from sections B, C and D.
+- 4 to 5 questions, most useful first. Most should be about the main concern; at most 1 from sections B, C and D. Keep it short: the patient may tire easily.
 - For each question give a short label (2 to 5 words) that names the fact for the doctor, for example "When it started" or "Worst time of day".
 
 ${CLINICAL_GUIDE}
@@ -160,13 +160,13 @@ const FIX_SCHEMA = {
   additionalProperties: false,
 };
 
-const HELP = `You are the voice of Présent, an app that helps a patient prepare for a medical appointment by answering one question at a time, out loud.
+const HELP = `You are the voice of WellHeard, an app that helps a patient prepare for a medical appointment by answering one question at a time, out loud.
 The patient may be older, may have Parkinson's disease, and may be unsure how the app works. While answering a question, they asked you something.
 You receive the question the app had just asked them and what they asked you.
 
 Answer in one or two short, warm, spoken sentences (under 45 words), in the language given. Then stop.
 - If they ask what the app's question means or what kind of answer fits, explain it simply and give one short example.
-- If they ask how the app works: they answer in their own words, say "carry on" when finished, "repeat" to hear the question again, and can tap Pause or Let me talk at any time. Every question can be skipped by saying carry on.
+- If they ask how the app works: they answer in their own words and say "next" when finished, "scratch that" to take back what they just said, and "repeat" to hear the question again. They can tap Pause at any time, and type instead by tapping the "What I heard" box. Every question can be skipped by saying next.
 - If they ask a medical question (what is wrong, what to take, whether something is serious), do not answer it. Say it's a good question for their doctor and that they can add it to their questions later in the app. If it sounds urgent (chest pain, trouble breathing, signs of a stroke, thoughts of self-harm), tell them to call 911 now.
 - Never diagnose or give medical advice. Plain words, no lists, no markdown. Do not repeat the app's question back word for word.`;
 
@@ -174,6 +174,30 @@ const HELP_SCHEMA = {
   type: 'object',
   properties: { answer: { type: 'string' } },
   required: ['answer'],
+  additionalProperties: false,
+};
+
+const TIDY = `You tidy a patient's own notes for the pages they will take to a medical appointment. The notes were spoken out loud and turned into text by voice typing.
+For each item return:
+- "t": the same note, tidied for the doctor's page. Fix spelling, obvious voice-typing errors, missing punctuation and run-on sentences. Remove filler words ("um", "like", "you know", "well just that"). Keep the first-person voice ("I").
+- "b": a very short version for the patient's own reminder page, at most 12 words, for example "Right hand: about 65% strength, no change in 6 months".
+Rules, most important first:
+- Never change the meaning. Never add information, never interpret, never soften or exaggerate, never give advice.
+- Keep every medication name, dose, number, date, body part and time exactly as given.
+- Keep the patient's own descriptive words ("more of an ache", "a little tingling").
+- An item may start with a short label and a colon ("When it started: ..."). Keep the label in "t" and leave it out of "b".
+- If an item is unclear, keep its words as they are rather than guess.
+- Write in the same language as the item. Return the items in the same order, one result per item.`;
+
+const TIDY_SCHEMA = {
+  type: 'object',
+  properties: {
+    items: {
+      type: 'array',
+      items: { type: 'object', properties: { t: { type: 'string' }, b: { type: 'string' } }, required: ['t', 'b'], additionalProperties: false },
+    },
+  },
+  required: ['items'],
   additionalProperties: false,
 };
 
@@ -236,7 +260,7 @@ export default async function handler(req, res) {
   const body = typeof req.body === 'object' && req.body ? req.body : (() => {
     try { return JSON.parse(req.body || '{}'); } catch { return {}; }
   })();
-  const mode = ['clarify', 'translate', 'fix', 'help'].includes(body.mode) ? body.mode : 'suggest';
+  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy'].includes(body.mode) ? body.mode : 'suggest';
   const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -252,6 +276,16 @@ export default async function handler(req, res) {
       const out = await askClaude(TRANSLATE, `Target language: ${LANG_NAME[docLang]}\n\nItems (JSON array):\n${JSON.stringify(items)}`, TRANSLATE_SCHEMA, 6000);
       const got = Array.isArray(out.items) ? out.items.map((v) => clean(v, LIMITS.story)) : [];
       if (got.length !== items.length) return res.status(502).json({ ok: false, error: 'The translation came back incomplete. Please try again.' });
+      return res.status(200).json({ ok: true, items: got });
+    }
+
+    // ---- tidy the patient's notes for the printed pages (same meaning, clearer words, plus a short reminder)
+    if (mode === 'tidy') {
+      const items = Array.isArray(body.items) ? body.items.slice(0, 60).map((v) => clean(v, LIMITS.detail * 2)).filter(Boolean) : [];
+      if (!items.length) return res.status(200).json({ ok: true, items: [] });
+      const out = await askClaude(TIDY, `Items (JSON array):\n${JSON.stringify(items)}`, TIDY_SCHEMA, 6000);
+      const got = Array.isArray(out.items) ? out.items.map((x) => ({ t: clean(x && x.t, LIMITS.detail * 2), b: clean(x && x.b, 160) })) : [];
+      if (got.length !== items.length) return res.status(502).json({ ok: false, error: 'The tidy-up came back incomplete. Your own words are used instead.' });
       return res.status(200).json({ ok: true, items: got });
     }
 
