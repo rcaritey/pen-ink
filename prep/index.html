@@ -1388,7 +1388,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         buf.push(out);
         quietMs = loud ? 0 : quietMs + blockMs;
         const len = buf.length * blockMs;
-        if (quietMs >= END_MS || len >= MAX_MS) { const b = buf; buf = []; speaking = false; loudMs = 0; this._send(b); }
+        // Short replies ("yes", "next") are finished sooner; long answers keep a longer pause so a breath doesn't cut them.
+        // When the app has just asked "Is that right?", every reply is short.
+        const endMs = CanadaRec.quick || (!CanadaRec.listMode && len < 1600) ? 600 : END_MS;   // lists: a pause starts a new line, so keep it longer
+        if (quietMs >= endMs || len >= MAX_MS) { const b = buf; buf = []; speaking = false; loudMs = 0; this._send(b); }
       };
       src.connect(proc); proc.connect(this._ctx.destination);
       this._src = src; this._proc = proc; this._flush = () => { if (speaking && buf.length) { const b = buf; buf = []; speaking = false; this._send(b); } };
@@ -1397,7 +1400,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     async _send(chunks) {
       CanadaRec.hearing(false);
       let n = 0; chunks.forEach(c => n += c.length);
-      if (n < 16000 * 0.3) return;   // under 0.3 s: a cough or a click
+      if (n < 16000 * 0.2) return;   // under 0.2 s: a click (a quick "yes" is longer)
       const pcm = new Int16Array(n); let o = 0;
       chunks.forEach(c => { for (let i = 0; i < c.length; i++) { const s = Math.max(-1, Math.min(1, c[i])); pcm[o++] = s < 0 ? s * 0x8000 : s * 0x7fff; } });
       const wav = new DataView(new ArrayBuffer(44 + pcm.length * 2));
@@ -1443,7 +1446,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // so the app's voice comes out of the main speaker.
     static session(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (err) { console.warn(err); } }
   }
-  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false;
+  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false; CanadaRec.quick = false;
   const canCanada = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext || window.webkitAudioContext));
   const NativeSR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -1661,7 +1664,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (api.fixWords) {
           // on list pages, check every line of the list
           const list = el.closest(".list"), scope = list ? [...list.querySelectorAll('input[type="text"], textarea')] : [el];
-          const fixes = await Promise.race([api.fixWords(el, scope.map(x => x.value).join("\n")).catch(() => []), new Promise(r => setTimeout(() => r([]), 8000))]);
+          const fixes = await Promise.race([api.fixWords(el, scope.map(x => x.value).join("\n")).catch(() => []), new Promise(r => setTimeout(() => r([]), 4000))]);
           if (g !== gen || !active) return;
           (fixes || []).forEach(f => {
             if (!f || !f.from || !f.to) return;
@@ -1686,6 +1689,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       await ask(say("again"), el, carry, v, { readback: true, keepView: true });
     }
     function startRec() {
+      CanadaRec.quick = confirming || !!yesNo;   // "Is that right?" and yes/no questions: answer is short
+      CanadaRec.listMode = !!listNext && !confirming;
       if (!SR || (!target && !onCarry)) { view("typing"); return; }
       if (rec) { if (!talking) { view(confirming ? "confirm" : "listening"); armSilence(); } return; }
       let r;
@@ -2648,8 +2653,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (/^mn-\d+$/.test(el.id)) { tidyMeds(); if (STEPS[S.step] && STEPS[S.step].id === "meds") renderMeds(); }
     if (!isVoice()) checkWords(el);
   };
+  // Only health answers are checked (that's where medical words get misheard); the rest is read back straight away.
+  const FIX_IDS = /^(bg-conditions|bg-changes|bg-team|bg-allergies|story|cl-answer|mn-\d+|tell-\d+|ask-\d+|rc-said)$/;
   Voice.fixWords = async (el, text) => {
-    if (S.fixOff || S.consent !== true || !text || text.trim().length < 3) return [];
+    if (S.fixOff || S.consent !== true || !text || text.trim().length < 3 || !FIX_IDS.test(el.id)) return [];
     const data = await callApi({ mode: "fix", text: text.trim(), question: questionFor(el), lang: S.lang, purpose: S.purpose,
       conditions: S.bg.conditions, meds: S.meds.filter(m => m.n.trim()).map(m => m.n) });
     return (data.fixes || []).filter(f => f && f.from && f.to);
