@@ -2073,10 +2073,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   CanadaRec.dead = ms => {
     CanadaRec.deadNow = ms > 0; CanadaRec.quietSince = ms > 0;
     if (!ms) {
-      const was = !$("mic-help").hidden; deadStep = 0; $("mic-help").hidden = true;
+      // the steps stay on screen until they tap "I've fixed it, try again" or "Type instead"
+      const was = !$("mic-help").hidden && CanadaRec.wasDead; deadStep = 0; CanadaRec.wasDead = false;
       if (was && Voice.active() && !Voice.held() && !Voice.talking()) Voice.speak(say("deadBack")).then(() => { if (Voice.active() && !Voice.held()) guideView("listening"); });
       return;
     }
+    CanadaRec.wasDead = true;
     if (!isVoice() || !Voice.active() || Voice.held()) return;
     while (deadStep < DEAD_STEPS.length && ms >= DEAD_STEPS[deadStep][0]) {
       const line = DEAD_STEPS[deadStep][1](); deadStep++;
