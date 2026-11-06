@@ -1379,8 +1379,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         // muted on the computer (or by a headset switch): nothing at all comes through, not even room noise
         // A muted Windows microphone isn't always perfectly flat: the browser's noise processing leaves a faint trace.
         // A live microphone, even in a quiet room, picks up far more than this.
-        if (peak < 0.0015) { deadMs += 4096 / rate * 1000; CanadaRec.dead(deadMs); }
-        else if (deadMs) { deadMs = 0; CanadaRec.dead(0); }
+        if (peak > 0.01) CanadaRec.everHeard = true;
+        // muted: almost nothing. Back: clear sound (a voice), not the faint room noise that flickers around the line.
+        if (peak < 0.0015 && !CanadaRec.everHeard) { deadMs += 4096 / rate * 1000; CanadaRec.dead(deadMs); }
+        else if (deadMs && peak > 0.006) { deadMs = 0; CanadaRec.dead(0); }
         // downsample to 16 kHz
         const out = new Float32Array(Math.floor(x.length / step));
         for (let i = 0; i < out.length; i++) out[i] = x[Math.floor(i * step)];
@@ -1392,10 +1394,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           noise = noise * 0.95 + Math.min(rms, 0.05) * 0.05;
           pre.push(out); if (pre.length > 3) pre.shift();   // keep the start of the first word
           loudMs = loud ? loudMs + blockMs : 0;
-          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; this._gap = this._lastEnd ? performance.now() - this._lastEnd : 1e9; if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); }
+          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; this._echo = CanadaRec.talkingNow(); this._gap = this._lastEnd ? performance.now() - this._lastEnd : 1e9; if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); }
           return;
         }
         buf.push(out);
+        if (CanadaRec.talkingNow()) this._echo = true;
         quietMs = loud ? 0 : quietMs + blockMs;
         const len = buf.length * blockMs;
         // Short replies ("yes", "next") are finished sooner; long answers keep a longer pause so a breath doesn't cut them.
@@ -1409,6 +1412,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     async _send(chunks, gap) {
       CanadaRec.hearing(false);
+      if (this._echo) { this._echo = false; return; }   // overlapped the app's own voice: don't send it
       let n = 0; chunks.forEach(c => n += c.length);
       if (n < 16000 * 0.2) return;   // under 0.2 s: a click (a quick "yes" is longer)
       const pcm = new Int16Array(n); let o = 0;
@@ -1456,7 +1460,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // so the app's voice comes out of the main speaker.
     static session(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (err) { console.warn(err); } }
   }
-  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false; CanadaRec.quick = false;
+  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false; CanadaRec.quick = false; CanadaRec.everHeard = false;
+  CanadaRec.talkingNow = () => false;
   const canCanada = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext || window.webkitAudioContext));
   const NativeSR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -1563,7 +1568,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // While the app talks, remember its words so its own voice is never mistaken for the person's.
     let talking = false, talkWords = new Set(), talkN = 0;
     const words = t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9' ]+/g, " ").split(/\s+/).filter(w => w.length > 1);
-    const setTalk = on => { talking = on; if (api.onTalk) api.onTalk(on); };
+    let talkEnd = 0;
+    const setTalk = on => { talking = on; if (!on) talkEnd = performance.now(); if (api.onTalk) api.onTalk(on); };
+    // unless talking over the app is switched on, anything heard while it speaks (or half a second after) is its own echo
+    CanadaRec.talkingNow = () => !bargeOn() && (talking || performance.now() - talkEnd < 600);
     const speak = async text => {
       if (!text) return;
       quiet();
@@ -2118,14 +2126,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     [10000, () => say("deadMore")],
     [15000, () => say(MOBILE ? "deadPhone" : "deadMute")],
     [17500, () => say(MOBILE ? "deadPhone2" : "deadOff")],
-    [20000, () => { showMicSteps(); $("mic-help").hidden = false; requestAnimationFrame(() => $("mic-help").scrollIntoView({ block: "start", behavior: "smooth" })); return say("deadFix"); }]
+    [20000, () => { showMicSteps(); $("mic-help").hidden = false; CanadaRec.backSaid = false; requestAnimationFrame(() => $("mic-help").scrollIntoView({ block: "start", behavior: "smooth" })); return say("deadFix"); }]
   ];
   let deadStep = 0;
   CanadaRec.dead = ms => {
     CanadaRec.deadNow = ms > 0; CanadaRec.quietSince = ms > 0;
     if (!ms) {
       // the steps stay on screen until they tap "I've fixed it, try again" or "Type instead"
-      const was = !$("mic-help").hidden && CanadaRec.wasDead; deadStep = 0; CanadaRec.wasDead = false;
+      const was = !$("mic-help").hidden && CanadaRec.wasDead && !CanadaRec.backSaid; deadStep = 0; CanadaRec.wasDead = false;
+      if (was) CanadaRec.backSaid = true;   // say it once
       if (was && Voice.active() && !Voice.held() && !Voice.talking()) Voice.speak(say("deadBack")).then(() => { if (Voice.active() && !Voice.held()) guideView("listening"); });
       return;
     }
