@@ -1461,14 +1461,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     async function cloudSpeak(text) {
       const c = ctx(); if (!c) return false;
       const id = cloudPick()[0], slow = !!S.slowVoice, k = id + "|" + slow + "|" + text;
+      const within = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("timed out")), ms))]);
       try {
         let buf = clips.get(k);
         if (!buf) {
-          const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, voice: id, slow }) });
+          const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 12000);
+          const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, voice: id, slow }), signal: ctl.signal }).finally(() => clearTimeout(t));
           if (!r.ok) { if (r.status === 503) cloudOn = false; return false; }
-          buf = await decode(c, await r.arrayBuffer()); clips.set(k, buf);
+          buf = await within(decode(c, await r.arrayBuffer()), 8000); clips.set(k, buf);
         }
-        if (c.state !== "running") { try { await c.resume(); } catch (err) { console.warn(err); } }
+        if (c.state !== "running") { try { await within(c.resume(), 1500); } catch (err) { console.warn("Sound didn't resume", err); } }
         if (c.state !== "running") return false;
         return await new Promise(res => {
           const n = c.createBufferSource(); n.buffer = buf; n.connect(c.destination); src = n;
@@ -1891,7 +1893,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const screens = { welcome: $("s-welcome") };
   STEPS.forEach(s => screens[s.id] = $("s-" + s.id));
   function show(step) {
-    typingNow = false; Voice.stop(); $("mic-msg").textContent = "";
+    typingNow = false; listOn = null; Voice.stop(); $("mic-msg").textContent = "";
     $("guide").hidden = !isVoice();
     S.step = step; S.stepId = step >= 0 ? STEPS[step].id : ""; save();
     Object.values(screens).forEach(el => el.hidden = true);
@@ -2064,7 +2066,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (!isVoice()) return;
     $("guide").hidden = false;
     if (id === "words") { setGuide(say("wordsQ")); return askWords(); }
-    if (id === "detail") { setGuide(say("preparing")); return; }   // enterDetail asks the questions
+    if (id === "detail") { listOn = null; setGuide(say("preparing")); return; }   // enterDetail asks the questions
     // Before the health questions, ask once (out loud) whether Claude may help.
     if (id === "bg" && S.consent === null && voiceConsent(() => guide("bg", true))) return;
     const g = GUIDE[id]; if (!g) return;
@@ -3432,7 +3434,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       ${promise("home", "Your answers are saved on this phone only", "In this browser, not on our website. Erase them any time.")}
       ${promise("tag", "Your name never leaves your phone", "Your name, and the appointment date and time, are only printed on your pages. If you say your name in an answer, it's taken out before anything is sent.", "var(--boat)")}
       ${promise("spark", "Nothing goes to Claude unless you say yes", "If you agree, Claude (an AI assistant made by Anthropic) suggests questions and tidies wording. It's processed in the United States, and Anthropic deletes it within 30 days.", "var(--room)")}
-      ${promise("mic", canada ? "When you talk, your voice is turned into words in Canada" : "When you talk, your browser turns your voice into words", canada ? "Each phrase is sent to Microsoft Azure in Canada, turned into words, and not kept. The questions are read aloud the same way. On the way, the sound passes through our website's server in the United States for a moment. It isn't stored there." : "This browser sends the sound to Apple (Safari) or Google (Chrome). Prefer not to? Choose Read and type.")}
+      ${promise("mic", canada ? "When you talk, your voice is turned into words in Canada" : "When you talk, your browser turns your voice into words", canada ? "Each phrase is sent to Microsoft Azure in Canada, turned into words, and not kept. The questions are read aloud the same way. On the way, it passes through our website's server in Montreal for a moment. It isn't stored there." : "This browser sends the sound to Apple (Safari) or Google (Chrome). Prefer not to? Choose Read and type.")}
       ${promise("send", "Pages are sent from your own email or texts", "Nothing is stored on this website along the way.", "var(--after)")}
       <section><h3>What we never do</h3>
         <ul class="sf-never">
