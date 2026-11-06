@@ -143,6 +143,8 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 .ga-k .ga-fix { text-transform: none; letter-spacing: 0; font-weight: 400; }
 .mic-help { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .mic-help p { margin: 0 !important; font-size: 1.05rem; }
+a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.mic-steps { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; font-size: 1.05rem; line-height: 1.4; }
 .mic-meter { display: none; width: 64px; height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; flex: none; }
 .mic-meter.on { display: inline-block; }
 .mic-meter b { display: block; height: 100%; width: calc(var(--lvl, 0) * 100%); background: var(--ok); border-radius: 5px; }
@@ -516,7 +518,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       </div>
       <div class="hint mic-help" id="mic-help" role="alert" hidden>
         <p><b>No sound is reaching the app from your microphone.</b> It's probably muted.</p>
-        <p id="mic-help-how"></p>
+        <ol class="mic-steps" id="mic-help-how"></ol>
         <div class="row">
           <a class="btn secondary" id="mic-help-open" href="ms-settings:sound" hidden>Open Sound settings</a>
           <button type="button" class="btn primary" id="mic-help-retry">I've fixed it, try again</button>
@@ -1245,7 +1247,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       deadOff: "Or is the microphone on your computer switched off?",
       deadPhone: "I can't hear anything. Is another app using your phone's microphone, like a call or a video chat?",
       deadPhone2: "Or is the microphone switched off on a headset?",
-      deadFix: "Here's how to turn it on. It's on the screen. Or tap Type instead."
+      deadFix: "Here's how to turn it on. The steps are on the screen. Or tap Type instead.",
+      deadBack: "I can hear you now. Go ahead."
     },
     fr: {
       hello: "Bonjour. Je suis la voix de l'application. Je pose une chose à la fois et je vous attends. Quand vous avez fini une réponse, dites suivant. Pour retirer ce que vous venez de dire, dites efface ça. Vous pouvez me poser une question, ou toucher Pause, à tout moment.",
@@ -1296,7 +1299,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       deadOff: "Ou le micro de votre ordinateur est-il désactivé ?",
       deadPhone: "Je n'entends rien. Une autre application utilise-t-elle le micro de votre téléphone, comme un appel ou une vidéo ?",
       deadPhone2: "Ou le micro d'un casque est-il coupé ?",
-      deadFix: "Voici comment le réactiver. C'est à l'écran. Ou touchez Écrire à la place."
+      deadFix: "Voici comment le réactiver. Les étapes sont à l'écran. Ou touchez Écrire à la place.",
+      deadBack: "Je vous entends maintenant. Allez-y."
     }
   };
   // what the appointment is about, for questions like "Anything else the doctor should know about your sore foot?"
@@ -1497,7 +1501,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     };
     CanadaRec.sharedCtx = ctx;
     // leaving the app (another app, the lock screen, an alarm screen) pauses too
-    document.addEventListener("visibilitychange", () => { if (document.hidden && api.active() && !api.held()) { log("app hidden, pausing"); api.pause(); } });
+    let autoPaused = false;
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && api.active() && !api.held()) { log("app hidden, pausing"); api.pause(); autoPaused = true; }
+      else if (!document.hidden && autoPaused) { autoPaused = false; if (api.active() && api.held()) { log("back, carrying on"); api.resume(); if (api.onState) api.onState(); } }
+    });
     // phones only allow sound that starts from a tap, so wake the sound system on every tap until it's running
     const unlock = () => {
       const c = ctx(); if (!c) return;
@@ -2028,13 +2036,29 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   let micHearing = false, micWriting = 0, lastSt = "off";
   CanadaRec.hearing = on => { micHearing = on; if (lastSt === "listening") guideView("listening"); };
   // Muted microphone: say so in plain words, how to fix it on this kind of device, or type instead.
+  // Step-by-step fix for this kind of device: every click named, and what you should see.
   function micHelpHow() {
     const ua = navigator.userAgent;
-    if (/Windows/i.test(ua)) return "On this computer: if your keyboard has a microphone key (often F4 or F8, with a crossed-out microphone), press it. Or tap Open Sound settings below. Under Input, click your microphone, and if the microphone symbol next to Input volume is crossed out, click it.";
-    if (/Macintosh|Mac OS X/i.test(ua) && !/iPhone|iPad/i.test(ua)) return "On this Mac: open the Apple menu, then System Settings, then Sound. Under Input, choose your microphone and move Input volume to the right.";
-    if (/iPhone|iPad|Android/i.test(ua)) return "Close any other app that might be using the microphone (a call, a voice memo, a video chat), then try again.";
-    return "Check that your microphone isn't muted, on the computer or on a headset switch, then try again.";
+    if (/Windows/i.test(ua)) return [
+      "Look at your keyboard for a key with a microphone crossed out (often F4 or F8). If there is one, press it once. On some laptops, hold the Fn key while you press it.",
+      "If that doesn't work, click <b>Open Sound settings</b> below. If your browser asks to open Settings, click <b>Open</b>.",
+      "In the Sound window, find the section called <b>Input</b> and click your microphone (for example, Microphone Array).",
+      "Find <b>Input volume</b>. If the small microphone next to it has a line through it, click it once. The line goes away.",
+      "Say a few words. The blue bar should move. Then come back to this page.",
+      "Click <b>I've fixed it, try again</b>."];
+    if (/Macintosh|Mac OS X/i.test(ua) && !/iPhone|iPad/i.test(ua)) return [
+      "Click the Apple menu (the apple, top-left corner of the screen), then <b>System Settings</b>.",
+      "Click <b>Sound</b> in the list on the left.",
+      "Click <b>Input</b>, then choose your microphone.",
+      "Move <b>Input volume</b> to the right. Say a few words: the bar beside <b>Input level</b> should move.",
+      "Come back to this page and click <b>I've fixed it, try again</b>."];
+    if (/iPhone|iPad|Android/i.test(ua)) return [
+      "Close any other app that may be using the microphone, such as a phone call, a video chat or a voice memo.",
+      "If you're using a headset or earbuds, check they aren't muted, or unplug them.",
+      "Come back to this page and tap <b>I've fixed it, try again</b>."];
+    return ["Check that your microphone isn't muted, on the computer or on a headset switch.", "Click <b>I've fixed it, try again</b>."];
   }
+  const showMicSteps = () => { $("mic-help-how").innerHTML = micHelpHow().map(x => `<li>${x}</li>`).join(""); };
   // A muted microphone, step by step (Rama, 6 Nov 2026): first the usual check, then the likely cause, then the fix.
   //   10 s: "Do you need more time?"   15 s: "Is your computer on mute?"
   //   17.5 s: "Or is the microphone switched off?"   20 s: the fix, on screen
@@ -2043,12 +2067,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     [10000, () => say("deadMore")],
     [15000, () => say(MOBILE ? "deadPhone" : "deadMute")],
     [17500, () => say(MOBILE ? "deadPhone2" : "deadOff")],
-    [20000, () => { $("mic-help-how").textContent = micHelpHow(); $("mic-help").hidden = false; return say("deadFix"); }]
+    [20000, () => { showMicSteps(); $("mic-help").hidden = false; requestAnimationFrame(() => $("mic-help").scrollIntoView({ block: "start", behavior: "smooth" })); return say("deadFix"); }]
   ];
   let deadStep = 0;
   CanadaRec.dead = ms => {
     CanadaRec.deadNow = ms > 0; CanadaRec.quietSince = ms > 0;
-    if (!ms) { deadStep = 0; $("mic-help").hidden = true; return; }
+    if (!ms) {
+      const was = !$("mic-help").hidden; deadStep = 0; $("mic-help").hidden = true;
+      if (was && Voice.active() && !Voice.held() && !Voice.talking()) Voice.speak(say("deadBack")).then(() => { if (Voice.active() && !Voice.held()) guideView("listening"); });
+      return;
+    }
     if (!isVoice() || !Voice.active() || Voice.held()) return;
     while (deadStep < DEAD_STEPS.length && ms >= DEAD_STEPS[deadStep][0]) {
       const line = DEAD_STEPS[deadStep][1](); deadStep++;
