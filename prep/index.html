@@ -1518,7 +1518,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // Interrupting: on phones the speaker drowns out the microphone and iPhones turn the sound down
     // while listening, so talking over the app is on by default only on computers and Android; tapping always works.
     const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    const bargeOn = () => !!SR && (S.barge === null || S.barge === undefined ? !IOS : S.barge);
+    // Listening while the app speaks lets people talk over it, but computer speakers feed the app's own
+    // voice back into the microphone. With Canadian listening it's off unless switched on in More;
+    // "Let me talk" interrupts instead.
+    const bargeOn = () => !!SR && (S.barge === null || S.barge === undefined ? (SR !== CanadaRec && !IOS) : S.barge);
     const CMD = /\b(carry on|carrie on|kerry on|carryon|continue|continuez|next|suivant|done|fini|help|aide|repeat|repete|repetez|again|yes|oui|no|non)\b/;
     const STOPW = /\b(stop|wait|pause|hold on|hang on|sorry|excuse me|attends|attendez|arrete|arretez|pardon)\b/;
     function isBarge(t) {
