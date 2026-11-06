@@ -1212,7 +1212,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       intro: "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say next. ",
       silence: "Should I continue, or do you need more time?",
       done: "That's all my questions. Thank you. Say next when you're ready.",
-      g_name: "First, what's your name? If you're helping someone, say their name. It only goes on your printed pages. Then say next.",
+      g_name: "First, what's your name? If you're helping someone, say their name. It only goes on your printed pages. If I don't get it right, you can spell it out, one letter at a time, or type it. Then say next.",
       thanks: "Thanks, {n}.",
       g_appt: "What is the appointment for? Tell me in a few words, for example, a sore foot. Then say next.",
       g_bg: "Now your health. Tell me about any long-term conditions, like Parkinson's or diabetes, one at a time. If there are none, just say next.",
@@ -1264,7 +1264,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       intro: "On prend notre temps. Je pose une question à la fois, et j'attends. Quand vous avez fini de répondre, dites suivant. ",
       silence: "Voulez-vous que je continue, ou avez-vous besoin de plus de temps ?",
       done: "C'est tout pour mes questions. Merci. Dites suivant quand vous êtes prêt.",
-      g_name: "D'abord, comment vous appelez-vous ? Si vous aidez quelqu'un, dites son nom. Il va seulement sur vos pages imprimées. Puis dites suivant.",
+      g_name: "D'abord, comment vous appelez-vous ? Si vous aidez quelqu'un, dites son nom. Il va seulement sur vos pages imprimées. Si je ne le comprends pas bien, vous pouvez l'épeler, une lettre à la fois, ou l'écrire. Puis dites suivant.",
       thanks: "Merci, {n}.",
       g_appt: "Ce rendez-vous, c'est pour quoi ? Dites-le en quelques mots, par exemple, un pied qui fait mal. Puis dites suivant.",
       g_bg: "Maintenant, votre santé. Dites-moi vos problèmes de santé de longue durée, comme le Parkinson ou le diabète, un à la fois. S'il n'y en a pas, dites simplement suivant.",
@@ -1842,7 +1842,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (target && !target.isConnected && target.id && document.getElementById(target.id)) target = document.getElementById(target.id);
       if (!t || !target) return;
       // names heard in capitals ("RAMA") are written "Rama", so the voice says the name instead of spelling it
-      if (target.id === "who") t = t.replace(/\b(\p{Lu})(\p{Lu}+)\b/gu, (m, x, y) => x + y.toLowerCase());
+      if (target.id === "who") {
+        // a name spelled out ("R. A. M. A." or "R-A-M-A", "capital R a m a") becomes one word: "Rama"
+        t = t.replace(/\b(?:capital|uppercase|majuscule)\s+/gi, "")
+             .replace(/(?:\b\p{L}\b[\s.,\-]*){2,}/gu, m => { const w = m.replace(/[^\p{L}]/gu, ""); return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() + " "; })
+             .replace(/\s+/g, " ").trim();
+        t = t.replace(/\b(\p{Lu})(\p{Lu}+)\b/gu, (m, x, y) => x + y.toLowerCase());
+      }
       if (/^(erase|erase that|erase it|scratch that|undo that|delete that|efface ça|effacez ça|efface|effacez|annule ça|annule)\W*$/i.test(t)) {
         if (target._hist && target._hist.length) { target.value = target._hist.pop(); target.dispatchEvent(new Event("input", { bubbles: true })); target.dispatchEvent(new Event("voice-change")); }
         return;
