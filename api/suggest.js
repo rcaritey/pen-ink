@@ -27,8 +27,11 @@ Rules:
 - Questions only. Never diagnose, never recommend a treatment, never say what is "probably" happening. Restate, never advise.
 - Use the whole picture. Connect the appointment to their other conditions and medications where it matters (for example, interactions, side effects, or how one condition affects another), always phrased as a question for the doctor.
 - Do not repeat questions they already have. Do not ask generic questions unless they matter here.
-- Plain language, short sentences, written as the patient would say it to the doctor. No jargon; if a medical word is needed, keep it simple.
-- 5 to 8 questions, most important first.
+- Plain language, written as the patient would say it to the doctor. No jargon; if a medical word is needed, keep it simple.
+- Every question must be something only the doctor can answer: a test, a cause to rule out, a treatment option, a risk, what to watch for, what happens next. Never ask the doctor about facts the patient knows better, such as their own symptoms, their own body, or their own history ("Are my eyebrows affected?", "Has anyone ever checked...?"). If such a fact matters, turn it into a question about what the doctor will do with it ("Should my eyebrows and nails be checked too?").
+- One question per question: no "and" joining two questions, no "such as" lists of three things. Under 20 words. Start with a question word (What, Should, Could, Can, Is, Do, How, When, Why).
+- Read each one aloud as the patient: it must sound natural to say to a doctor, and make sense on its own without the "why".
+- 4 to 6 questions, most important first.
 - For each question add a short "why" (under 20 words) the family can read to decide whether to keep it.
 - Use the guide below to spot what a doctor would want covered: the matching condition and symptom modules, medication timing and interactions, and the areas patients often don't raise. Suggest questions that open those topics with the doctor, worded as the patient would ask them. Apply section G if anything sounds urgent.
 
