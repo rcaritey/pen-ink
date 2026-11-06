@@ -143,6 +143,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 .ga-k .ga-fix { text-transform: none; letter-spacing: 0; font-weight: 400; }
 .mic-help { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .mic-help p { margin: 0 !important; font-size: 1.05rem; }
+.cal-choices { display: flex; flex-direction: column; gap: 8px; max-width: 420px; margin-top: 6px; }
 a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 .mic-steps { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; font-size: 1.05rem; line-height: 1.4; }
 .mic-meter { display: none; width: 64px; height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; flex: none; }
@@ -156,12 +157,14 @@ body.voice-mode .vfield, body.voice-mode .vtarget { display: none !important; }
 .guide .ga-t .ga-now { color: var(--accent); }
 .guide .ga-t .ga-empty { color: var(--muted); font-size: 1.1rem; font-style: italic; }
 .vdock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--bg); border-top: 1px solid var(--line); box-shadow: 0 -6px 18px rgba(0,0,0,.08); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
-.vdock .vbar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 760px; margin: 0 auto; }
+.vdock .vbar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 760px; margin: 0 auto; }
 .vdock .vbar .btn { min-height: 50px; padding: 8px 10px; font-size: 1rem; }
 .vdock .vbar .vb-main { grid-column: 1 / -1; grid-row: 1; min-height: 60px; font-size: 1.25rem; }
 .vdock .vbar #vb-back { grid-row: 2; grid-column: 1; }
 .vdock .vbar #vb-pause { grid-row: 2; grid-column: 2; }
-.vdock .vbar #vb-moreb { grid-row: 2; grid-column: 3; }
+.vdock .vbar #vb-help { grid-row: 2; grid-column: 3; }
+.vdock .vbar #vb-moreb { grid-row: 2; grid-column: 4; }
+@media (max-width: 400px) { .vdock .vbar .btn:not(.vb-main) { font-size: .92rem; padding: 8px 4px; } }
 body.voice-mode #here-card-btn { display: none; }
 .vmore { display: flex; flex-direction: column; gap: 8px; max-width: 760px; margin: 0 auto 10px; }
 .vmore .btn { width: 100%; min-height: 52px; }
@@ -537,6 +540,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         <button type="button" class="btn secondary vb-small" id="vb-back">Back</button>
         <button type="button" class="btn secondary vb-small" id="vb-moreb" aria-expanded="false" aria-controls="vmore">More</button>
         <button type="button" class="btn secondary" id="vb-pause" aria-pressed="false">Pause</button>
+        <button type="button" class="btn secondary vb-small" id="vb-help">Help</button>
         <button type="button" class="btn primary vb-main" id="vb-talk" hidden>Let me talk</button>
         <button type="button" class="btn primary vb-main" id="vb-done">Next</button>
       </div>
@@ -879,7 +883,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <div class="row">
         <button type="button" class="btn primary" id="cal-this">Add to my calendar</button>
       </div>
-      <p class="muted small" id="cal-note" role="status" aria-live="polite">Opens your phone's calendar with the details filled in, and a reminder the day before. Nothing is sent anywhere.</p>
+      <div id="cal-this-pick" hidden></div>
+      <p class="muted small" id="cal-note" role="status" aria-live="polite">Adds the appointment with the details filled in, and a reminder the day before.</p>
       <p><b>After your visit, come back here.</b> I'll help you note what the doctor said, and what happens next.</p>
       <div class="row"><button type="button" class="btn secondary" id="sheets-new2">Prepare for another appointment</button></div>
       <div id="sheets-new2-confirm" class="hint" hidden></div>
@@ -983,6 +988,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <div class="card no-print">
       <h3>Get ready for your next appointment</h3>
       <div class="row"><button type="button" class="btn secondary" id="cal-next">Add my next appointment to my calendar</button></div>
+      <div id="cal-next-pick" hidden></div>
       <p class="muted small" id="cal-next-note" role="status" aria-live="polite"></p>
       <p class="muted">Your health details and unanswered questions carry over.</p>
       <div><button type="button" class="btn primary" id="sheets-new">Start preparing for the next appointment</button></div>
@@ -1206,6 +1212,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       again: "Okay, let's try that again. Go ahead whenever you're ready.",
       sorry: "I didn't catch anything. Please try again, or type it if that's easier.",
       help: "Here's how it works. Answer in your own words; there are no wrong answers. When you've finished, say next. Say erase to take back the last part, say repeat to hear the question again, or ask me what something means.",
+      helpAsk: "What would you like to know? Ask me now. Or say next, and we'll carry on with the question.",
       moreTime: "Of course. Take your time. Say next when you're ready.",
       moment: "One moment.",
       more: "and more. It's all on the screen.",
@@ -1257,6 +1264,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       heard: "Voici ce que j'ai entendu :", heardQ: "Est-ce bien ça ? Dites oui, ou dites changer.",
       again: "D'accord, on recommence. Allez-y quand vous êtes prêt.",
       sorry: "Je n'ai rien entendu. Essayez encore, ou écrivez-le si c'est plus simple.",
+      helpAsk: "Qu'aimeriez-vous savoir ? Demandez-moi maintenant. Ou dites suivant, et on continue avec la question.",
       help: "Voici comment ça marche. Répondez avec vos mots ; il n'y a pas de mauvaise réponse. Quand vous avez fini, dites suivant. Dites efface ça pour retirer la dernière partie, répète pour réentendre la question, ou demandez-moi ce que veut dire un mot.",
       moreTime: "Bien sûr. Prenez votre temps. Dites suivant quand vous êtes prêt.",
       moment: "Un instant.",
@@ -1599,7 +1607,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       } catch (err) { console.warn("Could not read aloud", err); res(); }
     });
     // Pause holds everything right where it is; nothing moves on by itself.
-    let listNext = null, yesNo = null, lastGap = 1e9, inPlace = false;
+    let listNext = null, yesNo = null, lastGap = 1e9, inPlace = false, helpNext = false;
     const ERASE = /^\W*(?:please\s+)?(?:erase|erased|erases|eraser|erase that|erase it|erase this|a race|the race|race|races|erace|e race|he raised|i raised|raise|raised|erase please|scratch that|undo|undo that|delete|delete that|delete it|efface|effacez|efface ça|effacez ça|efface ca|annule|annule ça)\W*$/i;
     let held = false, confirming = false, readback = false, turnWords = [], turnStartVal = "", checking = false, lastQ = "";
     // Things people say TO the app rather than as their answer: help, repeat, and replies to "Should I continue?"
@@ -1628,6 +1636,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       }
       if (RE_REPEAT.test(x)) { if (lastQ) sayThen(lastQ); return true; }
       if (RE_HELP.test(x)) { sayThen(say("help")); return true; }
+      if (helpNext) {
+        helpNext = false;
+        if (!(target ? CARRY_T : CARRY_N).test(t) && !RE_GO.test(x)) { askHelp(x); return true; }
+        return false;
+      }
       const questionPage = target && /^(ask-\d+|ideas-new|pr-new|rc-more)$/.test(target.id);
       if (!questionPage && x.split(" ").length <= 25 && RE_ASK.test(x) && RE_ASK2.test(x) && api.onHelp) { askHelp(x); return true; }
       return false;
@@ -1934,7 +1947,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       navigator.mediaDevices.getUserMedia({ audio: true }).then(st => st.getTracks().forEach(t => t.stop())).catch(err => console.warn("Microphone not allowed yet", err));
     }
     const api = { ask, stop, speak, interrupt, needTap: () => needTap, tapListen, targetEl: () => active ? target : null, talking: () => talking, bargeOn, pause, resume, prime, redo, restoreTurn, carry: () => { if (active) carryOn(); },
-      canada: () => SR === CanadaRec, inPlace: () => inPlace, held: () => held, active: () => active, confirming: () => confirming, hasCarry: () => active && !!onCarry, carryFn: () => active ? onCarry : null, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
+      canada: () => SR === CanadaRec, inPlace: () => inPlace,
+      help: () => { if (!active) return false; if (held) { held = false; } helpNext = true; sayThen(say("help") + " " + say("helpAsk")); return true; },
+      held: () => held, active: () => active, confirming: () => confirming, hasCarry: () => active && !!onCarry, carryFn: () => active ? onCarry : null, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
       voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null, fixWords: null, onErase: null };
     return api;
   })();
@@ -2300,6 +2315,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   $("vb-moreb").addEventListener("click", () => { const open = $("vmore").hidden; $("vmore").hidden = !open; $("vb-moreb").setAttribute("aria-expanded", String(open)); $("vb-panel").hidden = true; });
   $("vb-panel-close").addEventListener("click", () => { $("vb-panel").hidden = true; $("vb-settings").setAttribute("aria-expanded", "false"); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && Voice.talking()) Voice.interrupt(); });
+  // Help: talking mode explains out loud and takes a question; otherwise opens How this works
+  $("vb-help").addEventListener("click", () => { if (!Voice.help()) openJourney("how"); updateBar(); });
   $("vb-done").addEventListener("click", () => {
     if (typingNow) { submitTyped(); return; }
     if (Voice.held()) { Voice.resume(); updateBar(); return; }
@@ -3338,14 +3355,48 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $(statusId).textContent = "Your calendar should open. Tap Add to save it.";
     return true;
   }
-  $("cal-this").addEventListener("click", () => addToCalendar({
+  // ---------- calendar choices: phones open the calendar file; computers get Google and Outlook too ----------
+  const APPLE = /iPhone|iPad|Macintosh/i.test(navigator.userAgent);
+  function calDates(ev) {
+    const d = ev.date.replace(/-/g, "");
+    if (!ev.time) { const n = new Date(ev.date + "T12:00:00"); n.setDate(n.getDate() + 1); return { allDay: true, s: d, e: iso(n).replace(/-/g, "") }; }
+    const [h, m] = ev.time.split(":").map(Number), e = new Date(2000, 0, 1, h, m + 60), p2 = n => String(n).padStart(2, "0");
+    return { allDay: false, s: `${d}T${p2(h)}${p2(m)}00`, e: `${d}T${p2(e.getHours())}${p2(e.getMinutes())}00`, sIso: `${ev.date}T${p2(h)}:${p2(m)}:00`, eIso: `${ev.date}T${p2(e.getHours())}:${p2(e.getMinutes())}:00` };
+  }
+  function googleCal(ev) {
+    const c = calDates(ev), q = new URLSearchParams({ action: "TEMPLATE", text: ev.title, dates: c.s + "/" + c.e, details: ev.notes || "", ctz: "America/Toronto" });
+    return "https://calendar.google.com/calendar/render?" + q.toString();
+  }
+  function outlookCal(ev) {
+    const c = calDates(ev), q = new URLSearchParams({ path: "/calendar/action/compose", rru: "addevent", subject: ev.title, body: ev.notes || "",
+      startdt: c.allDay ? ev.date : c.sIso, enddt: c.allDay ? ev.date : c.eIso });
+    if (c.allDay) q.set("allday", "true");
+    return "https://outlook.live.com/calendar/0/deeplink/compose?" + q.toString();
+  }
+  // a choice of calendars, shown under the button
+  function calChoices(ev, boxId, noteId) {
+    if (!ev.date) { $(noteId).textContent = "Add the appointment date first (Back to “Who and when”), then try again."; return; }
+    const box = $(boxId);
+    box.innerHTML = `<p class="muted small">Choose your calendar:</p><div class="cal-choices">
+      ${APPLE ? `<button type="button" class="btn primary" data-ics>Apple Calendar</button>` : ""}
+      <a class="btn ${APPLE ? "secondary" : "primary"}" href="${esc(googleCal(ev))}" target="_blank" rel="noopener">Google Calendar</a>
+      <a class="btn secondary" href="${esc(outlookCal(ev))}" target="_blank" rel="noopener">Outlook</a>
+      ${APPLE ? "" : `<button type="button" class="btn secondary" data-ics>Another calendar (download a file)</button>`}</div>
+      <p class="muted small">Google and Outlook open in a new tab with the details filled in. Check them, then click Save.</p>`;
+    box.hidden = false;
+    box.querySelectorAll("[data-ics]").forEach(b => b.addEventListener("click", () => {
+      addToCalendar(ev, noteId);
+      if (!APPLE) $(noteId).textContent = "The calendar file is in your Downloads. Open it to add the appointment to Outlook or your computer's calendar.";
+    }));
+  }
+  $("cal-this").addEventListener("click", () => calChoices({
     title: "Appointment" + (S.seeing.trim() ? ": " + S.seeing.trim() : ""), date: S.date, time: S.time,
     notes: "Bring your WellHeard pages and your medications." + (S.purpose.trim() ? "\nFor: " + S.purpose.trim() : "")
-  }, "cal-note"));
+  }, "cal-this-pick", "cal-note"));
   $("cal-next").addEventListener("click", () => {
     const r = S.recap, team = S.bg.team.trim() ? "" : "";
-    addToCalendar({ title: "Appointment" + (r.nextWith.trim() ? ": " + r.nextWith.trim() : ""), date: r.nextDate, time: r.nextTime,
-      notes: (lines(r.more).concat(r.open).length ? "Questions to bring: " + r.open.concat(lines(r.more)).join("; ") + "\n" : "") + "Prepare with WellHeard: pen-ink.ca/prep" + team }, "cal-next-note");
+    calChoices({ title: "Appointment" + (r.nextWith.trim() ? ": " + r.nextWith.trim() : ""), date: r.nextDate, time: r.nextTime,
+      notes: (lines(r.more).concat(r.open).length ? "Questions to bring: " + r.open.concat(lines(r.more)).join("; ") + "\n" : "") + "Prepare with WellHeard: pen-ink.ca/prep" + team }, "cal-next-pick", "cal-next-note");
   });
   $("sheets-new2").addEventListener("click", () => newVisitConfirm("sheets-new2-confirm", "sheets-new2"));
   window.addEventListener("beforeprint", () => { buildSheets(); buildRecap(); });
