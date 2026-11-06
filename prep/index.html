@@ -141,6 +141,10 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, legend[tabindex="-1"]:focus, #
 .guide .ga-t:focus { outline: 3px solid var(--accent); outline-offset: 4px; background: var(--surface); }
 .guide .ga-t::placeholder { color: var(--muted); font-size: 1.1rem; font-style: italic; opacity: 1; }
 .ga-k .ga-fix { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.mic-meter { display: none; width: 64px; height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; flex: none; }
+.mic-meter.on { display: inline-block; }
+.mic-meter b { display: block; height: 100%; width: calc(var(--lvl, 0) * 100%); background: var(--ok); border-radius: 5px; }
+.guide:not([data-st="listening"]) .mic-meter { display: none; }
 .guide-tip { margin-top: 12px !important; font-size: 1rem; color: var(--muted); }
 .guide[data-st="speaking"] .guide-tip { visibility: hidden; }
 /* talking mode: the answer is in "What I heard"; the page's own boxes would be a second card */
@@ -500,6 +504,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <div class="vstat">
         <span class="vdot" aria-hidden="true"><svg class="vmic" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg><i></i><i></i><i></i></span>
         <span class="guide-state" id="guide-state" aria-live="polite"></span>
+        <span class="mic-meter" id="mic-meter" aria-hidden="true"><b></b></span>
         <button type="button" class="btn link guide-face" id="guide-face">Hear it again</button>
       </div>
       <p class="guide-q" id="guide-say"></p>
@@ -1327,7 +1332,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const proc = this._ctx.createScriptProcessor(4096, 1, 1);
       const rate = this._ctx.sampleRate, step = rate / 16000;
       // voice activity: a phrase starts when the sound rises well above the room's noise, and ends after a pause
-      let noise = 0.004, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [];
+      let noise = 0.002, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [], lvlT = 0;
       const END_MS = 1100, START_MS = 120, MAX_MS = 25000, blockMs = 4096 / rate * 1000;
       proc.onaudioprocess = ev => {
         if (!this._running) return;
@@ -1337,7 +1342,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         // downsample to 16 kHz
         const out = new Float32Array(Math.floor(x.length / step));
         for (let i = 0; i < out.length; i++) out[i] = x[Math.floor(i * step)];
-        const loud = rms > Math.max(0.012, noise * 3.2);
+        // a computer's microphone hears a voice far more quietly than a phone held close: the bar is low and
+        // follows the room's own noise
+        const loud = rms > Math.max(0.0035, noise * 3.5);
+        const now = performance.now(); if (now - lvlT > 90) { lvlT = now; CanadaRec.level(Math.min(1, rms / Math.max(0.02, noise * 8))); }
         if (!speaking) {
           noise = noise * 0.95 + Math.min(rms, 0.05) * 0.05;
           pre.push(out); if (pre.length > 3) pre.shift();   // keep the start of the first word
@@ -1385,7 +1393,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (this._stream) this._stream.getTracks().forEach(t => t.stop());
       if (this._ctx && this._ownCtx) this._ctx.close().catch(() => {});
       this._stream = this._ctx = this._proc = this._src = null;
-      CanadaRec.hearing(false);
+      CanadaRec.hearing(false); CanadaRec.level(0);
       CanadaRec.session("playback");
     }
     _maybeEnd() { if (this._ending && !this._pending) { this._ending = false; if (this.onend) this.onend(); } }
@@ -1403,7 +1411,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // so the app's voice comes out of the main speaker.
     static session(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (err) { console.warn(err); } }
   }
-  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {};
+  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {};
   const canCanada = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext || window.webkitAudioContext));
   const NativeSR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -1990,6 +1998,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   // while listening: "Hearing you..." during a phrase, "Writing it down..." while it's turned into words
   let micHearing = false, micWriting = 0, lastSt = "off";
   CanadaRec.hearing = on => { micHearing = on; if (lastSt === "listening") guideView("listening"); };
+  CanadaRec.level = v => { const m = $("mic-meter"); if (m) { m.style.setProperty("--lvl", v.toFixed(2)); m.classList.toggle("on", v > 0); } };
   CanadaRec.writing = d => { micWriting = Math.max(0, micWriting + d); if (lastSt === "listening") guideView("listening"); };
   const guideView = (st, heard) => {
     const L = VSTAT[S.lang === "fr" ? "fr" : "en"];
