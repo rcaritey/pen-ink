@@ -402,7 +402,19 @@ footer.foot { max-width: 720px; margin: 0 auto; padding-block: 8px 32px; display
 .jr-open { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; padding: 6px 12px; border-radius: 999px;
   border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
 .jr-open:hover { border-color: var(--accent); }
-.jr-open svg { width: 26px; height: 14px; color: var(--river-deep); flex-shrink: 0; }
+.jr-open svg { width: 22px; height: 22px; color: var(--river-deep); flex-shrink: 0; }
+.appbar .right { justify-content: flex-end; }
+@media (max-width: 480px) {
+  .appbar { flex-wrap: wrap; row-gap: 6px; }
+  .appbar .right { gap: 6px; flex-basis: 100%; justify-content: space-between; flex-wrap: nowrap; }
+  .appbar .right .saved { order: 9; flex-basis: auto; font-size: .8rem; position: absolute; top: 14px; right: 16px; }
+  .jr-open { padding: 6px 10px; font-size: .9rem; gap: 5px; flex: 1; justify-content: center; }
+  .lbl-long { display: none; }
+}
+@media (min-width: 481px) { .lbl-short { display: none; } }
+.appbar { position: relative; }
+.set-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; max-width: 460px; }
+.set-row .btn { width: 100%; justify-content: flex-start; }
 .appbar .right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 dialog.jr { padding: 0; border: none; margin: 0 auto; width: 100%; max-width: 600px; height: 100%; max-height: 100%;
   background: var(--bg); color: var(--ink); overflow: hidden; }
@@ -491,7 +503,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <span class="saved" id="saved" role="status" aria-live="polite"></span>
     <button type="button" class="jr-open" id="jr-open" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6 L5 8 L8 4"/><path d="M11 6 H21"/><path d="M3 13 L5 15 L8 11"/><path d="M11 13 H21"/><circle cx="5.5" cy="20" r="1.8"/><path d="M11 20 H21"/></svg>
-      Your journey
+      <span class="lbl-long">WellHeard map</span><span class="lbl-short">Map</span>
+    </button>
+    <button type="button" class="jr-open top-help" id="top-help">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.2 9.3 a3 3 0 1 1 3.8 2.9 c-.7.3-1 .8-1 1.6 v.7"/><circle cx="12" cy="17.6" r=".9" fill="currentColor"/></svg>
+      Help
+    </button>
+    <button type="button" class="jr-open" id="top-settings" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7 H14 M18 7 H20 M4 17 H6 M10 17 H20"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
+      Settings
     </button>
   </span>
 </header>
@@ -1041,7 +1061,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 <dialog class="jr" id="jr" aria-labelledby="jr-title">
   <div class="jr-head">
     <button type="button" class="btn link" id="jr-back" hidden>&larr; Journey</button>
-    <h2 id="jr-title">Your journey</h2>
+    <h2 id="jr-title">WellHeard map</h2>
     <button type="button" class="btn secondary" id="jr-close">Close</button>
   </div>
   <div class="jr-body" id="jr-body"></div>
@@ -1394,11 +1414,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           noise = noise * 0.95 + Math.min(rms, 0.05) * 0.05;
           pre.push(out); if (pre.length > 3) pre.shift();   // keep the start of the first word
           loudMs = loud ? loudMs + blockMs : 0;
-          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; this._echo = CanadaRec.talkingNow(); this._gap = this._lastEnd ? performance.now() - this._lastEnd : 1e9; if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); }
+          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; this._echo = CanadaRec.talkingNow(true); this._gap = this._lastEnd ? performance.now() - this._lastEnd : 1e9; if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); }
           return;
         }
         buf.push(out);
-        if (CanadaRec.talkingNow()) this._echo = true;
+        if (CanadaRec.talkingNow(false) && buf.length < 6) this._echo = true;   // the app started speaking just as the phrase began
         quietMs = loud ? 0 : quietMs + blockMs;
         const len = buf.length * blockMs;
         // Short replies ("yes", "next") are finished sooner; long answers keep a longer pause so a breath doesn't cut them.
@@ -1571,7 +1591,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     let talkEnd = 0;
     const setTalk = on => { talking = on; if (!on) talkEnd = performance.now(); if (api.onTalk) api.onTalk(on); };
     // unless talking over the app is switched on, anything heard while it speaks (or half a second after) is its own echo
-    CanadaRec.talkingNow = () => !bargeOn() && (talking || performance.now() - talkEnd < 600);
+    CanadaRec.talkingNow = startOfPhrase => !bargeOn() && (talking || (startOfPhrase && performance.now() - talkEnd < 250));
     const speak = async text => {
       if (!text) return;
       quiet();
@@ -3578,7 +3598,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   function jRenderMap() {
     jView = "map";
-    $("jr-title").textContent = "Your journey"; $("jr-back").hidden = true;
+    $("jr-title").textContent = "WellHeard map"; $("jr-back").hidden = true;
     const here = jRenderChecklistInto($("jr-body"), true);
     if (here) requestAnimationFrame(() => here.scrollIntoView({ block: "center" }));
     else $("jr-body").scrollTop = 0;
@@ -3689,11 +3709,44 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("jr-body").scrollTop = 0;
   }
   function openJourney(view) {
-    if (view === "safe") jRenderSafe(false); else if (view === "how") jRenderHow(false); else jRenderMap();
+    if (view === "safe") jRenderSafe(false); else if (view === "how") jRenderHow(false); else if (view === "settings") jRenderSettings(); else jRenderMap();
     if (!dlg.open) { try { dlg.showModal(); } catch (err) { console.warn("Could not open the journey", err); dlg.setAttribute("open", ""); } }
     $("jr-close").focus();
   }
+  // Settings: everything you can change, in one place (each button does what the matching link at the bottom does)
+  function jRenderSettings() {
+    jView = "settings";
+    $("jr-title").textContent = S.lang === "fr" ? "Réglages" : "Settings"; $("jr-back").hidden = true;
+    const btn = (id, label, note) => `<div class="set-row"><button type="button" class="btn secondary" data-set="${id}">${esc(label)}</button>${note ? `<p class="muted small">${esc(note)}</p>` : ""}</div>`;
+    const voice = isVoice();
+    $("jr-body").innerHTML = `<div class="sf">
+      <section><h3>How you answer</h3>
+        ${$("change-mode").hidden ? `<p class="muted">You choose Talk or Read and type on the first page.</p>` : btn("change-mode", $("change-mode").textContent, voice ? "Type your answers instead of saying them." : "Answer out loud instead of typing.")}</section>
+      <section><h3>The voice</h3>
+        ${!$("change-voice").hidden ? btn("change-voice", $("change-voice").textContent, "Hear the questions in a different voice.") : ""}
+        ${voice ? btn("voice-settings", "Wait time, speed and talking over", "How long I wait before checking in, how fast I speak, and whether you can talk while I'm speaking.") : `<p class="muted">More voice settings appear when you choose Talk.</p>`}</section>
+      <section><h3>Language</h3>${btn("change-lang", $("change-lang").textContent)}</section>
+      <section><h3>Your pages and answers</h3>
+        ${btn("foot-pages", "Save or print my pages")}
+        ${btn("backup", "Save a backup file", "To use your answers on another phone or computer.")}
+        ${btn("erase", "Erase my answers from this device")}</section>
+      <button type="button" class="jr-safe-link" data-open-how>${IC.spark}<span><b>How this works</b><span>The approach, in plain words.</span></span></button>
+      <button type="button" class="jr-safe-link" data-open-safe>${IC.shield}<span><b>How your information stays safe</b><span>Where your answers are kept, and what is sent.</span></span></button>
+    </div>`;
+    $("jr-body").scrollTop = 0;
+  }
+  $("jr-body").addEventListener("click", e => {
+    const b = e.target.closest("[data-set]"); if (!b) return;
+    const k = b.dataset.set;
+    dlg.close();
+    if (k === "voice-settings") { if ($("vb-panel").hidden) $("vb-settings").click(); requestAnimationFrame(() => $("vb-panel").scrollIntoView({ block: "center" })); return; }
+    if (k === "backup") { document.querySelector("[data-download]").click(); return; }
+    $(k).click();
+  });
   $("jr-open").addEventListener("click", () => openJourney("map"));
+  $("top-settings").addEventListener("click", () => openJourney("settings"));
+  // Help: in talking mode the voice explains and takes a question; otherwise How this works
+  $("top-help").addEventListener("click", () => { if (!Voice.help()) openJourney("how"); updateBar(); });
   $("jr-close").addEventListener("click", () => dlg.close());
   $("jr-back").addEventListener("click", () => { jRenderMap(); $("jr-close").focus(); });
   dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
