@@ -2835,6 +2835,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function tidyMeds() {
     let changed = false;
     S.meds.forEach(m => { if (m.n.trim() && !m.d.trim() && !m.w.trim() && (DOSE.test(m.n) || new RegExp(WHEN.source, "i").test(m.n))) { Object.assign(m, parseMed(m.n)); changed = true; } });
+    // "Dexamphetamine" then, after a pause, "5 milligrams in the morning": the second line is the first one's dose
+    for (let k = S.meds.length - 1; k > 0; k--) {
+      const m = S.meds[k], prev = S.meds[k - 1];
+      if (!m.n.trim() || !!m.o !== !!prev.o || !prev.n.trim() || prev.d.trim()) continue;
+      const p = parseMed(m.n), rest = m.n.replace(DOSE, " ").replace(new RegExp(WHEN.source, "gi"), " ").replace(/\b(at|in|the|a|of|and|take|every|each|per|day|daily|once|twice)\b/gi, " ").replace(/[^a-z]+/gi, "");
+      if (!p.d || rest) continue;
+      prev.d = p.d; if (!prev.w.trim()) prev.w = p.w; S.meds.splice(k, 1); changed = true;
+    }
     if (changed) save();
   }
   function renderMeds() {
@@ -3286,7 +3294,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   async function ensureTidy(statusId) {
     if (S.consent !== true || S.lang === "fr" || tidyBusy) return false;   // French answers are translated instead
     const own = S.ask.map(q => q.t.trim()).filter(Boolean);
-    const items = [...new Set([...S.tell.map(t => t.trim()), ...own, S.purpose.trim(), S.bg.changes.trim()].filter(Boolean))].filter(x => !S.tidy[x]);
+    const items = [...new Set([...S.tell.map(t => t.trim()), ...own, S.purpose.trim(), S.bg.changes.trim(), S.bg.team.trim(), S.bg.allergies.trim()].filter(Boolean))].filter(x => !S.tidy[x]);
     if (!items.length) return false;
     tidyBusy = true;
     const st = $(statusId); if (st) st.textContent = "Tidying the wording on your pages. Your meaning stays the same…";
@@ -3303,6 +3311,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     } finally { tidyBusy = false; }
   }
   function buildSheets() {
+    tidyMeds();
     const D = x => S.lang === "fr" ? tr(x, S.docLang) : tidyT(x), P = x => S.lang === "fr" ? tr(x, S.lang) : tidyT(x);
     const B = x => S.lang === "fr" ? tr(x, S.lang) : tidyB(x);
     const both = x => { const d = D(x), p = P(x); return d === p ? esc(d) : `${esc(d)}<span class="tr-line">${esc(p)}</span>`; };
@@ -3310,7 +3319,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // answers like "not sure" help the family, but are noise for the doctor
     const UNSURE = /^(not sure|unsure|i'?m not sure|don'?t know|i don'?t know|no idea|can'?t say)\W*$/i;
     const facts = tell.filter(t => { const i = t.indexOf(": "); return !UNSURE.test((i > -1 ? t.slice(i + 2) : t).trim()); });
-    const { top: topAll, rest, firsts } = allQuestions();
+    // a question said while describing the concern ("How long will it take to grow back?") belongs with the questions
+    const isQ = t => t.indexOf(": ") === -1 && /\?\s*$/.test(t.trim());
+    const tellQs = facts.filter(isQ); for (let k = facts.length - 1; k >= 0; k--) if (isQ(facts[k])) facts.splice(k, 1);
+    const { top: topAll, rest: rest0, firsts } = allQuestions();
+    const rest = rest0.concat(tellQs.filter(t => !topAll.concat(rest0).some(q => sameQ(q.t, t))).map(t => ({ t: t.trim(), top: false })));
     const first = firsts.length ? firsts[0] : null;
     const top = topAll.filter(q => !q.first);
     const liX = f => q => `<li${q.top ? ' class="top"' : ""}>${q.top ? '<span class="star" aria-label="most important">★</span> ' : ""}${f(q.t)}</li>`;
@@ -3337,7 +3350,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const cond = lines(S.bg.conditions).map(x => (S.lang === "fr" ? tr(x, S.docLang) : x).replace(/[.;,]+$/, ""));
     const dl = rows => `<dl class="dl">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>`;
     const W = w => S.lang === "fr" ? tr(w, S.docLang) : w;
-    const medLine = x => esc([x.n, x.d.trim() || "dose not known", W(x.w)].filter(v => v && v.trim()).join(", "));
+    const medLine = x => esc([x.n.trim().replace(/[.,;:]+$/, ""), x.d.trim() || "dose not known", W(x.w)].filter(v => v && v.trim()).join(", "));
     const medsD = S.meds.filter(x => x.n.trim() && !x.o).map(medLine), otcD = S.meds.filter(x => x.n.trim() && x.o).map(medLine);
     const qD = top.concat(rest).slice(0, 8);
     const lined = n => `<div class="ans-lines" aria-hidden="true">${'<div class="blank"></div>'.repeat(n)}</div>`;
@@ -3358,11 +3371,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         ["Allergies and cautions", esc(D(S.bg.allergies)) || "None listed"]
       ])}</section>
       ${first || qD.length ? `<p class="ans-note">Space is left under each question if you'd like to write your answer.</p>` : ""}
-      ${first ? `<section><h3>Most important ${firsts.length > 1 ? "questions" : "question"} to the patient</h3><ol class="ans-q">${firsts.map(q => `<li><b>${esc(D(q.t))}</b>${lined(3)}</li>`).join("")}</ol></section>` : ""}
+      ${first ? `<section><h3>Most important to the patient</h3><ol class="ans-q">${firsts.map(q => `<li><b>${esc(D(q.t))}</b>${lined(3)}</li>`).join("")}</ol></section>` : ""}
       ${qD.length ? `<section><h3>${first ? "Other questions" : "Patient's questions"}</h3><ol class="ans-q">${qD.map(q => `<li>${esc(D(q.t))}${lined(2)}</li>`).join("")}</ol></section>` : ""}
       <section><h3>${S.docLang === "fr" ? "Entre les rendez-vous" : "Between appointments"}</h3><ol class="ans-q"><li>${esc(CONTACT_Q)}${lined(1)}</li></ol></section>
       <section class="how"><h3>How this summary was prepared</h3>
-        <p>The patient answered questions at home, in their own words, with family. Questions followed a standard symptom history (onset, location, duration, character, what makes it worse or better, timing, severity) and checked their other conditions and medicines. ${S.consent === true ? "An AI assistant (Claude, by Anthropic) suggested questions only. It did not diagnose." : "No AI was used."}${S.lang === "fr" && S.docLang === "en" && S.consent === true ? " The patient answered in French; answers were translated by the same AI." : ""} Answers are as reported by the patient and have not been verified. Not a medical record. Method: pen-ink.ca/prep</p></section>`;
+        <p>The patient answered questions before the visit, in their own words. Questions followed a standard symptom history (onset, location, duration, character, what makes it worse or better, timing, severity) and checked their other conditions and medicines. ${S.consent === true ? "An AI assistant (Claude, by Anthropic) suggested questions only. It did not diagnose." : "No AI was used."}${S.lang === "fr" && S.docLang === "en" && S.consent === true ? " The patient answered in French; answers were translated by the same AI." : ""} Answers are as reported by the patient and have not been verified. Not a medical record. Method: pen-ink.ca/prep</p></section>`;
     const condP = lines(S.bg.conditions).map(P);
     const bgBits = [
       condP.length ? `<p><b>Conditions:</b></p><ul>${condP.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "",

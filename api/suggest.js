@@ -189,6 +189,9 @@ Rules, most important first:
 - Keep every medication name, dose, number, date, body part and time exactly as given.
 - Keep the patient's own descriptive words ("more of an ache", "a little tingling").
 - An item may start with a short label and a colon ("When it started: ..."). Keep the label in "t" and leave it out of "b".
+- Voice typing sometimes splits one sentence into pieces in the wrong order ("Six months ago. I have had a hand injury about"). Put the pieces back into one natural sentence ("I had a hand injury about six months ago.") when the meaning is plain.
+- A list of people or places said in one go ("Neurologist GP. Therapist.") becomes a list separated by commas ("Neurologist, GP, therapist").
+- If a label before the colon would not make sense to a doctor on its own, you may reword the label so it says what was asked. Never change the answer after the colon.
 - If an item is unclear, keep its words as they are rather than guess.
 - Write in the same language as the item. Return the items in the same order, one result per item.`;
 
