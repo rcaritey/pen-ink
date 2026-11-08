@@ -3234,7 +3234,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function medsHTML() {
     const m = S.meds.filter(x => x.n.trim());
     if (!m.length) return `<p class="empty">No medications listed.</p><div class="blank"></div><div class="blank"></div>`;
-    return `<ul>${m.map(x => `<li>${esc(x.n)}, ${x.d.trim() ? esc(x.d) : "dose: ________"}${x.w.trim() ? ", " + esc(x.w) : ""}</li>`).join("")}</ul>`;
+    return `<ul>${m.map(x => `<li>${esc(x.n.trim().replace(/[.,;:]+$/, ""))}, ${x.d.trim() ? esc(x.d) : "dose: ________"}${x.w.trim() ? ", " + esc(x.w) : ""}</li>`).join("")}</ul>`;
   }
   const lines = t => t.split(/\n+/).map(s => s.trim()).filter(Boolean);
   // ---------- translations (French answers -> doctor's language), kept on the device ----------
@@ -3276,7 +3276,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function localTidy(x) {
     let t = String(x || "").replace(/\s+/g, " ").trim();
     const i = t.indexOf(": "), lab = i > -1 && i < 40 ? t.slice(0, i + 2) : "", body = lab ? t.slice(i + 2) : t;
-    let b = body.replace(FILLER, "").replace(/\s+([,.;:!?])/g, "$1").trim();
+    let b = body.replace(/,?\s*\b(um+|uh+|erm+|ah+)\b[,.]?/gi, " ").replace(FILLER, "").replace(/\s{2,}/g, " ").replace(/,\s*,/g, ",").replace(/\s+([,.;:!?])/g, "$1").trim();
     if (!b) b = body.trim();
     b = b.charAt(0).toUpperCase() + b.slice(1);
     if (!/[.!?]$/.test(b)) b += /^(what|why|how|when|where|who|which|is|are|can|could|should|do|does|will|would|may)\b/i.test(b) ? "?" : ".";
@@ -3294,7 +3294,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   async function ensureTidy(statusId) {
     if (S.consent !== true || S.lang === "fr" || tidyBusy) return false;   // French answers are translated instead
     const own = S.ask.map(q => q.t.trim()).filter(Boolean);
-    const items = [...new Set([...S.tell.map(t => t.trim()), ...own, S.purpose.trim(), S.bg.changes.trim(), S.bg.team.trim(), S.bg.allergies.trim()].filter(Boolean))].filter(x => !S.tidy[x]);
+    const items = [...new Set([...S.tell.map(t => t.trim()), ...own, S.purpose.trim(), S.bg.changes.trim(), S.bg.team.trim(), S.bg.allergies.trim(), S.story.trim()].filter(Boolean))].filter(x => !S.tidy[x]);
     if (!items.length) return false;
     tidyBusy = true;
     const st = $(statusId); if (st) st.textContent = "Tidying the wording on your pages. Your meaning stays the same…";
@@ -3379,16 +3379,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const condP = lines(S.bg.conditions).map(P);
     const bgBits = [
       condP.length ? `<p><b>Conditions:</b></p><ul>${condP.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "",
-      S.bg.changes.trim() ? `<p><b>Recent changes:</b> ${esc(S.bg.changes).replace(/\n/g, "<br>")}</p>` : "",
+      S.bg.changes.trim() ? `<p><b>Recent changes:</b> ${esc(P(S.bg.changes)).replace(/\n/g, "<br>")}</p>` : "",
       S.carried && S.chg.meds ? `<p><b>Medication changes since last visit:</b> ${S.chg.meds === "yes" ? esc(S.chg.medNote.trim()) || "yes" : "none"}</p>` : "",
-      S.bg.team.trim() ? `<p><b>Also seeing:</b> ${esc(S.bg.team)}</p>` : "",
-      S.bg.allergies.trim() ? `<p><b>Allergies and cautions:</b> ${esc(S.bg.allergies)}</p>` : ""
+      S.bg.team.trim() ? `<p><b>Also seeing:</b> ${esc(P(S.bg.team))}</p>` : "",
+      S.bg.allergies.trim() ? `<p><b>Allergies and cautions:</b> ${esc(P(S.bg.allergies))}</p>` : ""
     ].join("");
     $("sheet-c").innerHTML = header("Full list for caregivers") + `
-      ${S.purpose.trim() ? `<section><h3>Appointment is for</h3><p>${esc(S.purpose)}</p></section>` : ""}
+      ${S.purpose.trim() ? `<section><h3>Appointment is for</h3><p>${esc(P(S.purpose))}</p></section>` : ""}
       ${bgBits ? `<section><h3>Health background</h3>${bgBits}</section>` : ""}
-      ${S.story.trim() ? `<section><h3>In their words</h3><p>${esc(S.story).replace(/\n/g, "<br>")}</p></section>` : ""}
-      <section><h3>Make sure the doctor hears</h3>${tell.length ? `<ul class="check">${tell.map(t => `<li>${esc(P(t))}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
+      ${S.story.trim() ? `<section><h3>In their words</h3><p>${esc(P(S.story)).replace(/\n/g, "<br>")}</p></section>` : ""}
+      <section><h3>Make sure the doctor hears</h3>${tell.filter(t => !isQ(t)).length ? `<ul class="check">${tell.filter(t => !isQ(t)).map(t => `<li>${esc(P(t))}</li>`).join("")}</ul>` : `<p class="empty">Nothing added yet.</p>`}</section>
       ${first ? `<section><h3>Most important ${firsts.length > 1 ? "questions" : "question"}</h3><ol>${firsts.map(q => `<li><b>${esc(P(q.t))}</b></li>`).join("")}</ol></section>` : ""}
       <section><h3>${first ? "Other questions" : "All questions"}</h3>${top.length + rest.length ? `<ol>${top.concat(rest).map(liP).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}</section>
       <section><h3>Medications</h3>${medsHTML()}</section>
@@ -3497,7 +3497,30 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   });
   $("sheets-new2").addEventListener("click", () => newVisitConfirm("sheets-new2-confirm", "sheets-new2"));
   window.addEventListener("beforeprint", () => { buildSheets(); buildRecap(); });
-  const sheetText = el => el.innerText.replace(/\n{3,}/g, "\n\n").trim();
+  // Email and text messages get plain text with real line breaks: headings on their own line with a blank line
+  // before, numbered and bulleted lists, "label: value" pairs. Read from the page's words, not how it looks on
+  // screen (the screen shows headings in capitals, and a hidden page has no line breaks at all).
+  function sheetText(el) {
+    const out = [], txt = n => n.textContent.replace(/\s+/g, " ").trim();
+    const walk = n => {
+      if (n.nodeType !== 1 || n.getAttribute("aria-hidden") === "true") return;
+      const tag = n.tagName;
+      if (/^H[1-4]$/.test(tag)) { out.push("", txt(n)); return; }
+      if (n.classList.contains("blank") || n.classList.contains("ans-lines")) return;
+      if (tag === "OL" || tag === "UL") { let k = 0; n.querySelectorAll(":scope > li").forEach(li => { const t = txt(li).replace(/^★\s*/, "★ "); if (t) out.push((tag === "OL" ? ++k + ". " : "- ") + t); }); return; }
+      if (tag === "DL") { const dts = n.querySelectorAll("dt"); dts.forEach(dt => { const dd = dt.nextElementSibling; if (!dd) return;
+          const parts = dd.innerHTML.split(/<br\s*\/?>/i).map(h => { const d = document.createElement("div"); d.innerHTML = h; return d.textContent.trim(); }).filter(Boolean);
+          if (parts.length > 1) { out.push(txt(dt) + ":"); parts.forEach(x => out.push("- " + x)); } else out.push(txt(dt) + ": " + (parts[0] || "")); }); return; }
+      if (tag === "P" || (tag === "DIV" && n.classList.contains("meta"))) {
+        const t = tag === "DIV" ? [...n.children].map(txt).filter(Boolean).join(" · ") : n.innerHTML.split(/<br\s*\/?>/i).map(h => { const d = document.createElement("div"); d.innerHTML = h; return d.textContent.replace(/\s+/g, " ").trim(); }).filter(Boolean).join("\n");
+        if (t) out.push(t); return; }
+      [...n.children].forEach(walk);
+    };
+    walk(el);
+    return out.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+  }
+  const mailBody = el => sheetText(el).replace(/\n/g, "\r\n");
+  if (location.hostname === "localhost") window.__wh = { sheetText };   // for local testing only
   document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
     const el = sheets.find(s => !s.hidden);
     const fallback = () => {
@@ -3521,7 +3544,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     $("share-pick").hidden = false; $("share-email").focus();
   });
-  $("share-email").addEventListener("click", () => { location.href = "mailto:?subject=" + encodeURIComponent(familySubject()) + "&body=" + encodeURIComponent(sheetText($("sheet-c"))); });
+  $("share-email").addEventListener("click", () => { location.href = "mailto:?subject=" + encodeURIComponent(familySubject()) + "&body=" + encodeURIComponent(mailBody($("sheet-c"))); });
   $("share-text").addEventListener("click", () => { location.href = "sms:?&body=" + encodeURIComponent(sheetText($("sheet-c"))); });
 
   // ---------- journey: the river map (welcome page, and the "Map of the full journey" overlay) ----------
@@ -3880,7 +3903,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     $("rc-share-pick").hidden = false; $("rc-email").focus();
   });
-  $("rc-email").addEventListener("click", () => { location.href = "mailto:?subject=" + encodeURIComponent(recapSubject()) + "&body=" + encodeURIComponent(sheetText($("sheet-r"))); });
+  $("rc-email").addEventListener("click", () => { location.href = "mailto:?subject=" + encodeURIComponent(recapSubject()) + "&body=" + encodeURIComponent(mailBody($("sheet-r"))); });
   $("rc-text").addEventListener("click", () => { location.href = "sms:?&body=" + encodeURIComponent(sheetText($("sheet-r"))); });
   $("rc-print").addEventListener("click", () => { buildRecap(); window.print(); });
   $("rc-copy").addEventListener("click", () => {
