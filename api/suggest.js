@@ -207,6 +207,38 @@ const TIDY_SCHEMA = {
   additionalProperties: false,
 };
 
+const RECAP = `You help a patient after a medical appointment in Ontario, Canada. You receive the transcript of the appointment, made from a phone recording, and the questions the patient brought.
+The transcript has no speaker names, and words may be misheard. Work out from what is said which lines are the doctor (or nurse) and which are the patient or family.
+
+Fill in the patient's after-visit notes:
+- "answers": one entry per question the patient brought, in the same order, with the question copied exactly. "a" is what the doctor said that answers it, in one to three short plain sentences. If the appointment did not answer it, "a" is "". An answer can come at any point in the visit and in passing.
+- "said": the main points the doctor made, in 2 to 5 short plain sentences, for family who were not there.
+- "also": important things the doctor said that answer none of the questions (a warning, a risk, a reason for a test). Short, one per line. Empty if none.
+- "todo": things to do after the visit, each starting with a verb, saying who does it when it is not the patient ("The doctor is sending the blood work requisition"). Include tests, medicines to start, stop or change, referrals, and booking the next visit.
+- "nextWith": who the next appointment is with, as said. "nextWhen": when, in the doctor's words ("in about 6 months"). "nextDate" (YYYY-MM-DD) and "nextTime" (HH:MM, 24-hour) only if an exact date or time was said, otherwise "".
+- "contact": who to contact with questions before the next visit and how, if it was said, otherwise "".
+
+Rules, most important first:
+- Restate, never advise. Only what was said in the transcript. Never add medical information, never explain, never guess, never fill a gap. If something is unclear, leave it out.
+- Keep medication names, doses, numbers, times and test names exactly as said. Fix only obvious mishearings when the right word is plain from the rest of the visit.
+- Plain words a patient's family understands. Speak about the patient as "you" in "said", "also", "answers" and "todo".
+- Write in the same language as the questions.
+- Leave out the patient's name. Keep the names of staff the patient needs to contact.`;
+
+const RECAP_SCHEMA = {
+  type: 'object',
+  properties: {
+    answers: { type: 'array', items: { type: 'object', properties: { q: { type: 'string' }, a: { type: 'string' } }, required: ['q', 'a'], additionalProperties: false } },
+    said: { type: 'string' },
+    also: { type: 'array', items: { type: 'string' } },
+    todo: { type: 'array', items: { type: 'string' } },
+    nextWith: { type: 'string' }, nextWhen: { type: 'string' }, nextDate: { type: 'string' }, nextTime: { type: 'string' },
+    contact: { type: 'string' },
+  },
+  required: ['answers', 'said', 'also', 'todo', 'nextWith', 'nextWhen', 'nextDate', 'nextTime', 'contact'],
+  additionalProperties: false,
+};
+
 const TRANSLATE = `You translate a patient's own notes for their doctor.
 Translate each item faithfully into the target language. Keep the patient's meaning, tone and first-person voice. Keep medication names, numbers and doses exactly as written. Do not add, explain, summarise or correct anything.
 If an item is already in the target language, return it unchanged. Return the items in the same order, one translation per item.`;
@@ -266,7 +298,7 @@ export default async function handler(req, res) {
   const body = typeof req.body === 'object' && req.body ? req.body : (() => {
     try { return JSON.parse(req.body || '{}'); } catch { return {}; }
   })();
-  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy'].includes(body.mode) ? body.mode : 'suggest';
+  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap'].includes(body.mode) ? body.mode : 'suggest';
   const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -293,6 +325,31 @@ export default async function handler(req, res) {
       const got = Array.isArray(out.items) ? out.items.map((x) => ({ t: clean(x && x.t, LIMITS.detail * 2), b: clean(x && x.b, 160) })) : [];
       if (got.length !== items.length) return res.status(502).json({ ok: false, error: 'The tidy-up came back incomplete. Your own words are used instead.' });
       return res.status(200).json({ ok: true, items: got });
+    }
+
+    // ---- after the visit: fill in the recap from a transcript of the appointment
+    if (mode === 'recap') {
+      const transcript = clean(body.transcript, 90000);
+      if (transcript.length < 40) return res.status(400).json({ ok: false, error: 'The transcript is too short to read.' });
+      const questions = cleanList(body.questions);
+      const user = [
+        `Reason for visit: ${clean(body.purpose, LIMITS.purpose) || 'not given'}`,
+        `Seeing: ${clean(body.seeing, LIMITS.seeing) || 'not given'}`,
+        `Language for the notes: ${LANG_NAME[lang]}`,
+        `Questions the patient brought (JSON array):\n${JSON.stringify(questions)}`,
+        `Transcript:\n${transcript}`,
+      ].join('\n\n');
+      const out = await askClaude(RECAP, user, RECAP_SCHEMA, 6000);
+      const L = (v) => (Array.isArray(v) ? v.slice(0, 20).map((x) => clean(x, LIMITS.detail)).filter(Boolean) : []);
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(out.nextDate || '') ? out.nextDate : '';
+      const time = /^\d{2}:\d{2}$/.test(out.nextTime || '') ? out.nextTime : '';
+      return res.status(200).json({
+        ok: true,
+        answers: (Array.isArray(out.answers) ? out.answers : []).slice(0, 40).map((x) => ({ q: clean(x && x.q, LIMITS.item), a: clean(x && x.a, LIMITS.detail) })),
+        said: clean(out.said, 2000), also: L(out.also), todo: L(out.todo),
+        nextWith: clean(out.nextWith, 200), nextWhen: clean(out.nextWhen, 200), nextDate: date, nextTime: time,
+        contact: clean(out.contact, 400),
+      });
     }
 
     // ---- spoken help: the patient asked the app something mid-question
