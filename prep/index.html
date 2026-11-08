@@ -1390,7 +1390,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const proc = this._ctx.createScriptProcessor(4096, 1, 1);
       const rate = this._ctx.sampleRate, step = rate / 16000;
       // voice activity: a phrase starts when the sound rises well above the room's noise, and ends after a pause
-      let noise = 0.002, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [], lvlT = 0, deadMs = 0;
+      let zeroMs = 0, noise = 0.002, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [], lvlT = 0, deadMs = 0;
       const END_MS = 1100, START_MS = 120, MAX_MS = 25000, blockMs = 4096 / rate * 1000;
       proc.onaudioprocess = ev => {
         if (!this._running) return;
@@ -1401,6 +1401,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         // A muted Windows microphone isn't always perfectly flat: the browser's noise processing leaves a faint trace.
         // A live microphone, even in a quiet room, picks up far more than this.
         if (peak > 0.01) CanadaRec.everHeard = true;
+        zeroMs = peak === 0 ? zeroMs + 4096 / rate * 1000 : 0;
+        if (zeroMs > 2500 && CanadaRec.everHeard && !(this._healT && performance.now() - this._healT < 10000)) { zeroMs = 0; console.info("mic silent: reopening"); this._heal(); return; }
         // muted: almost nothing. Back: clear sound (a voice), not the faint room noise that flickers around the line.
         if (peak < 0.0015 && !CanadaRec.everHeard) { deadMs += 4096 / rate * 1000; CanadaRec.dead(deadMs); }
         else if (deadMs && peak > 0.006) { deadMs = 0; CanadaRec.dead(0); }
@@ -1415,7 +1417,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           noise = noise * 0.95 + Math.min(rms, 0.05) * 0.05;
           pre.push(out); if (pre.length > 3) pre.shift();   // keep the start of the first word
           loudMs = loud ? loudMs + blockMs : 0;
-          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; this._echo = CanadaRec.talkingNow(true); this._gap = this._lastEnd ? performance.now() - this._lastEnd : 1e9; if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); }
+          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; this._echo = CanadaRec.talkingNow(true); this._gap = this._lastEnd ? performance.now() - this._lastEnd : 1e9; if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); CanadaRec.talkOver(); }
           return;
         }
         buf.push(out);
@@ -1428,6 +1430,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (quietMs >= endMs || len >= MAX_MS) { const b = buf; buf = []; speaking = false; loudMs = 0; this._lastEnd = performance.now() - quietMs; this._send(b, this._gap); }
       };
       src.connect(proc); proc.connect(this._ctx.destination);
+      if (!this._live) { this._live = true; CanadaRec.live++; }
       this._src = src; this._proc = proc; this._flush = () => { if (speaking && buf.length) { const b = buf; buf = []; speaking = false; this._send(b); } };
       if (this.onstart) this.onstart(); if (this.onaudiostart) this.onaudiostart();
     }
@@ -1463,8 +1466,24 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (this._stream) this._stream.getTracks().forEach(t => t.stop());
       if (this._ctx && this._ownCtx) this._ctx.close().catch(() => {});
       this._stream = this._ctx = this._proc = this._src = null;
+      if (this._live) { this._live = false; CanadaRec.live = Math.max(0, CanadaRec.live - 1); }
       CanadaRec.hearing(false); CanadaRec.level(0); if (CanadaRec.deadNow) CanadaRec.dead(0);
-      CanadaRec.session("playback");
+      // Only switch the iPhone back to "playback" when no other listener is open: doing it while one is
+      // listening silences its microphone (the screen still says Listening, but nothing comes through).
+      if (!CanadaRec.live) CanadaRec.session("playback");
+    }
+    // The microphone went completely silent after it had been working (an iPhone switched its sound
+    // away from recording): open it again, without telling the rest of the app.
+    async _heal() {
+      if (!this._running || this._healing) return;
+      this._healing = true; this._healT = performance.now();
+      try { if (this._proc) { this._proc.onaudioprocess = null; this._proc.disconnect(); } if (this._src) this._src.disconnect(); } catch (err) { console.warn(err); }
+      if (this._stream) this._stream.getTracks().forEach(t => t.stop());
+      this._stream = this._proc = this._src = null;
+      if (this._live) { this._live = false; CanadaRec.live = Math.max(0, CanadaRec.live - 1); }
+      const on = this.onstart, aud = this.onaudiostart; this.onstart = this.onaudiostart = null;
+      this._running = false; this._healing = false;
+      try { await this.start(); } finally { this.onstart = on; this.onaudiostart = aud; }
     }
     _maybeEnd() { if (this._ending && !this._pending) { this._ending = false; if (this.onend) this.onend(); } }
     stop() {   // finish the phrase being said, deliver it, then end
@@ -1479,9 +1498,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     // Safari 17+: tell the iPhone whether we're only playing sound or also recording,
     // so the app's voice comes out of the main speaker.
+    static live = 0;
     static session(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (err) { console.warn(err); } }
   }
-  CanadaRec.hearing = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false; CanadaRec.quick = false; CanadaRec.everHeard = false;
+  CanadaRec.hearing = () => {}; CanadaRec.talkOver = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false; CanadaRec.quick = false; CanadaRec.everHeard = false;
   CanadaRec.talkingNow = () => false;
   const canCanada = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext || window.webkitAudioContext));
   const NativeSR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1568,8 +1588,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (c.state !== "running") { try { await within(c.resume(), 1500); } catch (err) { console.warn("Sound didn't resume", err); } }
         if (c.state !== "running") return false;
         return await new Promise(res => {
-          const n = c.createBufferSource(); n.buffer = buf; n.connect(c.destination); src = n;
-          audioDone = () => { audioDone = null; src = null; res(true); };
+          const n = c.createBufferSource(); n.buffer = buf; const g = c.createGain(); g.gain.value = 1; n.connect(g); g.connect(c.destination); src = n; srcGain = g;
+          audioDone = () => { audioDone = null; src = null; srcGain = null; res(true); };
           n.onended = () => audioDone && audioDone();
           const safety = setTimeout(() => audioDone && audioDone(), (buf.duration + 3) * 1000);
           const fin = audioDone; audioDone = () => { clearTimeout(safety); fin(); };
@@ -1577,7 +1597,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         });
       } catch (err) { console.warn("Natural voice unavailable", err); return false; }
     }
-    function quiet() { if (src) { try { src.stop(); } catch (err) { console.warn(err); } } if (audioDone) audioDone(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } }
+    let srcGain = null, duckT = 0;
+    // someone starts talking over the app: turn its voice right down at once, then stop it once the words are
+    // known to be theirs (not its own echo). If it was only the echo, the voice comes back up.
+    const duck = on => { clearTimeout(duckT); if (srcGain) try { srcGain.gain.setTargetAtTime(on ? 0.15 : 1, srcGain.context.currentTime, 0.03); } catch (err) { console.warn(err); } if (on) duckT = setTimeout(() => duck(false), 4000); };
+    function quiet() { clearTimeout(duckT); if (src) { try { src.stop(); } catch (err) { console.warn(err); } } if (audioDone) audioDone(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } }
     function pickVoice(name) {
       if (name && cloudList().some(v => v[0] === name)) { cloudVoice = name; return chosen; }
       cloudVoice = "";
@@ -1589,15 +1613,19 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // While the app talks, remember its words so its own voice is never mistaken for the person's.
     let talking = false, talkWords = new Set(), talkN = 0;
     const words = t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9' ]+/g, " ").split(/\s+/).filter(w => w.length > 1);
-    let talkEnd = 0;
-    const setTalk = on => { talking = on; if (!on) talkEnd = performance.now(); if (api.onTalk) api.onTalk(on); };
+    let talkEnd = 0, talkStart = 0;
+    const setTalk = on => { talking = on; if (on) talkStart = performance.now(); else talkEnd = performance.now(); if (api.onTalk) api.onTalk(on); };
     // unless talking over the app is switched on, anything heard while it speaks (or half a second after) is its own echo
-    CanadaRec.talkingNow = startOfPhrase => !bargeOn() && (talking || (startOfPhrase && performance.now() - talkEnd < 250));
+    // Sound that starts the moment the app starts speaking is its own voice coming back through the speaker, so
+    // only a voice that starts once the app is already speaking turns it down.
+    CanadaRec.talkOver = () => { if (talking && bargeOn() && performance.now() - talkStart > 900) duck(true); };
+    CanadaRec.talkingNow = startOfPhrase => bargeOn() ? !!(startOfPhrase && talking && performance.now() - talkStart < 900)
+      : (talking || (startOfPhrase && performance.now() - talkEnd < 250));
     const speak = async text => {
       if (!text) return;
       quiet();
       const n = ++talkN; talkWords = new Set(words(text)); setTalk(true); log("speaking");
-      if (!rec) CanadaRec.session("playback");
+      if (!CanadaRec.live) CanadaRec.session("playback");
       try { if (!(cloudOn && await cloudSpeak(text))) await browserSpeak(text); }
       finally { if (n === talkN) setTalk(false); }
     };
