@@ -1443,6 +1443,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       let zeroMs = 0, noise = 0.002, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [], lvlT = 0, deadMs = 0;
       const END_MS = 1100, START_MS = 120, MAX_MS = 25000, blockMs = 4096 / rate * 1000;
       proc.onaudioprocess = ev => {
+        CanadaRec.beat = performance.now();
         if (!this._running) return;
         const x = ev.inputBuffer.getChannelData(0);
         let sum = 0, peak = 0; for (let i = 0; i < x.length; i++) { sum += x[i] * x[i]; const a = x[i] < 0 ? -x[i] : x[i]; if (a > peak) peak = a; }
@@ -1481,6 +1482,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       };
       src.connect(proc); proc.connect(this._ctx.destination);
       if (!this._live) { this._live = true; CanadaRec.live++; }
+      CanadaRec.liveSince = performance.now();
       this._src = src; this._proc = proc; this._flush = () => { if (speaking && buf.length) { const b = buf; buf = []; speaking = false; this._send(b); } };
       if (this.onstart) this.onstart(); if (this.onaudiostart) this.onaudiostart();
     }
@@ -1548,7 +1550,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     // Safari 17+: tell the iPhone whether we're only playing sound or also recording,
     // so the app's voice comes out of the main speaker.
-    static live = 0;
+    static live = 0; static beat = 0; static liveSince = 0;
     static session(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (err) { console.warn(err); } }
   }
   CanadaRec.hearing = () => {}; CanadaRec.talkOver = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false; CanadaRec.quick = false; CanadaRec.everHeard = false;
@@ -1604,7 +1606,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (!actx && AC) {
         try { actx = new AC(); } catch (err) { console.warn(err); }
         // an alarm or phone call takes the sound away: pause neatly instead of getting stuck mid-sentence
-        if (actx) actx.onstatechange = () => { log("sound " + actx.state); if (actx.state === "interrupted" && api.active() && !api.held()) api.pause(); };
+        if (actx) actx.onstatechange = () => { log("sound " + actx.state); if (actx.state === "interrupted" && api.active() && !api.held()) api.pause(); else if (actx.state === "suspended" && api.active() && !api.held()) checkSound(); };
       }
       return actx;
     };
@@ -1622,6 +1624,26 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       try { const b = c.createBuffer(1, 1, 22050), n = c.createBufferSource(); n.buffer = b; n.connect(c.destination); n.start(0); } catch (err) { console.warn(err); }
     };
     document.addEventListener("pointerdown", unlock, { capture: true });
+    // iPhones can stop the sound system without saying so (a notification, Siri, the volume buttons, a long
+    // silence): the screen still says "Listening" but nothing is heard or spoken. Sound only restarts from a
+    // tap, so pause and ask for one: "Resume" asks the question again.
+    function soundStuck() {
+      log("sound stopped");
+      if (!api.active() || api.held()) return;
+      api.pause(); if (api.onStuck) api.onStuck();
+    }
+    let stuckChecking = false;
+    async function checkSound() {
+      const c = actx; if (!c || stuckChecking) return;
+      stuckChecking = true;
+      try {
+        if (c.state !== "running") { try { await Promise.race([c.resume(), new Promise(r => setTimeout(r, 1500))]); } catch (err) { console.warn(err); } }
+        if (c.state !== "running") { soundStuck(); return; }
+        // listening, but the microphone has stopped sending sound
+        if (CanadaRec.live && performance.now() - Math.max(CanadaRec.beat, CanadaRec.liveSince) > 3000) soundStuck();
+      } finally { stuckChecking = false; }
+    }
+    setInterval(() => { if (api.active() && !api.held() && SR === CanadaRec) checkSound(); }, 1500);
     const decode = (c, buf) => new Promise((ok, no) => { const pr = c.decodeAudioData(buf, ok, no); if (pr && pr.then) pr.then(ok, no); });
     async function cloudSpeak(text) {
       const c = ctx(); if (!c) return false;
@@ -1636,7 +1658,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           buf = await within(decode(c, await r.arrayBuffer()), 8000); clips.set(k, buf);
         }
         if (c.state !== "running") { try { await within(c.resume(), 1500); } catch (err) { console.warn("Sound didn't resume", err); } }
-        if (c.state !== "running") return false;
+        if (c.state !== "running") return "stuck";
         return await new Promise(res => {
           const n = c.createBufferSource(); n.buffer = buf; const g = c.createGain(); g.gain.value = 1; n.connect(g); g.connect(c.destination); src = n; srcGain = g;
           audioDone = () => { audioDone = null; src = null; srcGain = null; res(true); };
@@ -1676,7 +1698,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       quiet();
       const n = ++talkN; talkWords = new Set(words(text)); setTalk(true); log("speaking");
       if (!CanadaRec.live) CanadaRec.session("playback");
-      try { if (!(cloudOn && await cloudSpeak(text))) await browserSpeak(text); }
+      try {
+        const r = cloudOn ? await cloudSpeak(text) : false;
+        if (r === "stuck") { soundStuck(); return; }
+        if (!r) await browserSpeak(text);
+      }
       finally { if (n === talkN) setTalk(false); }
     };
     // Interrupting: on phones the speaker drowns out the microphone and iPhones turn the sound down
@@ -2057,7 +2083,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       canada: () => SR === CanadaRec, inPlace: () => inPlace,
       help: () => { if (!active) return false; if (held) { held = false; } helpNext = true; sayThen(say("help") + " " + say("helpAsk")); return true; },
       held: () => held, active: () => active, confirming: () => confirming, hasCarry: () => active && !!onCarry, carryFn: () => active ? onCarry : null, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
-      voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null, fixWords: null, onErase: null };
+      onStuck: null, voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null, fixWords: null, onErase: null };
     return api;
   })();
   const VOICE_MSG = {
@@ -2187,8 +2213,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   let greet = false, guideLine = "";
 
   const VSTAT = {
-    en: { tap: "Tap the big button to answer", speaking: "Speaking\u2026", listening: "Listening \u2014 go ahead", hearing: "Hearing you\u2026", writing: "Writing it down\u2026", paused: "Paused", confirm: "Is that right?", off: "Not listening right now", typing: "Type your answer" },
-    fr: { tap: "Touchez le grand bouton pour répondre", speaking: "Je parle\u2026", listening: "J'écoute \u2014 allez-y", hearing: "Je vous entends\u2026", writing: "J'écris\u2026", paused: "En pause", confirm: "Est-ce bien ça ?", off: "Je n'écoute pas pour l'instant", typing: "Écrivez votre réponse" }
+    en: { tap: "Tap the big button to answer", speaking: "Speaking\u2026", listening: "Listening \u2014 go ahead", hearing: "Hearing you\u2026", writing: "Writing it down\u2026", paused: "Paused", stuck: "The sound stopped. Tap Resume to carry on", confirm: "Is that right?", off: "Not listening right now", typing: "Type your answer" },
+    fr: { tap: "Touchez le grand bouton pour répondre", speaking: "Je parle\u2026", listening: "J'écoute \u2014 allez-y", hearing: "Je vous entends\u2026", writing: "J'écris\u2026", paused: "En pause", stuck: "Le son s'est arrêté. Touchez Reprendre pour continuer", confirm: "Est-ce bien ça ?", off: "Je n'écoute pas pour l'instant", typing: "Écrivez votre réponse" }
   };
   // while listening: "Hearing you..." during a phrase, "Writing it down..." while it's turned into words
   let micHearing = false, micWriting = 0, lastSt = "off";
@@ -2256,7 +2282,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (shown === "listening" && Voice.talking()) shown = "speaking";
     if (shown === "listening" && micHearing) shown = "hearing"; else if (shown === "listening" && micWriting) shown = "writing";
     if (typingNow && (st === "paused" || st === "off")) shown = "typing";
-    $("guide").dataset.st = shown === "hearing" || shown === "writing" ? "listening" : shown;
+    $("guide").dataset.st = shown === "hearing" || shown === "writing" ? "listening" : shown === "stuck" ? "paused" : shown;
     $("guide-state").textContent = L[shown] || VOICE_MSG[shown] || L.off;
     lastHeard = heard || "";
     showAnswer();
@@ -2412,6 +2438,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   Voice.onState = updateBar;
   // While the app is speaking, one big button cuts it off and starts listening.
   // Questions about the app or a question ("what does that mean?") are answered by Claude, only if the person agreed to Claude.
+  Voice.onStuck = () => guideView("stuck");
   Voice.onHelp = (q, current) => {
     if (S.consent !== true) return Promise.resolve(null);
     const ctl = new AbortController(); setTimeout(() => ctl.abort(), 12000);
