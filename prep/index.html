@@ -1377,6 +1377,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_ideas: "Here are some questions you might not think of. Tick the ones you want on the screen, then say next.",
       g_ideasmore: "Is there anything else you'd like to ask the doctor? Say it now, or just say next.",
       g_priority: "Which questions matter most to you? Tick them on the screen, then say next.",
+      backTo: "Now, back to the question.",
       g_review: "Would you like to change, fix or add anything? Say yes or no.",
       g_reviewMore: "Anything else to change or add? Say yes or no.",
       g_reviewWhich: "What would you like to change? Say the reason for the visit, your own words, what the doctor should hear, your health, your medicines, or your questions. Or say add a question, and then the question.",
@@ -1442,6 +1443,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_ideas: "Voici des questions auxquelles vous n'auriez peut-être pas pensé. Cochez celles que vous voulez à l'écran, puis dites suivant.",
       g_ideasmore: "Y a-t-il autre chose que vous aimeriez demander au médecin ? Dites-le maintenant, ou dites simplement suivant.",
       g_priority: "Quelles questions comptent le plus pour vous ? Cochez-les à l'écran, puis dites suivant.",
+      backTo: "Maintenant, revenons à la question.",
       g_review: "Voulez-vous changer, corriger ou ajouter quelque chose ? Dites oui ou non.",
       g_reviewMore: "Autre chose à changer ou à ajouter ? Dites oui ou non.",
       g_reviewWhich: "Qu'aimeriez-vous changer ? Dites la raison de la visite, vos mots, ce que le médecin doit savoir, votre santé, vos médicaments ou vos questions. Ou dites ajouter une question, puis la question.",
@@ -1901,6 +1903,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (!(target ? CARRY_T : CARRY_N).test(t) && !RE_GO.test(x)) { askHelp(x); return true; }
         return false;
       }
+      // a short request for a setting ("slow down please"), not part of an answer
+      if (api.onSetting && x.split(" ").length <= 7) { const said = api.onSetting(x); if (said) { if (api.onShowHelp) api.onShowHelp(said); sayThen(said + (lastQ ? " " + say("backTo") + " " + lastQ : "")); return true; } }
       const questionPage = target && /^(ask-\d+|ideas-new|pr-new|rc-more)$/.test(target.id);
       if (!questionPage && x.split(" ").length <= 25 && RE_ASK.test(x) && RE_ASK2.test(x) && api.onHelp) { askHelp(x); return true; }
       return false;
@@ -2223,7 +2227,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       help: () => { if (!active) return false; if (held) { held = false; } helpNext = true; if (api.onShowHelp) api.onShowHelp(say("help") + " " + say("helpAsk")); sayThen(say("help") + " " + say("helpAsk")); return true; },
       backToQ: () => { if (!active) return; helpNext = false; held = false; gen++; quiet(); if (lastQ) sayThen(lastQ); else startRec(); },
       held: () => held, active: () => active, confirming: () => confirming, hasCarry: () => active && !!onCarry, carryFn: () => active ? onCarry : null, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
-      onStuck: null, onShowHelp: null, voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null, fixWords: null, onErase: null };
+      onStuck: null, onShowHelp: null, onSetting: null, voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null, fixWords: null, onErase: null };
     return api;
   })();
   const VOICE_MSG = {
@@ -2725,7 +2729,42 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   Voice.onShowHelp = text => { $("guide-help-text").textContent = text; $("guide-help").hidden = false; };
   $("guide-help-back").addEventListener("click", () => { $("guide-help").hidden = true; Voice.backToQ(); updateBar(); });
   $("guide-help-how").addEventListener("click", () => { Voice.pause(); updateBar(); openJourney("how"); });
+  // Asking for a setting ("slow down", "give me more time", "a different voice") changes it right away.
+  function settingIntent(raw) {
+    const x = " " + String(raw || "").toLowerCase().replace(/[^a-zà-ÿ' ]+/g, " ").replace(/\s+/g, " ") + " ", fr = S.lang === "fr";
+    const has = re => re.test(x);
+    const sync = () => { const s1 = $("vs-s"), s2 = $("vs-n"); if (s1 && s2) (S.slowVoice ? s1 : s2).checked = true; };
+    if (has(/ (slow( [a-z']+){0,2} down|slower please|speak slower|talk slower|go slower|more slowly|(you('re| are)|you're going|you talk|you speak|talking|speaking|speech is) (too|so|a bit|a little) fast|too fast for me|slow the (speech|voice)|speak slow|talk slow|parle[rz]? (plus )?lentement|moins vite|trop vite) /)) {
+      S.slowVoice = true; save(); sync(); return fr ? "D'accord, je vais parler plus lentement." : "Okay, I'll speak more slowly.";
+    }
+    if (has(/ (speed (it )?up|faster please|speak faster|talk faster|go faster|(you('re| are)|you talk|you speak|talking|speaking) (too|so) slow|plus vite|trop lent) /)) {
+      S.slowVoice = false; save(); sync(); return fr ? "D'accord, je vais parler à vitesse normale." : "Okay, I'll speak at my normal speed.";
+    }
+    if (has(/ (more time|wait longer|don't rush|dont rush|not so quick|plus de temps|attend(s|ez) plus) /)) {
+      S.waitMs = Math.min(60000, Math.max(15000, (S.waitMs || 15000)) + 15000); save();
+      return fr ? `D'accord, j'attendrai ${S.waitMs / 1000} secondes avant de vérifier.` : `Okay, I'll wait ${S.waitMs / 1000} seconds before checking in.`;
+    }
+    if (has(/ (less time|wait less|don't wait so long|dont wait so long|moins de temps|attend(s|ez) moins) /)) {
+      S.waitMs = Math.max(10000, (S.waitMs || 15000) - 10000); save();
+      return fr ? `D'accord, j'attendrai ${S.waitMs / 1000} secondes.` : `Okay, I'll wait ${S.waitMs / 1000} seconds before checking in.`;
+    }
+    if (has(/ (stop me interrupting|don't let me interrupt|dont let me interrupt|no interrupting|interrupting off) /)) {
+      S.barge = false; save(); return fr ? "D'accord. Pour m'interrompre, touchez Laissez-moi parler." : "Okay. To stop me, tap Let me talk.";
+    }
+    if (has(/ (interrupt|talk over|talk while you|cut you off|vous interrompre|t'interrompre|parler pendant) /)) {
+      S.barge = true; save(); return fr ? "D'accord. Vous pouvez maintenant parler pendant que je parle, et je m'arrêterai." : "Okay. You can now start talking while I'm speaking, and I'll stop to listen.";
+    }
+    if (has(/ (different voice|another voice|change (the |your )?voice|other voice|autre voix|changer (de |la )?voix) /)) {
+      setTimeout(() => $("change-voice").click(), 0); return fr ? "D'accord, j'essaie une autre voix." : "Okay, trying a different voice.";
+    }
+    if (has(/ (in french|en français|en francais|parle français|parlez français) /) && !fr) { setTimeout(() => $("change-lang").click(), 0); return "D'accord, on continue en français."; }
+    if (has(/ (in english|en anglais) /) && fr) { setTimeout(() => $("change-lang").click(), 0); return "Okay, let's carry on in English."; }
+    if (has(/ (louder|too quiet|can't hear you|cant hear you|volume|plus fort) /)) return fr ? "Montez le volume avec les boutons sur le côté de votre téléphone, ou sur votre clavier." : "Turn the volume up with the buttons on the side of your phone, or on your keyboard.";
+    return null;
+  }
+  Voice.onSetting = settingIntent;
   Voice.onHelp = (q, current) => {
+    const set = settingIntent(q); if (set) return Promise.resolve(set);
     if (S.consent !== true) return Promise.resolve(null);
     const ctl = new AbortController(); setTimeout(() => ctl.abort(), 12000);
     return fetch("/api/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
@@ -4192,6 +4231,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const text = $("hp-q").value.trim(), out = $("hp-a");
       if (!text) { $("hp-q").focus(); return; }
       out.hidden = false;
+      const set = settingIntent(text); if (set) { out.textContent = set; return; }
       if (S.consent !== true) {
         out.innerHTML = `<p>Answering questions uses Claude, which is turned off.</p><button type="button" class="btn secondary" id="hp-on">Turn Claude on and ask</button>`;
         $("hp-on").addEventListener("click", () => { S.consent = true; save(); $("hp-ask").click(); });
