@@ -2286,6 +2286,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   function show(step) {
     step = skipSame(step);
+    // arriving at "What matters most?" from the steps before: start with nothing ticked except the questions
+    // starred as most important (coming back to it, via Back or Change, keeps the choices)
+    if (step >= 0 && STEPS[step] && STEPS[step].id === "priority" && step > S.step) { S.important = S.ask.filter(q => q.top && q.t.trim()).map(q => q.t.trim()); S.prioSeen = true; }
     if (S.ask.some(q => q.t.trim())) { const m = mergeAsk(S.ask); if (m.length !== S.ask.length || m.some((q, i) => q.t !== S.ask[i].t)) { const imp = S.important; S.ask = m; S.important = imp.map(x => (m.find(q => q.t.toLowerCase().startsWith(x.toLowerCase().replace(/[.?!,;:]+$/, "").slice(0, 25))) || {}).t || x); } }
     typingNow = false; listOn = null; Voice.stop(); $("mic-msg").textContent = ""; $("mic-help").hidden = true;
     $("guide").hidden = !isVoice();
