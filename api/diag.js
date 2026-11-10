@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   const keep = {};
-  for (const k of ['reason', 'ctx', 'live', 'beatAge', 'track', 'muted', 'step', 'mode', 'ua', 'session', 'v']) {
+  for (const k of ['reason', 'ctx', 'live', 'beatAge', 'track', 'muted', 'step', 'mode', 'ua', 'session', 'clock', 'v']) {
     if (body && body[k] !== undefined) keep[k] = String(body[k]).slice(0, 200);
   }
   console.warn('wellheard-diag ' + JSON.stringify(keep));
