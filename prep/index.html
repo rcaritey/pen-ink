@@ -1337,6 +1337,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const b = blank();
     if (!x || typeof x !== "object") return b;
     ["who", "seeing", "date", "time", "purpose", "story"].forEach(k => b[k] = str(x[k]));
+    b.who = b.who.replace(/[.,!?;:]+$/, "");
     b.time = toTime24(b.time);
     b.mode = x.mode === "voice" || x.mode === "type" ? x.mode : "";
     b.voiceName = str(x.voiceName);
@@ -2243,6 +2244,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
              .replace(/(?:\b\p{L}\b[\s.,\-]*){2,}/gu, m => { const w = m.replace(/[^\p{L}]/gu, ""); return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() + " "; })
              .replace(/\s+/g, " ").trim();
         t = t.replace(/\b(\p{Lu})(\p{Lu}+)\b/gu, (m, x, y) => x + y.toLowerCase());
+        t = t.replace(/^(my name is|i'm|i am|it's|je m'appelle|c'est)\s+/i, "").replace(/[.,!?;:]+$/, "");   // "Rama." -> "Rama"
       }
       // "Erase" said on its own. Voice typing often hears it as "a race", "the race", "erased", "he raised"...
       if (ERASE_ALL.test(t) && !listNext && target.value.trim()) {
