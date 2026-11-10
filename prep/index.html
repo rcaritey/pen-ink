@@ -1941,7 +1941,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           if (el.required && !el.value.trim()) { if (!bargeOn()) pauseRec(); view("speaking"); const g = gen; await speak(say("sorry")); if (active && !held && g === gen) startRec(); return; }
           stop(); if (next) next(); return;
         }
-        confirming = true; if (!bargeOn()) pauseRec(); view("confirm");
+        // "fix" pages only ask "Is that right?" when a word was corrected, so don't show the question until then
+        const always = readback !== "fix";
+        if (always) confirming = true;
+        if (!bargeOn()) pauseRec(); view(always ? "confirm" : "writing");
         let heard = said, fixes = []; const g = gen;
         if (api.fixWords) {
           // on list pages, check every line of the list
@@ -1956,7 +1959,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         }
         // only read back when it matters: always for names, dates and medicines; elsewhere only when a
         // misheard word was corrected (the words are on the screen in "What I heard" either way)
-        if (readback === "fix" && !(fixes || []).length) { confirming = false; stop(); if (next) next(); return; }
+        if (!always && !(fixes || []).length) { confirming = false; stop(); if (next) next(); return; }
+        confirming = true; view("confirm");
         const heardText = shortSaid(heard);
         await speak(say("heard") + " " + heardText + (/[.!?…]$/.test(heardText) ? " " : ". ") + say("heardQ"));
         if (active && !held && g === gen) { view("confirm"); startRec(); }
