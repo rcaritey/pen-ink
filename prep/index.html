@@ -150,6 +150,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
 .rec-dot.on { animation: recblink 1.2s infinite; }
 @keyframes recblink { 50% { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { .rec-dot.on { animation: none; } }
+.btn.primary .rec-dot { background: #ff8a80; box-shadow: 0 0 0 2px #fff; }
 .btn.rec-big { width: 100%; font-size: 1.15rem; padding: 16px; }
 .rec-live { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .mic-meter { display: none; width: 64px; height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; flex: none; }
@@ -955,12 +956,6 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <!-- IN THE ROOM 2 -->
   <section class="screen" id="s-visit" hidden>
     <h2>At the appointment</h2>
-    <ol class="ready">
-      <li>When you sit down, say: <span class="say-inline">"I have some questions I'd like to go through. May I start?"</span></li>
-      <li>Hand the doctor your <b>Summary for the doctor</b>.</li>
-      <li>Ask your questions from <b>My page</b>.</li>
-      <li>Want to record? Ask first.</li>
-    </ol>
     <div class="card no-print" id="rec-card">
       <h3>Record the visit</h3>
       <p>Ask first: <span class="say-inline">"Is it okay if I record this, so I don't miss anything? Only the words are kept."</span></p>
@@ -985,6 +980,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       </div>
       <p class="muted small" style="margin-top:10px">The sound goes to Microsoft in Canada to be turned into words, and isn't saved. Only the words are kept, on this device. You can also record with your phone's own recorder and upload it after.</p>
     </div>
+    <h3 style="margin-top:20px">Then</h3>
+    <ol class="ready">
+      <li>When you sit down, say: <span class="say-inline">"I have some questions I'd like to go through. May I start?"</span></li>
+      <li>Hand the doctor your <b>Summary for the doctor</b>.</li>
+      <li>Ask your questions from <b>My page</b>.</li>
+    </ol>
     <div class="hint">Back home? Tap <b>I'm back from the appointment</b>.</div>
     <div class="card no-print">
       <p class="muted">Not this appointment after all?</p>
