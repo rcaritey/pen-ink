@@ -1628,8 +1628,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       else if (!document.hidden && autoPaused) { autoPaused = false; if (api.active() && api.held()) { log("back, carrying on"); api.resume(); if (api.onState) api.onState(); } }
     });
     // phones only allow sound that starts from a tap, so wake the sound system on every tap until it's running
+    let soundBroke = false;
     const unlock = () => {
-      const c = ctx(); if (!c) return;
+      let c = ctx(); if (!c) return;
+      // after the sound has stopped once, an iPhone often won't restart the same sound system even from a tap:
+      // replace it with a new one, made during the tap so the phone allows it
+      if (c.state !== "running" && (soundBroke || c.state === "interrupted" || c.state === "closed")) {
+        log("new sound system"); diag("new-sound-system-" + c.state);
+        try { c.onstatechange = null; c.close().catch(() => {}); } catch (err) { console.warn(err); }
+        actx = null; c = ctx(); if (!c) return; soundBroke = false;
+      }
       if (c.state !== "running") c.resume().catch(() => {});
       try { const b = c.createBuffer(1, 1, 22050), n = c.createBufferSource(); n.buffer = b; n.connect(c.destination); n.start(0); } catch (err) { console.warn(err); }
     };
@@ -1648,7 +1656,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       } catch (err) { console.warn(err); }
     }
     function soundStuck(reason) {
-      log("sound stopped");
+      log("sound stopped"); soundBroke = true;
       diag(reason || "speak-failed");
       if (!api.active() || api.held()) return;
       api.pause(); if (api.onStuck) api.onStuck();
