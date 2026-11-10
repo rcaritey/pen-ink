@@ -1215,6 +1215,39 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     bg: { conditions: "", changes: "", team: "", allergies: "" }, meds: [{ n: "", d: "", w: "", o: false }] }, blankVisit());
   // A tidied note must still be the same note: mostly the same words, not much longer. Anything else (a note
   // that picked up words from another one) is thrown away and the patient's own words are used.
+  // Voice typing cuts a question wherever the speaker pauses: "Are there any? Remedies..." or one question
+  // split over two lines ("...is there a way to?" / "Get rid of the. Pain altogether."). A line or piece that
+  // ends on a word a sentence can't end on ("to", "the", "any") is joined to what follows.
+  const DANGLE = "a an the to of for with and or but about any some my your our his her their is are was were be been am that this these those if in on at from by as than so very really more less because which who whom what how when where why can could should would will do does did there its it's i'm get got have has had not no just also like into onto after before during while without".split(" ");
+  function endsDangling(t) { const w = String(t).trim().replace(/[.?!,;:]+$/, "").split(/\s+/).pop() || ""; return DANGLE.includes(w.toLowerCase()); }
+  function joinPieces(t) {
+    let out = String(t), prev;
+    do { prev = out; out = out.replace(/\b([A-Za-z']+)[.?!]\s+(\p{Lu})(\p{Ll}*)/u, (m, w, c, rest) => DANGLE.includes(w.toLowerCase()) && !(c === "I" && !rest) ? w + " " + c.toLowerCase() + rest : m); } while (out !== prev);
+    return out;
+  }
+  function mergeFragments(list) {   // list of strings -> list of strings
+    const out = [];
+    list.forEach(raw => {
+      const t = joinPieces(String(raw).trim()); if (!t) return;
+      if (out.length && endsDangling(out[out.length - 1])) {
+        const head = out[out.length - 1].replace(/[.?!,;:]+$/, ""), tail = t.charAt(0) === "I" && /^I\b/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1);
+        out[out.length - 1] = joinPieces(head + " " + tail);
+      } else out.push(t);
+    });
+    return out;
+  }
+  function mergeAsk(asks) {   // keeps "most important" marks: a merged question is important if either piece was
+    const out = [];
+    asks.forEach(q => {
+      const t = joinPieces(String(q.t).trim()); if (!t) { out.push({ t: "", top: q.top }); return; }
+      const last = [...out].reverse().find(x => x.t);
+      if (last && endsDangling(last.t)) {
+        last.t = mergeFragments([last.t, t])[0]; last.top = last.top || q.top;
+      } else out.push({ t, top: q.top });
+    });
+    out.forEach(q => { if (/^(are|is|can|could|should|would|will|do|does|did|what|how|why|when|where|who|which|may|might|have|has)\b/i.test(q.t) && /\.$/.test(q.t)) q.t = q.t.replace(/\.$/, "?"); });
+    return out.filter(q => q.t).length ? out.filter(q => q.t) : asks;
+  }
   function tidyOk(orig, tidied) {
     const W = t => String(t).toLowerCase().replace(/[^a-z0-9à-ÿ' ]+/g, " ").split(/\s+/).filter(w => w.length > 3);
     const o = new Set(W(orig)), t = W(tidied);
@@ -1245,7 +1278,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (x.bg && typeof x.bg === "object") ["conditions", "changes", "team", "allergies"].forEach(k => b.bg[k] = str(x.bg[k]));
     if (Array.isArray(x.meds) && x.meds.length) b.meds = x.meds.map(m => ({ n: str(m && m.n), d: str(m && m.d), w: str(m && m.w), o: !!(m && m.o) }));
     if (Array.isArray(x.tell) && x.tell.length) b.tell = x.tell.map(str);
-    if (Array.isArray(x.ask) && x.ask.length) b.ask = x.ask.map(q => ({ t: str(q && q.t), top: !!(q && q.top) }));
+    if (Array.isArray(x.ask) && x.ask.length) b.ask = mergeAsk(x.ask.map(q => ({ t: str(q && q.t), top: !!(q && q.top) })));
     if (Array.isArray(x.sugg)) b.sugg = x.sugg.filter(i => Number.isInteger(i) && i >= 0 && i < SUGGESTIONS.length);
     if (Array.isArray(x.ai)) b.ai = x.ai.map(q => ({ q: str(q && q.q), why: str(q && q.why), on: !!(q && q.on) })).filter(q => q.q);
     b.aiFetched = !!x.aiFetched && b.ai.length > 0;
@@ -2050,7 +2083,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if (listNext && SR === CanadaRec && target) {
         if (target && !target.isConnected && target.id && document.getElementById(target.id)) target = document.getElementById(target.id);
         if (target.value.trim()) {
-          if (lastGap > 2000) {   // a real pause (2 seconds or more): new line
+          if (lastGap > 2000 && !endsDangling(target.value)) {   // a real pause (2 seconds or more), at the end of a sentence: new line
             if (turnWords.length) turnWords[turnWords.length - 1] = turnWords[turnWords.length - 1].replace(/[.;,]?$/, ";");
             target = listNext(); turnStartVal = target.value; view("listening");
           } else {                // a breath: same line, and join the words ("...with my hair? Loss that..." -> "...with my hair loss that...")
@@ -2204,6 +2237,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const screens = { welcome: $("s-welcome") };
   STEPS.forEach(s => screens[s.id] = $("s-" + s.id));
   function show(step) {
+    if (S.ask.some(q => q.t.trim())) { const m = mergeAsk(S.ask); if (m.length !== S.ask.length || m.some((q, i) => q.t !== S.ask[i].t)) { const imp = S.important; S.ask = m; S.important = imp.map(x => (m.find(q => q.t.toLowerCase().startsWith(x.toLowerCase().replace(/[.?!,;:]+$/, "").slice(0, 25))) || {}).t || x); } }
     typingNow = false; listOn = null; Voice.stop(); $("mic-msg").textContent = ""; $("mic-help").hidden = true;
     $("guide").hidden = !isVoice();
     S.step = step; S.stepId = step >= 0 ? STEPS[step].id : ""; save();
