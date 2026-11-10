@@ -181,31 +181,32 @@ const HELP_SCHEMA = {
   additionalProperties: false,
 };
 
-const TIDY = `You tidy a patient's own notes for the pages they will take to a medical appointment. The notes were spoken out loud and turned into text by voice typing.
+const TIDY = `You tidy a patient's own notes for the pages they will take to a medical appointment. The notes were spoken out loud and turned into text by voice typing, often by an older person, so they have false starts, repeated words, broken fragments and misheard words.
 For each item return:
-- "t": the same note, tidied for the doctor's page. Fix spelling, obvious voice-typing errors, missing punctuation and run-on sentences. Remove filler words ("um", "like", "you know", "well just that"). Keep the first-person voice ("I").
-- "b": a very short version for the patient's own reminder page, at most 12 words, for example "Right hand: about 65% strength, no change in 6 months".
+- "t": the note as a clean, clear sentence or two for the doctor's page, in the patient's first-person voice ("I"). Fix spelling, misheard words, punctuation and run-on sentences. Remove filler ("um", "so", "like", "you know", "OK", "that's all", "continue", "next"), false starts, repeated words, and broken fragments that carry no meaning ("It no.", "Those are the. Must and also.", an unfinished "and it coincides with" at the end). Put pieces said in the wrong order back into one natural sentence when the meaning is plain.
+- "b": a very short version for the patient's own reminder page, at most 12 words, for example "Right hand: about 65% strength, no change in 6 months". For a person or place ("I see a neurologist. The neurologist."), just the name or role: "Neurologist".
+- "x": true only when the item is not meant for the doctor at all: words spoken to the app or to someone in the room ("Can you go back please? Use a back button too."), or a stray word or two with no meaning ("Budg."). Otherwise false. When unsure, false.
 Rules, most important first:
 - Return exactly one result per item, in the same order as the items. Tidy each item on its own: never move words from one item into another, never combine or split items.
-- Never change the meaning. Never add information, never interpret, never soften or exaggerate, never give advice.
-- Keep every medication name, dose, number, date, body part and time exactly as given.
+- Never change the meaning. Never add information, never interpret, never soften or exaggerate, never give advice. Leave out only words that add nothing.
+- Keep every dose, number, date, body part and time exactly as given. Fix the spelling of a medicine or condition only when the intended one is unmistakable ("Sertaline" is "Sertraline", "myotonic Distrophy" is "myotonic dystrophy").
 - Keep the patient's own descriptive words ("more of an ache", "a little tingling").
-- An item may start with a short label and a colon ("When it started: ..."). Keep the label in "t" and leave it out of "b".
-- Voice typing sometimes splits one sentence into pieces in the wrong order ("Six months ago. I have had a hand injury about"). Put the pieces back into one natural sentence ("I had a hand injury about six months ago.") when the meaning is plain.
-- A list of people or places said in one go ("Neurologist GP. Therapist.") becomes a list separated by commas ("Neurologist, GP, therapist").
-- If a label before the colon would not make sense to a doctor on its own, you may reword the label so it says what was asked. Never change the answer after the colon.
-- If an item is unclear, keep its words as they are rather than guess.
-- Write in the same language as the item. Return the items in the same order, one result per item.`;
+- An item may start with a short label and a colon ("When it started: ..."). Keep a label in "t" and leave it out of "b". If the answer after the colon only makes sense with the question ("Mood past two weeks: At least two or three times"), reword the label so the line makes sense on its own ("Low mood in the past two weeks: at least two or three times").
+- A list of people, places or conditions said in one go ("Neurologist GP. Therapist.") becomes a list separated by commas ("Neurologist, GP, therapist").
+- If an item is unclear, keep its meaningful words rather than guess.
+- Write in the same language as the item.
+Also return "meds": one entry per name in the medicine list, in the same order: the name spelled correctly with standard capitals ("Levodopa cr" is "Levodopa CR", "Sertaline" is "Sertraline", "Vitamin. Vitamin B12" is "Vitamin B12", "Multi vitamins" is "Multivitamin"). Keep any strength that is part of the name. If you are not sure which medicine is meant, return the name unchanged.`;
 
 const TIDY_SCHEMA = {
   type: 'object',
   properties: {
     items: {
       type: 'array',
-      items: { type: 'object', properties: { t: { type: 'string' }, b: { type: 'string' } }, required: ['t', 'b'], additionalProperties: false },
+      items: { type: 'object', properties: { t: { type: 'string' }, b: { type: 'string' }, x: { type: 'boolean' } }, required: ['t', 'b', 'x'], additionalProperties: false },
     },
+    meds: { type: 'array', items: { type: 'string' } },
   },
-  required: ['items'],
+  required: ['items', 'meds'],
   additionalProperties: false,
 };
 
@@ -322,11 +323,13 @@ export default async function handler(req, res) {
     // ---- tidy the patient's notes for the printed pages (same meaning, clearer words, plus a short reminder)
     if (mode === 'tidy') {
       const items = Array.isArray(body.items) ? body.items.slice(0, 60).map((v) => clean(v, LIMITS.detail * 2)).filter(Boolean) : [];
-      if (!items.length) return res.status(200).json({ ok: true, items: [] });
-      const out = await askClaude(TIDY, `Items (JSON array):\n${JSON.stringify(items)}`, TIDY_SCHEMA, 6000);
-      const got = Array.isArray(out.items) ? out.items.map((x) => ({ t: clean(x && x.t, LIMITS.detail * 2), b: clean(x && x.b, 160) })) : [];
+      const meds = Array.isArray(body.meds) ? body.meds.slice(0, 40).map((v) => clean(v, 120)).filter(Boolean) : [];
+      if (!items.length && !meds.length) return res.status(200).json({ ok: true, items: [], meds: [] });
+      const out = await askClaude(TIDY, `Items (JSON array):\n${JSON.stringify(items)}\n\nMedicine list (JSON array):\n${JSON.stringify(meds)}`, TIDY_SCHEMA, 8000);
+      const got = Array.isArray(out.items) ? out.items.map((x) => ({ t: clean(x && x.t, LIMITS.detail * 2), b: clean(x && x.b, 160), x: !!(x && x.x) })) : [];
       if (got.length !== items.length) return res.status(502).json({ ok: false, error: 'The tidy-up came back incomplete. Your own words are used instead.' });
-      return res.status(200).json({ ok: true, items: got });
+      const gm = Array.isArray(out.meds) && out.meds.length === meds.length ? out.meds.map((v) => clean(v, 120)) : meds;
+      return res.status(200).json({ ok: true, items: got, meds: gm });
     }
 
     // ---- after the visit: fill in the recap from a transcript of the appointment

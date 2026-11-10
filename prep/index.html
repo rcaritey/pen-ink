@@ -1263,7 +1263,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     chg: { bg: "", meds: "", medNote: "" },
     recap: { said: "", open: [], more: "", todo: [""], nextWith: "", nextDate: "", nextTime: "", answers: [], also: [], contact: "", transcript: "", via: "" },
     first: "", important: [], prioSeen: false });
-  const blank = () => Object.assign({ v: 3, step: -1, stepId: "", waitMs: 15000, slowVoice: false, barge: null, mode: "", consent: null, detailGo: false, who: "", carried: false, voiceName: "", lang: "en", docLang: "en", tr: {}, tidy: {}, fixOff: false,
+  const blank = () => Object.assign({ v: 3, step: -1, stepId: "", waitMs: 15000, slowVoice: false, barge: null, mode: "", consent: null, detailGo: false, who: "", carried: false, voiceName: "", lang: "en", docLang: "en", tr: {}, tidy: {}, tidyV: 2, medFix: {}, fixOff: false,
     bg: { conditions: "", changes: "", team: "", allergies: "" }, meds: [{ n: "", d: "", w: "", o: false }] }, blankVisit());
   // A tidied note must still be the same note: mostly the same words, not much longer. Anything else (a note
   // that picked up words from another one) is thrown away and the patient's own words are used.
@@ -1300,6 +1300,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     out.forEach(q => { if (/^(are|is|can|could|should|would|will|do|does|did|what|how|why|when|where|who|which|may|might|have|has)\b/i.test(q.t) && /\.$/.test(q.t)) q.t = q.t.replace(/\.$/, "?"); });
     return out.filter(q => q.t).length ? out.filter(q => q.t) : asks;
   }
+  // a medicine name's spelling fix: only small changes ("Sertaline" -> "Sertraline"), never a different medicine
+  function closeName(a, b) {
+    const n = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, ""), x = n(a), y = n(b);
+    if (!y) return false; if (x === y) return true;
+    const d = Array.from({ length: x.length + 1 }, (_, i) => [i]);
+    for (let j = 1; j <= y.length; j++) d[0][j] = j;
+    for (let i = 1; i <= x.length; i++) for (let j = 1; j <= y.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+    const dist = d[x.length][y.length];
+    return dist <= Math.max(2, Math.round(Math.max(x.length, y.length) * 0.3)) || (y.includes(x) && y.length - x.length <= 7) || (x.includes(y) && x.length - y.length <= 9);
+  }
   function tidyOk(orig, tidied) {
     const W = t => String(t).toLowerCase().replace(/[^a-z0-9à-ÿ' ]+/g, " ").split(/\s+/).filter(w => w.length > 3);
     const o = new Set(W(orig)), t = W(tidied);
@@ -1320,7 +1330,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     b.voiceV2 = x.voiceV2 ? 1 : 0;
     b.lang = x.lang === "fr" ? "fr" : "en"; b.docLang = x.docLang === "fr" ? "fr" : "en"; b.fixOff = !!x.fixOff;
     if (x.tr && typeof x.tr === "object") Object.keys(x.tr).slice(0, 600).forEach(k => { if (typeof x.tr[k] === "string") b.tr[k] = x.tr[k]; });
-    if (x.tidy && typeof x.tidy === "object") Object.keys(x.tidy).slice(0, 400).forEach(k => { const v = x.tidy[k]; if (v && typeof v.t === "string" && tidyOk(k, v.t)) b.tidy[k] = { t: v.t, b: str(v.b) }; });
+    // tidy-ups from before 10 Nov 2026 were too timid: they are redone (tidyV 2)
+    if (x.tidyV === 2 && x.medFix && typeof x.medFix === "object") Object.keys(x.medFix).slice(0, 80).forEach(k => { if (typeof x.medFix[k] === "string" && closeName(k, x.medFix[k])) b.medFix[k] = x.medFix[k]; });
+    if (x.tidyV === 2 && x.tidy && typeof x.tidy === "object") Object.keys(x.tidy).slice(0, 400).forEach(k => { const v = x.tidy[k]; if (v && typeof v.t === "string" && tidyOk(k, v.t)) b.tidy[k] = { t: v.t, x: !!v.x, b: str(v.b) }; });
     b.detailGo = !!x.detailGo;
     b.consent = x.consent === true ? true : x.consent === false ? false : null;
     if (typeof x.stepId === "string" && x.stepId) b.step = STEPS.findIndex(s => s.id === x.stepId);
@@ -3324,6 +3336,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   function tidyMeds() {
     let changed = false;
     S.meds.forEach(m => { if (m.n.trim() && !m.d.trim() && !m.w.trim() && (DOSE.test(m.n) || new RegExp(WHEN.source, "i").test(m.n))) { Object.assign(m, parseMed(m.n)); changed = true; } });
+    // "Vitamin B" then "12": voice typing split one name at a comma
+    for (let k = S.meds.length - 1; k > 0; k--) {
+      const m = S.meds[k], prev = S.meds[k - 1];
+      if (!/^\d{1,3}[a-z]?$/i.test(m.n.trim()) || !!m.o !== !!prev.o || !/[a-z]$/i.test(prev.n.trim())) continue;
+      prev.n = prev.n.trim() + m.n.trim(); if (!prev.d.trim()) prev.d = m.d; if (!prev.w.trim()) prev.w = m.w; S.meds.splice(k, 1); changed = true;
+    }
     // "Dexamphetamine" then, after a pause, "5 milligrams in the morning": the second line is the first one's dose
     for (let k = S.meds.length - 1; k > 0; k--) {
       const m = S.meds[k], prev = S.meds[k - 1];
@@ -3660,7 +3678,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 
   // ---------- sheets ----------
   function allQuestions() {
-    const own = S.ask.filter(q => q.t.trim()).map(q => ({ t: q.t.trim(), top: q.top }));
+    const own = S.ask.filter(q => q.t.trim() && !dropped(q.t)).map(q => ({ t: q.t.trim(), top: q.top }));
     const ai = S.ai.filter(q => q.on).map(q => ({ t: q.q, top: false }));
     const extra = S.sugg.slice().sort((a, b) => a - b).filter(i => i !== RECORD_Q).map(i => ({ t: sug(i), top: false }));
     const seen = new Set(), all = [];
@@ -3741,14 +3759,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   $("pr-add").addEventListener("click", () => checkThenAdd("pr-new", "pr-check", t => {
     S.ask = S.ask.filter(q => q.t.trim()); S.ask.push({ t, top: false }); save(); renderPriority();
   }));
+  const seeingT = () => S.lang === "fr" ? S.seeing : tidyB(S.seeing).replace(/[.]$/, "");
   function header(title) {
-    const bits = [S.seeing, fmtDate(S.date), fmtTime(S.time)].filter(x => x && x.trim()).map(esc);
+    const bits = [seeingT(), fmtDate(S.date), fmtTime(S.time)].filter(x => x && x.trim()).map(esc);
     return `<h2>${esc(title)}${S.who.trim() ? " · " + esc(S.who) : ""}</h2>${bits.length ? `<div class="meta">${bits.map(b => `<span>${b}</span>`).join("")}</div>` : ""}`;
   }
   function medsHTML() {
     const m = S.meds.filter(x => x.n.trim());
     if (!m.length) return `<p class="empty">No medications listed.</p><div class="blank"></div><div class="blank"></div>`;
-    return `<ul>${m.map(x => `<li>${esc(x.n.trim().replace(/[.,;:]+$/, ""))}, ${x.d.trim() ? esc(x.d) : "dose: ________"}${x.w.trim() ? ", " + esc(x.w) : ""}</li>`).join("")}</ul>`;
+    return `<ul>${m.map(x => `<li>${esc(medName(x.n))}, ${x.d.trim() ? esc(x.d) : "dose: ________"}${x.w.trim() ? ", " + esc(x.w) : ""}</li>`).join("")}</ul>`;
   }
   const lines = t => t.split(/\n+/).map(s => s.trim()).filter(Boolean);
   // ---------- translations (French answers -> doctor's language), kept on the device ----------
@@ -3803,21 +3822,27 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     return w.length > 14 ? w.slice(0, 12).join(" ") + "…" : first;
   }
   const tidyT = x => { const k = (x || "").trim(); if (!k) return ""; return (S.tidy[k] && S.tidy[k].t) || localTidy(k); };
+  // something said to the app, or a stray word, rather than a note for the doctor ("Can you go back please?", "Budg.")
+  const dropped = x => { const k = (x || "").trim(), r = S.tidy[k]; return !!(r && r.x) || (!/\?/.test(k) && k.split(/\s+/).length < 2 && k.indexOf(": ") === -1 && k.length <= 5); };
+  const medName = n => { const k = n.trim(); return (S.medFix[k] || k.replace(/\b(\w+)[.,]?\s+(?=\1\b)/gi, "")).replace(/[.,;:]+$/, ""); };
+  const medKey = n => medName(n).toLowerCase().replace(/vitamins?|tablets?|supplements?/g, "").replace(/[^a-z0-9]+/g, "").replace(/s$/, "");
   const tidyB = x => { const k = (x || "").trim(); if (!k) return ""; return (S.tidy[k] && S.tidy[k].b) || localBrief(k); };
   let tidyBusy = false;
   async function ensureTidy(statusId) {
     if (S.consent !== true || S.lang === "fr" || tidyBusy) return false;   // French answers are translated instead
     const own = S.ask.map(q => q.t.trim()).filter(Boolean);
-    const items = [...new Set([...S.tell.map(t => t.trim()), ...own, S.purpose.trim(), S.bg.changes.trim(), S.bg.team.trim(), S.bg.allergies.trim(), S.story.trim()].filter(Boolean))].filter(x => !S.tidy[x]);
-    if (!items.length) return false;
+    const items = [...new Set([...S.tell.map(t => t.trim()), ...own, S.purpose.trim(), S.seeing.trim(), ...lines(S.bg.conditions), S.bg.changes.trim(), S.bg.team.trim(), S.bg.allergies.trim(), S.story.trim()].filter(Boolean))].filter(x => !S.tidy[x]);
+    const meds = [...new Set(S.meds.map(m => m.n.trim()).filter(Boolean))].filter(n => !(n in S.medFix));
+    if (!items.length && !meds.length) return false;
     tidyBusy = true;
     const st = $(statusId); if (st) st.textContent = "Tidying the wording on your pages. Your meaning stays the same…";
     try {
-      const data = await callApi({ mode: "tidy", items });
+      const data = await callApi({ mode: "tidy", items, meds });
       const nm = s2 => String(s2 || "").replace(/\[name\]/g, S.who.trim() || "the patient");
       // one result per note, in order; if the count is off, the results can't be matched to the notes safely
       if (Array.isArray(data.items) && data.items.length === items.length)
-        items.forEach((x, i) => { const r = data.items[i]; if (r && r.t && tidyOk(x, r.t)) S.tidy[x] = { t: nm(r.t), b: nm(r.b) }; });
+        items.forEach((x, i) => { const r = data.items[i]; if (r && r.t && tidyOk(x, r.t)) S.tidy[x] = { t: nm(r.t), b: nm(r.b), x: !!r.x }; });
+      if (Array.isArray(data.meds) && data.meds.length === meds.length) meds.forEach((n, i) => { S.medFix[n] = closeName(n, data.meds[i]) ? data.meds[i] : n; });
       save(); if (st) st.textContent = "";
       return true;
     } catch (err) {
@@ -3832,7 +3857,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const D = x => S.lang === "fr" ? tr(x, S.docLang) : tidyT(x), P = x => S.lang === "fr" ? tr(x, S.lang) : tidyT(x);
     const B = x => S.lang === "fr" ? tr(x, S.lang) : tidyB(x);
     const both = x => { const d = D(x), p = P(x); return d === p ? esc(d) : `${esc(d)}<span class="tr-line">${esc(p)}</span>`; };
-    const tell = S.tell.filter(t => t.trim());
+    const tell = S.tell.filter(t => t.trim() && !dropped(t));
     // answers like "not sure" help the family, but are noise for the doctor
     const UNSURE = /^(not sure|unsure|i'?m not sure|don'?t know|i don'?t know|no idea|can'?t say)\W*$/i;
     const facts = tell.filter(t => { const i = t.indexOf(": "); return !UNSURE.test((i > -1 ? t.slice(i + 2) : t).trim()); });
@@ -3864,15 +3889,19 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         <p style="margin-top:6px">${S.lang === "fr" ? "Qui et comment" : "Who and how"}: ________________________________</p></section>
       <section><h3>My notes: what the doctor says</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div><div class="blank"></div>
         <p style="margin-top:8px">Next appointment: ______________________</p></section>`;
-    const cond = lines(S.bg.conditions).map(x => (S.lang === "fr" ? tr(x, S.docLang) : x).replace(/[.;,]+$/, ""));
+    const cond = lines(S.bg.conditions).map(x => (S.lang === "fr" ? tr(x, S.docLang) : tidyT(x)).replace(/[.;,]+$/, ""));
     const dl = rows => `<dl class="dl">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>`;
     const W = w => S.lang === "fr" ? tr(w, S.docLang) : w;
-    const medLine = x => esc([x.n.trim().replace(/[.,;:]+$/, ""), x.d.trim() || "dose not known", W(x.w)].filter(v => v && v.trim()).join(", "));
-    const medsD = S.meds.filter(x => x.n.trim() && !x.o).map(medLine), otcD = S.meds.filter(x => x.n.trim() && x.o).map(medLine);
+    // no "dose not known" on every line: a name with no dose speaks for itself, with one note under the list
+    const medLine = x => esc([medName(x.n), x.d.trim(), W(x.w)].filter(v => v && v.trim()).join(", "));
+    const medsIn = S.meds.filter(x => x.n.trim() && !x.o), mk = new Set(medsIn.map(x => medKey(x.n)));
+    const otcIn = S.meds.filter(x => x.n.trim() && x.o).filter(x => { const k = medKey(x.n); if (mk.has(k)) return false; mk.add(k); return true; });
+    const medsD = medsIn.map(medLine), otcD = otcIn.map(medLine);
+    const noDose = medsIn.concat(otcIn).some(x => !x.d.trim()) ? '<br><span class="empty">No dose listed: the patient wasn\'t sure.</span>' : "";
     const qD = top.concat(rest).slice(0, 8);
     const lined = n => `<div class="ans-lines" aria-hidden="true">${'<div class="blank"></div>'.repeat(n)}</div>`;
     $("sheet-d").innerHTML = `<h2>Patient summary${S.who.trim() ? " · " + esc(S.who) : ""}</h2>
-      <div class="meta">${[S.seeing, fmtDate(S.date), fmtTime(S.time)].filter(x => x && x.trim()).map(x => `<span>${esc(x)}</span>`).join("")}</div>
+      <div class="meta">${[seeingT(), fmtDate(S.date), fmtTime(S.time)].filter(x => x && x.trim()).map(x => `<span>${esc(x)}</span>`).join("")}</div>
       <section><h3>Reason for visit</h3><p>${esc(D(S.purpose)) || '<span class="empty">Not given</span>'}</p></section>
       ${facts.length ? `<section><h3>About this concern</h3><ul>${facts.map(t => `<li>${esc(D(t))}</li>`).join("")}</ul></section>` : ""}
       ${cond.length || S.bg.changes.trim() || S.bg.team.trim() ? `<section><h3>Health background</h3>${dl([
@@ -3882,8 +3911,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         ["Since last visit", S.carried && S.chg.bg === "no" ? "No changes reported" : ""]
       ])}</section>` : ""}
       <section><h3>Medications and allergies</h3>${dl([
-        ["Medications", medsD.length ? medsD.join("<br>") : "None listed"],
-        ["Other things I take", otcD.join("<br>")],
+        ["Medications", (medsD.length ? medsD.join("<br>") : "None listed") + (otcD.length ? "" : noDose)],
+        ["Other things I take", otcD.length ? otcD.join("<br>") + noDose : ""],
         ["Changes since last visit", !S.carried ? "" : S.chg.meds === "yes" ? (esc(D(S.chg.medNote)) || "Yes (see list)") : S.chg.meds === "no" ? "None reported" : ""],
         ["Allergies and cautions", esc(D(S.bg.allergies)) || "None listed"]
       ])}</section>
@@ -4139,12 +4168,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   async function sendPdf(els, name, statusId) {
     const say = t => { if ($(statusId)) $(statusId).textContent = t; };
     try {
-      if (pdfReady && pdfReady.name === name + ".pdf") { const f = pdfReady; pdfReady = null; await navigator.share({ files: [f], title: name }); say("Done."); return; }
+      if (pdfReady && pdfReady.name === name + ".pdf") { const f = pdfReady; pdfReady = null; await navigator.share({ files: [f] }); say("Done."); return; }
       if (!window.jspdf) { say("Getting the PDF ready…"); await loadPdfLib(); }
       const file = makePdf(els, name);
       if (IS_PHONE && navigator.canShare && navigator.canShare({ files: [file] })) {
         say("In the menu that opens, tap Print, or Save to Files to keep a PDF.");
-        try { await navigator.share({ files: [file], title: name }); say("Done."); return; }
+        try { await navigator.share({ files: [file] }); say("Done."); return; }
         catch (err) {
           if (err && err.name === "AbortError") { say(""); return; }
           if (err && err.name === "NotAllowedError") { pdfReady = file; say("The PDF is ready. Tap the button again to print or save it."); return; }
