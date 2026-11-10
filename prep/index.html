@@ -1671,7 +1671,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     setInterval(() => { if (api.active() && !api.held() && SR === CanadaRec) checkSound(); }, 1500);
     const decode = (c, buf) => new Promise((ok, no) => { const pr = c.decodeAudioData(buf, ok, no); if (pr && pr.then) pr.then(ok, no); });
-    async function cloudSpeak(text) {
+    async function cloudSpeak(text, n0) {
+      const stale = () => n0 !== undefined && n0 !== talkN;   // a newer line (or Back, or Pause) replaced this one
       const c = ctx(); if (!c) return false;
       const id = cloudPick()[0], slow = !!S.slowVoice, k = id + "|" + slow + "|" + text;
       const within = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("timed out")), ms))]);
@@ -1683,7 +1684,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           if (!r.ok) { if (r.status === 503) cloudOn = false; return false; }
           buf = await within(decode(c, await r.arrayBuffer()), 8000); clips.set(k, buf);
         }
+        if (stale()) return "stale";
         if (c.state !== "running") { try { await within(c.resume(), 1500); } catch (err) { console.warn("Sound didn't resume", err); } }
+        if (stale()) return "stale";
         if (c.state !== "running") return "stuck";
         return await new Promise(res => {
           const n = c.createBufferSource(); n.buffer = buf; const g = c.createGain(); g.gain.value = 1; n.connect(g); g.connect(c.destination); src = n; srcGain = g;
@@ -1699,7 +1702,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // someone starts talking over the app: turn its voice right down at once, then stop it once the words are
     // known to be theirs (not its own echo). If it was only the echo, the voice comes back up.
     const duck = on => { clearTimeout(duckT); if (srcGain) try { srcGain.gain.setTargetAtTime(on ? 0.15 : 1, srcGain.context.currentTime, 0.03); } catch (err) { console.warn(err); } if (on) duckT = setTimeout(() => duck(false), 4000); };
-    function quiet() { clearTimeout(duckT); if (src) { try { src.stop(); } catch (err) { console.warn(err); } } if (audioDone) audioDone(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } }
+    function quiet() { clearTimeout(duckT); talkN++; if (talking) setTalk(false); if (src) { try { src.stop(); } catch (err) { console.warn(err); } } if (audioDone) audioDone(); if (canSpeak) { try { speechSynthesis.cancel(); } catch (err) { console.warn(err); } } }
     function pickVoice(name) {
       if (name && cloudList().some(v => v[0] === name)) { cloudVoice = name; return chosen; }
       cloudVoice = "";
@@ -1725,7 +1728,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const n = ++talkN; talkWords = new Set(words(text)); setTalk(true); log("speaking");
       if (!CanadaRec.live) CanadaRec.session("playback");
       try {
-        const r = cloudOn ? await cloudSpeak(text) : false;
+        const r = cloudOn ? await cloudSpeak(text, n) : false;
+        if (r === "stale" || n !== talkN) return;
         if (r === "stuck") { soundStuck("speak-" + (actx ? actx.state : "none")); return; }
         if (!r) await browserSpeak(text);
       }
