@@ -945,10 +945,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <div id="cal-this-pick" hidden></div>
       <p class="muted small" id="cal-note" role="status" aria-live="polite">Adds the appointment with the details filled in, and a reminder the day before.</p>
     </div>
-    <div class="card no-print">
-      <h3>Backup file</h3>
-      <p class="muted">To use your answers on another phone or computer, save a backup file, then open it there.</p>
-      <div><button type="button" class="btn secondary" data-download>Save a backup file</button></div>
+    <div class="card no-print" id="ready-home" hidden>
+      <h3>Keep WellHeard on your home screen</h3>
+      <p class="muted">Your answers save on this phone by themselves. Adding WellHeard to your home screen keeps them safe between visits, and opens it in one tap.</p>
+      <ol class="small" style="margin:8px 0 0;padding-left:1.3em"><li>Tap the <b>Share</b> button (the square with an arrow) at the bottom of Safari.</li><li>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li></ol>
     </div>
   </section>
 
@@ -1375,6 +1375,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }, 300);
   }
   let S = load() || blank();
+  // ask the browser to keep the answers even when the phone is short of space
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (err) { console.warn(err); }
   const SAY = {
     en: {
       hello: "Hi, I'm WellHeard's helper. I'm an AI, not a person. I'll ask one thing at a time and wait for you. When you've finished an answer, say next. To take back what you just said, say erase. You can ask me anything, or tap Pause, at any time.",
@@ -2873,6 +2875,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (id === "ideasmore") renderIdeasAdded();
     if (id === "priority") renderPriority();
     if (id === "review") renderReview();
+    if (id === "ready") $("ready-home").hidden = !((/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) && !navigator.standalone);
     if (id === "ready") $("ready-h").textContent = S.date ? (S.lang === "fr" ? "Vous êtes prêt pour votre rendez-vous du " : "You're ready for your visit on ") + fmtDate(S.date) : (S.lang === "fr" ? "Vous êtes prêt pour votre rendez-vous" : "You're ready for your visit");
     if (id === "sheets") {
       buildSheets(); setTab(0);
@@ -3955,7 +3958,23 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     return "https://outlook.live.com/calendar/0/deeplink/compose?" + q.toString();
   }
   // a choice of calendars, shown under the button
-  function calChoices(ev, boxId, noteId) {
+  function calChoices(ev, boxId, noteId, onDate) {
+    // no date yet: ask for it right here instead of sending them back
+    if (!ev.date && onDate) {
+      const box = $(boxId); $(noteId).textContent = "";
+      box.innerHTML = `<p><b>When is the appointment?</b></p>
+        <div class="field"><label for="${boxId}-d">Date</label><input type="date" id="${boxId}-d"></div>
+        <div class="field"><label for="${boxId}-t">Time (if you know it)</label><select id="${boxId}-t"></select></div>
+        <button type="button" class="btn primary" id="${boxId}-go">Add to my calendar</button>`;
+      timeOptions($(boxId + "-t")); box.hidden = false;
+      $(boxId + "-go").addEventListener("click", () => {
+        const d = $(boxId + "-d").value;
+        if (!d) { $(noteId).textContent = "Choose the date first."; $(boxId + "-d").focus(); return; }
+        onDate(d, $(boxId + "-t").value); calChoices(Object.assign({}, ev, { date: d, time: $(boxId + "-t").value }), boxId, noteId);
+      });
+      $(boxId + "-d").focus();
+      return;
+    }
     if (!ev.date) { $(noteId).textContent = "Add the appointment date first (Back to “Who and when”), then try again."; return; }
     const box = $(boxId);
     box.innerHTML = `<p class="muted small">Choose your calendar:</p><div class="cal-choices">
@@ -3973,7 +3992,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   $("cal-this").addEventListener("click", () => calChoices({
     title: "Appointment" + (S.seeing.trim() ? ": " + S.seeing.trim() : ""), date: S.date, time: S.time,
     notes: "Bring your WellHeard pages and your medications." + (S.purpose.trim() ? "\nFor: " + S.purpose.trim() : "")
-  }, "cal-this-pick", "cal-note"));
+  }, "cal-this-pick", "cal-note", (d, t) => { S.date = d; S.time = t; $("date").value = d; if ($("time")) setTimeValue($("time"), t); save(); }));
   $("cal-next").addEventListener("click", () => {
     const r = S.recap, team = S.bg.team.trim() ? "" : "";
     // no date yet (often just "in a month"): ask for it right here, then offer the calendars
