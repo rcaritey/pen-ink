@@ -1903,9 +1903,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (!(target ? CARRY_T : CARRY_N).test(t) && !RE_GO.test(x)) { askHelp(x); return true; }
         return false;
       }
-      // a short request for a setting ("slow down please"), not part of an answer
-      if (api.onSetting && x.split(" ").length <= 7) { const said = api.onSetting(x); if (said) { if (api.onShowHelp) api.onShowHelp(said); sayThen(said + (lastQ ? " " + say("backTo") + " " + lastQ : "")); return true; } }
-      const questionPage = target && /^(ask-\d+|ideas-new|pr-new|rc-more)$/.test(target.id);
+      const questionPage = target && /^(ask-\d+|ideas-new|pr-new|rc-more|rv-add|hp-q)$/.test(target.id);
+      // a short request for a setting ("slow down please"), not part of an answer (and not while saying questions for the doctor)
+      if (!questionPage && api.onSetting && x.split(" ").length <= 7) { const said = api.onSetting(x); if (said) { if (api.onShowHelp) api.onShowHelp(said); sayThen(said + (lastQ ? " " + say("backTo") + " " + lastQ : "")); return true; } }
       if (!questionPage && x.split(" ").length <= 25 && RE_ASK.test(x) && RE_ASK2.test(x) && api.onHelp) { askHelp(x); return true; }
       return false;
     }
@@ -3166,6 +3166,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   Voice.onEnd = el => {
     if (/^mn-\d+$/.test(el.id)) { tidyMeds(); if (STEPS[S.step] && STEPS[S.step].id === "meds") renderMeds(); }
+    if (el.id === "rv-add" && el.value.trim()) $("rv-add-btn").click();   // a question said into "Add a question" goes straight on the list
     if (!isVoice()) checkWords(el);
   };
   // Only health answers are checked (that's where medical words get misheard); the rest is read back straight away.
