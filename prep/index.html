@@ -1204,6 +1204,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     first: "", important: [], prioSeen: false });
   const blank = () => Object.assign({ v: 3, step: -1, stepId: "", waitMs: 15000, slowVoice: false, barge: null, mode: "", consent: null, detailGo: false, who: "", carried: false, voiceName: "", lang: "en", docLang: "en", tr: {}, tidy: {}, fixOff: false,
     bg: { conditions: "", changes: "", team: "", allergies: "" }, meds: [{ n: "", d: "", w: "", o: false }] }, blankVisit());
+  // A tidied note must still be the same note: mostly the same words, not much longer. Anything else (a note
+  // that picked up words from another one) is thrown away and the patient's own words are used.
+  function tidyOk(orig, tidied) {
+    const W = t => String(t).toLowerCase().replace(/[^a-z0-9à-ÿ' ]+/g, " ").split(/\s+/).filter(w => w.length > 3);
+    const o = new Set(W(orig)), t = W(tidied);
+    if (String(tidied).length > String(orig).length * 1.3 + 15) return false;
+    if (!t.length) return true;
+    return t.filter(w => o.has(w)).length / t.length >= 0.7;
+  }
   function normalize(x) {
     const b = blank();
     if (!x || typeof x !== "object") return b;
@@ -1217,7 +1226,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     b.voiceV2 = x.voiceV2 ? 1 : 0;
     b.lang = x.lang === "fr" ? "fr" : "en"; b.docLang = x.docLang === "fr" ? "fr" : "en"; b.fixOff = !!x.fixOff;
     if (x.tr && typeof x.tr === "object") Object.keys(x.tr).slice(0, 600).forEach(k => { if (typeof x.tr[k] === "string") b.tr[k] = x.tr[k]; });
-    if (x.tidy && typeof x.tidy === "object") Object.keys(x.tidy).slice(0, 400).forEach(k => { const v = x.tidy[k]; if (v && typeof v.t === "string") b.tidy[k] = { t: v.t, b: str(v.b) }; });
+    if (x.tidy && typeof x.tidy === "object") Object.keys(x.tidy).slice(0, 400).forEach(k => { const v = x.tidy[k]; if (v && typeof v.t === "string" && tidyOk(k, v.t)) b.tidy[k] = { t: v.t, b: str(v.b) }; });
     b.detailGo = !!x.detailGo;
     b.consent = x.consent === true ? true : x.consent === false ? false : null;
     if (typeof x.stepId === "string" && x.stepId) b.step = STEPS.findIndex(s => s.id === x.stepId);
@@ -3463,7 +3472,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     try {
       const data = await callApi({ mode: "tidy", items });
       const nm = s2 => String(s2 || "").replace(/\[name\]/g, S.who.trim() || "the patient");
-      items.forEach((x, i) => { const r = data.items[i]; if (r && r.t) S.tidy[x] = { t: nm(r.t), b: nm(r.b) }; });
+      // one result per note, in order; if the count is off, the results can't be matched to the notes safely
+      if (Array.isArray(data.items) && data.items.length === items.length)
+        items.forEach((x, i) => { const r = data.items[i]; if (r && r.t && tidyOk(x, r.t)) S.tidy[x] = { t: nm(r.t), b: nm(r.b) }; });
       save(); if (st) st.textContent = "";
       return true;
     } catch (err) {

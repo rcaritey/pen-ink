@@ -185,6 +185,7 @@ For each item return:
 - "t": the same note, tidied for the doctor's page. Fix spelling, obvious voice-typing errors, missing punctuation and run-on sentences. Remove filler words ("um", "like", "you know", "well just that"). Keep the first-person voice ("I").
 - "b": a very short version for the patient's own reminder page, at most 12 words, for example "Right hand: about 65% strength, no change in 6 months".
 Rules, most important first:
+- Return exactly one result per item, in the same order as the items. Tidy each item on its own: never move words from one item into another, never combine or split items.
 - Never change the meaning. Never add information, never interpret, never soften or exaggerate, never give advice.
 - Keep every medication name, dose, number, date, body part and time exactly as given.
 - Keep the patient's own descriptive words ("more of an ache", "a little tingling").
