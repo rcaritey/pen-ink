@@ -550,7 +550,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           <button type="button" class="btn secondary" id="mic-help-type">Type instead</button>
         </div>
       </div>
-      <p class="guide-tip" id="guide-tip">Say <b>“next”</b> when you've finished · <b>“erase”</b> to undo · ask me anything</p>
+      <p class="guide-tip" id="guide-tip">Say <b>“next”</b> when you've finished · <b>“erase”</b> to undo the last part, <b>“erase all”</b> to start the answer again · ask me anything</p>
       <div class="hint" id="guide-help" hidden style="margin-top:12px">
         <p id="guide-help-text"></p>
         <div class="row" style="margin-top:10px">
@@ -1839,6 +1839,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // Pause holds everything right where it is; nothing moves on by itself.
     let listNext = null, yesNo = null, lastGap = 1e9, inPlace = false, helpNext = false;
     const ERASE = /^\W*(?:please\s+)?(?:erase|erased|erases|eraser|erase that|erase it|erase this|a race|the race|race|races|erace|e race|he raised|i raised|raise|raised|erase please|scratch that|undo|undo that|delete|delete that|delete it|efface|effacez|efface ça|effacez ça|efface ca|annule|annule ça)\W*$/i;
+    // "erase all" / "start over": clear the whole answer, not just the last part
+    const ERASE_ALL = /^\W*(?:please\s+)?(?:(?:erase|a race|the race|race|erace|delete|clear|scratch|efface|effacez)\s+(?:it\s+)?(?:all|everything|all of it|the whole thing|that all|tout)|start (?:over|again)|clear (?:it|that|everything)|clear|recommencer|on recommence|efface tout|effacez tout)\W*$/i;
     let held = false, confirming = false, readback = false, turnWords = [], turnStartVal = "", checking = false, lastQ = "";
     // Things people say TO the app rather than as their answer: help, repeat, and replies to "Should I continue?"
     const lc = t => t.toLowerCase().replace(/[’]/g, "'").replace(/[.!?,;:]+/g, " ").replace(/(\w)-(\w)/g, "$1 $2")
@@ -2112,7 +2114,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         t = t.replace(/\b(\p{Lu})(\p{Lu}+)\b/gu, (m, x, y) => x + y.toLowerCase());
       }
       // "Erase" said on its own. Voice typing often hears it as "a race", "the race", "erased", "he raised"...
-      if (ERASE.test(t)) {
+      if (ERASE_ALL.test(t) && !listNext && target.value.trim()) {
+        target._hist = target._hist || []; target._hist.push(target.value);
+        target.value = ""; target.dispatchEvent(new Event("input", { bubbles: true })); target.dispatchEvent(new Event("voice-change"));
+        turnWords = [];
+        if (api.onErase) api.onErase(true);
+        return;
+      }
+      if (ERASE.test(t) || ERASE_ALL.test(t)) {
         let el = target, ok = !!(el._hist && el._hist.length);
         // lists: after each phrase the app has moved on to a fresh empty line, so "erase" means the line before
         if (!ok && listNext && !el.value.trim()) {
@@ -2465,7 +2474,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   // On screen, leave out the spoken how-to sentences ("When you've finished, say carry on.") so the answer box stays in view.
   const HOWTO = /(^|\s)[^.?!]*(say next|then say next|dites suivant|dites simplement suivant|puis dites suivant|just say next|say carry on|dites continuez)[^.?!]*[.?!]/gi;
   function setGuide(text) { $("guide-help").hidden = true; guideLine = text; $("guide-say").textContent = text.replace(HOWTO, " ").replace(/\s+/g, " ").trim() || text; }
-  const LISTS = { tell: { add: "tell", pre: "tell-", box: "tell-list" }, ask: { add: "ask", pre: "ask-", box: "ask-list" }, meds: { add: "med", pre: "mn-", box: "med-list" }, otc: { add: "otc", pre: "mn-", box: "otc-list" } };
+  const LISTS = { tell: { add: "tell", pre: "tell-", box: "tell-list" }, ask: { add: "ask", pre: "ask-", box: "ask-list" }, recap2: { add: "todo", pre: "todo-", box: "rc-todo-list" }, meds: { add: "med", pre: "mn-", box: "med-list" }, otc: { add: "otc", pre: "mn-", box: "otc-list" } };
   let listOn = null;
   // the first empty line in the list, or a new one (fresh = always a new line unless the last is empty)
   function listSlot(L, fresh) {
@@ -3726,6 +3735,25 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }, "cal-this-pick", "cal-note"));
   $("cal-next").addEventListener("click", () => {
     const r = S.recap, team = S.bg.team.trim() ? "" : "";
+    // no date yet (often just "in a month"): ask for it right here, then offer the calendars
+    if (!r.nextDate) {
+      const box = $("cal-next-pick"); $("cal-next-note").textContent = "";
+      box.innerHTML = `<p><b>When is your next appointment?</b>${r.nextWith.trim() ? ` <span class="muted">(${esc(r.nextWith.trim())})</span>` : ""}</p>
+        <div class="field"><label for="cn-date">Date</label><input type="date" id="cn-date"></div>
+        <div class="field"><label for="cn-time">Time (if you know it)</label><select id="cn-time"></select></div>
+        <button type="button" class="btn primary" id="cn-go">Add to my calendar</button>
+        <p class="muted small">Not booked yet? Add it to your calendar once the clinic gives you a date.</p>`;
+      timeOptions($("cn-time")); box.hidden = false;
+      $("cn-go").addEventListener("click", () => {
+        const d = $("cn-date").value;
+        if (!d) { $("cal-next-note").textContent = "Choose the date first."; $("cn-date").focus(); return; }
+        r.nextDate = d; r.nextTime = $("cn-time").value; save();
+        if ($("rc-date")) { $("rc-date").value = d; setTimeValue($("rc-time"), r.nextTime); }
+        $("cal-next").click();
+      });
+      $("cn-date").focus();
+      return;
+    }
     calChoices({ title: "Appointment" + (r.nextWith.trim() ? ": " + r.nextWith.trim() : ""), date: r.nextDate, time: r.nextTime,
       notes: (lines(r.more).concat(r.open).length ? "Questions to bring: " + r.open.concat(lines(r.more)).join("; ") + "\n" : "") + "Prepare with WellHeard: pen-ink.ca/prep" + team }, "cal-next-pick", "cal-next-note");
   });
