@@ -3798,8 +3798,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const w = first.split(/\s+/);
     return w.length > 14 ? w.slice(0, 12).join(" ") + "…" : first;
   }
-  const tidyT = x => { const k = (x || "").trim(); return (S.tidy[k] && S.tidy[k].t) || localTidy(k); };
-  const tidyB = x => { const k = (x || "").trim(); return (S.tidy[k] && S.tidy[k].b) || localBrief(k); };
+  const tidyT = x => { const k = (x || "").trim(); if (!k) return ""; return (S.tidy[k] && S.tidy[k].t) || localTidy(k); };
+  const tidyB = x => { const k = (x || "").trim(); if (!k) return ""; return (S.tidy[k] && S.tidy[k].b) || localBrief(k); };
   let tidyBusy = false;
   async function ensureTidy(statusId) {
     if (S.consent !== true || S.lang === "fr" || tidyBusy) return false;   // French answers are translated instead
@@ -3823,6 +3823,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     } finally { tidyBusy = false; }
   }
   function buildSheets() {
+    setTimeout(() => loadPdfLib().catch(() => {}), 500);   // ready before a Print tap, so the share menu still opens
     tidyMeds();
     const D = x => S.lang === "fr" ? tr(x, S.docLang) : tidyT(x), P = x => S.lang === "fr" ? tr(x, S.lang) : tidyT(x);
     const B = x => S.lang === "fr" ? tr(x, S.lang) : tidyB(x);
@@ -3929,13 +3930,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   tabs.forEach((t, i) => t.addEventListener("keydown", e => {
     if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const n = (i + (e.key === "ArrowRight" ? 1 : 2)) % 3; setTab(n); tabs[n].focus(); }
   }));
-  $("print-this").addEventListener("click", () => { buildSheets(); setTab(curTab); window.print(); });
+  $("print-this").addEventListener("click", () => { buildSheets(); setTab(curTab); printOr(() => sendPdf([sheets[curTab]], pdfName(["summary", "my-page", "full-list"][curTab]), "sheet-status")); });
   // all three pages at once: on a phone, the print screen has "Save to Files" (a PDF)
   function printAll() {
-    buildSheets(); document.body.classList.add("print-all");
-    const done = () => { document.body.classList.remove("print-all"); window.removeEventListener("afterprint", done); };
-    window.addEventListener("afterprint", done); setTimeout(done, 60000);
-    window.print();
+    buildSheets(); sendPdf(sheets, pdfName("pages"), !$("s-sheets").hidden ? "sheet-status" : "mic-msg");
   }
   $("print-all").addEventListener("click", printAll);
   $("foot-pages").addEventListener("click", () => {
@@ -4067,6 +4065,103 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     return out.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
   }
   const mailBody = el => sheetText(el).replace(/\n/g, "\r\n");
+  // ---------- PDF: a real file built on the device ----------
+  // Printing from the page (window.print) does nothing in an iPhone home-screen app and in some browsers, so phones
+  // get a PDF through the share menu (it has Print and Save to Files), and computers fall back to a PDF download.
+  const IS_PHONE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  let pdfLib = null;
+  function loadPdfLib() {
+    if (window.jspdf) return Promise.resolve();
+    if (!pdfLib) pdfLib = new Promise((ok, no) => { const s = document.createElement("script"); s.src = "/prep/jspdf.min.js"; s.onload = ok; s.onerror = () => { pdfLib = null; no(new Error("pdf lib")); }; document.head.appendChild(s); });
+    return pdfLib;
+  }
+  const pdfSafe = t => String(t).replace(/★/g, "*").replace(/[‐‑]/g, "-").replace(/ /g, " ")
+    .replace(/[^\u0000-ÿ‘’“”–—…•€™ŒœŠšŽžŸƒˆ˜‚„†‡‰‹›]/g, "");
+  function sheetBlocks(el) {
+    const out = [], txt = n => n.textContent.replace(/\s+/g, " ").trim();
+    const parts = n => n.innerHTML.replace(/<span class="tr-line">/g, "<br><i>").split(/<br\s*\/?>/i).map(h => { const d = document.createElement("div"); d.innerHTML = h; return { t: d.textContent.replace(/\s+/g, " ").trim(), i: /^<i>/.test(h), b: /^\s*<(b|strong)>/i.test(h) }; }).filter(x => x.t);
+    const walk = (n, small) => {
+      if (n.nodeType !== 1) return;
+      const tag = n.tagName;
+      if (n.classList.contains("blank")) { const l = out[out.length - 1]; if (l && l.k === "lines") l.n++; else out.push({ k: "lines", n: 1 }); return; }
+      if (n.classList.contains("ans-lines")) { out.push({ k: "lines", n: n.querySelectorAll(".blank").length || 2, ind: true }); return; }
+      if (n.getAttribute("aria-hidden") === "true") return;
+      if (n.tagName === "SECTION" && n.classList.contains("how")) small = true;
+      if (/^H[12]$/.test(tag)) { out.push({ k: "h2", t: txt(n) }); return; }
+      if (/^H[34]$/.test(tag)) { out.push({ k: "h3", t: txt(n), small }); return; }
+      if (tag === "OL" || tag === "UL") { let k = 0; n.querySelectorAll(":scope > li").forEach(li => {
+          const ps = parts(li); const lines = li.querySelector(".ans-lines");
+          if (ps.length) out.push({ k: "li", mark: tag === "OL" ? ++k + "." : "•", ps, small });
+          if (lines) out.push({ k: "lines", n: lines.querySelectorAll(".blank").length || 2, ind: true });
+        }); return; }
+      if (tag === "DL") { n.querySelectorAll("dt").forEach(dt => { const dd = dt.nextElementSibling; if (!dd) return; out.push({ k: "dt", t: txt(dt) }); parts(dd).forEach(p => out.push({ k: "p", ps: [p], small })); }); return; }
+      if (tag === "P") { const ps = parts(n); if (ps.length) out.push({ k: "p", ps, small, em: n.classList.contains("empty") }); return; }
+      if (tag === "DIV" && n.classList.contains("meta")) { const t = [...n.children].map(txt).filter(Boolean).join("  ·  "); if (t) out.push({ k: "meta", t }); return; }
+      [...n.children].forEach(c => walk(c, small));
+    };
+    walk(el, false);
+    return out;
+  }
+  function makePdf(els, name) {
+    const doc = new window.jspdf.jsPDF({ unit: "pt", format: "letter" });
+    const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 54, R = W - M;
+    let y = M;
+    const need = h => { if (y + h > H - M) { doc.addPage(); y = M; } };
+    const write = (t, x, size, style, color, gap) => {
+      doc.setFont("helvetica", style); doc.setFontSize(size); doc.setTextColor(...color);
+      doc.splitTextToSize(pdfSafe(t), R - x).forEach(line => { need(size * 1.35); doc.text(line, x, y + size); y += size * 1.35; });
+      y += gap || 0;
+    };
+    els.forEach((el, i) => {
+      if (i) { doc.addPage(); y = M; }
+      sheetBlocks(el).forEach(b => {
+        const sm = b.small ? 0.8 : 1, ink = b.small ? [80, 90, 100] : [17, 26, 34];
+        if (b.k === "h2") { write(b.t, M, 18, "bold", [17, 26, 34], 4); }
+        else if (b.k === "meta") write(b.t, M, 10.5, "normal", [70, 80, 90], 4);
+        else if (b.k === "h3") { need(40); y += 10; write(b.t.toUpperCase(), M, 10 * sm, "bold", [59, 74, 87], 2); doc.setDrawColor(59, 74, 87); doc.setLineWidth(0.8); doc.line(M, y, R, y); y += 6; }
+        else if (b.k === "dt") write(b.t, M, 11 * sm, "bold", ink, 0);
+        else if (b.k === "p") { b.ps.forEach(p => write(p.t, M, (p.i ? 10 : 11.5) * sm, p.i || b.em ? "italic" : p.b ? "bold" : "normal", p.i || b.em ? [75, 88, 102] : ink, 1)); y += 4; }
+        else if (b.k === "li") {
+          need(16); doc.setFont("helvetica", "normal"); doc.setFontSize(11.5 * sm); doc.setTextColor(...ink); doc.text(b.mark, M + 2, y + 11.5 * sm);
+          b.ps.forEach((p, j) => write(p.t, M + 20, (p.i ? 10 : 11.5) * sm, p.i ? "italic" : (p.b || (j === 0 && b.ps.length > 1 && b.mark !== "•")) ? "bold" : "normal", p.i ? [75, 88, 102] : ink, 0));
+          y += 5;
+        }
+        else if (b.k === "lines") { doc.setDrawColor(150, 160, 170); doc.setLineWidth(0.5); for (let k = 0; k < b.n; k++) { need(24); y += 22; doc.line(b.ind ? M + 20 : M, y, R, y); } y += 8; }
+      });
+    });
+    return new File([doc.output("blob")], name + ".pdf", { type: "application/pdf" });
+  }
+  let pdfReady = null;   // a file made on a tap whose share was refused: the next tap shares it straight away
+  async function sendPdf(els, name, statusId) {
+    const say = t => { if ($(statusId)) $(statusId).textContent = t; };
+    try {
+      if (pdfReady && pdfReady.name === name + ".pdf") { const f = pdfReady; pdfReady = null; await navigator.share({ files: [f], title: name }); say("Done."); return; }
+      if (!window.jspdf) { say("Getting the PDF ready…"); await loadPdfLib(); }
+      const file = makePdf(els, name);
+      if (IS_PHONE && navigator.canShare && navigator.canShare({ files: [file] })) {
+        say("In the menu that opens, tap Print, or Save to Files to keep a PDF.");
+        try { await navigator.share({ files: [file], title: name }); say("Done."); return; }
+        catch (err) {
+          if (err && err.name === "AbortError") { say(""); return; }
+          if (err && err.name === "NotAllowedError") { pdfReady = file; say("The PDF is ready. Tap the button again to print or save it."); return; }
+          console.warn("share pdf", err);
+        }
+      }
+      const url = URL.createObjectURL(file), a = document.createElement("a");
+      a.href = url; a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      say(`"${file.name}" is in your Downloads. Open it to print it or send it.`);
+    } catch (err) { console.warn("pdf", err); say("Couldn't make the PDF. Try Copy as text, or try again in a moment."); }
+  }
+  const pdfName = what => ("WellHeard-" + what + (S.who.trim() ? "-" + S.who.trim() : "") + "-" + (S.date || new Date().toISOString().slice(0, 10))).replace(/[^\w\-]+/g, "-");
+  let printFired = false;
+  window.addEventListener("beforeprint", () => { printFired = true; });
+  // computers: the normal print screen; if it never opens, a PDF download instead
+  function printOr(fallback) {
+    if (IS_PHONE) return fallback();
+    printFired = false; window.print();
+    setTimeout(() => { if (!printFired) fallback(); }, 1500);
+  }
   if (location.hostname === "localhost") window.__wh = { sheetText };   // for local testing only
   document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
     const el = sheets.find(s => !s.hidden);
@@ -4822,6 +4917,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   [["rc-said", "said"], ["rc-more", "more"], ["rc-with", "nextWith"], ["rc-date", "nextDate"], ["rc-time", "nextTime"]]
     .forEach(([id, k]) => $(id).addEventListener("input", e => { S.recap[k] = e.target.value; save(); }));
   function buildRecap() {
+    setTimeout(() => loadPdfLib().catch(() => {}), 500);   // ready before a Print tap, so the share menu still opens
     const r = S.recap, todo = r.todo.filter(t => t.trim()), open = r.open.concat(lines(r.more));
     const next = [r.nextWith, fmtDate(r.nextDate), fmtTime(r.nextTime)].filter(x => x && x.trim()).map(esc).join(", ");
     $("sheet-r").innerHTML = header("Appointment recap") + `
@@ -4846,7 +4942,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   });
   $("rc-email").addEventListener("click", () => { location.href = "mailto:?subject=" + encodeURIComponent(recapSubject()) + "&body=" + encodeURIComponent(mailBody($("sheet-r"))); });
   $("rc-text").addEventListener("click", () => { location.href = "sms:?&body=" + encodeURIComponent(sheetText($("sheet-r"))); });
-  $("rc-print").addEventListener("click", () => { buildRecap(); window.print(); });
+  $("rc-print").addEventListener("click", () => { buildRecap(); printOr(() => sendPdf([$("sheet-r")], pdfName("recap"), "rc-status")); });
   $("rc-copy").addEventListener("click", () => {
     const el = $("sheet-r");
     try { navigator.clipboard.writeText(sheetText(el)).then(() => $("rc-status").textContent = "Copied. Paste it into an email or a message.", err => { console.warn("clipboard", err); selectFallback(el, "rc-status"); }); }
