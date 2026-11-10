@@ -926,8 +926,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         <strong>How do you want to send it?</strong>
         It goes from your own email or phone. Nothing is stored on this website.
         <div class="row" style="margin-top:10px">
-          <button type="button" class="btn secondary" id="share-email">Email</button>
-          <button type="button" class="btn secondary" id="share-text">Text message</button>
+          <a class="btn primary desk-only" id="share-gmail" href="#" target="_blank" rel="noopener">Gmail</a>
+          <a class="btn secondary desk-only" id="share-outlook" href="#" target="_blank" rel="noopener">Outlook</a>
+          <button type="button" class="btn secondary" id="share-email">Email app</button>
+          <button type="button" class="btn secondary mobile-only" id="share-text">Text message</button>
         </div>
       </div>
     </div>
@@ -1101,8 +1103,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         <strong>How do you want to send it?</strong>
         It goes from your own email or phone. Nothing is stored on this website.
         <div class="row" style="margin-top:10px">
-          <button type="button" class="btn secondary" id="rc-email">Email</button>
-          <button type="button" class="btn secondary" id="rc-text">Text message</button>
+          <a class="btn primary desk-only" id="rc-gmail" href="#" target="_blank" rel="noopener">Gmail</a>
+          <a class="btn secondary desk-only" id="rc-outlook" href="#" target="_blank" rel="noopener">Outlook</a>
+          <button type="button" class="btn secondary" id="rc-email">Email app</button>
+          <button type="button" class="btn secondary mobile-only" id="rc-text">Text message</button>
         </div>
       </div>
     </div>
@@ -4058,14 +4062,24 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const who = S.who.trim(), when = fmtDate(S.date);
     return "Appointment prep" + (who ? " for " + who : "") + (when ? ", " + when : "");
   }
+  const ON_PHONE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  // email in the browser: Gmail and Outlook open a new message with everything filled in
+  function webMail(pre, subject, el) {
+    const body = sheetText(el);
+    $(pre + "-gmail").href = "https://mail.google.com/mail/?view=cm&fs=1&su=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+    $(pre + "-outlook").href = "https://outlook.live.com/mail/0/deeplink/compose?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+    document.querySelectorAll("#" + (pre === "share" ? "share-pick" : "rc-share-pick") + " .desk-only").forEach(x => x.hidden = ON_PHONE);
+    document.querySelectorAll("#" + (pre === "share" ? "share-pick" : "rc-share-pick") + " .mobile-only").forEach(x => x.hidden = !ON_PHONE);
+  }
   $("share").addEventListener("click", async () => {
     buildSheets();
     const text = sheetText($("sheet-c"));
-    if (navigator.share) {
+    webMail("share", familySubject(), $("sheet-c"));
+    if (navigator.share && ON_PHONE) {
       try { await navigator.share({ title: familySubject(), text }); return; }
       catch (err) { if (err && err.name === "AbortError") return; console.warn("share", err); }
     }
-    $("share-pick").hidden = false; $("share-email").focus();
+    $("share-pick").hidden = false; (ON_PHONE ? $("share-email") : $("share-gmail")).focus();
   });
   $("share-email").addEventListener("click", () => { location.href = "mailto:?subject=" + encodeURIComponent(familySubject()) + "&body=" + encodeURIComponent(mailBody($("sheet-c"))); });
   $("share-text").addEventListener("click", () => { location.href = "sms:?&body=" + encodeURIComponent(sheetText($("sheet-c"))); });
@@ -4803,11 +4817,12 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   const recapSubject = () => "Appointment recap" + (S.who.trim() ? " for " + S.who.trim() : "") + (S.date ? ", " + fmtDate(S.date) : "");
   $("rc-share").addEventListener("click", async () => {
     buildRecap(); const text = sheetText($("sheet-r"));
-    if (navigator.share) {
+    webMail("rc", recapSubject(), $("sheet-r"));
+    if (navigator.share && ON_PHONE) {
       try { await navigator.share({ title: recapSubject(), text }); return; }
       catch (err) { if (err && err.name === "AbortError") return; console.warn("share", err); }
     }
-    $("rc-share-pick").hidden = false; $("rc-email").focus();
+    $("rc-share-pick").hidden = false; (ON_PHONE ? $("rc-email") : $("rc-gmail")).focus();
   });
   $("rc-email").addEventListener("click", () => { location.href = "mailto:?subject=" + encodeURIComponent(recapSubject()) + "&body=" + encodeURIComponent(mailBody($("sheet-r"))); });
   $("rc-text").addEventListener("click", () => { location.href = "sms:?&body=" + encodeURIComponent(sheetText($("sheet-r"))); });
