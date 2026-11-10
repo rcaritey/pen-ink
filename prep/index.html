@@ -4526,7 +4526,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     Rec.out = Array.from(all.subarray(end));
     const piece = all.subarray(0, end);
     let e = 0; for (let i = 0; i < piece.length; i += 8) e += piece[i] * piece[i];
-    if (piece.length > R / 2 && Math.sqrt(e / Math.max(1, piece.length / 8)) > 0.002) { Rec.queue.push(piece); recSend(); }
+    if (piece.length > R / 2 && Math.sqrt(e / Math.max(1, piece.length / 8)) > 0.002) {
+      Rec.queue.push(piece); recSend();
+      // no internet for a long time: the waiting sound would fill the phone's memory, so say so plainly
+      if (Rec.queue.length >= 20) recWarn("No internet for the last " + Rec.queue.length + " minutes or so. What's recorded is kept until the internet is back, but the phone is running out of room for more. Stop here, and record the rest with your phone's own recorder.");
+    }
   }
   async function recSend() {
     if (Rec.sending) return; Rec.sending = true;
