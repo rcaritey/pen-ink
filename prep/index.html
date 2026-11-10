@@ -162,6 +162,7 @@ body.voice-mode .vfield, body.voice-mode .vtarget { display: none !important; }
 .vdock .vbar .vb-main { grid-column: 1 / -1; grid-row: 1; min-height: 60px; font-size: 1.25rem; }
 .vdock .vbar #vb-back { grid-row: 2; grid-column: 1; }
 .vdock .vbar #vb-pause { grid-row: 2; grid-column: 2; }
+dl.kv { margin: 8px 0 0; } dl.kv dt { font-weight: 700; margin-top: 8px; } dl.kv dd { margin: 2px 0 0; }
 .vdock .vbar #vb-help { grid-row: 2; grid-column: 3; }
 .vdock .vbar #vb-moreb { grid-row: 2; grid-column: 4; }
 @media (max-width: 400px) { .vdock .vbar .btn:not(.vb-main) { font-size: .92rem; padding: 8px 4px; } }
@@ -730,6 +731,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <!-- 4 BACKGROUND -->
   <section class="screen" id="s-bg" hidden>
     <h2>Your health background</h2>
+    <div class="hint" id="bg-last" hidden></div>
     <fieldset class="choices check-q" id="bg-check" hidden>
       <legend class="q">Since your last appointment, has anything changed in your health? (required)</legend>
       <p class="muted">For example: a hospital visit, a fall or a new symptom.</p>
@@ -1299,7 +1301,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       thanks: "Thanks, {n}.",
       g_appt: "What is the appointment for? Tell me in a few words, for example, a sore foot. Then say next.",
       g_bg: "Now your health. Tell me about any long-term conditions, like Parkinson's or diabetes, one at a time. If there are none, just say next.",
-      g_bg2: "Here's your health from last time. Has anything changed? Tap No or Yes on the screen, then say next.",
+      g_bg2: "Here's your health from last time, on the screen. Has anything changed? Tap No or Yes on the screen, then say next.",
       g_meds: "Now your prescription medicines. Say one at a time, with the dose and when you take it, if you know. For example: metformin, 500 milligrams, twice a day. Pause between each one. When you've finished, say next.",
       g_otc: "Do you take anything else? Vitamins, supplements, herbal remedies, or anything from the drugstore without a prescription? Say each one with a pause between them. If none, just say next.",
       g_tell: "Anything else the doctor should know about {p}? What you've said so far is on the screen. When you've finished, say next.",
@@ -1354,7 +1356,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       thanks: "Merci, {n}.",
       g_appt: "Ce rendez-vous, c'est pour quoi ? Dites-le en quelques mots, par exemple, un pied qui fait mal. Puis dites suivant.",
       g_bg: "Maintenant, votre santé. Dites-moi vos problèmes de santé de longue durée, comme le Parkinson ou le diabète, un à la fois. S'il n'y en a pas, dites simplement suivant.",
-      g_bg2: "Voici votre santé, de la dernière fois. Est-ce que quelque chose a changé ? Touchez Non ou Oui à l'écran, puis dites suivant.",
+      g_bg2: "Voici votre santé de la dernière fois, à l'écran. Est-ce que quelque chose a changé ? Touchez Non ou Oui à l'écran, puis dites suivant.",
       g_meds: "Maintenant vos médicaments sur ordonnance. Dites-les un à la fois, avec la dose et quand vous le prenez, si vous le savez. Par exemple : metformine, 500 milligrammes, deux fois par jour. Faites une pause entre chacun. Quand vous avez fini, dites suivant.",
       g_otc: "Prenez-vous autre chose ? Des vitamines, des suppléments, des produits naturels, ou quelque chose de la pharmacie sans ordonnance ? Dites chacun avec une pause entre eux. Sinon, dites simplement suivant.",
       g_tell: "Autre chose que le médecin devrait savoir au sujet de {p} ? Ce que vous avez dit est déjà à l'écran. Quand vous avez fini, dites suivant.",
@@ -2192,8 +2194,23 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   $("back").addEventListener("click", () => show(S.step - 1));
   $("next").addEventListener("click", () => { if (STEPS[S.step].id === "ideasmore") addIdeasNew(); if (validate(STEPS[S.step].id)) show(S.step + 1); });
+  function lastHealth() {
+    const fr = S.lang === "fr", L = t => String(t || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
+    const meds = S.meds.filter(m => m.n.trim()).map(m => [m.n.trim().replace(/[.,;:]+$/, ""), m.d.trim()].filter(Boolean).join(", "));
+    return [
+      [fr ? "Problèmes de santé" : "Health conditions", L(S.bg.conditions)],
+      [fr ? "Changements récents" : "Recent changes", L(S.bg.changes)],
+      [fr ? "Suivi aussi par" : "Also seeing", L(S.bg.team)],
+      [fr ? "Allergies et précautions" : "Allergies and cautions", L(S.bg.allergies)],
+      [fr ? "Médicaments" : "Medications", meds],
+    ].filter(([, v]) => v.length);
+  }
   function renderChecks() {
     $("bg-check").hidden = !S.carried; $("med-check").hidden = !S.carried;
+    // what they told us last time, in one place, so "has anything changed?" has something to check against
+    const last = lastHealth(), box = $("bg-last");
+    box.hidden = !(S.carried && last.length);
+    box.innerHTML = last.length ? `<p><b>${S.lang === "fr" ? "Ce que vous nous avez dit la dernière fois" : "What you told us last time"}</b></p><dl class="kv">${last.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v.map(esc).join("<br>")}</dd>`).join("")}</dl>` : "";
     $("bg-no").checked = S.chg.bg === "no"; $("bg-yes").checked = S.chg.bg === "yes";
     $("med-no").checked = S.chg.meds === "no"; $("med-yes").checked = S.chg.meds === "yes";
     $("bg-yes-hint").hidden = !(S.carried && S.chg.bg === "yes");
@@ -2385,10 +2402,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const g = GUIDE[id]; if (!g) return;
     let k = g[0], field = g[1];
     if (id === "bg" && S.carried) { k = "g_bg2"; field = null; }
+    let lastSaid = "";
+    if (id === "bg" && S.carried) {
+      const c = String(S.bg.conditions || "").split(/\n+/).map(x => x.trim()).filter(Boolean).slice(0, 6);
+      if (c.length) lastSaid = (S.lang === "fr" ? "La dernière fois, vous m'avez parlé de : " : "Last time, you told me about: ") + c.join(", ") + ". ";
+    }
     // after the name, greet them by it once
     const thanks = id === "appt" && !again && S.who.trim() ? say("thanks").replace("{n}", S.who.trim().split(/\s+/)[0]) + " " : "";
     const hello = greet && !again ? say("hello") + " " : ""; greet = false;
-    const line = hello + thanks + say(k);
+    const line = hello + thanks + (lastSaid ? say(k).replace(/^([^.?!]*[.?!])\s*/, "$1 " + lastSaid) : say(k));
     setGuide(say(k));
     const next = () => $("next").click();
     // pages with nothing to answer: read the page, then step aside so the page itself is the one card
