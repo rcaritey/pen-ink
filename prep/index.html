@@ -1362,7 +1362,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       wordsQ: "What's on your mind about this appointment?",
       intro: "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say next. ",
       silence: "Should I continue, or do you need more time?",
-      done: "That's all my questions. Thank you. Say next when you're ready.",
+      done: "That's all my questions. Thank you. Your answers are on the screen, and they'll go on your pages.",
       g_name: "First, what's your name? If you're helping someone, say their name. It only goes on your printed pages. If I don't get it right, you can spell it out, one letter at a time, or type it. Then say next.",
       thanks: "Thanks, {n}.",
       g_appt: "What is the appointment for? Tell me in a few words, for example, a sore foot. Then say next.",
@@ -1428,7 +1428,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       wordsQ: "Qu'est-ce qui vous préoccupe pour ce rendez-vous ?",
       intro: "On prend notre temps. Je pose une question à la fois, et j'attends. Quand vous avez fini de répondre, dites suivant. ",
       silence: "Voulez-vous que je continue, ou avez-vous besoin de plus de temps ?",
-      done: "C'est tout pour mes questions. Merci. Dites suivant quand vous êtes prêt.",
+      done: "C'est tout pour mes questions. Merci. Vos réponses sont à l'écran, et elles iront sur vos pages.",
       g_name: "D'abord, comment vous appelez-vous ? Si vous aidez quelqu'un, dites son nom. Il va seulement sur vos pages imprimées. Si je ne le comprends pas bien, vous pouvez l'épeler, une lettre à la fois, ou l'écrire. Puis dites suivant.",
       thanks: "Merci, {n}.",
       g_appt: "Ce rendez-vous, c'est pour quoi ? Dites-le en quelques mots, par exemple, un pied qui fait mal. Puis dites suivant.",
@@ -3459,7 +3459,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const move = d => {
         Voice.stop();
         c.i += d;
-        if (c.i >= c.qs.length) { mergeDetails(); if (isVoice()) { setGuide(say("done")); Voice.ask(say("done"), null, () => $("next").click(), guideView); } }
+        if (c.i >= c.qs.length) { mergeDetails(); if (isVoice()) { setGuide(say("done")); const st0 = S.step; Voice.speak(say("done")).then(() => { if (S.step === st0 && isVoice()) $("next").click(); }); } }
         save(); renderClarify(); focusQ();
         if (c.i < c.qs.length) voiceAsk(false);
       };
@@ -3469,6 +3469,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       if ($("cl-again")) $("cl-again").addEventListener("click", () => voiceAsk(false));
       if ($("cl-stop")) $("cl-stop").addEventListener("click", () => Voice.stop());
     } else {
+      $("detail-h").textContent = (S.lang === "fr" ? "Vos réponses : " : "Your answers about ") + topic();
       const got = c.qs.filter(q => q.a.trim());
       box.innerHTML = `<h3 id="cl-qtext" tabindex="-1">Done. Here's what you said</h3>
         ${got.length ? `<ul class="cl-sum">${got.map(q => `<li data-qi="${c.qs.indexOf(q)}"><b>${esc(q.label || q.q)}:</b> <span class="ans">${esc(q.a)}</span></li>`).join("")}</ul>
