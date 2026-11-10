@@ -663,7 +663,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     </div>
     <div class="open-copy">
       <button type="button" class="btn link" data-open-how>How this works</button>
-      <label class="btn link" for="file-open" style="margin:0">Have a saved copy? Open it</label>
+      <label class="btn link" for="file-open" style="margin:0">Coming from another device? Open the file</label>
       <input type="file" id="file-open" accept=".json,application/json" class="visually-hidden">
       <p class="status" id="file-status" role="status" aria-live="polite"></p>
     </div>
@@ -1121,9 +1121,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <div id="sheets-new-confirm" class="hint" hidden></div>
     </div>
     <div class="card no-print">
-      <h3>Backup file</h3>
-      <p class="muted">To use your answers on another phone or computer, save a backup file, then open it there.</p>
-      <div><button type="button" class="btn secondary" data-download>Save a backup file</button></div>
+      <h3>Use WellHeard on another phone or computer</h3>
+      <p class="muted">Send your answers to the other device as a file, from your own phone or email. Nothing goes through our website.</p>
+      <div><button type="button" class="btn secondary" data-download>Send to another device</button></div>
+      <p class="status small" id="dev-status" role="status" aria-live="polite"></p>
     </div>
   </section>
 
@@ -1143,7 +1144,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   <button type="button" class="btn link" id="change-voice" hidden>Try a different voice</button>
   <button type="button" class="btn link" id="change-lang">Parler en français</button>
   <button type="button" class="btn link" id="foot-pages">Save or print my pages</button>
-  <button type="button" class="btn link" data-download>Backup file</button>
+  <button type="button" class="btn link" data-download>Send to another device</button>
   <button type="button" class="btn link" id="erase">Erase my answers from this device</button>
 </footer>
 <div class="wrap no-print" style="padding-block:0 32px">
@@ -3034,22 +3035,32 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     reader.onerror = () => { console.warn("File read failed", reader.error); $("file-status").textContent = "Couldn't read that file. Try choosing it again."; };
     reader.readAsText(f);
   });
-  function download() {
-    const name = ("appointment-prep-" + (S.date || new Date().toISOString().slice(0, 10))).replace(/[^\w\-]+/g, "");
+  // Send to another device: on a phone, the share menu (AirDrop, Messages, email to yourself); on a computer, a file
+  async function download(statusId) {
+    const name = ("wellheard-" + (S.date || new Date().toISOString().slice(0, 10))).replace(/[^\w\-]+/g, "");
     const blob = new Blob([JSON.stringify({ app: "pen-ink-prep", version: 2, saved: new Date().toISOString(), data: S }, null, 2)], { type: "application/json" });
+    const how = "On the other device, open pen-ink.ca/prep and tap “Coming from another device? Open the file”.";
+    const tell = t => { const id = typeof statusId === "string" ? statusId : (!$("s-share").hidden ? "dev-status" : !$("s-sheets").hidden ? "sheet-status" : null); if (id && $(id)) $(id).textContent = t; else { $("saved").className = "saved ok"; $("saved").textContent = "File ready"; } };
+    const phone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    try {
+      const file = new File([blob], name + ".json", { type: "application/json" });
+      if (phone && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "WellHeard answers", text: how });
+        tell("Sent. " + how); return;
+      }
+    } catch (err) { if (err && err.name === "AbortError") return; console.warn("share file", err); }
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = name + ".json";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-    const msg = `Downloaded "${name}.json" to your Downloads. To use it later, choose "Open a copy I downloaded" on the first screen.`;
-    if (!$("s-sheets").hidden) $("sheet-status").textContent = msg; else { $("saved").className = "saved ok"; $("saved").textContent = "Copy downloaded"; }
+    tell(`"${name}.json" is in your Downloads. Email it to yourself, or put it in your cloud drive. ${how}`);
   }
-  document.querySelectorAll("[data-download]").forEach(b => b.addEventListener("click", download));
+  document.querySelectorAll("[data-download]").forEach(b => b.addEventListener("click", () => download()));
 
   // ---------- erase ----------
   $("erase").addEventListener("click", () => { Voice.stop(); $("erase-confirm").hidden = false; document.body.classList.add("erasing"); $("erase-status").textContent = ""; $("erase-confirm").scrollIntoView({ block: "center" }); $("erase-title").focus(); });
   $("erase-no").addEventListener("click", () => { $("erase-confirm").hidden = true; document.body.classList.remove("erasing"); $("erase").focus(); });
-  $("erase-save").addEventListener("click", () => { download(); $("erase-status").textContent = "The backup file is in your Downloads. You can erase now, or cancel."; });
+  $("erase-save").addEventListener("click", async () => { await download("erase-status"); $("erase-status").textContent += " You can erase now, or cancel."; });
   $("erase-yes").addEventListener("click", () => {
     S = blank(); resumeStep = 0; fillFields(); applyMode(); $("erase-confirm").hidden = true; document.body.classList.remove("erasing");
     show(-1); clearTimeout(saveTimer);
@@ -4278,7 +4289,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       jInfo(root, i); return;
     }
     if (e.target.closest("[data-info-close]")) { root.querySelector(".jr-info").hidden = true; return; }
-    if (e.target.closest("[data-sf-download]")) { download(); $("sf-status").textContent = "The backup file is in your Downloads."; return; }
+    if (e.target.closest("[data-sf-download]")) { download("sf-status"); return; }
     if (e.target.closest("[data-sf-erase]")) { dlg.close(); $("erase").click(); $("erase-confirm").scrollIntoView({ block: "center" }); }
   }
   $("jr-body").addEventListener("click", jClick);
@@ -4379,7 +4390,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           <li>${IC.no}<span>Record your appointment. This website never records anything.</span></li>
         </ul></section>
       <section><h3>You're in control</h3>
-        <div class="row"><button type="button" class="btn secondary" data-sf-download>Save a backup file</button>
+        <div class="row"><button type="button" class="btn secondary" data-sf-download>Send to another device</button>
         <button type="button" class="btn secondary" data-sf-erase>Erase my answers from this phone</button></div>
         <p class="status" id="sf-status" role="status" aria-live="polite"></p></section>
     </div>`;
@@ -4405,7 +4416,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <section><h3>Language</h3>${btn("change-lang", $("change-lang").textContent)}</section>
       <section><h3>Your pages and answers</h3>
         ${btn("foot-pages", "Save or print my pages")}
-        ${btn("backup", "Save a backup file", "To use your answers on another phone or computer.")}
+        ${btn("backup", "Send to another device", "Use your answers on another phone or computer.")}
         ${btn("erase", "Erase my answers from this device")}</section>
       <button type="button" class="jr-safe-link" data-open-how>${IC.spark}<span><b>How this works</b><span>The approach, in plain words.</span></span></button>
       <button type="button" class="jr-safe-link" data-open-safe>${IC.shield}<span><b>How your information stays safe</b><span>Where your answers are kept, and what is sent.</span></span></button>
