@@ -163,6 +163,7 @@ body.voice-mode .vfield, body.voice-mode .vtarget { display: none !important; }
 .vdock .vbar #vb-back { grid-row: 2; grid-column: 1; }
 .vdock .vbar #vb-pause { grid-row: 2; grid-column: 2; }
 .btn.rc-how { display: block; width: 100%; text-align: left; padding: 14px 18px; } .rc-how b, .rc-how span { display: block; } .rc-how span { font-weight: 400; margin-top: 2px; }
+input[type="date"] { max-width: 100%; min-width: 0; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
 dl.kv { margin: 8px 0 0; } dl.kv dt { font-weight: 700; margin-top: 8px; } dl.kv dd { margin: 2px 0 0; }
 .vdock .vbar #vb-help { grid-row: 2; grid-column: 3; }
 .vdock .vbar #vb-moreb { grid-row: 2; grid-column: 4; }
@@ -1371,6 +1372,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_recapPick: "Okay. Tap Paste a transcript, or Upload a recording, on the screen.",
       g_recap2: "What happens next? For example, book blood work. Add each thing to do on the screen, then say next.",
       g_who: "Who are you seeing? For example, a neurologist. Then say next.",
+      g_when2: "What day and time is it? For example: December 10th, at 10 in the morning. If it isn't booked yet, just say next.",
       g_when: "What day and time is the appointment? For example: Wednesday, November 11th, at 10:30 in the morning. If you're not sure, just say next.",
       g_bgchg: "Any changes in the last year, like a surgery, a hospital stay or a fall? If there are none, just say next.",
       g_bgcare: "What other doctors or care do you see? By type is fine, for example, a urologist. If none, just say next.",
@@ -1429,6 +1431,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_recapPick: "D'accord. Touchez Coller une transcription, ou Téléverser un enregistrement, à l'écran.",
       g_recap2: "Et ensuite ? Par exemple, une prise de sang. Ajoutez chaque chose à faire à l'écran, puis dites suivant.",
       g_who: "Qui allez-vous voir ? Par exemple, un neurologue. Puis dites suivant.",
+      g_when2: "Quel jour et à quelle heure ? Par exemple : le 10 décembre, à 10 h. Si ce n'est pas encore pris, dites simplement suivant.",
       g_when: "Quel jour et à quelle heure est le rendez-vous ? Par exemple : mercredi 11 novembre, à 10 h 30. Si vous n'êtes pas sûr, dites simplement suivant.",
       g_bgchg: "Des changements dans la dernière année, comme une opération, un séjour à l'hôpital ou une chute ? S'il n'y en a pas, dites simplement suivant.",
       g_bgcare: "Quels autres médecins ou soins voyez-vous ? Le type suffit, par exemple, un urologue. Sinon, dites simplement suivant.",
@@ -2538,7 +2541,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     listOn = null;
     // Who are you seeing? Then: what day and time?
-    const go = id === "who" ? askWhen : next;
+    const go = id === "who" ? askWhen : id === "recapfu" ? () => askNextWhen(next) : next;
     Voice.ask(line, field ? $(field) : null, go, guideView, { readback: !!field, q: say(k) });
   }
   function askList(L, k, after, spoken) {
@@ -2547,6 +2550,21 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     Voice.ask(spoken || say(k), listSlot(L, false), after, guideView, { readback: true, q: say(k), listNext: () => listSlot(L, true) });
   }
   // "Wednesday November 11th at 10:30 AM" -> the date and time boxes
+  // the next appointment: who with, then (if there is one) the day and time, said in plain words
+  function askNextWhen(done) {
+    const r = S.recap, said = $("rc-with").value.trim();
+    if (!said) { done(); return; }
+    const put = w => {
+      if (w.date) { r.nextDate = w.date; $("rc-date").value = w.date; }
+      if (w.time) { r.nextTime = w.time; setTimeValue($("rc-time"), w.time); }
+      save();
+    };
+    const w0 = parseWhen(said); put(w0);
+    if (w0.date) { done(); return; }
+    const el = $("when-said"); el.value = "";
+    listOn = null; setGuide(say("g_when2"));
+    Voice.ask(say("g_when2"), el, () => { put(parseWhen(el.value)); done(); }, guideView, { readback: true, q: say("g_when2") });
+  }
   function askWhen() {
     const el = $("when-said"); el.value = "";
     listOn = null; setGuide(say("g_when"));
@@ -2681,7 +2699,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     else if ((m = t.match(/\bquarter to (\d{1,2}|\w+)\b/))) { h = (+m[1] || NUMW[m[1]] || 0) - 1; mi = 45; }
     else if ((m = t.match(/\b(\d{1,2})(?::|\s?h\s?|\.)(\d{2})\b/))) { h = +m[1]; mi = +m[2]; }
     else if ((m = t.match(/\b(\d{1,2}) (\d{2}) ?(?:a\.?m|p\.?m|in the|du|de)/))) { h = +m[1]; mi = +m[2]; }
-    else if ((m = t.match(/\b(\d{1,2}|\w+) ?(?:o'clock|a\.?m\.?|p\.?m\.?|heures?|h)\b/))) { h = +m[1] || NUMW[m[1]] || -1; }
+    else if ((m = t.match(/\b(\d{1,2}|[a-z]+) ?(?:o'clock|a\.?m\.?|p\.?m\.?|heures?|h)\b/))) { h = +m[1] || NUMW[m[1]] || -1; }
+    if (h < 0 && ((m = t.match(/\b(\d{1,2}) in the (?:morning|afternoon|evening)\b/)) || (m = t.match(/\b(?:at|à) (\d{1,2})\b(?! ?(?:st|nd|rd|th|er)\b)/)))) { h = +m[1]; }
     if (h >= 0 && h <= 23 && mi >= 0 && mi < 60) {
       const pm = /\b(p\.?m\.?|in the afternoon|in the evening|tonight|de l'après-midi|du soir)\b/.test(t), am = /\b(a\.?m\.?|in the morning|du matin)\b/.test(t);
       if (pm && h < 12) h += 12; else if (am && h === 12) h = 0; else if (!pm && !am && h >= 1 && h <= 6) h += 12;   // clinics: "at 3" means 3 p.m.
