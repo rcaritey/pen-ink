@@ -1925,7 +1925,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     });
     // Pause holds everything right where it is; nothing moves on by itself.
     let listNext = null, yesNo = null, choose = null, lastGap = 1e9, inPlace = false, helpNext = false;
-    const ERASE = /^\W*(?:please\s+)?(?:erase|erased|erases|eraser|erase that|erase it|erase this|a race|the race|race|races|erace|e race|he raised|i raised|raise|raised|erase please|scratch that|undo|undo that|delete|delete that|delete it|efface|effacez|efface ça|effacez ça|efface ca|annule|annule ça)\W*$/i;
+    const ERASE = /^\W*(?:please\s+)?(?:erase|erased|erases|eraser|erasing|erase that|erase it|erase this|a race|the race|race|races|erace|e race|eh race|her race|he race|he raised|i raised|raise|raised|a raise|arise|irase|iraise|eraze|eraise|rays|a rays|the rays|e rays|erase please|take that back|take it back|that's wrong|that is wrong|scratch that|undo|undo that|delete|delete that|delete it|efface|effacez|efface ça|effacez ça|efface ca|annule|annule ça)\W*$/i;
     // "erase all" / "start over": clear the whole answer, not just the last part
     const ERASE_ALL = /^\W*(?:please\s+)?(?:(?:erase|a race|the race|race|erace|delete|clear|scratch|efface|effacez)\s+(?:it\s+)?(?:all|everything|all of it|the whole thing|that all|tout)|start (?:over|again)|clear (?:it|that|everything)|clear|recommencer|on recommence|efface tout|effacez tout)\W*$/i;
     let held = false, confirming = false, readback = false, turnWords = [], turnStartVal = "", checking = false, lastQ = "";
@@ -2657,6 +2657,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   }
   // On screen, leave out the spoken how-to sentences ("When you've finished, say carry on.") so the answer box stays in view.
   const HOWTO = /(^|\s)[^.?!]*(say next|then say next|dites suivant|dites simplement suivant|puis dites suivant|just say next|say carry on|dites continuez)[^.?!]*[.?!]/gi;
+  // talking: keep the screen on, so the phone doesn't fall asleep mid-question (it can't hear you while asleep)
+  let awake = null;
+  function keepAwake() {
+    if (awake || !isVoice() || document.hidden || !navigator.wakeLock) return;
+    navigator.wakeLock.request("screen").then(l => { awake = l; l.addEventListener("release", () => { awake = null; }); }).catch(err => console.warn("wake lock", err));
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) keepAwake(); });
+  document.addEventListener("pointerdown", () => keepAwake(), { capture: true });
   function setGuide(text) { $("guide-help").hidden = true; guideLine = text; $("guide-say").textContent = text.replace(HOWTO, " ").replace(/\s+/g, " ").trim() || text; }
   const LISTS = { tell: { add: "tell", pre: "tell-", box: "tell-list" }, ask: { add: "ask", pre: "ask-", box: "ask-list" }, recap2: { add: "todo", pre: "todo-", box: "rc-todo-list" }, meds: { add: "med", pre: "mn-", box: "med-list" }, otc: { add: "otc", pre: "mn-", box: "otc-list" } };
   let listOn = null;
@@ -2681,6 +2689,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const intro = greet && !again ? say("hello") + " " : ""; greet = false;
       if (voiceConsent(() => guide(id, true), intro)) return;
     }
+    keepAwake();
     const g = GUIDE[id]; if (!g) return;
     let k = g[0], field = g[1];
     if (id === "review") { voiceReview(false); return; }
