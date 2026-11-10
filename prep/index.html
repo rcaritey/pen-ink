@@ -1562,15 +1562,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (this.onerror) this.onerror({ error: "needs-tap" }); if (this.onend) this.onend(); return;
       }
       const src = this._ctx.createMediaStreamSource(this._stream);
-      const proc = this._ctx.createScriptProcessor(4096, 1, 1);
       const rate = this._ctx.sampleRate, step = rate / 16000;
       // voice activity: a phrase starts when the sound rises well above the room's noise, and ends after a pause
       let zeroMs = 0, noise = 0.002, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [], lvlT = 0, deadMs = 0;
       const END_MS = 1100, START_MS = 120, MAX_MS = 25000, blockMs = 4096 / rate * 1000;
-      proc.onaudioprocess = ev => {
+      // handles one block of 4096 samples from the microphone
+      const handle = x => {
         CanadaRec.beat = this._beat = performance.now();
         if (!this._running) return;
-        const x = ev.inputBuffer.getChannelData(0);
         let sum = 0, peak = 0; for (let i = 0; i < x.length; i++) { sum += x[i] * x[i]; const a = x[i] < 0 ? -x[i] : x[i]; if (a > peak) peak = a; }
         const rms = Math.sqrt(sum / x.length);
         // muted on the computer (or by a headset switch): nothing at all comes through, not even room noise
@@ -1605,6 +1604,19 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         const endMs = CanadaRec.quick || (!CanadaRec.listMode && len < 1600) ? 600 : END_MS;   // lists: a pause starts a new line, so keep it longer
         if (quietMs >= endMs || len >= MAX_MS) { const b = buf; buf = []; speaking = false; loudMs = 0; this._lastEnd = performance.now() - quietMs; this._send(b, this._gap); }
       };
+      // The microphone's sound comes through an AudioWorklet: its own sound lane, which iPhones don't pause the way
+      // they sometimes pause the older ScriptProcessor (still used where the newer one isn't available).
+      let proc = null;
+      if (this._ctx.audioWorklet && window.AudioWorkletNode && !CanadaRec.noWorklet) {
+        try {
+          await CanadaRec.loadWorklet(this._ctx);
+          proc = new AudioWorkletNode(this._ctx, "wh-listen", { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1 });
+          proc.port.onmessage = ev => handle(ev.data);
+          CanadaRec.node = "worklet";
+        } catch (err) { console.warn("AudioWorklet unavailable, using the older way", err); proc = null; }
+      }
+      if (!this._running) { this._release(); return; }   // stopped while the sound lane was loading
+      if (!proc) { proc = this._ctx.createScriptProcessor(4096, 1, 1); proc.onaudioprocess = ev => handle(ev.inputBuffer.getChannelData(0)); CanadaRec.node = "script"; }
       src.connect(proc); proc.connect(this._ctx.destination);
       if (!this._live) { this._live = true; CanadaRec.live++; }
       CanadaRec.liveSince = this._liveAt = performance.now(); CanadaRec.cur = this;
@@ -1639,7 +1651,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       finally { this._pending--; CanadaRec.writing(-1); this._maybeEnd(); }
     }
     _release() {
-      try { if (this._proc) { this._proc.onaudioprocess = null; this._proc.disconnect(); } if (this._src) this._src.disconnect(); } catch (err) { console.warn(err); }
+      try { if (this._proc) { this._proc.onaudioprocess = null; if (this._proc.port) this._proc.port.onmessage = null; this._proc.disconnect(); } if (this._src) this._src.disconnect(); } catch (err) { console.warn(err); }
       if (this._stream) this._stream.getTracks().forEach(t => t.stop());
       if (this._ctx && this._ownCtx) this._ctx.close().catch(() => {});
       this._stream = this._ctx = this._proc = this._src = null;
@@ -1655,7 +1667,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     async _heal() {
       if (!this._running || this._healing) return;
       this._healing = true; this._healT = performance.now();
-      try { if (this._proc) { this._proc.onaudioprocess = null; this._proc.disconnect(); } if (this._src) this._src.disconnect(); } catch (err) { console.warn(err); }
+      try { if (this._proc) { this._proc.onaudioprocess = null; if (this._proc.port) this._proc.port.onmessage = null; this._proc.disconnect(); } if (this._src) this._src.disconnect(); } catch (err) { console.warn(err); }
       if (this._stream) this._stream.getTracks().forEach(t => t.stop());
       this._stream = this._proc = this._src = null;
       if (this._live) { this._live = false; CanadaRec.live = Math.max(0, CanadaRec.live - 1); }
@@ -1676,7 +1688,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     }
     // Safari 17+: tell the iPhone whether we're only playing sound or also recording,
     // so the app's voice comes out of the main speaker.
-    static live = 0; static beat = 0; static liveSince = 0; static cur = null;
+    static live = 0; static beat = 0; static liveSince = 0; static cur = null; static node = "";
+    // the sound lane: gathers the microphone's sound into blocks of 4096 samples, the size the listening logic expects
+    static loadWorklet(ctx) {
+      if (!ctx._whListen) {
+        const code = "class L extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(4096);this.i=0}process(inp){const c=inp[0]&&inp[0][0];if(c){for(let k=0;k<c.length;k++){this.b[this.i++]=c[k];if(this.i===4096){this.port.postMessage(this.b,[this.b.buffer]);this.b=new Float32Array(4096);this.i=0}}}return true}}registerProcessor('wh-listen',L);";
+        const url = URL.createObjectURL(new Blob([code], { type: "application/javascript" }));
+        ctx._whListen = ctx.audioWorklet.addModule(url).finally(() => URL.revokeObjectURL(url));
+      }
+      return ctx._whListen;
+    }
     static session(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (err) { console.warn(err); } }
   }
   CanadaRec.hearing = () => {}; CanadaRec.talkOver = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false; CanadaRec.quick = false; CanadaRec.everHeard = false;
@@ -1767,7 +1788,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       try {
         const r = CanadaRec.cur, tr = r && r._stream && r._stream.getAudioTracks()[0];
         const d = { reason, ctx: actx ? actx.state : "none", live: CanadaRec.live, beatAge: r ? Math.round(performance.now() - Math.max(r._beat || 0, r._liveAt || 0)) : -1,
-          track: tr ? tr.readyState : "none", muted: tr ? tr.muted : "", step: (STEPS[S.step] || {}).id, mode: S.mode,
+          track: (tr ? tr.readyState : "none") + "/" + CanadaRec.node, muted: tr ? tr.muted : "", step: (STEPS[S.step] || {}).id, mode: S.mode,
           session: navigator.audioSession ? navigator.audioSession.type : "", clock: actx ? Math.round(actx.currentTime * 10) / 10 : -1, ua: navigator.userAgent.slice(0, 160), v: "2" };
         fetch("/api/diag", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d), keepalive: true }).catch(() => {});
       } catch (err) { console.warn(err); }
