@@ -7,6 +7,7 @@
 //   health information: nothing from the request or the reply is logged or stored.
 // - Only error status codes are logged, never request content.
 // No npm dependencies on purpose, same as api/contact.js.
+import { guard } from './_guard.js';
 
 import { CLINICAL_GUIDE } from './_guide.js';
 
@@ -31,6 +32,7 @@ Rules:
 - Every question must be something only the doctor can answer: a test, a cause to rule out, a treatment option, a risk, what to watch for, what happens next. Never ask the doctor about facts the patient knows better, such as their own symptoms, their own body, or their own history ("Are my eyebrows affected?", "Has anyone ever checked...?"). If such a fact matters, turn it into a question about what the doctor will do with it ("Should my eyebrows and nails be checked too?").
 - One question per question: no "and" joining two questions, no "such as" lists of three things. Under 20 words. Start with a question word (What, Should, Could, Can, Is, Do, How, When, Why).
 - Read each one aloud as the patient: it must sound natural to say to a doctor, and make sense on its own without the "why".
+- Never name a symptom, side effect or experience the patient has not mentioned, as if they had it ("my vivid dreams", "my low mood"). To open a topic they haven't raised, ask about it neutrally ("Should my sleep be checked as part of this?").
 - 4 to 6 questions, most important first.
 - For each question add a short "why" (under 20 words) the family can read to decide whether to keep it.
 - Use the guide below to spot what a doctor would want covered: the matching condition and symptom modules, medication timing and interactions, and the areas patients often don't raise. Suggest questions that open those topics with the doctor, worded as the patient would ask them. Apply section G if anything sounds urgent.
@@ -53,7 +55,7 @@ Rules:
 - Skip anything their own words or the "More detail they gave" section already answer, and never repeat a question listed under "Questions already asked".
 - One thing per question. Short, warm, plain language, spoken to the patient as "you". The family will read each one aloud and wait for the answer.
 - 4 to 5 questions, most useful first. Most should be about the main concern; at most 1 from sections B, C and D. Keep it short: the patient may tire easily.
-- For each question give a short label (2 to 5 words) that names the fact for the doctor, for example "When it started" or "Worst time of day".
+- For each question give a short label (2 to 5 words) that names the fact for the doctor, for example "When it started" or "Worst time of day". No colon inside a label: the app adds one before the answer.
 
 ${CLINICAL_GUIDE}
 
@@ -110,7 +112,7 @@ const QUESTION_SCHEMA = {
   additionalProperties: false,
 };
 const tidy = (list) => (Array.isArray(list) ? list : [])
-  .map((x) => ({ q: clean(x && x.q, 300), why: clean(x && x.why, 200), label: clean(x && x.label, 60) }))
+  .map((x) => ({ q: clean(x && x.q, 300), why: clean(x && x.why, 200), label: clean(x && x.label, 60).replace(/\s*:\s*/g, ', ').replace(/[,\s]+$/, '') }))
   .filter((x) => x.q)
   .slice(0, 10);
 
@@ -123,7 +125,7 @@ function parseQuestions(text) {
     const data = JSON.parse(text.slice(start, end + 1));
     if (!Array.isArray(data.questions)) return null;
     return data.questions
-      .map((x) => ({ q: clean(x && x.q, 300), why: clean(x && x.why, 200), label: clean(x && x.label, 60) }))
+      .map((x) => ({ q: clean(x && x.q, 300), why: clean(x && x.why, 200), label: clean(x && x.label, 60).replace(/\s*:\s*/g, ', ').replace(/[,\s]+$/, '') }))
       .filter((x) => x.q)
       .slice(0, 10);
   } catch {
@@ -297,6 +299,7 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
+  if (!guard(req, res, { max: 120 })) return;
 
   const body = typeof req.body === 'object' && req.body ? req.body : (() => {
     try { return JSON.parse(req.body || '{}'); } catch { return {}; }

@@ -8,6 +8,7 @@
 // Privacy: real-time recognition; Azure does not store the audio. Nothing from the request
 // or the reply is logged here, only error status codes.
 // No npm dependencies on purpose, same as the other functions.
+import { guard } from './_guard.js';
 
 const MAX_BYTES = 2_100_000; // about 65 seconds of 16 kHz mono 16-bit audio; Azure's limit is 60 s
 
@@ -28,6 +29,7 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'GET') return res.status(200).json({ on: !!key });
   if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
+  if (!guard(req, res, { max: 600 })) return;
   if (!key) return res.status(503).json({ error: 'off' });
 
   const lang = req.query && req.query.lang === 'fr' ? 'fr-CA' : 'en-CA';

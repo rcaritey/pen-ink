@@ -7,6 +7,7 @@
 // Privacy: nothing from the request is logged; only error status codes.
 // Needs AZURE_SPEECH_KEY (and optionally AZURE_SPEECH_REGION, default canadacentral).
 // No npm dependencies on purpose, same as the other functions.
+import { guard } from './_guard.js';
 
 // Liam HD (29 Oct 2026, Rama: "non-monotone, Canadian accent"): Azure's HD voice reads the mood of
 // each sentence instead of one flat tone. If Azure won't give the HD voice, his standard twin reads.
@@ -37,6 +38,7 @@ export default async function handler(req, res) {
   }
   if (req.method === 'GET') return res.status(200).json({ on: !!key });
   if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
+  if (!guard(req, res, { max: 600 })) return;
   if (!key) return res.status(503).json({ error: 'off' });
 
   let body = req.body;
