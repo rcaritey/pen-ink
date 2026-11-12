@@ -217,7 +217,7 @@ Fill in the patient's after-visit notes:
 - "answers": one entry per question the patient brought, in the same order, with the question copied exactly. "a" is what the doctor said that answers it, in one to three short plain sentences. If the appointment did not answer it, "a" is "". An answer can come at any point in the visit and in passing.
 - "said": the main points the doctor made, in 2 to 5 short plain sentences, for family who were not there.
 - "also": important things the doctor said that answer none of the questions (a warning, a risk, a reason for a test). Short, one per line. Empty if none.
-- "todo": things to do after the visit, each starting with a verb, saying who does it when it is not the patient ("The doctor is sending the blood work requisition"). Include tests, medicines to start, stop or change, referrals, and booking the next visit.
+- "todo": things to do after the visit, each starting with a verb, saying who does it when it is not the patient ("The doctor is sending the blood work requisition"). Include tests, medicines to start, stop or change (including taking a medicine more regularly), activities or exercise the doctor recommends, referrals, and booking the next visit.
 - "nextWith": who the next appointment is with, as said. "nextWhen": when, in the doctor's words ("in about 6 months"). "nextDate" (YYYY-MM-DD) and "nextTime" (HH:MM, 24-hour) only if an exact date or time was said, otherwise "".
 - "contact": who to contact with questions before the next visit and how, if it was said, otherwise "".
 
