@@ -81,6 +81,9 @@
 
   .ask{ background:#fff; background:rgba(255,255,255,.55); border:1px solid var(--rule); border-radius:12px; padding:1.3rem 1.4rem; }
   .ask h2{ font-size:1.4rem; }
+  .steps .sub{ margin:.4rem 0 .5rem; padding-left:1.4rem; }
+  .steps .sub li{ counter-increment:none; margin:0 0 .2rem; padding:0; background:none; border-radius:0; }
+  .steps .sub li::before{ content:none; }
   .leo-head{ display:flex; align-items:center; gap:.9rem; margin:0 0 1rem; }
   .leo-head h2{ margin:0; }
   .leo-pic{ flex:none; width:72px; height:72px; border-radius:50%; padding:3px; background:#fff;
@@ -119,7 +122,12 @@
       <h2 id="how">How it works</h2>
       <ol class="steps">
         <li><strong>Quote</strong>After a first meeting she talks through her notes. Leo, the built-in assistant, turns them into a quote ready to send.</li>
-        <li><strong>Receipts</strong>Snap a photo, and each cost lands on the right job.</li>
+        <li><strong>Receipts</strong>Snap a photo, two ways:
+          <ol class="sub">
+            <li>Scan one receipt</li>
+            <li>Scan multiple receipts</li>
+          </ol>
+          Each cost lands on the right job.</li>
         <li><strong>Invoice</strong>Three screens: check it, check the total, send.</li>
       </ol>
     </section>
