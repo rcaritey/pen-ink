@@ -40,6 +40,8 @@
   .hero{ padding:3rem 0 2.2rem; }
   .kicker{ margin:0 0 .9rem; font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-2); font-weight:500; }
   h1{ margin:0; font-family:"Playfair Display", serif; font-weight:500; font-size:clamp(2.6rem, 2rem + 3vw, 4rem); line-height:1.05; }
+  .logo-h1{ display:flex; align-items:center; gap:.9rem; }
+  .wh-mark{ flex:none; width:clamp(3.4rem,2.8rem + 2.5vw,4.6rem); height:auto; }
   h1 .w{ color:var(--accent); } h1 .h{ color:var(--accent-2); }
   .tagline{ margin:.8rem 0 0; font-family:"Playfair Display", serif; font-style:italic; font-size:clamp(1.25rem,1.1rem + .6vw,1.6rem); color:var(--ink-soft); }
   .intro{ margin:1.6rem 0 0; font-size:1.25rem; }
@@ -115,7 +117,7 @@
   <main>
     <div class="hero">
       <p class="kicker">Health · Patients and caregivers</p>
-      <h1><span class="w">Well</span><span class="h">Heard</span></h1>
+      <h1 class="logo-h1"><svg class="wh-mark" viewBox="0 0 70 56" aria-hidden="true"><path d="M42 12 a18 16 0 1 1 6 30.5 L56 51 L41 44 a18 16 0 0 1 1 -32 Z" fill="#76A07E"/><path d="M26 4 a22 18 0 1 1 -4 35.7 L8 49 L13.5 35 A22 18 0 0 1 26 4 Z" fill="#1B3A5C" stroke="#F1ECE1" stroke-width="3" paint-order="stroke"/><path d="M16.5 22 L23.5 29 L35.5 15.5" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg><span><span class="w">Well</span><span class="h">Heard</span></span></h1>
       <p class="tagline">Make every visit count.</p>
       <p class="intro">Doctor's appointments are short and stressful. People forget their questions and leave unsure what was said. WellHeard is a calm voice that helps you get ready, records the visit, and gives you a plain-language recap to share with the people who help you.</p>
       <div class="actions">
