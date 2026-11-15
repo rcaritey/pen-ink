@@ -81,8 +81,11 @@
 
   .ask{ background:#fff; background:rgba(255,255,255,.55); border:1px solid var(--rule); border-radius:12px; padding:1.3rem 1.4rem; }
   .ask h2{ font-size:1.4rem; }
-  .leo-pic{ display:block; width:160px; height:160px; border-radius:20px; margin:0 0 1.2rem;
-            box-shadow:0 1px 2px rgba(47,90,76,.3), 0 10px 24px -8px rgba(47,90,76,.35); }
+  .leo-head{ display:flex; align-items:center; gap:.9rem; margin:0 0 1rem; }
+  .leo-head h2{ margin:0; }
+  .leo-pic{ flex:none; width:72px; height:72px; border-radius:50%; padding:3px; background:#fff;
+            border:2px solid #7A6E66; object-fit:cover;
+            box-shadow:0 2px 4px rgba(27,24,20,.12), 0 8px 18px -8px rgba(27,24,20,.25); }
 
   footer{ margin-top:2.5rem; padding-top:1.1rem; border-top:1px solid var(--rule);
           display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem;
@@ -122,8 +125,10 @@
     </section>
 
     <section aria-labelledby="leo">
-      <h2 id="leo">Meet Leo</h2>
-      <img class="leo-pic" src="/work/atelier/leo.png" width="160" height="160" alt="Leo, a friendly cartoon man with long brown hair, a headband and a beard, in a navy polo shirt, waving">
+      <div class="leo-head">
+        <img class="leo-pic" src="/work/atelier/leo-face.png" width="72" height="72" alt="Leo's face: a friendly cartoon man with long brown hair, a headband and a beard">
+        <h2 id="leo">Meet Leo</h2>
+      </div>
       <p>Leo is the Atelier's assistant. She can talk to him, or type. In hands-free mode he listens and answers on his own, so she can use him while driving or in gardening gloves.</p>
       <ul>
         <li><strong>Drafts the writing.</strong> He turns notes into a spec and a quote, and writes reminders and thank-you notes. She can ask him to rewrite anything.</li>
