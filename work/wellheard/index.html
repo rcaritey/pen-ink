@@ -9,7 +9,7 @@
 <link rel="icon" href="/prep/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Nunito:wght@800&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#F1ECE1; --ink:#1B1814; --ink-soft:#5B5346; --wine:#8A2E34;
@@ -40,8 +40,10 @@
   .hero{ padding:3rem 0 2.2rem; }
   .kicker{ margin:0 0 .9rem; font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-2); font-weight:500; }
   h1{ margin:0; font-family:"Playfair Display", serif; font-weight:500; font-size:clamp(2.6rem, 2rem + 3vw, 4rem); line-height:1.05; }
-  .logo-h1{ display:flex; align-items:center; gap:.9rem; }
-  .wh-mark{ flex:none; width:clamp(3.4rem,2.8rem + 2.5vw,4.6rem); height:auto; }
+  /* The app's own logo (pen-ink.ca/prep): mark + "Well" navy, "Heard" sage, Nunito 800 */
+  .logo-h1{ display:inline-flex; align-items:center; gap:.3em; font-family:"Nunito","Segoe UI",Verdana,sans-serif; font-weight:800; letter-spacing:-.02em; line-height:1; white-space:nowrap; }
+  .wh-mark{ display:block; flex:none; width:1.45em; height:auto; }
+  .logo-h1 .w{ color:#1B3A5C; } .logo-h1 .h{ color:#6A9672; }
   h1 .w{ color:var(--accent); } h1 .h{ color:var(--accent-2); }
   .tagline{ margin:.8rem 0 0; font-family:"Playfair Display", serif; font-style:italic; font-size:clamp(1.25rem,1.1rem + .6vw,1.6rem); color:var(--ink-soft); }
   .intro{ margin:1.6rem 0 0; font-size:1.25rem; }
