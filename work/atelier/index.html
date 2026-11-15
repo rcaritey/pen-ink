@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Atelier — Pen &amp; Ink</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="The Atelier: a phone-first business app for a botanical and wine studio, built for an owner who would rather not use software.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F1ECE1; --ink:#1B1814; --ink-soft:#5B5346; --wine:#8A2E34;
+    --rule:rgba(27,24,20,0.20);
+    --accent:#2F5A4C;          /* Atelier deep eucalyptus */
+    --accent-2:#8A2E34;        /* wine */
+    --accent-wash:rgba(47,90,76,.07);
+  }
+  *{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"EB Garamond", Georgia, serif; font-size:1.15rem; line-height:1.6;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  a{ color:var(--wine); text-underline-offset:3px; text-decoration-color:rgba(138,46,52,.4); }
+  a:hover{ text-decoration-color:var(--wine); }
+  :focus-visible{ outline:2px solid var(--wine); outline-offset:3px; border-radius:2px; }
+
+  .wrap{ max-width:46rem; margin:0 auto; padding:2rem 1.4rem 4rem; }
+  .top{ display:flex; justify-content:space-between; align-items:baseline; gap:1rem; flex-wrap:wrap;
+        font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft);
+        padding-bottom:1rem; border-bottom:1px solid var(--rule); }
+  .top a{ color:var(--ink); text-decoration:none; }
+  .top a:hover{ color:var(--wine); }
+  .top .amp{ color:var(--wine); }
+
+  .hero{ padding:3rem 0 2.2rem; }
+  .kicker{ margin:0 0 .9rem; font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-2); font-weight:500; }
+  h1{ margin:0; font-family:"Playfair Display", serif; font-weight:500; font-size:clamp(2.6rem, 2rem + 3vw, 4rem); line-height:1.05; }
+  h1 .w{ color:var(--accent); } h1 .h{ color:var(--accent-2); }
+  .tagline{ margin:.8rem 0 0; font-family:"Playfair Display", serif; font-style:italic; font-size:clamp(1.25rem,1.1rem + .6vw,1.6rem); color:var(--ink-soft); }
+  .intro{ margin:1.6rem 0 0; font-size:1.25rem; }
+
+  .actions{ display:flex; flex-wrap:wrap; gap:.9rem 1.4rem; align-items:center; margin-top:1.8rem; }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; min-height:48px;
+    padding:.7rem 1.5rem; border-radius:10px; text-decoration:none;
+    font-family:"Playfair Display", serif; font-size:1.1rem; color:#fff; background:var(--accent);
+    box-shadow:0 1px 2px rgba(47,90,76,.35), 0 8px 22px -6px rgba(47,90,76,.35);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover{ transform:translateY(-1px); box-shadow:0 2px 4px rgba(47,90,76,.35), 0 12px 28px -6px rgba(47,90,76,.42); }
+  .btn:active{ transform:translateY(1px); box-shadow:inset 0 2px 5px rgba(0,0,0,.25); }
+  .note{ font-size:1rem; color:var(--ink-soft); }
+
+  section{ padding:2rem 0; border-top:1px solid var(--rule); }
+  h2{ margin:0 0 1rem; font-family:"Playfair Display", serif; font-weight:500; font-size:1.65rem; line-height:1.25; }
+  p{ margin:0 0 1rem; }
+  ul{ margin:0; padding-left:1.2rem; }
+  li{ margin:0 0 .6rem; }
+  li::marker{ color:var(--wine); }
+
+  .steps{ list-style:none; padding:0; display:grid; gap:1rem; counter-reset:s; }
+  .steps li{ counter-increment:s; margin:0; padding:1.1rem 1.2rem 1.1rem 3.6rem; position:relative;
+             background:var(--accent-wash); border-radius:12px; }
+  .steps li::before{ content:counter(s); position:absolute; left:1.1rem; top:1rem;
+             width:1.8rem; height:1.8rem; border-radius:50%; background:var(--accent); color:#fff;
+             font-family:"Playfair Display", serif; font-size:1rem; display:grid; place-items:center; }
+  .steps strong{ display:block; font-family:"Playfair Display", serif; font-weight:500; font-size:1.2rem; }
+
+  .facts{ display:grid; grid-template-columns:1fr; gap:.2rem 1.5rem; margin:0; }
+  .facts dt{ font-size:.8rem; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); margin-top:.8rem; }
+  .facts dd{ margin:0; }
+  @media (min-width:40rem){
+    .facts{ grid-template-columns:11rem 1fr; }
+    .facts dt{ margin-top:.25rem; }
+    .facts dd{ margin-top:0; padding-bottom:.6rem; }
+  }
+
+  .ask{ background:#fff; background:rgba(255,255,255,.55); border:1px solid var(--rule); border-radius:12px; padding:1.3rem 1.4rem; }
+  .ask h2{ font-size:1.4rem; }
+
+  footer{ margin-top:2.5rem; padding-top:1.1rem; border-top:1px solid var(--rule);
+          display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem;
+          font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft); }
+  footer a{ color:var(--ink-soft); text-decoration:none; }
+  footer a:hover{ color:var(--wine); }
+
+  @media (prefers-reduced-motion:reduce){ .btn{ transition:none; } .btn:hover{ transform:none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a href="/">Pen <span class="amp">&amp;</span> Ink</a>
+    <span>Work in progress</span>
+  </header>
+
+  <main>
+    <div class="hero">
+      <p class="kicker">Small business · Botanicals and wine</p>
+      <h1>The Atelier</h1>
+      <p class="tagline">The back office, for someone who'd rather be making things.</p>
+      <p class="intro">A phone-first business app for Peonies &amp; Pinot, a Toronto studio that does bespoke floral design and curated wine experiences. Its owner is analog and loves Instagram, and wants little else to do with tech. The Atelier keeps clients, jobs, receipts, quotes and invoices in one place so she doesn't have to.</p>
+      <div class="actions">
+        <a class="btn" href="https://atelier.peoniesandpinot.com" target="_blank" rel="noopener">Open the Atelier →</a>
+        <span class="note">Sign-in required. Ask Rama for the demo login.</span>
+      </div>
+    </div>
+
+    <section aria-labelledby="problem">
+      <h2 id="problem">The problem</h2>
+      <p>A one-person creative business runs on paper receipts, texts and memory. Invoices go out late or not at all, costs get lost, and nobody knows which jobs actually made money. Off-the-shelf tools like QuickBooks assume you're comfortable with software. This owner isn't, and won't learn it.</p>
+      <p>So the Atelier asks: what if the app did the typing, and she only had to say yes?</p>
+    </section>
+
+    <section aria-labelledby="how">
+      <h2 id="how">What it does</h2>
+      <ol class="steps">
+        <li><strong>Snap a receipt</strong>The camera opens first. AI reads both florist and wine receipts and files each cost against the right job. Several receipts can share one photo, and every step can be skipped and sorted later.</li>
+        <li><strong>Talk to Leo</strong>Leo is a built-in voice assistant with a hands-free mode for driving or gardening gloves. Ask "add 10 guests to Johnny's dinner" and he makes the change. He drafts quotes and descriptions and researches typical prices, but nothing goes out until she approves it.</li>
+        <li><strong>Invoice in three screens</strong>Check what's on it, check the total, send. Receipts for the job are already on the invoice, Ontario sales tax (HST) is worked out, and a branded one-page PDF goes to the client by email.</li>
+        <li><strong>Quick wins</strong>The home screen shows the next useful thing to do, written as a step forward: "3 ready to invoice", "send a friendly reminder to…". Never "overdue".</li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="design">
+      <h2 id="design">Design choices</h2>
+      <ul>
+        <li><strong>Built for one real person.</strong> Every screen was tested with the owner, and features come back only when she asks for them. A full version was stripped down to a starter one because simpler won.</li>
+        <li><strong>Nowhere to get stuck.</strong> Big buttons, a whole-screen menu with four squares, Undo everywhere, and step-by-step help that stays on screen as you move around.</li>
+        <li><strong>Warm, not corporate.</strong> Soft eucalyptus and wine colours, her own photos rotating each day, and a morning greeting.</li>
+        <li><strong>Accessible.</strong> Built to the WCAG 2.2 AA accessibility standard: strong contrast, large tap targets, works with a keyboard and at 200% zoom.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="status">
+      <h2 id="status">Where it stands</h2>
+      <dl class="facts">
+        <dt>Status</dt><dd>Live and in daily use. The owner is entering real jobs and sending real invoices to clients. New features are tried first on a separate demo login, then moved to hers.</dd>
+        <dt>Built with</dt><dd>Next.js and React (TypeScript) on Vercel, with Supabase for the database, sign-in and receipt scanning. Claude powers Leo and the receipt reader. Resend sends the email, and Azure Speech is Leo's voice.</dd>
+        <dt>Next up</dt><dd>Scanning a batch of receipts at once, and Leo looking up past quotes and sent emails.</dd>
+        <dt>Bigger question</dt><dd>Could this become a product for other one-person creative studios, such as florists, caterers and event planners?</dd>
+      </dl>
+    </section>
+
+    <section class="ask" aria-labelledby="feedback">
+      <h2 id="feedback">What I'd love your take on</h2>
+      <ul>
+        <li>On your phone, add a client and a job, then make an invoice. How far do you get without help?</li>
+        <li>Try Leo by voice. Does it feel useful, or gimmicky?</li>
+        <li>Who else do you know who runs a business like this? Would they pay for it?</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <span>Pen &amp; Ink · Toronto</span>
+    <a href="/work/wellheard/">See also: WellHeard →</a>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WellHeard — Pen &amp; Ink</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="WellHeard: a voice-led app that helps patients and caregivers prepare for, record, and remember medical appointments.">
+<link rel="icon" href="/prep/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F1ECE1; --ink:#1B1814; --ink-soft:#5B5346; --wine:#8A2E34;
+    --rule:rgba(27,24,20,0.20);
+    --accent:#1B3A5C;          /* WellHeard navy */
+    --accent-2:#4F7A57;        /* WellHeard sage, darkened for text contrast */
+    --accent-wash:rgba(27,58,92,.06);
+  }
+  *{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"EB Garamond", Georgia, serif; font-size:1.15rem; line-height:1.6;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  a{ color:var(--wine); text-underline-offset:3px; text-decoration-color:rgba(138,46,52,.4); }
+  a:hover{ text-decoration-color:var(--wine); }
+  :focus-visible{ outline:2px solid var(--wine); outline-offset:3px; border-radius:2px; }
+
+  .wrap{ max-width:46rem; margin:0 auto; padding:2rem 1.4rem 4rem; }
+  .top{ display:flex; justify-content:space-between; align-items:baseline; gap:1rem; flex-wrap:wrap;
+        font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft);
+        padding-bottom:1rem; border-bottom:1px solid var(--rule); }
+  .top a{ color:var(--ink); text-decoration:none; }
+  .top a:hover{ color:var(--wine); }
+  .top .amp{ color:var(--wine); }
+
+  .hero{ padding:3rem 0 2.2rem; }
+  .kicker{ margin:0 0 .9rem; font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-2); font-weight:500; }
+  h1{ margin:0; font-family:"Playfair Display", serif; font-weight:500; font-size:clamp(2.6rem, 2rem + 3vw, 4rem); line-height:1.05; }
+  h1 .w{ color:var(--accent); } h1 .h{ color:var(--accent-2); }
+  .tagline{ margin:.8rem 0 0; font-family:"Playfair Display", serif; font-style:italic; font-size:clamp(1.25rem,1.1rem + .6vw,1.6rem); color:var(--ink-soft); }
+  .intro{ margin:1.6rem 0 0; font-size:1.25rem; }
+
+  .actions{ display:flex; flex-wrap:wrap; gap:.9rem 1.4rem; align-items:center; margin-top:1.8rem; }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; min-height:48px;
+    padding:.7rem 1.5rem; border-radius:10px; text-decoration:none;
+    font-family:"Playfair Display", serif; font-size:1.1rem; color:#fff; background:var(--accent);
+    box-shadow:0 1px 2px rgba(27,58,92,.35), 0 8px 22px -6px rgba(27,58,92,.35);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover{ transform:translateY(-1px); box-shadow:0 2px 4px rgba(27,58,92,.35), 0 12px 28px -6px rgba(27,58,92,.42); }
+  .btn:active{ transform:translateY(1px); box-shadow:inset 0 2px 5px rgba(0,0,0,.25); }
+  .note{ font-size:1rem; color:var(--ink-soft); }
+
+  section{ padding:2rem 0; border-top:1px solid var(--rule); }
+  h2{ margin:0 0 1rem; font-family:"Playfair Display", serif; font-weight:500; font-size:1.65rem; line-height:1.25; }
+  p{ margin:0 0 1rem; }
+  ul{ margin:0; padding-left:1.2rem; }
+  li{ margin:0 0 .6rem; }
+  li::marker{ color:var(--wine); }
+
+  .steps{ list-style:none; padding:0; display:grid; gap:1rem; counter-reset:s; }
+  .steps li{ counter-increment:s; margin:0; padding:1.1rem 1.2rem 1.1rem 3.6rem; position:relative;
+             background:var(--accent-wash); border-radius:12px; }
+  .steps li::before{ content:counter(s); position:absolute; left:1.1rem; top:1rem;
+             width:1.8rem; height:1.8rem; border-radius:50%; background:var(--accent); color:#fff;
+             font-family:"Playfair Display", serif; font-size:1rem; display:grid; place-items:center; }
+  .steps strong{ display:block; font-family:"Playfair Display", serif; font-weight:500; font-size:1.2rem; }
+
+  .facts{ display:grid; grid-template-columns:1fr; gap:.2rem 1.5rem; margin:0; }
+  .facts dt{ font-size:.8rem; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); margin-top:.8rem; }
+  .facts dd{ margin:0; }
+  @media (min-width:40rem){
+    .facts{ grid-template-columns:11rem 1fr; }
+    .facts dt{ margin-top:.25rem; }
+    .facts dd{ margin-top:0; padding-bottom:.6rem; }
+  }
+
+  .ask{ background:#fff; background:rgba(255,255,255,.55); border:1px solid var(--rule); border-radius:12px; padding:1.3rem 1.4rem; }
+  .ask h2{ font-size:1.4rem; }
+
+  footer{ margin-top:2.5rem; padding-top:1.1rem; border-top:1px solid var(--rule);
+          display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem;
+          font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft); }
+  footer a{ color:var(--ink-soft); text-decoration:none; }
+  footer a:hover{ color:var(--wine); }
+
+  @media (prefers-reduced-motion:reduce){ .btn{ transition:none; } .btn:hover{ transform:none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a href="/">Pen <span class="amp">&amp;</span> Ink</a>
+    <span>Work in progress</span>
+  </header>
+
+  <main>
+    <div class="hero">
+      <p class="kicker">Health · Patients and caregivers</p>
+      <h1><span class="w">Well</span><span class="h">Heard</span></h1>
+      <p class="tagline">Make every visit count.</p>
+      <p class="intro">A voice-led app that helps patients and the people who look after them get ready for a medical appointment, capture what the doctor said, and remember what happens next.</p>
+      <div class="actions">
+        <a class="btn" href="/prep" target="_blank" rel="noopener">Open WellHeard →</a>
+        <span class="note">Works on phone or computer. No sign-in needed.</span>
+      </div>
+    </div>
+
+    <section aria-labelledby="problem">
+      <h2 id="problem">The problem</h2>
+      <p>Specialist visits are short, stressful, and easy to waste. People forget the question they came in with, can't explain a change in their own words, and walk out unsure what was decided. Caregivers often aren't in the room. Newcomers may not follow the doctor's English or French.</p>
+      <p>WellHeard started with one real patient: a family member living with Parkinson's, preparing for a surgeon follow-up. It has since widened to any appointment.</p>
+    </section>
+
+    <section aria-labelledby="how">
+      <h2 id="how">How it works</h2>
+      <ol class="steps">
+        <li><strong>Before the visit</strong>A calm voice asks one question at a time: what the visit is for, what's changed, medications, and what matters most. It suggests questions you might not think to ask, and questions the doctor is likely to ask you. You leave with a one-page sheet for the doctor.</li>
+        <li><strong>At the visit</strong>Record the conversation in the app, or use your phone's own recorder and upload it later.</li>
+        <li><strong>After the visit</strong>WellHeard turns the recording into a plain-language recap: what the doctor said, questions still unanswered, and next steps. The patient or caregiver can edit the recap and share it with the people helping them.</li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="design">
+      <h2 id="design">Design choices</h2>
+      <ul>
+        <li><strong>The patient leads.</strong> The app opens by asking what they'd like to talk about, then offers its own questions. It waits for answers and never rushes to fill a pause.</li>
+        <li><strong>Voice first, in plain words.</strong> Large type, one simple card per step, spoken commands like "next" and "erase". English and French.</li>
+        <li><strong>Honest about the AI.</strong> It says from the start that the helper is an AI (Claude, by Anthropic) and asks for consent before going on.</li>
+        <li><strong>Restate, never advise.</strong> WellHeard organizes what the patient says and what the doctor says. It never gives medical advice of its own.</li>
+        <li><strong>Private by default.</strong> Notes stay on the person's own device, and audio is deleted once it has been transcribed and summarized.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="status">
+      <h2 id="status">Where it stands</h2>
+      <dl class="facts">
+        <dt>Status</dt><dd>Working prototype, tested at real appointments. After one foot-care visit, both the patient and the practitioner said the prep sheet was useful. One doctor's verdict on seeing it: "He's hired."</dd>
+        <dt>Built with</dt><dd>A single-page web app on Vercel with small serverless functions. Claude writes the questions and recaps. Azure Speech handles voice and transcription.</dd>
+        <dt>Next up</dt><dd>Recaps generated automatically from the recording, sharing with a care circle, and a saved history of past visits.</dd>
+        <dt>Open questions</dt><dd>Who pays for it: patients, families, clinics, or a partner? And is WellHeard the right name?</dd>
+      </dl>
+    </section>
+
+    <section class="ask" aria-labelledby="feedback">
+      <h2 id="feedback">What I'd love your take on</h2>
+      <ul>
+        <li>Try a pretend appointment from start to finish. Where did you get stuck, or get bored?</li>
+        <li>Would you set this up for a parent or grandparent? What would stop you?</li>
+        <li>What does the name make you think of?</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <span>Pen &amp; Ink · Toronto</span>
+    <a href="/work/atelier/">See also: The Atelier →</a>
+  </footer>
+</div>
+</body>
+</html>
