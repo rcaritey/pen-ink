@@ -81,6 +81,13 @@
 
   .ask{ background:#fff; background:rgba(255,255,255,.55); border:1px solid var(--rule); border-radius:12px; padding:1.3rem 1.4rem; }
   .ask h2{ font-size:1.4rem; }
+  .shots{ display:grid; grid-template-columns:1fr 1fr; gap:1.4rem 1rem; }
+  @media (min-width:40rem){ .shots{ grid-template-columns:1fr 1fr 1fr; } }
+  .shots figure{ margin:0; }
+  .shots img{ display:block; width:100%; height:auto; border-radius:14px; border:1px solid var(--rule);
+              box-shadow:0 1px 2px rgba(47,90,76,.2), 0 10px 22px -10px rgba(47,90,76,.35); }
+  .shots figcaption{ margin-top:.55rem; font-size:1rem; line-height:1.4; color:var(--ink-soft); }
+  .shots figcaption strong{ display:block; color:var(--ink); font-family:"Playfair Display", serif; font-weight:500; font-size:1.1rem; }
   .steps .sub{ margin:.4rem 0 .5rem; padding-left:1.4rem; }
   .steps .sub li{ counter-increment:none; margin:0 0 .2rem; padding:0; background:none; border-radius:0; }
   .steps .sub li::before{ content:none; }
@@ -130,6 +137,36 @@
           Each cost lands on the right job.</li>
         <li><strong>Invoice</strong>Three screens: check it, check the total, send.</li>
       </ol>
+    </section>
+
+    <section aria-labelledby="look">
+      <h2 id="look">A look inside</h2>
+      <div class="shots">
+        <figure>
+          <img src="/work/atelier/shots/today.jpg" width="600" height="800" loading="lazy" alt="The Today screen: a tulip photo, the weather, a greeting, Quick wins with 2 invoices ready to send, and buttons to add a project, client or note">
+          <figcaption><strong>Today</strong>A photo, the weather, and the next quick win.</figcaption>
+        </figure>
+        <figure>
+          <img src="/work/atelier/shots/projects.jpg" width="600" height="800" loading="lazy" alt="The Projects board: Seed 6 getting the job, Grow 5 doing the job, Harvest 5 getting paid">
+          <figcaption><strong>Projects</strong>Every job moves from Seed to Grow to Harvest.</figcaption>
+        </figure>
+        <figure>
+          <img src="/work/atelier/shots/scan.jpg" width="600" height="800" loading="lazy" alt="The Scan screen: a big Take a photo button, with Upload a photo and Type it in below">
+          <figcaption><strong>Scan</strong>Snap a receipt; it lands on the right job.</figcaption>
+        </figure>
+        <figure>
+          <img src="/work/atelier/shots/money.jpg" width="600" height="800" loading="lazy" alt="The Money screen: Hours, Expenses, Invoices and Reports">
+          <figcaption><strong>Money</strong>Hours, expenses, invoices and reports in one place.</figcaption>
+        </figure>
+        <figure>
+          <img src="/work/atelier/shots/reports.jpg" width="600" height="800" loading="lazy" alt="The Reports screen: revenue for the year shown as a green flower, all from planters">
+          <figcaption><strong>Reports</strong>Where the money comes from, drawn as a flower.</figcaption>
+        </figure>
+        <figure>
+          <img src="/work/atelier/shots/settings.jpg" width="600" height="800" loading="lazy" alt="The Settings screen: People and permissions, Photos, Leo's voice, Easier to read, Easier to tap and more">
+          <figcaption><strong>Settings</strong>Easier to read and easier to tap, one switch each.</figcaption>
+        </figure>
+      </div>
     </section>
 
     <section aria-labelledby="leo">
