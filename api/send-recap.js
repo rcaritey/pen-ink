@@ -15,9 +15,11 @@
 import { fromWellHeard, limited } from './_guard.js';
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
-const FROM_ADDR = process.env.RECAP_FROM || 'recaps@pen-ink.ca';
+// Same sender as the contact form (api/contact.js), so it's an address Resend already accepts.
+const addrOf = v => { const m = String(v || '').match(/<([^>]+)>/); return (m ? m[1] : String(v || '')).trim(); };
+const FROM_ADDR = addrOf(process.env.RECAP_FROM) || addrOf(process.env.CONTACT_FROM) || 'forms@pen-ink.ca';
 
-const LIMITS = { to: 3, name: 80, email: 200, title: 120, sections: 16, heading: 80, lines: 40, line: 600, total: 15000 };
+const LIMITS = { to: 5, name: 80, email: 200, title: 120, sections: 16, heading: 80, lines: 40, line: 600, total: 15000 };
 
 const clean = (v, max) => typeof v === 'string'
   ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').replace(/[ \t]+/g, ' ').trim().slice(0, max)
@@ -96,7 +98,7 @@ export default async function handler(req, res) {
 
   const to = [...new Set((Array.isArray(body.to) ? body.to : []).map(v => clean(v, LIMITS.email).toLowerCase()).filter(Boolean))];
   if (!to.length) return res.status(400).json({ ok: false, error: 'Type the email address to send it to.' });
-  if (to.length > LIMITS.to) return res.status(400).json({ ok: false, error: 'You can send it to up to 3 people at a time.' });
+  if (to.length > LIMITS.to) return res.status(400).json({ ok: false, error: 'You can send it to up to 5 people at a time.' });
   const bad = to.find(v => !looksLikeEmail(v));
   if (bad) return res.status(400).json({ ok: false, error: `"${bad}" doesn't look like an email address. Check it and try again.` });
 
@@ -125,7 +127,9 @@ export default async function handler(req, res) {
       }),
     });
     if (!r.ok) {
-      console.error('send-recap: resend status', r.status);
+      // Resend's error text says what's wrong with the setup (sender, key, limits); it holds no recap content
+      const why = await r.json().then(j => j && (j.message || j.name), () => '').catch(() => '');
+      console.error('send-recap: resend refused', r.status, String(why || '').slice(0, 300), 'from', FROM_ADDR.replace(/^[^@]*/, '*'));
       return res.status(502).json({ ok: false, error: "The email didn't go out. Try again in a minute, or use one of the other ways to send it." });
     }
     return res.status(200).json({ ok: true });
