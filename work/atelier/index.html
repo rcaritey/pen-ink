@@ -8,7 +8,7 @@
 <meta name="description" content="The Atelier: a phone-first business app for a botanical and wine studio, built for an owner who would rather not use software.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#F1ECE1; --ink:#1B1814; --ink-soft:#5B5346; --wine:#8A2E34;
@@ -39,8 +39,13 @@
   .hero{ padding:3rem 0 2.2rem; }
   .kicker{ margin:0 0 .9rem; font-size:.8rem; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-2); font-weight:500; }
   h1{ margin:0; font-family:"Playfair Display", serif; font-weight:500; font-size:clamp(2.6rem, 2rem + 3vw, 4rem); line-height:1.05; }
-  .logo-h1{ display:flex; align-items:center; gap:.9rem; }
-  .at-mark{ flex:none; width:clamp(3.8rem,3.1rem + 2.8vw,5.2rem); height:auto; }
+  /* The Atelier's logo (Rama, 15 Nov 2026): the wine peony on the left; "The Atelier" over the
+     Peonies & Pinot wordmark on the right, as in the app's header. */
+  .logo-h1{ display:flex; align-items:center; gap:clamp(.8rem,.5rem + 1.2vw,1.3rem); font-size:clamp(2.2rem, 1.7rem + 2.2vw, 3.3rem); }
+  .at-mark{ flex:none; width:clamp(4.6rem,3.8rem + 3.4vw,6.4rem); height:auto; }
+  .at-words{ display:inline-flex; flex-direction:column; gap:.3em; min-width:0; }
+  .at-name{ font-family:"Fraunces", "Playfair Display", serif; font-weight:600; color:#2A2230; line-height:1; letter-spacing:-.01em; white-space:nowrap; }
+  .at-pp{ display:block; width:100%; height:auto; }
   h1 .w{ color:var(--accent); } h1 .h{ color:var(--accent-2); }
   .tagline{ margin:.8rem 0 0; font-family:"Playfair Display", serif; font-style:italic; font-size:clamp(1.25rem,1.1rem + .6vw,1.6rem); color:var(--ink-soft); }
   .intro{ margin:1.6rem 0 0; font-size:1.25rem; }
@@ -142,21 +147,7 @@
     <div class="hero hero-grid">
       <div>
       <p class="kicker">Local business · Botanicals and wine</p>
-      <h1 class="logo-h1"><svg class="at-mark" viewBox="3 6 94 73" aria-hidden="true"><g fill="#8A2E34" stroke="#F1ECE1" stroke-width="1.8">
-<ellipse cx="21" cy="47" rx="17" ry="9" transform="rotate(-28 21 47)"/>
-<ellipse cx="79" cy="47" rx="17" ry="9" transform="rotate(28 79 47)"/>
-<ellipse cx="37" cy="27" rx="10" ry="15" transform="rotate(-18 37 27)"/>
-<ellipse cx="63" cy="27" rx="10" ry="15" transform="rotate(18 63 27)"/>
-<ellipse cx="50" cy="23" rx="10" ry="14"/>
-<ellipse cx="29" cy="42" rx="10" ry="16" transform="rotate(-40 29 42)"/>
-<ellipse cx="71" cy="42" rx="10" ry="16" transform="rotate(40 71 42)"/>
-<ellipse cx="42" cy="39" rx="9" ry="13" transform="rotate(-14 42 39)"/>
-<ellipse cx="58" cy="39" rx="9" ry="13" transform="rotate(14 58 39)"/>
-<ellipse cx="50" cy="42" rx="9" ry="12"/>
-<ellipse cx="29" cy="62" rx="21" ry="9" transform="rotate(-10 29 62)"/>
-<ellipse cx="71" cy="62" rx="21" ry="9" transform="rotate(10 71 62)"/>
-<ellipse cx="50" cy="66" rx="17" ry="10"/>
-</g></svg><span>The Atelier</span></h1>
+      <h1 class="logo-h1"><img class="at-mark" src="/work/atelier/peony.png" width="360" height="300" alt=""><span class="at-words"><span class="at-name">The Atelier</span><img class="at-pp" src="/work/atelier/pp-wordmark.png" width="1493" height="149" alt="Peonies &amp; Pinot"></span></h1>
       <p class="tagline">The back office, for someone who'd rather be making things.</p>
       <p class="intro">Peonies &amp; Pinot is a Toronto studio doing floral design and wine experiences. Its owner is analog and wants nothing to do with software. The Atelier does the typing, and she just says yes.</p>
       <div class="actions">
