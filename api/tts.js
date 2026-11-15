@@ -8,6 +8,8 @@
 // Needs AZURE_SPEECH_KEY (and optionally AZURE_SPEECH_REGION, default canadacentral).
 // No npm dependencies on purpose, same as the other functions.
 
+import { fromWellHeard, limited } from './_guard.js';
+
 // Liam HD (29 Oct 2026, Rama: "non-monotone, Canadian accent"): Azure's HD voice reads the mood of
 // each sentence instead of one flat tone. If Azure won't give the HD voice, his standard twin reads.
 const HD = 'en-CA-Liam:DragonHDOmniLatestNeural';
@@ -38,6 +40,8 @@ export default async function handler(req, res) {
   if (req.method === 'GET') return res.status(200).json({ on: !!key });
   if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
   if (!key) return res.status(503).json({ error: 'off' });
+  if (!fromWellHeard(req)) return res.status(403).json({ error: 'origin' });
+  if (limited(req, 'tts', 300)) return res.status(429).json({ error: 'busy' });
 
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }

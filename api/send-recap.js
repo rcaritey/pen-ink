@@ -12,13 +12,12 @@
 // at most 3 recipients, size caps, a honeypot field, and a per-connection rate limit.
 // No npm dependencies on purpose.
 
+import { fromWellHeard, limited } from './_guard.js';
+
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 const FROM_ADDR = process.env.RECAP_FROM || 'recaps@pen-ink.ca';
 
-const ALLOWED_HOSTS = /^(www\.)?(pen-ink\.ca|presentcare\.ca|presentsante\.ca|presentsante\.com)$|\.vercel\.app$|^localhost$|^127\.0\.0\.1$/;
 const LIMITS = { to: 3, name: 80, email: 200, title: 120, sections: 16, heading: 80, lines: 40, line: 600, total: 15000 };
-const RATE = { windowMs: 10 * 60 * 1000, max: 5 };
-const hits = new Map(); // per server instance; best effort
 
 const clean = (v, max) => typeof v === 'string'
   ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').replace(/[ \t]+/g, ' ').trim().slice(0, max)
@@ -26,21 +25,6 @@ const clean = (v, max) => typeof v === 'string'
 const oneLine = v => v.replace(/[\r\n]+/g, ' ').trim();
 const looksLikeEmail = v => /^[^\s@,;<>"]+@[^\s@,;<>"]+\.[^\s@,;<>"]{2,}$/.test(v);
 const esc = v => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-function hostOf(req) {
-  const src = req.headers.origin || req.headers.referer || '';
-  try { return new URL(src).hostname; } catch { return ''; }
-}
-
-function limited(req) {
-  const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim() || 'unknown';
-  const now = Date.now();
-  const list = (hits.get(ip) || []).filter(t => now - t < RATE.windowMs);
-  if (list.length >= RATE.max) { hits.set(ip, list); return true; }
-  list.push(now); hits.set(ip, list);
-  if (hits.size > 5000) hits.clear();
-  return false;
-}
 
 // { title, sections: [{ heading, lines: [string], kind: "text" | "bullets" | "checks" }] }
 function readRecap(raw) {
@@ -103,12 +87,12 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
-  if (!ALLOWED_HOSTS.test(hostOf(req))) return res.status(403).json({ ok: false, error: 'Send this from WellHeard.' });
+  if (!fromWellHeard(req)) return res.status(403).json({ ok: false, error: 'Send this from WellHeard.' });
 
   const body = parseBody(req);
   if (clean(body.company, 200)) return res.status(200).json({ ok: true }); // honeypot
   if (!ready) return res.status(503).json({ ok: false, error: "Sending isn't set up yet. Use one of the other ways to send it." });
-  if (limited(req)) return res.status(429).json({ ok: false, error: "That's a lot of emails in a short time. Wait 10 minutes, then try again." });
+  if (limited(req, 'send-recap', 5)) return res.status(429).json({ ok: false, error: "That's a lot of emails in a short time. Wait 10 minutes, then try again." });
 
   const to = [...new Set((Array.isArray(body.to) ? body.to : []).map(v => clean(v, LIMITS.email).toLowerCase()).filter(Boolean))];
   if (!to.length) return res.status(400).json({ ok: false, error: 'Type the email address to send it to.' });

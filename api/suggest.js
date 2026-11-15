@@ -9,6 +9,7 @@
 // No npm dependencies on purpose, same as api/contact.js.
 
 import { CLINICAL_GUIDE } from './_guide.js';
+import { fromWellHeard, limited } from './_guard.js';
 
 const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages';
 const MODEL = process.env.PREP_MODEL || 'claude-sonnet-5-5';
@@ -297,6 +298,8 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
+  if (!fromWellHeard(req)) return res.status(403).json({ ok: false, error: 'Use this from WellHeard.' });
+  if (limited(req, 'suggest', 80)) return res.status(429).json({ ok: false, error: "That's a lot of requests in a short time. Wait a few minutes, then try again." });
 
   const body = typeof req.body === 'object' && req.body ? req.body : (() => {
     try { return JSON.parse(req.body || '{}'); } catch { return {}; }

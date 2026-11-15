@@ -9,6 +9,8 @@
 // or the reply is logged here, only error status codes.
 // No npm dependencies on purpose, same as the other functions.
 
+import { fromWellHeard, limited } from './_guard.js';
+
 const MAX_BYTES = 2_100_000; // about 65 seconds of 16 kHz mono 16-bit audio; Azure's limit is 60 s
 
 async function readBody(req) {
@@ -29,6 +31,8 @@ export default async function handler(req, res) {
   if (req.method === 'GET') return res.status(200).json({ on: !!key });
   if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
   if (!key) return res.status(503).json({ error: 'off' });
+  if (!fromWellHeard(req)) return res.status(403).json({ error: 'origin' });
+  if (limited(req, 'stt', 400)) return res.status(429).json({ error: 'busy' });
 
   const lang = req.query && req.query.lang === 'fr' ? 'fr-CA' : 'en-CA';
   let audio;
