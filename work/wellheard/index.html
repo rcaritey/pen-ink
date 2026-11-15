@@ -104,59 +104,33 @@
       <p class="kicker">Health · Patients and caregivers</p>
       <h1><span class="w">Well</span><span class="h">Heard</span></h1>
       <p class="tagline">Make every visit count.</p>
-      <p class="intro">A voice-led app that helps patients and the people who look after them get ready for a medical appointment, capture what the doctor said, and remember what happens next.</p>
+      <p class="intro">Doctor's appointments are short and stressful. People forget their questions and leave unsure what was said. WellHeard is a calm voice that helps you get ready, records the visit, and gives you a plain-language recap to share with the people who help you.</p>
       <div class="actions">
         <a class="btn" href="/prep" target="_blank" rel="noopener">Open WellHeard →</a>
-        <span class="note">Works on phone or computer. No sign-in needed.</span>
+        <span class="note">Phone or computer. No sign-in.</span>
       </div>
     </div>
-
-    <section aria-labelledby="problem">
-      <h2 id="problem">The problem</h2>
-      <p>Specialist visits are short, stressful, and easy to waste. People forget the question they came in with, can't explain a change in their own words, and walk out unsure what was decided. Caregivers often aren't in the room. Newcomers may not follow the doctor's English or French.</p>
-      <p>WellHeard started with one real patient: a family member living with Parkinson's, preparing for a surgeon follow-up. It has since widened to any appointment.</p>
-    </section>
 
     <section aria-labelledby="how">
       <h2 id="how">How it works</h2>
       <ol class="steps">
-        <li><strong>Before the visit</strong>A calm voice asks one question at a time: what the visit is for, what's changed, medications, and what matters most. It suggests questions you might not think to ask, and questions the doctor is likely to ask you. You leave with a one-page sheet for the doctor.</li>
-        <li><strong>At the visit</strong>Record the conversation in the app, or use your phone's own recorder and upload it later.</li>
-        <li><strong>After the visit</strong>WellHeard turns the recording into a plain-language recap: what the doctor said, questions still unanswered, and next steps. The patient or caregiver can edit the recap and share it with the people helping them.</li>
+        <li><strong>Before</strong>One question at a time, at your pace. It suggests questions you wouldn't think to ask. You leave with one page for the doctor.</li>
+        <li><strong>During</strong>Record the conversation.</li>
+        <li><strong>After</strong>An editable recap of what was said and what happens next, ready to share.</li>
       </ol>
-    </section>
-
-    <section aria-labelledby="design">
-      <h2 id="design">Design choices</h2>
-      <ul>
-        <li><strong>The patient leads.</strong> The app opens by asking what they'd like to talk about, then offers its own questions. It waits for answers and never rushes to fill a pause.</li>
-        <li><strong>Voice first, in plain words.</strong> Large type, one simple card per step, spoken commands like "next" and "erase". English and French.</li>
-        <li><strong>Honest about the AI.</strong> It says from the start that the helper is an AI (Claude, by Anthropic) and asks for consent before going on.</li>
-        <li><strong>Restate, never advise.</strong> WellHeard organizes what the patient says and what the doctor says. It never gives medical advice of its own.</li>
-        <li><strong>Private by default.</strong> Notes stay on the person's own device, and audio is deleted once it has been transcribed and summarized.</li>
-      </ul>
     </section>
 
     <section aria-labelledby="status">
       <h2 id="status">Where it stands</h2>
-      <dl class="facts">
-        <dt>Status</dt><dd>Working prototype, tested at real appointments. Recaps are generated automatically from the visit recording, and the patient can share them with their care circle. After one foot-care visit, both the patient and the practitioner said the prep sheet was useful. One doctor's verdict on seeing it: "He's hired."</dd>
-        <dt>Built with</dt><dd>A single-page web app on Vercel with small serverless functions. Claude writes the questions and recaps. Azure Speech handles voice and transcription.</dd>
-        <dt>Next up</dt><dd><ul>
-          <li>Ask the AI questions about symptoms, specific to the issue at hand.</li>
-          <li>A saved history of past visits that informs the next one.</li>
-          <li>Compliance with PHIPA, Ontario's Personal Health Information Protection Act.</li>
-        </ul></dd>
-        <dt>Open questions</dt><dd>Who pays for it: patients, families, clinics, or a partner? And is WellHeard the right name?</dd>
-      </dl>
+      <p>A working prototype, built with one family and tested at real appointments. A doctor who saw it said, "He's hired."</p>
+      <p>Next: questions about symptoms, a history of past visits that informs the next one, and compliance with PHIPA, Ontario's health privacy law.</p>
     </section>
 
     <section class="ask" aria-labelledby="feedback">
-      <h2 id="feedback">What I'd love your take on</h2>
+      <h2 id="feedback">Your take</h2>
       <ul>
-        <li>Try a pretend appointment from start to finish. Where did you get stuck, or get bored?</li>
-        <li>Would you set this up for a parent or grandparent? What would stop you?</li>
-        <li>What does the name make you think of?</li>
+        <li>Try a pretend appointment. Where did you get stuck?</li>
+        <li>Would you set it up for a parent or grandparent?</li>
       </ul>
     </section>
   </main>
