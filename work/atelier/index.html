@@ -83,6 +83,29 @@
 
   .ask{ background:#fff; background:rgba(255,255,255,.55); border:1px solid var(--rule); border-radius:12px; padding:1.3rem 1.4rem; }
   .ask h2{ font-size:1.4rem; }
+  /* Phone frames (15 Nov 2026): real screens from the app, in a soft ink bezel with a callout. */
+  .phone-wrap{ position:relative; width:min(250px, 72vw); margin:1.8rem auto 0.6rem; }
+  .phone{ position:relative; border-radius:34px; padding:9px; background:#1B1814;
+          box-shadow:0 2px 4px rgba(27,24,20,.25), 0 24px 48px -18px rgba(47,90,76,.55); }
+  .phone::before{ content:""; position:absolute; top:15px; left:50%; width:54px; height:6px; margin-left:-27px; border-radius:6px; background:#3a332c; z-index:1; }
+  .phone img{ display:block; width:100%; height:auto; border-radius:26px; }
+  .callout{ position:absolute; z-index:2; max-width:11.5rem; padding:.55rem .8rem; border-radius:14px;
+            background:#fff; border:1px solid var(--rule); font-size:.95rem; line-height:1.3; color:var(--ink);
+            box-shadow:0 1px 2px rgba(47,90,76,.2), 0 10px 22px -10px rgba(47,90,76,.4); }
+  .callout strong{ display:block; font-family:"Playfair Display", serif; font-weight:500; font-size:1.02rem; color:var(--accent); }
+  .callout.left{ left:-1.2rem; } .callout.right{ right:-1.2rem; }
+  .blob{ position:absolute; inset:-9% -14%; z-index:-1; border-radius:46% 54% 52% 48% / 55% 45% 55% 45%;
+         background:radial-gradient(closest-side, rgba(138,46,52,.13), rgba(47,90,76,.10) 60%, transparent); }
+  @media (min-width:48rem){
+    .hero-grid{ display:grid; grid-template-columns:1fr 250px; gap:3rem; align-items:center; }
+    .hero-grid .phone-wrap{ margin:0; transform:rotate(2.5deg); }
+    .leo-grid{ display:grid; grid-template-columns:1fr 230px; gap:2.6rem; align-items:start; }
+    .leo-grid .phone-wrap{ width:230px; margin:.4rem 0 0; transform:rotate(-2deg); }
+    .callout.left{ left:-3rem; } .callout.right{ right:-.8rem; max-width:10rem; }
+    .leo-grid .callout.left{ left:-1rem; max-width:10rem; }
+  }
+  @media (prefers-reduced-motion:no-preference){ .phone-wrap{ transition:transform .3s ease; } .phone-wrap:hover{ transform:rotate(0deg) translateY(-3px); } }
+
   .shots{ display:grid; grid-template-columns:1fr 1fr; gap:1.4rem 1rem; }
   @media (min-width:40rem){ .shots{ grid-template-columns:1fr 1fr 1fr; } }
   .shots figure{ margin:0; }
@@ -116,7 +139,8 @@
   </header>
 
   <main>
-    <div class="hero">
+    <div class="hero hero-grid">
+      <div>
       <p class="kicker">Local business · Botanicals and wine</p>
       <h1 class="logo-h1"><svg class="at-mark" viewBox="3 6 94 73" aria-hidden="true"><g fill="#8A2E34" stroke="#F1ECE1" stroke-width="1.8">
 <ellipse cx="21" cy="47" rx="17" ry="9" transform="rotate(-28 21 47)"/>
@@ -139,6 +163,13 @@
         <a class="btn" href="https://atelier.peoniesandpinot.com" target="_blank" rel="noopener">Open the Atelier →</a>
         <span class="note">Sign-in needed. Ask Rama for the demo login.</span>
       </div>
+      </div>
+      <figure class="phone-wrap" style="margin-bottom:0">
+        <span class="blob" aria-hidden="true"></span>
+        <div class="phone"><img src="/work/atelier/shots/home.jpg" width="520" height="1068" alt="The Atelier's Today screen: Quick wins with 2 invoices ready to send ($1,638.48), buttons to add a project, client or note, the active job, what's coming up today, and Seed, Grow and Harvest counts"></div>
+        <figcaption class="callout left" style="top:12%"><strong>Quick wins</strong>The next useful thing, worded as a step forward.</figcaption>
+        <figcaption class="callout right" style="bottom:14%"><strong>Seed · Grow · Harvest</strong>Every job at a glance.</figcaption>
+      </figure>
     </div>
 
     <section aria-labelledby="how">
@@ -159,8 +190,8 @@
       <h2 id="look">A look inside</h2>
       <div class="shots">
         <figure>
-          <img src="/work/atelier/shots/today.jpg" width="600" height="800" loading="lazy" alt="The Today screen: a tulip photo, the weather, a greeting, Quick wins with 2 invoices ready to send, and buttons to add a project, client or note">
-          <figcaption><strong>Today</strong>A photo, the weather, and the next quick win.</figcaption>
+          <img src="/work/atelier/shots/paid.jpg" width="600" height="800" loading="lazy" alt="Reports: Where the money goes, as bars for hard goods, labour and other; and Paid so far, a wine glass filled to 74%: $13,560.00 of $18,400.74 paid, $4,840.74 still owed">
+          <figcaption><strong>Paid so far</strong>A wine glass that fills as clients pay.</figcaption>
         </figure>
         <figure>
           <img src="/work/atelier/shots/projects.jpg" width="600" height="800" loading="lazy" alt="The Projects board: Seed 6 getting the job, Grow 5 doing the job, Harvest 5 getting paid">
@@ -190,15 +221,25 @@
         <img class="leo-pic" src="/work/atelier/leo-face.png" width="72" height="72" alt="Leo's face: a friendly cartoon man with long brown hair, a headband and a beard">
         <h2 id="leo">Meet Leo</h2>
       </div>
+      <div class="leo-grid">
+      <div>
       <p>Leo is the Atelier's assistant. She can talk to him, or type. In hands-free mode he listens and answers on his own, so she can use him while driving or in gardening gloves.</p>
       <ul>
         <li><strong>Drafts the writing.</strong> He turns notes into a spec and a quote, and writes reminders and thank-you notes. She can ask him to rewrite anything.</li>
-        <li><strong>Makes changes when asked.</strong> "Add 10 guests to Johnny's dinner," and it's done.</li>
+        <li><strong>Does the work when asked.</strong> "Add 10 guests to Johnny's dinner," "mark the Holiday decor invoice paid," "move that receipt to the planter job." She says yes, it's done, and Undo is right there.</li>
         <li><strong>Researches prices.</strong> He gives a typical price range for items at that kind of event.</li>
         <li><strong>Remembers.</strong> He can look up old quotes and the emails sent from the Atelier.</li>
         <li><strong>Shows the way.</strong> Step-by-step help stays on screen as she moves around the app.</li>
       </ul>
       <p>Nothing goes to a client until she approves it. And he doesn't do wine pairings. That's her job, and she does it better.</p>
+      </div>
+      <figure class="phone-wrap">
+        <span class="blob" aria-hidden="true"></span>
+        <div class="phone"><img src="/work/atelier/shots/leo-chat.jpg" width="520" height="1068" loading="lazy" alt="Leo in hands-free mode, answering about a draft invoice: the Design line isn't on it yet, and he'll add it at $500 once she says yes. At the bottom: Leo is talking, talk to cut in, a Stop button, and a big Yes, save it button"></div>
+        <figcaption class="callout left" style="top:30%"><strong>Hands-free</strong>She can cut in any time, or just say "Yes".</figcaption>
+        <figcaption class="callout right" style="bottom:4%"><strong>Her Yes, every time</strong>Nothing changes until she says so.</figcaption>
+      </figure>
+      </div>
     </section>
 
     <section aria-labelledby="status">
