@@ -7,7 +7,7 @@
 //   (browsers always send the Origin header on a POST; scripts can fake it, so this stops casual misuse only).
 // - limited: a per-connection cap per time window, per server instance (best effort, no database).
 
-const ALLOWED_HOSTS = /^(www\.)?(pen-ink\.ca|presentcare\.ca|presentsante\.ca|presentsante\.com)$|^pen-ink[a-z0-9-]*\.vercel\.app$|^localhost$|^127\.0\.0\.1$/;
+const ALLOWED_HOSTS = /^(www\.)?(pen-ink\.ca|presentcare\.ca|presentsante\.ca|presentsante\.com)$|^pen-ink[a-z0-9-]*\.vercel\.app$|^[a-z0-9-]+-olivier-s-projects5\.vercel\.app$|^localhost$|^127\.0\.0\.1$/;
 
 function hostOf(req) {
   const src = req.headers.origin || req.headers.referer || '';
