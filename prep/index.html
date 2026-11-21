@@ -1460,11 +1460,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (err) { console.warn(err); }
   const SAY = {
     en: {
-      hello: "Hi, I'm WellHeard's helper. I'm an AI, not a person. I'll ask one thing at a time and wait for you. When you've finished an answer, say next. To take back what you just said, say erase. You can ask me anything, or tap Pause, at any time.",
+      hello: "Hi, I'm WellHeard's helper, an AI. One question at a time. Say next when you're done, or say help any time.",
       heard: "Here's what I heard:", heardQ: "Is that right? Say yes, or say change it.",
       again: "Okay, let's try that again. Go ahead whenever you're ready.",
       sorry: "I didn't catch anything. Please try again, or type it if that's easier.",
-      help: "Here's how it works. Answer in your own words; there are no wrong answers. When you've finished, say next. Say erase to take back the last part, say repeat to hear the question again, or ask me what something means.",
+      help: "Here's how it works. Answer in your own words; there are no wrong answers. When you've finished, say next. Say erase to take back the last part. If I get a name wrong, spell it one letter at a time, or type it. Tap Pause to stop me. Say repeat to hear the question again, or ask me what something means.",
       helpAsk: "What would you like to know? Ask me now. Or say next, and we'll carry on with the question.",
       moreTime: "Of course. Take your time. Say next when you're ready.",
       moment: "One moment.",
@@ -1474,7 +1474,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       intro: "We'll take this slowly. I'll ask one question at a time, and I'll wait. When you've finished answering, say next. ",
       silence: "Should I continue, or do you need more time?",
       done: "That's all my questions. Thank you. Your answers are on the screen, and they'll go on your pages.",
-      g_name: "First, what's your name? If you're helping someone, say their name. It only goes on your printed pages. If I don't get it right, you can spell it out, one letter at a time, or type it. Then say next.",
+      g_name: "What's your name? If you're helping someone, say their name.",
       thanks: "Thanks, {n}.",
       g_appt: "What is the appointment for? Tell me in a few words, for example, a sore foot. Then say next.",
       g_bg: "Now your health. Tell me about any long-term conditions, like Parkinson's or diabetes, one at a time. If there are none, just say next.",
@@ -1513,7 +1513,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_recapmore: "Is there anything else you'd like to ask next time? If not, just say next.",
       g_recapfu: "Was another appointment booked or suggested? Who with? If not, just say next.",
       g_share: "Here's your recap. You can send it to people who help you, so nobody has to tell it all again.",
-      consent: "I use Claude, made by Anthropic, to help you think of questions you may not have thought of, and to prepare you for the questions your doctor may ask you. Your name and the appointment date are never sent. Is it okay to use Claude? Say yes or no.",
+      consent: "I use Claude, by Anthropic, to suggest questions for your doctor. Your name is never sent. Is that okay? Say yes or no.",
       detailAsk: "Next, I'll ask a few questions a doctor would likely ask, so you have the answers ready. Would you like to do that now? Say yes, or say skip.",
       preparing: "One moment while I prepare a few questions. It takes about 15 seconds.",
       readPage: "Here's what your page says. Is anything wrong? Say yes to change something, or say next.",
@@ -1527,7 +1527,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       deadBack: "I can hear you now. Go ahead."
     },
     fr: {
-      hello: "Bonjour, je suis l'assistant de WellHeard. Je suis une intelligence artificielle, pas une personne. Je pose une chose à la fois et je vous attends. Quand vous avez fini une réponse, dites suivant. Pour retirer ce que vous venez de dire, dites efface ça. Vous pouvez me poser une question, ou toucher Pause, à tout moment.",
+      hello: "Bonjour, je suis l'assistant de WellHeard, une intelligence artificielle. Une question à la fois. Dites suivant quand vous avez fini, ou dites aide à tout moment.",
       heard: "Voici ce que j'ai entendu :", heardQ: "Est-ce bien ça ? Dites oui, ou dites changer.",
       again: "D'accord, on recommence. Allez-y quand vous êtes prêt.",
       sorry: "Je n'ai rien entendu. Essayez encore, ou écrivez-le si c'est plus simple.",
@@ -1541,7 +1541,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       intro: "On prend notre temps. Je pose une question à la fois, et j'attends. Quand vous avez fini de répondre, dites suivant. ",
       silence: "Voulez-vous que je continue, ou avez-vous besoin de plus de temps ?",
       done: "C'est tout pour mes questions. Merci. Vos réponses sont à l'écran, et elles iront sur vos pages.",
-      g_name: "D'abord, comment vous appelez-vous ? Si vous aidez quelqu'un, dites son nom. Il va seulement sur vos pages imprimées. Si je ne le comprends pas bien, vous pouvez l'épeler, une lettre à la fois, ou l'écrire. Puis dites suivant.",
+      g_name: "Comment vous appelez-vous ? Si vous aidez quelqu'un, dites son nom.",
       thanks: "Merci, {n}.",
       g_appt: "Ce rendez-vous, c'est pour quoi ? Dites-le en quelques mots, par exemple, un pied qui fait mal. Puis dites suivant.",
       g_bg: "Maintenant, votre santé. Dites-moi vos problèmes de santé de longue durée, comme le Parkinson ou le diabète, un à la fois. S'il n'y en a pas, dites simplement suivant.",
@@ -1580,7 +1580,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_recapmore: "Y a-t-il autre chose que vous aimeriez demander la prochaine fois ? Sinon, dites simplement suivant.",
       g_recapfu: "Un autre rendez-vous a-t-il été pris ou suggéré ? Avec qui ? Sinon, dites simplement suivant.",
       g_share: "Voici votre résumé. Vous pouvez l'envoyer aux personnes qui vous aident, pour que personne n'ait à tout répéter.",
-      consent: "J'utilise Claude, conçu par Anthropic, pour vous aider à penser à des questions auxquelles vous n'auriez pas pensé, et pour vous préparer aux questions que votre médecin pourrait vous poser. Votre nom et la date du rendez-vous ne sont jamais envoyés. Est-ce que je peux utiliser Claude ? Dites oui ou non.",
+      consent: "J'utilise Claude, d'Anthropic, pour suggérer des questions pour votre médecin. Votre nom n'est jamais envoyé. Est-ce que je peux l'utiliser ? Dites oui ou non.",
       detailAsk: "Ensuite, je vais vous poser quelques questions qu'un médecin poserait probablement, pour que vous ayez les réponses prêtes. Voulez-vous le faire maintenant ? Dites oui, ou dites passer.",
       preparing: "Un instant, je prépare quelques questions. Ça prend environ 15 secondes.",
       readPage: "Voici ce que dit votre page. Quelque chose ne va pas ? Dites oui pour changer quelque chose, ou dites suivant.",
