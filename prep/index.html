@@ -198,6 +198,10 @@ body.voice-mode [data-old-voice] { display: none !important; }
 /* roadmap: three clearly marked sections, heading above each — Before (1-4) on top, At (5) and After (6) below.
    Every number is a button that goes to that part. Full-size labels and big circles for older eyes and shaky hands. */
 #here-card-btn { display: none; }
+/* the roadmap shows where you are, so the "1 of 6" line under it is gone; while talking, the bottom bar's Help
+   holds the map and settings, so the top bar keeps only "Saved" */
+.sec-row { display: none; }
+body.voice-mode.in-steps .appbar .jr-open { display: none; }
 .road { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
 .road-sec { border: 2px solid var(--line); border-top: 5px solid var(--c); border-radius: 14px; background: var(--surface); padding: 6px 4px 2px; min-width: 0; }
 .road-sec.prep { grid-column: 1 / -1; }
@@ -608,6 +612,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     <div class="vdock" id="vdock" data-voice-only hidden>
       <div class="vmore" id="vmore" hidden>
         <button type="button" class="btn primary" id="vb-explain">Explain what to do here</button>
+        <button type="button" class="btn secondary" id="vb-map">See all steps</button>
+        <button type="button" class="btn secondary" id="vb-allset">Settings</button>
         <button type="button" class="btn secondary" id="vb-again">Start this question again</button>
         <button type="button" class="btn secondary" id="vb-settings" aria-expanded="false" aria-controls="vb-panel">Voice settings</button>
         <button type="button" class="btn secondary" id="vb-stop">Switch to typing</button>
@@ -2483,7 +2489,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     Object.values(screens).forEach(el => el.hidden = true);
     const onWelcome = step < 0;
     try { history.replaceState(null, "", onWelcome ? location.pathname : "#" + STEPS[step].id); } catch (err) { console.warn(err); }
-    $("progress").hidden = onWelcome; $("actions").hidden = onWelcome;
+    $("progress").hidden = onWelcome; $("actions").hidden = onWelcome; document.body.classList.toggle("in-steps", !onWelcome);
     window.scrollTo(0, 0);
     if (onWelcome) { renderWelcome(); screens.welcome.hidden = false; focusHeading(screens.welcome); return; }
     const s = STEPS[step];
@@ -3009,6 +3015,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (open && Voice.active() && !Voice.held()) { Voice.pause(); updateBar(); }
   });
   $("vb-explain").addEventListener("click", () => { closeMore(); openHelp(); });
+  $("vb-map").addEventListener("click", () => { closeMore(); openJourney("map"); });
+  $("vb-allset").addEventListener("click", () => { closeMore(); openJourney("settings"); });
   $("vb-done").addEventListener("click", () => {
     if (typingNow) { submitTyped(); return; }
     if (Voice.held()) { Voice.resume(); updateBar(); return; }
