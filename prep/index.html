@@ -195,6 +195,18 @@ body.voice-mode [data-old-voice] { display: none !important; }
 .sec-row { display: flex; justify-content: space-between; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
 .sec-row .btn.link { padding: 6px 0; min-height: 44px; }
 .segs { display: flex; gap: 6px; }
+/* roadmap: the whole visit in 6 tappable steps, always at the top */
+.road { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.road button { width: 100%; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 6px 2px;
+  font: inherit; font-size: 1rem; line-height: 1.15; font-weight: 700; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: 12px; cursor: pointer; text-align: center; }
+.road button:hover { border-color: var(--accent); }
+.road .rn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--muted); font-size: .9rem; }
+.road .done button .rn { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.road .here button { border: 3px solid var(--star); box-shadow: 0 0 0 4px var(--star-soft); }
+.road .here button .rn { background: var(--star); border-color: var(--star); color: var(--surface); }
+.road-msg { font-weight: 700; color: var(--danger); }
+@media (max-width: 560px) { .road { grid-template-columns: repeat(3, 1fr); } }
+.ga-next { width: 100%; margin-top: 10px; min-height: 56px; font-size: 1.2rem; }
 .segs span { flex: 1; height: 8px; border-radius: 999px; background: var(--line); }
 .segs span.on { background: var(--c); }
 .segs span.half { background: linear-gradient(90deg, var(--c) 50%, var(--line) 50%); }
@@ -558,6 +570,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <div class="guide-ans" id="guide-ans" hidden>
         <label class="ga-k" for="guide-edit">What I heard <span class="ga-fix">· tap to fix any words</span></label>
         <textarea class="ga-t" id="guide-edit" rows="2" placeholder="Your words will show here as you speak." spellcheck="true"></textarea>
+        <button type="button" class="btn primary ga-next" id="guide-next" hidden>Next</button>
       </div>
       <div class="hint mic-help" id="mic-help" role="alert" hidden>
         <p><b>No sound is reaching the app from your microphone.</b> It's probably muted.</p>
@@ -618,7 +631,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <button type="button" class="btn primary" id="vb-panel-close">Done</button>
     </div>
     <div class="sec-row"><p id="pg-label"></p><button type="button" class="btn link" id="map-link">See all steps</button></div>
-    <div class="segs" id="segs" aria-hidden="true"></div>
+    <ol class="road" id="road" aria-label="Your steps"></ol>
+    <p class="road-msg" id="road-msg" role="alert" hidden></p>
   </div>
 
   <!-- WELCOME -->
@@ -2290,6 +2304,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (api.onErase) api.onErase(!!ok);
         return;
       }
+      // Thinking out loud, or the phone sending the same phrase twice: if these words are already the end of the answer, don't add them again.
+      const norm = x => x.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+      const nt = norm(t);
+      if (nt.split(" ").length >= 2 && norm(target.value).endsWith(nt)) { log("skipped repeat: " + t); return; }
       target._hist = target._hist || []; target._hist.push(target.value); if (target._hist.length > 30) target._hist.shift();
       added = true; turnWords.push(t);
       let v = target.value;
@@ -2413,7 +2431,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     // starred as most important (coming back to it, via Back or Change, keeps the choices)
     if (step >= 0 && STEPS[step] && STEPS[step].id === "priority" && step > S.step) { S.important = S.ask.filter(q => q.top && q.t.trim()).map(q => q.t.trim()); S.prioSeen = true; }
     if (S.ask.some(q => q.t.trim())) { const m = mergeAsk(S.ask); if (m.length !== S.ask.length || m.some((q, i) => q.t !== S.ask[i].t)) { const imp = S.important; S.ask = m; S.important = imp.map(x => (m.find(q => q.t.toLowerCase().startsWith(x.toLowerCase().replace(/[.?!,;:]+$/, "").slice(0, 25))) || {}).t || x); } }
-    typingNow = false; listOn = null; Voice.stop(); $("mic-msg").textContent = ""; $("mic-help").hidden = true;
+    typingNow = false; $("guide-next").hidden = true; listOn = null; Voice.stop(); $("mic-msg").textContent = ""; $("mic-help").hidden = true;
     $("guide").hidden = !isVoice();
     // the start page is not a place: leave the last real step saved so "Continue where I left off" goes back to it
     if (step >= 0) { S.step = step; S.stepId = STEPS[step].id; save(); }
@@ -2451,8 +2469,32 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("here-t").textContent = st.t; $("here-s").textContent = st.s;
     $("here-boat").innerHTML = IC.boat;
     $("pg-label").textContent = `${sec.name} \u00b7 ${n} of ${stops.length}`;
-    $("segs").innerHTML = stops.map((_, i) => `<span class="${i < n - 1 ? "on" : i === n - 1 ? (part < parts.length ? "half" : "on") : ""}"></span>`).join("");
+    const cur = roadOf(S.step);
+    $("road").innerHTML = ROAD.map((r, i) => `<li class="${i === cur ? "here" : i < cur ? "done" : ""}"><button type="button" data-road="${i}" ${i === cur ? 'aria-current="step"' : ""}>
+      <span class="rn" aria-hidden="true">${i < cur ? "\u2713" : i + 1}</span><span>${esc(S.lang === "fr" ? r.fr : r.t)}</span>${i < cur ? '<span class="visually-hidden"> (done)</span>' : ""}</button></li>`).join("");
+    $("road-msg").hidden = true;
   }
+  // The roadmap: 6 plain steps, each one or more stops on the full map. Tap one to go there.
+  const ROAD = [
+    { t: "Appointment", fr: "Rendez-vous", stops: [0] },
+    { t: "Your concerns", fr: "Vos soucis", stops: [1, 2, 3] },
+    { t: "Questions", fr: "Questions", stops: [4] },
+    { t: "Print", fr: "Imprimer", stops: [5] },
+    { t: "Record", fr: "Enregistrer", stops: [6] },
+    { t: "Recap", fr: "R\u00e9sum\u00e9", stops: [7, 8] }
+  ];
+  const roadOf = step => step < 0 || !STEPS[step] ? -1 : ROAD.findIndex(r => r.stops.includes(STEPS[step].stop));
+  $("road").addEventListener("click", e => {
+    const b = e.target.closest("[data-road]"); if (!b) return;
+    const i = Number(b.dataset.road);
+    if (i === roadOf(S.step)) return;
+    const first = STEPS.findIndex(x => ROAD[i].stops.includes(x.stop));
+    if (!S.purpose.trim() && first > stepIndex("appt")) {
+      const m = $("road-msg"); m.textContent = S.lang === "fr" ? "D'abord, dites la raison du rendez-vous (\u00e9tape 1)." : "First, say what the appointment is for (step 1).";
+      m.hidden = false; return;
+    }
+    show(first);
+  });
   function focusHeading(el) {
     const h = [...el.querySelectorAll("h1, h2, legend")].find(x => !x.closest("[hidden]"));
     if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
@@ -2702,14 +2744,17 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const ed = e.target, el = Voice.targetEl();
     if (!el) return;
     if (!typingNow) { typingNow = true; if (Voice.active() && !Voice.held()) Voice.pause(); guideView("paused"); }
+    $("guide-next").hidden = false;
     fitBox(ed);
     if (listOn) setListLines(listOn, ed.value);
     else { el.value = ed.value; el.dispatchEvent(new Event("input", { bubbles: true })); }
     updateBar();
   });
   $("guide-edit").addEventListener("blur", () => { if (!typingNow) showAnswer(); });
+  $("guide-next").textContent = S.lang === "fr" ? "Suivant" : "Next";
+  $("guide-next").addEventListener("click", () => submitTyped());
   function submitTyped() {
-    typingNow = false;
+    typingNow = false; $("guide-next").hidden = true;
     const go = Voice.carryFn(); Voice.stop();
     if (go) go(); else $("next").click();
   }
@@ -2844,7 +2889,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("vb-talk").hidden = !talk || typingNow;   // while the app speaks: "Let me talk" stops it and listens
     const tap = Voice.needTap(), held = Voice.held() && !typingNow;
     $("vb-done").hidden = !typingNow && !tap && !held && (talk || (!carry && !conf && nx.hidden));
-    $("vb-done").textContent = typingNow ? "Submit" : held ? "Resume" : tap ? "Tap to answer" : conf ? "Yes, that's right" : carry ? (S.lang === "fr" ? "Suivant" : "Next") : nx.textContent;
+    $("vb-done").textContent = typingNow ? (S.lang === "fr" ? "Suivant" : "Next") : held ? "Resume" : tap ? "Tap to answer" : conf ? "Yes, that's right" : carry ? (S.lang === "fr" ? "Suivant" : "Next") : nx.textContent;
     $("vb-pause").hidden = !typingNow && !conf && !Voice.active();
     $("vb-pause").textContent = typingNow ? "Talk instead" : conf ? "Change it" : held ? "Resume" : "Pause";
     if (conf || typingNow) $("vb-pause").removeAttribute("aria-pressed"); else $("vb-pause").setAttribute("aria-pressed", String(held));
@@ -2917,7 +2962,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (Voice.confirming()) { const st = STEPS[S.step]; Voice.stop(); if (st && st.id === "words") show(S.step + 1); else $("next").click(); return; }
     if (Voice.active()) Voice.carry(); else $("next").click();
   });
-  $("vb-pause").addEventListener("click", () => { if (typingNow) { typingNow = false; $("guide-edit").blur(); Voice.resume(); updateBar(); return; } if (Voice.confirming()) { Voice.redo(); return; } if (Voice.held()) Voice.resume(); else Voice.pause(); updateBar(); });
+  $("vb-pause").addEventListener("click", () => { if (typingNow) { typingNow = false; $("guide-next").hidden = true; $("guide-edit").blur(); Voice.resume(); updateBar(); return; } if (Voice.confirming()) { Voice.redo(); return; } if (Voice.held()) Voice.resume(); else Voice.pause(); updateBar(); });
   $("vb-again").addEventListener("click", () => {
     closeMore();
     if (Voice.confirming()) { Voice.redo(); return; }
