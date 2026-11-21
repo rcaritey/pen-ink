@@ -195,13 +195,15 @@ body.voice-mode [data-old-voice] { display: none !important; }
 .sec-row { display: flex; justify-content: space-between; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
 .sec-row .btn.link { padding: 6px 0; min-height: 44px; }
 .segs { display: flex; gap: 6px; }
-/* roadmap: two rows that read left to right — Before the visit (1-4), then At and after (5-6).
-   Full-size labels (16px+) and big circles, for older eyes and shaky hands. */
+/* roadmap: three clearly marked sections, heading above each — Before (1-4) on top, At (5) and After (6) below.
+   Every number is a button that goes to that part. Full-size labels and big circles for older eyes and shaky hands. */
 #here-card-btn { display: none; }
-.road { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
-.road-row { display: flex; align-items: flex-start; gap: 8px; }
-.road-k { flex: 0 0 4.6em; padding-top: 14px; font-size: 1rem; font-weight: 700; color: var(--muted); line-height: 1.15; }
-.road ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); flex: 1; min-width: 0; }
+.road { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+.road-sec { border: 2px solid var(--line); border-top: 5px solid var(--c); border-radius: 14px; background: var(--surface); padding: 6px 4px 2px; min-width: 0; }
+.road-sec.prep { grid-column: 1 / -1; }
+.road-sec.on { border-color: var(--c); }
+.road-k { display: block; padding: 0 8px 2px; font-size: 1rem; font-weight: 700; color: var(--c); line-height: 1.2; }
+.road ol { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
 .road li { position: relative; min-width: 0; }
 .road li + li::before { content: ""; position: absolute; top: 25px; right: 50%; width: 100%; height: 4px; background: var(--line); z-index: 0; }
 .road li.done + li::before, .road li.here::before { background: var(--brand-sage); }
@@ -214,7 +216,6 @@ body.voice-mode [data-old-voice] { display: none !important; }
 .road .done .rn { background: var(--brand-sage); border-color: var(--brand-sage); color: var(--surface); }
 .road .here .rn { background: var(--brand-navy); border-color: var(--brand-navy); color: var(--surface); box-shadow: 0 0 0 5px var(--star-soft), 0 4px 12px rgba(var(--shadow-tint),.25); }
 .road .here .rl { color: var(--ink); }
-@media (max-width: 380px) { .road-k { display: none; } }
 @media (prefers-reduced-motion: reduce) { .road .rn { transition: none; } }
 .road-msg { font-weight: 700; color: var(--danger); }
 @media (prefers-reduced-motion: reduce) { .road .rn { transition: none; } }
@@ -2517,8 +2518,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     const fr = S.lang === "fr";
     const item = (r, i) => `<li class="${i === cur ? "here" : i < cur ? "done" : ""}"><button type="button" data-road="${i}" ${i === cur ? 'aria-current="step"' : ""}>
       <span class="rn" aria-hidden="true">${i < cur ? "\u2713" : i + 1}</span><span class="rl">${esc(fr ? r.fr : r.t)}</span>${i < cur ? '<span class="visually-hidden"> (done)</span>' : ""}</button></li>`;
-    $("road").innerHTML = `<div class="road-row"><span class="road-k">${fr ? "Avant" : "Before"}</span><ol>${ROAD.slice(0, 4).map((r, i) => item(r, i)).join("")}</ol></div>
-      <div class="road-row"><span class="road-k">${fr ? "Pendant, après" : "At and after"}</span><ol>${ROAD.slice(4).map((r, i) => item(r, i + 4)).join("")}</ol></div>`;
+    const roadSec = (ph, from, to) => `<section class="road-sec ${ph}${cur >= from && cur < to ? " on" : ""}" style="--c:${SECTIONS[ph].c}" aria-label="${esc(SECTIONS[ph].name)}">
+      <span class="road-k">${esc(fr ? { prep: "Avant la visite", room: "Pendant", after: "Après" }[ph] : { prep: "Before your visit", room: "At your visit", after: "After" }[ph])}</span>
+      <ol>${ROAD.slice(from, to).map((r, i) => item(r, from + i)).join("")}</ol></section>`;
+    $("road").innerHTML = roadSec("prep", 0, 4) + roadSec("room", 4, 5) + roadSec("after", 5, 6);
     $("road-msg").hidden = true;
   }
   // The roadmap: 6 plain steps, each one or more stops on the full map. Tap one to go there.
