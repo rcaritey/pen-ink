@@ -195,17 +195,23 @@ body.voice-mode [data-old-voice] { display: none !important; }
 .sec-row { display: flex; justify-content: space-between; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
 .sec-row .btn.link { padding: 6px 0; min-height: 44px; }
 .segs { display: flex; gap: 6px; }
-/* roadmap: the whole visit in 6 tappable steps, always at the top */
-.road { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-.road button { width: 100%; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 6px 2px;
-  font: inherit; font-size: 1rem; line-height: 1.15; font-weight: 700; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: 12px; cursor: pointer; text-align: center; }
-.road button:hover { border-color: var(--accent); }
-.road .rn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--muted); font-size: .9rem; }
-.road .done button .rn { background: var(--ok); border-color: var(--ok); color: var(--surface); }
-.road .here button { border: 3px solid var(--star); box-shadow: 0 0 0 4px var(--star-soft); }
-.road .here button .rn { background: var(--star); border-color: var(--star); color: var(--surface); }
+/* roadmap: the whole visit in 6 steps, always at the top: numbered circles joined by a line */
+#here-card-btn { display: none; }
+.road { list-style: none; margin: 0 0 4px; padding: 0; display: flex; position: relative; }
+.road li { flex: 1; min-width: 0; position: relative; }
+.road li + li::before { content: ""; position: absolute; top: 21px; right: 50%; width: 100%; height: 3px; background: var(--line); z-index: 0; }
+.road li.done + li::before, .road li.here::before { background: var(--brand-sage); }
+.road button { position: relative; z-index: 1; width: 100%; min-height: 64px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 2px 4px;
+  font: inherit; color: var(--muted); background: none; border: 0; cursor: pointer; text-align: center; }
+.road .rn { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; font-weight: 700; font-size: 1.05rem;
+  background: var(--surface); color: var(--muted); border: 2px solid var(--line); box-shadow: 0 1px 2px rgba(var(--shadow-tint, 27,58,92),.08), 0 4px 10px rgba(var(--shadow-tint, 27,58,92),.06); transition: transform .15s; }
+.road button:hover .rn { transform: translateY(-1px); border-color: var(--brand-navy); }
+.road .rl { font-size: .85rem; font-weight: 700; line-height: 1.15; }
+.road .done .rn { background: var(--brand-sage); border-color: var(--brand-sage); color: var(--surface); }
+.road .here .rn { background: var(--brand-navy); border-color: var(--brand-navy); color: var(--surface); box-shadow: 0 0 0 4px var(--star-soft), 0 4px 12px rgba(27,58,92,.25); }
+.road .here .rl { color: var(--ink); }
 .road-msg { font-weight: 700; color: var(--danger); }
-@media (max-width: 560px) { .road { grid-template-columns: repeat(3, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .road .rn { transition: none; } }
 .ga-next { width: 100%; margin-top: 10px; min-height: 56px; font-size: 1.2rem; }
 .segs span { flex: 1; height: 8px; border-radius: 999px; background: var(--line); }
 .segs span.on { background: var(--c); }
@@ -551,6 +557,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 <main class="wrap">
 
   <div class="progress" id="progress" hidden>
+    <ol class="road" id="road" aria-label="Your steps"></ol>
+    <p class="road-msg" id="road-msg" role="alert" hidden></p>
     <div class="here" id="here-card-btn" role="button" tabindex="0" aria-label="Open the map of the full journey">
       <div class="here-river" aria-hidden="true">
         <svg viewBox="0 0 90 120" preserveAspectRatio="none"><path d="M78 -10 C 4 30 4 90 78 130" fill="none" stroke="var(--bank)" stroke-width="46"/><path d="M78 -10 C 4 30 4 90 78 130" fill="none" stroke="var(--river)" stroke-width="34"/><path class="jr-flow" d="M78 -10 C 4 30 4 90 78 130" fill="none" stroke="var(--glint)" stroke-width="2.5"/></svg>
@@ -638,8 +646,6 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <button type="button" class="btn primary" id="vb-panel-close">Done</button>
     </div>
     <div class="sec-row"><p id="pg-label"></p><button type="button" class="btn link" id="map-link">See all steps</button></div>
-    <ol class="road" id="road" aria-label="Your steps"></ol>
-    <p class="road-msg" id="road-msg" role="alert" hidden></p>
   </div>
 
   <!-- WELCOME -->
@@ -2502,13 +2508,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("pg-label").textContent = `${sec.name} \u00b7 ${n} of ${stops.length}`;
     const cur = roadOf(S.step);
     $("road").innerHTML = ROAD.map((r, i) => `<li class="${i === cur ? "here" : i < cur ? "done" : ""}"><button type="button" data-road="${i}" ${i === cur ? 'aria-current="step"' : ""}>
-      <span class="rn" aria-hidden="true">${i < cur ? "\u2713" : i + 1}</span><span>${esc(S.lang === "fr" ? r.fr : r.t)}</span>${i < cur ? '<span class="visually-hidden"> (done)</span>' : ""}</button></li>`).join("");
+      <span class="rn" aria-hidden="true">${i < cur ? "\u2713" : i + 1}</span><span class="rl">${esc(S.lang === "fr" ? r.fr : r.t)}</span>${i < cur ? '<span class="visually-hidden"> (done)</span>' : ""}</button></li>`).join("");
     $("road-msg").hidden = true;
   }
   // The roadmap: 6 plain steps, each one or more stops on the full map. Tap one to go there.
   const ROAD = [
     { t: "Appointment", fr: "Rendez-vous", stops: [0] },
-    { t: "Your concerns", fr: "Vos soucis", stops: [1, 2, 3] },
+    { t: "Concerns", fr: "Soucis", stops: [1, 2, 3] },
     { t: "Questions", fr: "Questions", stops: [4] },
     { t: "Print", fr: "Imprimer", stops: [5] },
     { t: "Record", fr: "Enregistrer", stops: [6] },
