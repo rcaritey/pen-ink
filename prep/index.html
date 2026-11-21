@@ -195,21 +195,27 @@ body.voice-mode [data-old-voice] { display: none !important; }
 .sec-row { display: flex; justify-content: space-between; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
 .sec-row .btn.link { padding: 6px 0; min-height: 44px; }
 .segs { display: flex; gap: 6px; }
-/* roadmap: the whole visit in 6 steps, always at the top: numbered circles joined by a line */
+/* roadmap: two rows that read left to right — Before the visit (1-4), then At and after (5-6).
+   Full-size labels (16px+) and big circles, for older eyes and shaky hands. */
 #here-card-btn { display: none; }
-.road { list-style: none; margin: 0 0 4px; padding: 0; display: flex; position: relative; }
-.road li { flex: 1; min-width: 0; position: relative; }
-.road li + li::before { content: ""; position: absolute; top: 21px; right: 50%; width: 100%; height: 3px; background: var(--line); z-index: 0; }
+.road { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.road-row { display: flex; align-items: flex-start; gap: 8px; }
+.road-k { flex: 0 0 4.6em; padding-top: 14px; font-size: 1rem; font-weight: 700; color: var(--muted); line-height: 1.15; }
+.road ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); flex: 1; min-width: 0; }
+.road li { position: relative; min-width: 0; }
+.road li + li::before { content: ""; position: absolute; top: 25px; right: 50%; width: 100%; height: 4px; background: var(--line); z-index: 0; }
 .road li.done + li::before, .road li.here::before { background: var(--brand-sage); }
-.road button { position: relative; z-index: 1; width: 100%; min-height: 64px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 2px 4px;
+.road button { position: relative; z-index: 1; width: 100%; min-height: 80px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 2px 4px;
   font: inherit; color: var(--muted); background: none; border: 0; cursor: pointer; text-align: center; }
-.road .rn { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; font-weight: 700; font-size: 1.05rem;
-  background: var(--surface); color: var(--muted); border: 2px solid var(--line); box-shadow: 0 1px 2px rgba(var(--shadow-tint, 27,58,92),.08), 0 4px 10px rgba(var(--shadow-tint, 27,58,92),.06); transition: transform .15s; }
+.road .rn { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; font-weight: 700; font-size: 1.2rem;
+  background: var(--surface); color: var(--muted); border: 2px solid var(--line); box-shadow: 0 1px 2px rgba(var(--shadow-tint),.08), 0 4px 10px rgba(var(--shadow-tint),.06); transition: transform .15s; }
 .road button:hover .rn { transform: translateY(-1px); border-color: var(--brand-navy); }
-.road .rl { font-size: .85rem; font-weight: 700; line-height: 1.15; }
+.road .rl { font-size: 1rem; font-weight: 700; line-height: 1.15; }
 .road .done .rn { background: var(--brand-sage); border-color: var(--brand-sage); color: var(--surface); }
-.road .here .rn { background: var(--brand-navy); border-color: var(--brand-navy); color: var(--surface); box-shadow: 0 0 0 4px var(--star-soft), 0 4px 12px rgba(27,58,92,.25); }
+.road .here .rn { background: var(--brand-navy); border-color: var(--brand-navy); color: var(--surface); box-shadow: 0 0 0 5px var(--star-soft), 0 4px 12px rgba(var(--shadow-tint),.25); }
 .road .here .rl { color: var(--ink); }
+@media (max-width: 380px) { .road-k { display: none; } }
+@media (prefers-reduced-motion: reduce) { .road .rn { transition: none; } }
 .road-msg { font-weight: 700; color: var(--danger); }
 @media (prefers-reduced-motion: reduce) { .road .rn { transition: none; } }
 .ga-next { width: 100%; margin-top: 10px; min-height: 56px; font-size: 1.2rem; }
@@ -557,7 +563,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 <main class="wrap">
 
   <div class="progress" id="progress" hidden>
-    <ol class="road" id="road" aria-label="Your steps"></ol>
+    <nav class="road" id="road" aria-label="Your steps"></nav>
     <p class="road-msg" id="road-msg" role="alert" hidden></p>
     <div class="here" id="here-card-btn" role="button" tabindex="0" aria-label="Open the map of the full journey">
       <div class="here-river" aria-hidden="true">
@@ -2507,13 +2513,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("here-boat").innerHTML = IC.boat;
     $("pg-label").textContent = `${sec.name} \u00b7 ${n} of ${stops.length}`;
     const cur = roadOf(S.step);
-    $("road").innerHTML = ROAD.map((r, i) => `<li class="${i === cur ? "here" : i < cur ? "done" : ""}"><button type="button" data-road="${i}" ${i === cur ? 'aria-current="step"' : ""}>
-      <span class="rn" aria-hidden="true">${i < cur ? "\u2713" : i + 1}</span><span class="rl">${esc(S.lang === "fr" ? r.fr : r.t)}</span>${i < cur ? '<span class="visually-hidden"> (done)</span>' : ""}</button></li>`).join("");
+    const fr = S.lang === "fr";
+    const item = (r, i) => `<li class="${i === cur ? "here" : i < cur ? "done" : ""}"><button type="button" data-road="${i}" ${i === cur ? 'aria-current="step"' : ""}>
+      <span class="rn" aria-hidden="true">${i < cur ? "\u2713" : i + 1}</span><span class="rl">${esc(fr ? r.fr : r.t)}</span>${i < cur ? '<span class="visually-hidden"> (done)</span>' : ""}</button></li>`;
+    $("road").innerHTML = `<div class="road-row"><span class="road-k">${fr ? "Avant" : "Before"}</span><ol>${ROAD.slice(0, 4).map((r, i) => item(r, i)).join("")}</ol></div>
+      <div class="road-row"><span class="road-k">${fr ? "Pendant, après" : "At and after"}</span><ol>${ROAD.slice(4).map((r, i) => item(r, i + 4)).join("")}</ol></div>`;
     $("road-msg").hidden = true;
   }
   // The roadmap: 6 plain steps, each one or more stops on the full map. Tap one to go there.
   const ROAD = [
-    { t: "Appointment", fr: "Rendez-vous", stops: [0] },
+    { t: "Visit", fr: "Visite", stops: [0] },
     { t: "Concerns", fr: "Soucis", stops: [1, 2, 3] },
     { t: "Questions", fr: "Questions", stops: [4] },
     { t: "Print", fr: "Imprimer", stops: [5] },
