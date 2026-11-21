@@ -2527,7 +2527,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     { t: "Questions", fr: "Questions", stops: [4] },
     { t: "Print", fr: "Imprimer", stops: [5] },
     { t: "Record", fr: "Enregistrer", stops: [6] },
-    { t: "Recap", fr: "R\u00e9sum\u00e9", stops: [7, 8] }
+    { t: "Doctor's plan", fr: "Plan du m\u00e9decin", stops: [7, 8] }
   ];
   const roadOf = step => step < 0 || !STEPS[step] ? -1 : ROAD.findIndex(r => r.stops.includes(STEPS[step].stop));
   $("road").addEventListener("click", e => {
@@ -5153,15 +5153,17 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     recapEditUI();
     if (r.edited) { if (!recapEditing) $("sheet-r").innerHTML = cleanSheet(r.edited); return; }
     const next = [r.nextWith, fmtDate(r.nextDate), fmtTime(r.nextTime)].filter(x => x && x.trim()).map(esc).join(", ");
+    // "What the doctor said" as bullet points: one per line (older recaps written as a paragraph are split into sentences)
+    const saidRaw = r.said.trim(), saidPts = (/\n/.test(saidRaw) ? saidRaw.split(/\n+/) : saidRaw.split(/(?<=[.!?])\s+(?=\p{Lu})/u)).map(x => x.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
     $("sheet-r").innerHTML = header("Appointment recap") + `
       ${S.purpose.trim() ? `<section><h3>The appointment was for</h3><p>${esc(S.purpose)}</p></section>` : ""}
-      <section><h3>What the doctor said</h3>${r.said.trim() ? `<p>${esc(r.said).replace(/\n/g, "<br>")}</p>` : '<p class="empty">Not filled in yet.</p>'}</section>
+      <section><h3>What the doctor said</h3>${saidPts.length ? `<ul>${saidPts.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : '<p class="empty">Not filled in yet.</p>'}</section>
+      <section><h3>Next steps</h3><ul class="check">${todo.map(t => `<li>${esc(t)}</li>`).join("")}
+        <li><b>Next appointment:</b> ${next || "Not booked yet."}</li>
+        ${r.contact.trim() ? `<li><b>Questions before then:</b> ${esc(r.contact)}</li>` : ""}</ul></section>
       ${r.answers.some(x => x.a.trim()) ? `<section><h3>Your questions, answered</h3><ul>${r.answers.filter(x => x.a.trim()).map(x => `<li><b>${esc(x.q)}</b><br>${esc(x.a)}</li>`).join("")}</ul></section>` : ""}
       ${r.also.length ? `<section><h3>Also said</h3><ul>${r.also.map(t => `<li>${esc(t)}</li>`).join("")}</ul></section>` : ""}
-      <section><h3>Things to do</h3>${todo.length ? `<ul class="check">${todo.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : '<p class="empty">Nothing listed.</p>'}</section>
-      <section><h3>Questions for next time</h3>${open.length ? `<ul>${open.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : '<p class="empty">None. Everything got answered.</p>'}</section>
-      <section><h3>Next appointment</h3><p>${next || "Not booked yet."}</p></section>
-      ${r.contact.trim() ? `<section><h3>Questions before then</h3><p>${esc(r.contact)}</p></section>` : ""}`;
+      <section><h3>Questions for next time</h3>${open.length ? `<ul>${open.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : '<p class="empty">None. Everything got answered.</p>'}</section>`;
   }
   // the finished recap can be changed by the patient or whoever helps: type straight onto the page
   let recapEditing = false;
