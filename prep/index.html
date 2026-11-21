@@ -164,17 +164,17 @@ body.voice-mode .vfield, body.voice-mode .vtarget { display: none !important; }
 .guide .ga-t .ga-now { color: var(--accent); }
 .guide .ga-t .ga-empty { color: var(--muted); font-size: 1.1rem; font-style: italic; }
 .vdock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--bg); border-top: 1px solid var(--line); box-shadow: 0 -6px 18px rgba(0,0,0,.08); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
-.vdock .vbar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 760px; margin: 0 auto; }
-.vdock .vbar .btn { min-height: 50px; padding: 8px 10px; font-size: 1rem; }
-.vdock .vbar .vb-main { grid-column: 1 / -1; grid-row: 1; min-height: 60px; font-size: 1.25rem; }
+.vdock .vbar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 760px; margin: 0 auto; }
+.vdock .vbar .btn { min-height: 64px; padding: 6px 8px; font-size: 1.05rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.vdock .vbar .vb-ic { flex: none; }
+.vdock .vbar .vb-main { grid-column: 1 / -1; grid-row: 1; min-height: 80px; font-size: 1.4rem; }
 .vdock .vbar #vb-back { grid-row: 2; grid-column: 1; }
 .vdock .vbar #vb-pause { grid-row: 2; grid-column: 2; }
 .btn.rc-how { display: block; width: 100%; text-align: left; padding: 14px 18px; } .rc-how b, .rc-how span { display: block; } .rc-how span { font-weight: 400; margin-top: 2px; }
 input[type="date"] { max-width: 100%; min-width: 0; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
 dl.kv { margin: 8px 0 0; } dl.kv dt { font-weight: 700; margin-top: 8px; } dl.kv dd { margin: 2px 0 0; }
 .vdock .vbar #vb-help { grid-row: 2; grid-column: 3; }
-.vdock .vbar #vb-moreb { grid-row: 2; grid-column: 4; }
-@media (max-width: 400px) { .vdock .vbar .btn:not(.vb-main) { font-size: .92rem; padding: 8px 4px; } }
+.vdock .vbar #vb-moreb { display: none; }
 body.voice-mode #here-card-btn { display: none; }
 .vmore { display: flex; flex-direction: column; gap: 8px; max-width: 760px; margin: 0 auto 10px; }
 .vmore .btn { width: 100%; min-height: 52px; }
@@ -606,15 +606,16 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     </div>
     <div class="vdock" id="vdock" data-voice-only hidden>
       <div class="vmore" id="vmore" hidden>
+        <button type="button" class="btn primary" id="vb-explain">Explain what to do here</button>
         <button type="button" class="btn secondary" id="vb-again">Start this question again</button>
         <button type="button" class="btn secondary" id="vb-settings" aria-expanded="false" aria-controls="vb-panel">Voice settings</button>
         <button type="button" class="btn secondary" id="vb-stop">Switch to typing</button>
       </div>
       <div class="vbar" id="vbar" role="group" aria-label="Voice controls">
-        <button type="button" class="btn secondary vb-small" id="vb-back">Back</button>
-        <button type="button" class="btn secondary vb-small" id="vb-moreb" aria-expanded="false" aria-controls="vmore">More</button>
-        <button type="button" class="btn secondary" id="vb-pause" aria-pressed="false">Pause</button>
-        <button type="button" class="btn secondary vb-small" id="vb-help">Help</button>
+        <button type="button" class="btn secondary vb-small" id="vb-back"><svg class="vb-ic" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>Back</span></button>
+        <button type="button" class="btn secondary vb-small" id="vb-moreb" aria-expanded="false" aria-controls="vmore" hidden>More</button>
+        <button type="button" class="btn secondary" id="vb-pause" aria-pressed="false"><svg class="vb-ic" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg><span class="vb-pause-t">Pause</span></button>
+        <button type="button" class="btn secondary vb-small" id="vb-help" aria-expanded="false" aria-controls="vmore"><svg class="vb-ic" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.5 9.5a2.6 2.6 0 0 1 5 1c0 1.8-2.5 2-2.5 3.6"/><path d="M12 17.2v.1"/></svg><span>Help</span></button>
         <button type="button" class="btn primary vb-main" id="vb-talk" hidden>Let me talk</button>
         <button type="button" class="btn primary vb-main" id="vb-done">Next</button>
       </div>
@@ -2937,7 +2938,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     $("vb-done").hidden = !typingNow && !tap && !held && (talk || (!carry && !conf && nx.hidden));
     $("vb-done").textContent = typingNow ? (S.lang === "fr" ? "Suivant" : "Next") : held ? "Resume" : tap ? "Tap to answer" : conf ? "Yes, that's right" : carry ? (S.lang === "fr" ? "Suivant" : "Next") : nx.textContent;
     $("vb-pause").hidden = !typingNow && !conf && !Voice.active();
-    $("vb-pause").textContent = typingNow ? "Talk instead" : conf ? "Change it" : held ? "Resume" : "Pause";
+    $("vb-pause").querySelector(".vb-pause-t").textContent = typingNow ? "Talk instead" : conf ? "Change it" : held ? "Resume" : "Pause";
     if (conf || typingNow) $("vb-pause").removeAttribute("aria-pressed"); else $("vb-pause").setAttribute("aria-pressed", String(held));
     $("vb-back").hidden = $("back").hidden;
     $("vb-again").hidden = !Voice.active();
@@ -2994,13 +2995,17 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   Voice.onTalk = () => updateBar();
   $("vb-talk").addEventListener("click", () => { Voice.interrupt(); updateBar(); });
   $("vb-back").addEventListener("click", () => { closeMore(); $("back").click(); });
-  const closeMore = () => { $("vmore").hidden = true; $("vb-moreb").setAttribute("aria-expanded", "false"); };
+  const closeMore = () => { $("vmore").hidden = true; $("vb-moreb").setAttribute("aria-expanded", "false"); $("vb-help").setAttribute("aria-expanded", "false"); };
   $("vb-moreb").addEventListener("click", () => { const open = $("vmore").hidden; $("vmore").hidden = !open; $("vb-moreb").setAttribute("aria-expanded", String(open)); $("vb-panel").hidden = true; });
   $("vb-panel-close").addEventListener("click", () => { $("vb-panel").hidden = true; $("vb-settings").setAttribute("aria-expanded", "false"); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && Voice.talking()) Voice.interrupt(); });
   // Help: talking mode explains out loud and takes a question; otherwise opens How this works
   const openHelp = () => { if (Voice.active() && !Voice.held()) Voice.pause(); updateBar(); openJourney("help"); };
-  $("vb-help").addEventListener("click", openHelp);
+  $("vb-help").addEventListener("click", () => {
+    const open = $("vmore").hidden; $("vmore").hidden = !open; $("vb-help").setAttribute("aria-expanded", String(open)); $("vb-panel").hidden = true;
+    if (open && Voice.active() && !Voice.held()) { Voice.pause(); updateBar(); }
+  });
+  $("vb-explain").addEventListener("click", () => { closeMore(); openHelp(); });
   $("vb-done").addEventListener("click", () => {
     if (typingNow) { submitTyped(); return; }
     if (Voice.held()) { Voice.resume(); updateBar(); return; }
