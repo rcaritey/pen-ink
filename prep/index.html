@@ -628,6 +628,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           <label class="choice" for="vs-s"><input type="radio" name="vspeed" id="vs-s" value="s"><span><b>Slower</b></span></label>
         </div>
       </fieldset>
+      <fieldset class="plain"><legend class="q-legend">Read my answers back to me</legend>
+        <p class="help">For people who can't easily see the screen. I'll read back names, dates and medicines and ask if they're right.</p>
+        <div class="row">
+          <label class="choice" for="vr-on"><input type="radio" name="vread" id="vr-on" value="on"><span><b>On</b></span></label>
+          <label class="choice" for="vr-off"><input type="radio" name="vread" id="vr-off" value="off"><span><b>Off</b></span></label>
+        </div>
+      </fieldset>
       <button type="button" class="btn primary" id="vb-panel-close">Done</button>
     </div>
     <div class="sec-row"><p id="pg-label"></p><button type="button" class="btn link" id="map-link">See all steps</button></div>
@@ -686,7 +693,6 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <div id="w-new-confirm" class="hint" hidden></div>
     </div>
     <div class="open-copy">
-      <button type="button" class="btn link" data-open-how>How this works</button>
       <label class="btn link" for="file-open" style="margin:0">Coming from another device? Open the file</label>
       <input type="file" id="file-open" accept=".json,application/json" class="visually-hidden">
       <p class="status" id="file-status" role="status" aria-live="polite"></p>
@@ -1312,7 +1318,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     chg: { bg: "", meds: "", medNote: "" },
     recap: { said: "", open: [], more: "", todo: [""], nextWith: "", nextDate: "", nextTime: "", answers: [], also: [], contact: "", transcript: "", via: "", filledFrom: "", edited: "" },
     first: "", important: [], prioSeen: false });
-  const blank = () => Object.assign({ v: 3, step: -1, stepId: "", waitMs: 15000, slowVoice: false, barge: null, mode: "", consent: null, detailGo: false, who: "", carried: false, voiceName: "", lang: "en", docLang: "en", tr: {}, tidy: {}, tidyV: 2, medFix: {}, fixOff: false,
+  const blank = () => Object.assign({ v: 3, step: -1, stepId: "", waitMs: 15000, slowVoice: false, readBack: false, barge: null, mode: "", consent: null, detailGo: false, who: "", carried: false, voiceName: "", lang: "en", docLang: "en", tr: {}, tidy: {}, tidyV: 2, medFix: {}, fixOff: false,
     bg: { conditions: "", changes: "", team: "", allergies: "" }, meds: [{ n: "", d: "", w: "", o: false }] }, blankVisit());
   // A tidied note must still be the same note: mostly the same words, not much longer. Anything else (a note
   // that picked up words from another one) is thrown away and the patient's own words are used.
@@ -1376,6 +1382,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     b.voiceName = str(x.voiceName);
     b.waitMs = [0, 15000, 30000, 60000].includes(x.waitMs) ? x.waitMs : 15000;
     b.slowVoice = !!x.slowVoice;
+    b.readBack = !!x.readBack;
     b.barge = typeof x.barge === "boolean" ? x.barge : null;
     b.voiceV2 = x.voiceV2 ? 1 : 0;
     b.lang = x.lang === "fr" ? "fr" : "en"; b.docLang = x.docLang === "fr" ? "fr" : "en"; b.fixOff = !!x.fixOff;
@@ -1497,8 +1504,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_recapPick: "Okay. Tap Paste a transcript, or Upload a recording, on the screen.",
       g_recap2: "What happens next? For example, book blood work. Add each thing to do on the screen, then say next.",
       g_who: "Who are you seeing? For example, a neurologist. Then say next.",
-      g_when2: "What day and time is it? For example: December 10th, at 10 in the morning. If it isn't booked yet, just say next.",
-      g_when: "What day and time is the appointment? For example: Wednesday, November 11th, at 10:30 in the morning. If you're not sure, just say next.",
+      g_when2: "What day and time is it? For example: {ex}. If it isn't booked yet, just say next.",
+      g_when: "What day and time is the appointment? For example: {ex}. If you're not sure, just say next.",
       g_bgchg: "Any changes in the last year, like a surgery, a hospital stay or a fall? If there are none, just say next.",
       g_bgcare: "What other doctors or care do you see? By type is fine, for example, a urologist. If none, just say next.",
       g_bgallergy: "Do you have any allergies, or anything the doctor should be careful about, like a bad reaction to an anaesthetic? If none, just say next.",
@@ -1564,8 +1571,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       g_recapPick: "D'accord. Touchez Coller une transcription, ou Téléverser un enregistrement, à l'écran.",
       g_recap2: "Et ensuite ? Par exemple, une prise de sang. Ajoutez chaque chose à faire à l'écran, puis dites suivant.",
       g_who: "Qui allez-vous voir ? Par exemple, un neurologue. Puis dites suivant.",
-      g_when2: "Quel jour et à quelle heure ? Par exemple : le 10 décembre, à 10 h. Si ce n'est pas encore pris, dites simplement suivant.",
-      g_when: "Quel jour et à quelle heure est le rendez-vous ? Par exemple : mercredi 11 novembre, à 10 h 30. Si vous n'êtes pas sûr, dites simplement suivant.",
+      g_when2: "Quel jour et à quelle heure ? Par exemple : {ex}. Si ce n'est pas encore pris, dites simplement suivant.",
+      g_when: "Quel jour et à quelle heure est le rendez-vous ? Par exemple : {ex}. Si vous n'êtes pas sûr, dites simplement suivant.",
       g_bgchg: "Des changements dans la dernière année, comme une opération, un séjour à l'hôpital ou une chute ? S'il n'y en a pas, dites simplement suivant.",
       g_bgcare: "Quels autres médecins ou soins voyez-vous ? Le type suffit, par exemple, un urologue. Sinon, dites simplement suivant.",
       g_bgallergy: "Avez-vous des allergies, ou quelque chose à quoi le médecin doit faire attention, comme une mauvaise réaction à une anesthésie ? Sinon, dites simplement suivant.",
@@ -1595,7 +1602,15 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (S.lang === "fr") return low;
     return /^(my|a|an|the|your|his|her|their)\b/i.test(low) ? low.replace(/^(my|a|an)\b/i, "your") : low;
   }
-  const say = k => ((SAY[S.lang] || SAY.en)[k] || "").replace("{p}", topic());
+  // an example date about two weeks ahead (on a weekday), so it always sounds like a real upcoming appointment
+  function exDate() {
+    const d = new Date(); d.setDate(d.getDate() + 14);
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+    if (S.lang === "fr") return d.toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long" }) + ", à 10 h 30";
+    const n = d.getDate(), th = n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th";
+    return d.toLocaleDateString("en-CA", { weekday: "long" }) + ", " + d.toLocaleDateString("en-CA", { month: "long" }) + " " + n + th + ", at 10:30 in the morning";
+  }
+  const say = k => ((SAY[S.lang] || SAY.en)[k] || "").replace("{p}", topic()).replace("{ex}", exDate());
   let resumeStep = Math.max(0, S.step);
   const hasVisit = () => !!(S.purpose.trim() || S.seeing.trim() || S.story.trim() || resumeStep > 0);
 
@@ -2004,6 +2019,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       .replace(/\b(carrie|kerry|cary|carey|carri) on\b/g, "carry on").replace(/\bcarryon\b/g, "carry on").replace(/\bi am done\b/g, "i'm done")
       .replace(/\s+/g, " ").trim();
     const RE_HELP = /^(help|help me|help please|i need help|i don't understand|i do not understand|i'm confused|i am confused|i'm not sure what to say|what do i do|what do i say|what should i say|what am i supposed to say|how does this work|aide|aide-moi|aidez-moi|à l'aide|je ne comprends pas|je comprends pas|qu'est-ce que je dois dire|qu'est-ce que je dis|comment ça marche)$/;
+    // Trouble with the app itself, said out loud: answer it instead of writing it into the answer
+    const RE_TROUBLE = /(not listening|aren't listening|you're not hearing|not hearing me|can't hear me|cannot hear me|can you hear me|are you listening|are you there|hello\b.*\bhello|^(it|this|this app|the app|this thing|the microphone|the mic)( i|')?s? (not|isn'?t) working|^(it|this|this app|the app) (doesn'?t|does not) work|^this is (so )?(annoying|frustrating|stupid|useless|ridiculous)|^(but )?i'?m (already )?talking$|^(but )?i am (already )?talking$|i'?m talking to you|i am talking to you|^nothing'?s happening|^nothing is happening|tu m'écoutes pas|vous m'écoutez pas|ne m'écoute pas|m'entends pas|m'entendez pas|ça marche pas|ça ne marche pas|ça fonctionne pas|ne fonctionne pas|c'est (énervant|frustrant))/;
+    const RE_INTERRUPT = /(stop interrupting|keep interrupting|you interrupted|you're interrupting|let me finish|i wasn't finished|i'm not finished|i am not finished|too fast|arrête de m'interrompre|laisse-moi finir|laissez-moi finir|j'ai pas fini|je n'ai pas fini)/;
+    const RE_ALREADY = /(i already (said|told you|answered)|i just (said|told you)|j'ai déjà (dit|répondu)|je viens de (le )?dire)/;
     const RE_REPEAT = /^(repeat|repeat that|repeat it|repeat the question|please repeat|say that again|say it again|can you repeat that|can you repeat|could you repeat that|what was the question|what's the question|pardon|sorry what|what|what did you say|répète|répétez|répète la question|répétez la question|peux-tu répéter|pouvez-vous répéter|quelle était la question|quoi|comment)$/;
     const RE_ASK = /^(what|what's|whats|why|how|who|which|where|can you|could you|do i|do you|should i|does|is it|is that|am i|qu'est-ce|que veut|ça veut|pourquoi|comment|est-ce que|dois-je|faut-il|c'est quoi)\b/;
     const RE_ASK2 = /\b(mean|means|meaning|you|should i|do i|need to|have to|example|for instance|count|veut dire|vous|dois|faut|exemple|quoi)\b/;
@@ -2025,6 +2044,17 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       }
       if (RE_REPEAT.test(x)) { if (lastQ) sayThen(lastQ); return true; }
       if (RE_HELP.test(x)) { sayThen(say("help")); return true; }
+      if (x.split(" ").length <= 15) {
+        const fr = S.lang === "fr", back = lastQ ? " " + say("backTo") + " " + lastQ : "";
+        if (RE_INTERRUPT.test(x)) {
+          S.waitMs = Math.min(60000, Math.max(15000, S.waitMs || 15000) + 15000); save();
+          sayThen((fr ? "Désolée. Je vais attendre plus longtemps avant de parler. Prenez votre temps." : "Sorry about that. I'll wait longer before I say anything. Take your time.") + back); return true;
+        }
+        if (RE_ALREADY.test(x)) { sayThen(fr ? "Désolée. C'est noté à l'écran. Si c'est bon, dites suivant." : "Sorry. It's written on the screen. If it looks right, say next."); return true; }
+        if (RE_TROUBLE.test(x)) {
+          sayThen((fr ? "Désolée, je ne vous entends pas bien. Parlez un peu plus près du téléphone, et faites une petite pause quand vous avez fini. Vous pouvez aussi toucher la boîte de mots et écrire." : "Sorry, I'm not hearing you well. Try speaking a little closer to the phone, and pause when you've finished. You can also tap the box with your words and type instead.") + back); return true;
+        }
+      }
       if (helpNext) {
         helpNext = false;
         if (!(target ? CARRY_T : CARRY_N).test(t) && !RE_GO.test(x)) { askHelp(x); return true; }
@@ -2068,8 +2098,9 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           if (el.required && !el.value.trim()) { if (!bargeOn()) pauseRec(); view("speaking"); const g = gen; await speak(say("sorry")); if (active && !held && g === gen) startRec(); return; }
           stop(); if (next) next(); return;
         }
-        // "fix" pages only ask "Is that right?" when a word was corrected, so don't show the question until then
-        const always = readback !== "fix";
+        // Saying "next" means they're happy with it. Names, dates and medicines are read back only for people
+        // who asked for it (Read my answers back to me); elsewhere only when a misheard word was corrected.
+        const always = readback !== "fix" && !!S.readBack;
         if (always) confirming = true;
         if (!bargeOn()) pauseRec(); view(always ? "confirm" : "writing");
         let heard = said, fixes = []; const g = gen;
@@ -2972,10 +3003,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   $("vb-settings").addEventListener("click", () => {
     closeMore(); const open = $("vb-panel").hidden; $("vb-panel").hidden = !open; $("vb-settings").setAttribute("aria-expanded", String(open));
     $("vw-" + (S.waitMs / 1000 === 60 ? 60 : S.waitMs / 1000)).checked = true; $(S.slowVoice ? "vs-s" : "vs-n").checked = true;
-    $(Voice.bargeOn() ? "vi-on" : "vi-off").checked = true;
+    $(Voice.bargeOn() ? "vi-on" : "vi-off").checked = true; $(S.readBack ? "vr-on" : "vr-off").checked = true;
   });
   document.querySelectorAll('input[name="vbarge"]').forEach(r => r.addEventListener("change", () => { S.barge = r.value === "on"; save(); }));
   document.querySelectorAll('input[name="vwait"]').forEach(r => r.addEventListener("change", () => { S.waitMs = Number(r.value); save(); }));
+  document.querySelectorAll('input[name="vread"]').forEach(r => r.addEventListener("change", () => { S.readBack = r.value === "on"; save(); }));
   document.querySelectorAll('input[name="vspeed"]').forEach(r => r.addEventListener("change", () => { S.slowVoice = r.value === "s"; save(); }));
   function onEnter(id) {
     guide(id);
