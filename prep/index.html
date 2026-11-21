@@ -4003,14 +4003,14 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       <ul class="if-list"><li><b>If yes:</b> start recording on your phone, for example with Voice Memos.</li>
         <li><b>If no:</b> that's fine. Ask: "Could you jot your answers on the sheet I gave you?" There is space under each question. Or take notes below, and read them back before you leave.</li></ul>`
       : `<p style="margin-top:4px">Ask: "Could you jot your answers on the sheet I gave you?" There is space under each question.</p>`}</section>
-      <section><h3>Make sure I mention</h3>${facts.length ? `<ul>${facts.slice(0, 5).map(t => `<li>${esc(B(t))}</li>`).join("")}</ul>${facts.length > 5 ? `<p style="margin-top:6px;color:#3B4A57">The rest is on the doctor's summary.</p>` : ""}` : `<p class="empty">Nothing added yet.</p>`}</section>
+      <section><h3>Make sure I mention</h3>${facts.length ? `<ul>${facts.slice(0, 5).map(t => `<li>${esc(P(t))}</li>`).join("")}</ul>${facts.length > 5 ? `<p style="margin-top:6px;color:#3B4A57">The rest is on the doctor's summary.</p>` : ""}` : `<p class="empty">Nothing added yet.</p>`}</section>
       ${first ? `<section><h3>Most important to me</h3><ol class="say-list">${firsts.map(q => `<li>${both(q.t)}</li>`).join("")}</ol></section>` : ""}
       <section><h3>${first ? "My other questions" : "My questions"}</h3>${top.length + shortRest.length ? `<ol>${top.concat(shortRest).map(liBoth).join("")}</ol>` : `<p class="empty">No questions added yet.</p>`}
       ${rest.length > shortRest.length ? `<p style="margin-top:6px;color:#3B4A57">More questions are on the full list.</p>` : ""}</section>
       <section><h3>${S.lang === "fr" ? "Avant de partir, demandez" : "Before you leave, ask"}</h3><p class="say">"${esc(CONTACT_P)}"</p>
-        <p style="margin-top:6px">${S.lang === "fr" ? "Qui et comment" : "Who and how"}: ________________________________</p></section>
-      <section><h3>My notes: what the doctor says</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div><div class="blank"></div>
-        <p style="margin-top:8px">Next appointment: ______________________</p></section>`;
+        <p style="margin-top:6px">${S.lang === "fr" ? "Qui et comment" : "Who and how"}: ________________________________</p>
+        <p style="margin-top:6px">${S.lang === "fr" ? "Prochain rendez-vous" : "Next appointment"}: ______________________</p></section>
+      <section><h3>My notes: what the doctor says</h3><div class="blank"></div><div class="blank"></div><div class="blank"></div><div class="blank"></div></section>`;
     const cond = lines(S.bg.conditions).map(x => (S.lang === "fr" ? tr(x, S.docLang) : tidyT(x)).replace(/[.;,]+$/, ""));
     const dl = rows => `<dl class="dl">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>`;
     const W = w => S.lang === "fr" ? tr(w, S.docLang) : w;
