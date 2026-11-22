@@ -161,17 +161,6 @@
         </div>
       </div>
 
-      <div class="flex items-stretch shrink-0">
-      <a
-        id="chatBtn"
-        href="sms:+14164545597"
-        class="tactile-btn min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-sm flex items-center gap-1.5 shrink-0"
-        aria-label="Chat: text Rama for help"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span>Chat</span>
-      </a>
-      <div class="w-[10px] shrink-0" aria-hidden="true"></div>
       <button
         type="button"
         onclick="openModal('helpSettingsModal')"
@@ -184,7 +173,6 @@
         </svg>
         <span>Help / Settings</span>
       </button>
-      </div>
     </header>
 
     <!-- 2. NON-CLICKABLE 3-PHASE PROGRESS HEADER (Steps 1–11) -->
@@ -2700,6 +2688,7 @@
     // While Reid talks the microphone stays on. Sound that starts in the first moment is Reid's own voice
     // coming back, so it's ignored. A voice that starts later turns Reid down at once; if the words
     // aren't Reid's own, he stops and listens.
+    const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     let speakStart = 0, talkWords = new Set(), ducked = false, duckTimer = null, sayGen = 0;
     const vwords = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/).filter((w) => w.length > 1);
     CanadaRec.talkingNow = (start) => !!(start && speaking && performance.now() - speakStart < 900);
@@ -2709,11 +2698,14 @@
       duckTimer = setTimeout(() => { if (ducked && audioEl) { audioEl.volume = 1; ducked = false; } }, 3000);
     };
     // stop Reid now (new page, the person spoke, or a new thing to say)
-    function hush() {
+    function hush(listen) {
+      const was = speaking;
       sayGen++; clearTimeout(duckTimer); ducked = false;
       if (audioEl) { const a = audioEl; audioEl = null; try { a.pause(); } catch (e) { /* already stopped */ } if (a.onended) a.onended(); }
       speaking = false;
+      if (listen && was && isListening) setTimeout(startRec, 150);
     }
+    document.addEventListener('pointerdown', () => { if (speaking) hush(true); }, true);
     // a phrase heard while Reid was talking: his own words coming back, or the person?
     function isEcho(t) {
       const w = vwords(t); if (!w.length) return true;
@@ -2765,11 +2757,11 @@
     };
     function onHeard(t) {
       if (!t) return;
-      if (speaking || ducked) { if (isEcho(t)) { if (audioEl) audioEl.volume = 1; ducked = false; return; } hush(); }
+      if (speaking || ducked) { if (isEcho(t)) { if (audioEl) audioEl.volume = 1; ducked = false; return; } hush(true); }
       heard(t);
     }
     function startRec() {
-      if (inputPreference !== 'voice' || !isListening || recRec) return;
+      if (inputPreference !== 'voice' || !isListening || recRec || (IOS && speaking)) return;
       if (steps[currentIndex].mode === 'landing') return;
       if (rec) return;
       rec = new CanadaRec(); rec.lang = lang === 'fr' ? 'fr-CA' : 'en-CA';
@@ -2791,7 +2783,7 @@
     async function say(text) {
       if (!text || inputPreference !== 'voice' || !readAloud) return;
       hush(); const g = sayGen; speaking = true; speakStart = performance.now(); talkWords = new Set(vwords(text));
-      if (isListening) startRec();
+      if (IOS) stopRec(); else if (isListening) startRec();
       try {
         const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, slow: slowVoice, voice: voiceName || (lang === 'fr' ? 'fr-CA-SylvieNeural' : undefined) }) });
@@ -3485,10 +3477,7 @@
       const body = fr ? `Bonjour Rama, j'ai besoin d'aide avec WellHeard. Je suis à : ${where}. ` : `Hi Rama, I need help with WellHeard. I'm on: ${where}. `;
       return 'sms:+14164545597?&body=' + encodeURIComponent(body);
     }
-    document.getElementById('chatBtn').addEventListener('click', (e) => {
-      e.currentTarget.href = chatHref();
-      if (!/iPhone|iPad|Android|Mac/i.test(navigator.userAgent)) { e.preventDefault(); showToast(lang === 'fr' ? 'Textez Rama au 416-454-5597' : 'Text Rama at 416-454-5597'); }
-    });
+    const canText = () => /iPhone|iPad|Android|Mac/i.test(navigator.userAgent);
 
     // tap Reid (top left) to pause or resume listening, on any screen
     (function () {
@@ -3505,6 +3494,7 @@
           ${onStep ? `<button type="button" data-r="explain" class="${MB} bg-[#1E2634] text-white">${ico('explain', 1)}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
           ${onStep ? `<button type="button" data-r="repeat" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('voice')}${fr ? 'Répéter la question' : 'Repeat the question'}</button>` : ''}
           ${voice && onStep ? `<button type="button" data-r="listen" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter de nouveau' : 'Start listening')}</button>` : ''}
+          <a href="${chatHref()}" data-r="chat" class="${MB} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Clavarder : textez Rama' : 'Chat: text Rama for help'}</a>
           <button type="button" data-r="close" class="${MB} bg-white border border-[#D6CFC0] text-[#1E2634] justify-center">${fr ? 'Fermer' : 'Close'}</button>`;
         menu.classList.remove('hidden');
       };
@@ -3512,6 +3502,7 @@
       wrap.addEventListener('click', (e) => { e.stopPropagation(); ensureCtx(); if (menu.classList.contains('hidden')) open(); else close(); });
       menu.addEventListener('click', (e) => {
         e.stopPropagation(); const b = e.target.closest('[data-r]'); if (!b) return; close();
+        if (b.dataset.r === 'chat' && !canText()) { e.preventDefault(); showToast(lang === 'fr' ? 'Textez Rama au 416-454-5597' : 'Text Rama at 416-454-5597'); }
         if (b.dataset.r === 'explain') explainStep();
         if (b.dataset.r === 'repeat') speakStep();
         if (b.dataset.r === 'listen') toggleListening();
@@ -3523,7 +3514,7 @@
     const protoRender = renderCurrentStep;
     let lastShownStep = null;
     renderCurrentStep = function () {
-      if (steps[currentIndex] !== lastShownStep) { lastShownStep = steps[currentIndex]; hush(); }
+      if (steps[currentIndex] !== lastShownStep) { lastShownStep = steps[currentIndex]; hush(true); }
       if (steps[currentIndex].mode === 'visitQuestions') syncVisit();
       protoRender();
       const step = steps[currentIndex];
