@@ -122,6 +122,16 @@
       border-radius: 8px;
     }
   </style>
+  <style id="textSizes">
+    .ts-1 #screenQuestion { font-size: 1.75rem !important; } .ts-2 #screenQuestion { font-size: 2rem !important; }
+    .ts-1 #listTitle { font-size: 1.6rem !important; } .ts-2 #listTitle { font-size: 1.8rem !important; }
+    .ts-1 #screenHelperText, .ts-1 #listHelp { font-size: 15px !important; } .ts-2 #screenHelperText, .ts-2 #listHelp { font-size: 17px !important; }
+    .ts-1 #answerInput { font-size: 1.2rem !important; } .ts-2 #answerInput { font-size: 1.4rem !important; }
+    .ts-1 #quickChipsGrid button { font-size: 18px !important; } .ts-2 #quickChipsGrid button { font-size: 20px !important; }
+    .ts-1 .qtxt, .ts-1 #visitQuestionsContainer span { font-size: 17.5px !important; } .ts-2 .qtxt, .ts-2 #visitQuestionsContainer span { font-size: 20px !important; }
+    .ts-1 #helpSettingsModal p, .ts-1 #helpSettingsModal li { font-size: 16px !important; } .ts-2 #helpSettingsModal p, .ts-2 #helpSettingsModal li { font-size: 18px !important; }
+    .ts-1 #hearSheet p { font-size: 17px !important; } .ts-2 #hearSheet p { font-size: 19px !important; }
+  </style>
 </head>
 <body class="min-h-screen w-full flex flex-col items-center justify-center sm:py-3">
 
@@ -216,7 +226,7 @@
           <h1 class="text-[1.45rem] leading-tight font-extrabold text-[#1E2634] tracking-tight">
             Get ready for your appointment
           </h1>
-          <p class="text-[13px] leading-snug text-[#425268] mt-1 font-medium">
+          <p id="landingIntro" class="text-[13px] leading-snug text-[#425268] mt-1 font-medium">
             Speak or tap with <strong class="text-[#1E2634]">Reid</strong>, WellHeard's AI helper. He builds a clear page for your doctor and suggests questions using Claude, by Anthropic. Your name is never sent.
           </p>
           <button type="button" id="langPick" class="tactile-btn mt-1.5 min-h-[44px] px-3 rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center gap-2"><span aria-hidden="true">🌐</span><span id="langPickName" data-notr>English</span><span class="text-[#425268]">· Language ›</span></button>
@@ -476,7 +486,7 @@
           </span>
         </div>
 
-        <div id="visitQuestionsContainer" class="w-full flex flex-col gap-[10px] shrink-0">
+        <div id="visitQuestionsContainer" class="w-full flex flex-col gap-[10px] flex-1 min-h-0 overflow-hidden">
           <!-- Populated dynamically from clinical workflow pathways -->
         </div>
 
@@ -528,7 +538,7 @@
           </div>
           <span id="listCounter" class="px-2.5 py-1 rounded-full bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xs shrink-0"></span>
         </div>
-        <div id="listItems" class="w-full flex flex-col gap-[10px] shrink-0"></div>
+        <div id="listItems" class="w-full flex flex-col gap-[10px] flex-1 min-h-0 overflow-hidden"></div>
         <div id="listFoot" class="w-full flex items-stretch shrink-0"></div>
       </div>
 
@@ -2421,7 +2431,7 @@
       'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
       'Private: everything stays on this device.': 'Privé : tout reste sur cet appareil.',
-      'Help / Settings': 'Aide / Réglages', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
+      'Help / Settings': 'Aide / Réglages', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Vous pouvez me parler ou toucher l'écran. Je prépare une page claire pour votre médecin et je suggère des questions avec Claude, d'Anthropic. Votre nom n'est jamais envoyé.", 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
       '1. Prepare': '1. Préparer', '2. At Visit': '2. Au rendez-vous', '3. After': '3. Après',
       'What is your name?': 'Comment vous appelez-vous ?', 'Optional — only shown on your doctor summary.': 'Facultatif — seulement sur le résumé pour le médecin.',
       'Helping someone else': "J'aide quelqu'un", 'Skip for now': 'Passer pour l’instant',
@@ -2530,7 +2540,7 @@
     function saveAll() {
       try {
         localStorage.setItem(STORE, JSON.stringify({
-          currentIndex, inputPreference, lang, slowVoice, readAloud, voiceName, transcript, recapDone, recapContact,
+          currentIndex, inputPreference, lang, slowVoice, readAloud, voiceName, textSize, transcript, recapDone, recapContact,
           answers: Object.fromEntries(steps.filter((s) => 'answer' in s).map((s) => [s.id, s.answer || ''])),
           custom: Object.fromEntries(steps.filter((s) => 'customActive' in s).map((s) => [s.id, !!s.customActive])),
           visitQuestions, nextStepTasks, task: document.getElementById('customTaskInput').value || '', aiPool, aiAt, ownQs, vagueOk, qPicked, qPrio, aiTags, recapSrc,
@@ -2547,7 +2557,7 @@
         if (Array.isArray(d.nextStepTasks)) nextStepTasks = d.nextStepTasks;
         aiPool = Array.isArray(d.aiPool) ? d.aiPool : []; aiAt = d.aiAt || 0; ownQs = Array.isArray(d.ownQs) ? d.ownQs : [];
         vagueOk = d.vagueOk || {}; qPicked = Array.isArray(d.qPicked) ? d.qPicked : []; qPrio = Array.isArray(d.qPrio) ? d.qPrio : []; aiTags = d.aiTags && typeof d.aiTags === 'object' ? d.aiTags : {}; recapSrc = d.recapSrc && typeof d.recapSrc === 'object' ? d.recapSrc : {}; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || '';
-        lang = LOC[d.lang] ? d.lang : 'en'; slowVoice = !!d.slowVoice; voiceName = typeof d.voiceName === 'string' ? d.voiceName : ''; readAloud = d.readAloud !== false;
+        lang = LOC[d.lang] ? d.lang : 'en'; slowVoice = !!d.slowVoice; voiceName = typeof d.voiceName === 'string' ? d.voiceName : ''; textSize = [0, 1, 2].includes(d.textSize) ? d.textSize : 0; applyTextSize(); readAloud = d.readAloud !== false;
         document.getElementById('customTaskInput').value = d.task || '';
         if (d.inputPreference === 'tap') setInputMode('tap');
         if (Number.isInteger(d.currentIndex) && d.currentIndex > 0 && d.currentIndex < steps.length) currentIndex = d.currentIndex;
@@ -2816,6 +2826,7 @@
       if (cmd === 'next') { goNext(); return; }
       if (cmd === 'back') { goBack(); return; }
       if (cmd === 'repeat') { speakStep(); return; }
+      if (/^(read (this|the) (screen|page)|read it|read everything|read (it|this) to me|lis(ez)? l'écran|lis(ez)?-moi tout)$/.test(low)) { readScreen(); return; }
       if (cmd === 'help') { explainStep(); return; }
       if (cmd === 'stop') { if (isListening) toggleListening(); return; }
       if (/^(next|next please|done|i'm done|carry on|continue|suivant|c'est tout|continuer)$/.test(low)) { goNext(); return; }
@@ -3146,7 +3157,8 @@
     const B = 'tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2';
     const BON = 'tactile-btn flex-1 min-h-[52px] rounded-xl bg-[#1E2634] text-white font-extrabold text-base';
     const BOFF = 'tactile-btn flex-1 min-h-[52px] rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base';
-    let setView = 'menu', voiceName = '', spokenView = null;
+    let setView = 'menu', voiceName = '', spokenView = null, textSize = 0;
+    function applyTextSize() { const h = document.documentElement; h.classList.remove('ts-1', 'ts-2'); if (textSize) h.classList.add('ts-' + textSize); }
     const ICONS = {
       explain: '<path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/>',
       say: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>',
@@ -3191,7 +3203,7 @@
           ${onStep ? `<button type="button" data-act="explain" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#1E2634] text-white font-extrabold text-base flex items-center justify-center gap-3">${ico('explain', 1)}${T('Explain this screen', 'Expliquer cet écran')}</button>` : ''}
           ${row('say', T('What you can say', 'Ce que vous pouvez dire'))}
           ${row('voice', T("Reid's voice", 'La voix de Reid'), (readAloud ? T('On', 'Oui') : T('Off', 'Non')) + ' · ' + (slowVoice ? T('Slower', 'Lente') : T('Normal', 'Normale')))}
-          ${row('answer', T('Language & answering', 'Langue et réponses'), langName(lang) + ' · ' + (inputPreference === 'voice' ? T('Talking', 'Parler') : T('Typing', 'Écrire')))}
+          ${row('answer', T('Language, text size & answering', 'Langue, texte et réponses'), langName(lang) + ' · ' + (inputPreference === 'voice' ? T('Talking', 'Parler') : T('Typing', 'Écrire')))}
           ${onStep ? row('steps', T('See all steps', 'Voir toutes les étapes')) : ''}
           ${row('pages', T('Print or share my pages', 'Imprimer ou partager'))}
           ${row('privacy', T('Your privacy', 'Vos renseignements'))}
@@ -3216,8 +3228,9 @@
           ${isMT() ? '' : card(T('Voice', 'Voix'), pair('voicename', fr ? 'Sylvie' : 'Liam', fr ? 'Antoine' : 'Clara', !voiceName))}
           ${card(T('Hear it', 'Écouter'), `<button type="button" data-act="test" class="${B}">▶ ${T('Play a sample', 'Écouter un exemple')}</button>`)}</div>`;
       } else if (setView === 'answer') {
-        body = head(T('Language & answering', 'Langue et réponses'), 1) + `<div class="flex flex-col gap-[12px]">
+        body = head(T('Language & text', 'Langue et texte'), 1) + `<div class="flex flex-col gap-[12px]">
           ${card(T('Language', 'Langue'), `<div class="grid grid-cols-3 gap-[8px]" data-notr>${LANG_LIST.map(([c, nm]) => `<button type="button" data-lang="${c}" class="tactile-btn min-h-[44px] px-1 rounded-xl ${c === lang ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-[13px] leading-tight">${c === lang ? '✓ ' : ''}${nm}</button>`).join('')}</div>`)}${isMT() ? `<div class="bg-[#FDF3E1] border-2 border-[#D97706] rounded-2xl p-3 text-[13px] font-bold text-[#7A4A06] leading-snug">${MT_WARN()}</div>` : ''}
+          ${card(T('Text size', 'Taille du texte'), `<div class="flex items-stretch gap-[10px]">${[[0, 'A', T('Normal', 'Normal')], [1, 'A', T('Large', 'Grand')], [2, 'A', T('Extra large', 'Très grand')]].map(([v, a, lab]) => `<button type="button" data-ts="${v}" class="tactile-btn flex-1 min-h-[60px] rounded-2xl ${textSize === v ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} font-extrabold flex flex-col items-center justify-center leading-none"><span style="font-size:${16 + v * 6}px">${a}</span><span class="text-[11px] mt-1">${lab}</span></button>`).join('')}</div>`)}
           ${card(T('How you answer', 'Comment vous répondez'), pair('mode', T('Talking + tapping', 'Parler + toucher'), T('Tapping + typing', 'Toucher + écrire'), inputPreference === 'voice'))}</div>`;
       } else if (setView === 'steps') {
         const names = ['1. Prepare', '2. At Visit', '3. After'], namesFr = ['1. Préparer', '2. Au rendez-vous', '3. Après'];
@@ -3245,6 +3258,7 @@
       panel.innerHTML = body;
       speakSettings(panel);
       panel.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { setView = b.dataset.go; renderSettings(); applyLang(); }));
+      panel.querySelectorAll('[data-ts]').forEach((b) => b.addEventListener('click', () => { textSize = Number(b.dataset.ts); applyTextSize(); saveAll(); renderSettings(); renderCurrentStep(); }));
       panel.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang)));
       panel.querySelectorAll('[data-jump]').forEach((b) => b.addEventListener('click', () => { closeModal('helpSettingsModal'); stopRec(); currentIndex = Number(b.dataset.jump); renderCurrentStep(); speakStep(); }));
       panel.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
@@ -3418,7 +3432,7 @@
       } catch (e) { console.warn('Suggestions unavailable', e); }
       aiBusy = aiLoading = false;
       if (LISTMODES[steps[currentIndex].mode]) {
-        if (more && added.length) qPage = Math.floor(ideaPool().indexOf(added[0]) / QP());
+        if (more && added.length) { const ix = ideaPool().indexOf(added[0]); if (ix > 0) { qStarts = [0, ix]; qPage = 1; } }
         renderList(); applyLang();
         if (more) say(added.length ? (lang === 'fr' ? 'Voici de nouvelles questions. ' : 'Here are some new questions. ') + readList() : (lang === 'fr' ? 'Reid n’a pas d’autres idées pour l’instant.' : 'Reid has no new ideas just now.'));
       }
@@ -3429,13 +3443,33 @@
     const B_OFF = 'tactile-btn w-full min-h-[52px] px-3.5 py-2 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] flex items-center gap-2.5 text-left hover:bg-[#E6DFD0]';
     const B_ON = 'tactile-btn w-full min-h-[52px] px-3.5 py-2 rounded-[16px] bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634] flex items-center gap-2.5 text-left';
     const B_FOOT = 'tactile-btn flex-1 min-h-[50px] px-3 rounded-[16px] font-extrabold text-sm flex items-center justify-center gap-1.5';
-    function pageOf(arr) { const n = Math.max(1, Math.ceil(arr.length / QP())); qPage = ((qPage % n) + n) % n; return { items: arr.slice(qPage * QP(), qPage * QP() + QP()), n }; }
+    var qStarts = [0], qTotal = 0, vStarts = [0];
+    // a page starts where the last one ended; after drawing, only what fits on the screen is kept
+    function pageOf(arr) {
+      qTotal = arr.length;
+      if (qPage < 0 || qStarts[qPage] === undefined || qStarts[qPage] >= arr.length) { qPage = 0; qStarts = [0]; }
+      const start = qStarts[qPage];
+      return { items: arr.slice(start, start + QP() + 2), n: arr.length };
+    }
+    function fitList(foot) {
+      const box = document.getElementById('listItems'), kids = [...box.children];
+      if (box.clientHeight) { while (kids.length > 1 && box.scrollHeight > box.clientHeight + 1) kids.pop().remove(); }
+      else while (kids.length > QP()) kids.pop().remove();   // no screen to measure (tests)
+      qShown = qShown.slice(0, kids.length);
+      const start = qStarts[qPage] || 0, end = start + qShown.length; qStarts[qPage + 1] = end;
+      const mb = foot.querySelector('[data-foot="more"]');
+      if (mb) {
+        if (qPage === 0 && end >= qTotal) { if (mb.previousElementSibling && !mb.previousElementSibling.dataset.foot) mb.previousElementSibling.remove(); mb.remove(); }
+        else mb.textContent = `${L2('More', 'Plus')} ${start + 1}–${end} / ${qTotal} ›`;
+      }
+    }
+    function nextListPage() { qPage++; if ((qStarts[qPage] || 0) >= qTotal) qPage = 0; }
     function footHtml(n, addLabel) {
       if (qAdding) return `<div class="w-full bg-white border-2 border-[#1E2634] rounded-[18px] p-2 flex items-center gap-2">
           <input id="listAddInput" type="text" autocomplete="off" placeholder="${esc(L2('Type your question...', 'Écrivez votre question...'))}" class="flex-1 min-w-0 bg-transparent text-[#1E2634] font-bold text-base focus:outline-none px-1">
           <button type="button" data-foot="save" class="tactile-btn min-h-[44px] px-4 rounded-xl bg-[#1E2634] text-white font-extrabold text-sm shrink-0">${L2('Add', 'Ajouter')}</button></div>`;
       const gap = '<div class="w-[10px] shrink-0" aria-hidden="true"></div>', ideas = steps[currentIndex].mode === 'ideas';
-      const more = n > 1 ? `<button type="button" data-foot="more" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ideas ? L2('Next 4', '4 autres') : L2('More', 'Plus')} ${qPage + 1}/${n} ›</button>` : '';
+      const more = n > 1 ? `<button type="button" data-foot="more" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${L2('More', 'Plus')} ›</button>` : '';
       const gen = ideas ? `<button type="button" data-foot="gen" ${aiBusy ? 'disabled' : ''} class="${B_FOOT} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] ${aiBusy ? 'opacity-60' : ''}">${aiBusy ? L2('Thinking…', 'Un instant…') : L2('✨ Reid: more', '✨ Reid : plus')}</button>` : '';
       return `<button type="button" data-foot="add" class="${B_FOOT} bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634]">+ ${addLabel}</button>${more ? gap + more : ''}${gen ? gap + gen : ''}`;
     }
@@ -3447,22 +3481,22 @@
         const pg = pageOf(ideaPool()); qShown = pg.items;
         $('listTitle').textContent = L2('Questions you might not think of', 'Des questions auxquelles vous ne penseriez pas');
         $('listHelp').textContent = aiLoading ? L2('Reid is thinking of questions for your visit…', 'Reid réfléchit à des questions pour votre visite…')
-          : L2('Tick the ones to include. Ask Reid for more any time. Suggested by Claude · not medical advice.', 'Cochez celles à garder. Demandez-en d’autres à Reid. Suggérées par Claude · pas un avis médical.') + (isMT() ? ' ⚠ ' + 'Translated by computer: check with the doctor.' : '');
+          : L2('Tap a question, or say its number, to add it. Say “more” to see others. Suggested by Claude · not medical advice.', 'Touchez une question, ou dites son numéro, pour l’ajouter. Dites « plus » pour en voir d’autres. Suggérées par Claude · pas un avis médical.') + (isMT() ? ' ⚠ ' + 'Translated by computer: check with the doctor.' : '');
         $('listCounter').textContent = L2(`${qPicked.length} added`, `${qPicked.length} ajoutée(s)`);
         items.innerHTML = qShown.map((q, i) => {
           const on = qPicked.includes(q);
-          const who = (SID('who').answer || '').trim(), tag = aiTags[q] === 'd' ? (who && who.length <= 24 ? L2('For your ', 'Pour : ') + who.toLowerCase() : L2('For this doctor', 'Pour ce médecin'))
+          const who = (SID('who').answer || '').trim(), known = ['Family doctor', 'Neurologist', 'Foot clinic'].find((x) => lc(x) === lc(who)), tag = aiTags[q] === 'd' ? (known ? L2('For your ', 'Pour : ') + tr(known).toLowerCase() : L2('For this doctor', 'Pour ce médecin'))
             : aiTags[q] === 'c' ? L2('About your visit', 'Sur votre visite') : (commonSrc(q) || L2('Common question', 'Question courante'));
           return `<button type="button" data-i="${i}" aria-pressed="${on}" class="${on ? B_ON : B_OFF}">
             <span class="w-7 h-7 rounded-full ${on ? 'bg-[#3B5E42] text-white' : 'bg-white border border-[#D6CFC0] text-[#425268]'} font-extrabold text-sm flex items-center justify-center shrink-0">${on ? '✓' : i + 1}</span>
             <span class="min-w-0"><span class="block text-[11px] font-extrabold uppercase tracking-wide ${aiTags[q] === 'd' ? 'text-[#B84A27]' : 'text-[#425268]'}">${esc(tag)}</span>
             ${qText(q, 'font-extrabold text-[15px] leading-snug')}</span></button>`;
         }).join('');
-        foot.innerHTML = footHtml(pg.n, L2('Add', 'Ajouter'));
+        foot.innerHTML = footHtml(pg.n, L2('Add', 'Ajouter')); fitList(foot);
       } else if (step.mode === 'priority') {
         const all = chosen(), pg = pageOf(all); qShown = pg.items;
         $('listTitle').textContent = L2('Which questions matter most?', 'Quelles questions comptent le plus ?');
-        $('listHelp').textContent = all.length ? L2('Tap the most important first. They go at the top of your pages.', 'Touchez la plus importante en premier. Elles iront en haut de vos pages.')
+        $('listHelp').textContent = all.length ? L2('Tap, or say the number of, the most important first. They go at the top of your pages.', 'Touchez ou dites le numéro de la plus importante en premier. Elles iront en haut de vos pages.')
           : L2("You haven't added any questions yet. Add one below, or tap Next.", "Vous n'avez pas encore de questions. Ajoutez-en une, ou touchez Suivant.");
         $('listCounter').textContent = L2(`${qPrio.filter((q) => all.includes(q)).length} most important`, `${qPrio.filter((q) => all.includes(q)).length} importante(s)`);
         items.innerHTML = qShown.map((q, i) => {
@@ -3471,7 +3505,7 @@
             <span class="w-7 h-7 rounded-full ${k > -1 ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#425268]'} font-extrabold text-sm flex items-center justify-center shrink-0">${k > -1 ? '★' + (k + 1) : i + 1}</span>
             <span class="min-w-0">${qText(q, 'font-extrabold text-[15.5px] leading-snug')}</span></button>`;
         }).join('');
-        foot.innerHTML = footHtml(pg.n, L2('A question we missed', 'Une question oubliée'));
+        foot.innerHTML = footHtml(pg.n, L2('A question we missed', 'Une question oubliée')); fitList(foot);
       } else {
         qShown = [];
         const ms = qLines(SID('meds').answer), dl = detailLines(), cq = chosen();
@@ -3504,7 +3538,7 @@
     function listAdd() {
       const inp = document.getElementById('listAddInput'), v = inp ? inp.value.trim() : '';
       if (v) { ownQs.push(v); if (steps[currentIndex].mode === 'ideas') qPicked = qPicked.filter((x) => x !== v); setCompanionState('captured'); showToast(L2('Question added', 'Question ajoutée')); }
-      qAdding = false; if (steps[currentIndex].mode === 'priority') qPage = Math.ceil(chosen().length / QP()) - 1;
+      qAdding = false; if (steps[currentIndex].mode === 'priority' && chosen().length > 1) { qStarts = [0, chosen().length - 1]; qPage = 1; }
       renderList(); applyLang(); saveAll();
     }
     document.getElementById('listItems').addEventListener('click', (e) => {
@@ -3515,7 +3549,7 @@
     document.getElementById('listFoot').addEventListener('click', (e) => {
       const b = e.target.closest('[data-foot]'); if (!b) return;
       const k = b.dataset.foot;
-      if (k === 'more') { qPage++; renderList(); applyLang(); if (steps[currentIndex].mode === 'ideas') say(qShown.map((q, i) => `${i + 1}. ${q}`).join(' ')); }
+      if (k === 'more') { nextListPage(); renderList(); applyLang(); if (steps[currentIndex].mode === 'ideas') say(qShown.map((q, i) => `${i + 1}. ${q}`).join(' ')); }
       if (k === 'add') { qAdding = true; renderList(); }
       if (k === 'gen') fetchClaudeQuestions(true);
       if (k === 'save') listAdd();
@@ -3530,12 +3564,12 @@
         if (m) {
           const n = Number(m[1]) || NUMS[m[1]] || 0;
           if (LISTMODES[step.mode] && step.mode !== 'review') return listPick(n - 1);
-          if (step.mode === 'visitQuestions' && visitQuestions[vPage * QP() + n - 1]) { toggleVisitQuestion(vPage * QP() + n - 1); return true; }
+          const vi = (vStarts[vPage] || 0) + n - 1; if (step.mode === 'visitQuestions' && n > 0 && vi < (vStarts[vPage + 1] || 0) && visitQuestions[vi]) { toggleVisitQuestion(vi); return true; }
         }
         if (step.mode === 'ideas' && /(new|more|other|different) (questions|ideas)|reid.*more|generate|nouvelles questions|d'autres questions|autres idées/.test(low)) { fetchClaudeQuestions(true); return true; }
         if (/^(more|more please|next four|show me more|others|plus|d'autres|autres|les suivantes)$/.test(low)) {
           if (step.mode === 'visitQuestions') { cycleWorkflowQuestions(); return true; }
-          if (LISTMODES[step.mode]) { qPage++; renderList(); applyLang(); say(qShown.map((q, i) => `${i + 1}. ${q}`).join(' ')); return true; }
+          if (LISTMODES[step.mode]) { nextListPage(); renderList(); applyLang(); say(qShown.map((q, i) => `${i + 1}. ${q}`).join(' ')); return true; }
         }
       }
       return false;
@@ -3552,7 +3586,7 @@
       review: () => L2('Check everything. This goes on your pages. ', 'Vérifiez tout. Ceci va sur vos pages. ') + [...document.querySelectorAll('#listItems [data-jump]')].map((b) => { const s = b.querySelectorAll('span'); return s[1].textContent + ': ' + s[3].textContent + '.'; }).join(' ')
         + L2(' Tap anything to change it. When it looks right, say next.', ' Touchez une case pour la changer. Quand tout est bon, dites suivant.'),
       doctorSummary: () => [SID('who').answer, [SID('day').answer, SID('time').answer].filter(Boolean).join(', '), SID('where').answer, SID('concerns').answer].filter(Boolean).join('. ') + '. ' + L2("This is the summary for your doctor. Tap Print, or Full screen to show the doctor. At the visit, ask the doctor first, then tap Record Visit.", "Voici le résumé pour votre médecin. Touchez Imprimer, ou Plein écran pour le montrer. Au rendez-vous, demandez d'abord au médecin, puis touchez Enregistrer la visite."),
-      visitQuestions: () => chosen().length ? L2('Your questions for the doctor, most important first. ', 'Vos questions pour le médecin, les plus importantes en premier. ') + visitQuestions.slice(vPage * QP(), vPage * QP() + QP()).map((q, i) => `${i + 1}. ${stop(q.text)}`).join(' ')
+      visitQuestions: () => chosen().length ? L2('Your questions for the doctor, most important first. ', 'Vos questions pour le médecin, les plus importantes en premier. ') + visitQuestions.slice(vStarts[vPage] || 0, vStarts[vPage + 1] || QP()).map((q, i) => `${i + 1}. ${stop(q.text)}`).join(' ')
         + L2(' Tap each one once it has been answered, or say its number.', ' Touchez chacune quand elle a eu une réponse, ou dites son numéro.') : L2('No questions chosen yet. Tap Add your own, or Pick questions.', 'Aucune question choisie. Touchez Ajouter, ou Choisir des questions.'),
       nextSteps: () => L2('What happens next? Tap any tasks to remember after today. ', "Et ensuite ? Touchez ce qu'il faut faire après aujourd'hui. ") + nextStepTasks.map((t) => tr(t.text) + (t.selected ? L2(', ticked', ', coché') : '') + '.').join(' '),
       shareFinish: () => L2('Here is your visit recap. ', 'Voici le résumé de votre visite. ') + (SID('recap').answer ? L2('What the doctor said: ', 'Ce qu’a dit le médecin : ') + SID('recap').answer + ' ' : '')
@@ -3560,11 +3594,11 @@
         + L2('You can send it to family, or print it.', 'Vous pouvez l’envoyer à la famille, ou l’imprimer.')
     };
     const SPEAK = {
-      ideas: () => L2('Which of these would you like to ask? ', 'Lesquelles voulez-vous poser ? ') + readList(),
-      priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
+      ideas: () => L2('Which of these would you like to ask? ', 'Lesquelles voulez-vous poser ? ') + readList() + L2(' Say a number to add it, or say more.', ' Dites un numéro pour l’ajouter, ou dites plus.'),
+      priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Say the number of the most important one.', ' Dites le numéro de la plus importante.') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       review: () => L2('Does everything look right?', 'Est-ce que tout est correct ?'),
       doctorSummary: () => L2('Would you like to print the summary for your doctor?', 'Voulez-vous imprimer le résumé pour votre médecin ?'),
-      visitQuestions: () => chosen().length ? L2('Which questions has the doctor answered? ', 'À quelles questions le médecin a-t-il répondu ? ') + visitQuestions.slice(vPage * QP(), vPage * QP() + QP()).map((q, i) => `${i + 1}. ${stop(q.text)}`).join(' ') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
+      visitQuestions: () => chosen().length ? L2('Which questions has the doctor answered? ', 'À quelles questions le médecin a-t-il répondu ? ') + visitQuestions.slice(vStarts[vPage] || 0, vStarts[vPage + 1] || QP()).map((q, i) => `${i + 1}. ${stop(q.text)}`).join(' ') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       nextSteps: () => L2('What happens next?', 'Et ensuite ?'),
       shareFinish: () => L2('Would you like to send your recap to family?', 'Voulez-vous envoyer le résumé à la famille ?')
     };
@@ -3573,10 +3607,15 @@
     const qVisitRender = renderVisitQuestionsChecklist;
     renderVisitQuestionsChecklist = function () {
       qVisitRender();
-      const kids = [...document.getElementById('visitQuestionsContainer').children], n = Math.max(1, Math.ceil(kids.length / QP()));
-      vPage = ((vPage % n) + n) % n;
-      kids.forEach((k, i) => k.classList.toggle('hidden', Math.floor(i / QP()) !== vPage));
+      const vbox = document.getElementById('visitQuestionsContainer'), kids = [...vbox.children], n = kids.length;
+      if (vPage < 0 || vStarts[vPage] === undefined || vStarts[vPage] >= n) { vPage = 0; vStarts = [0]; }
+      const vst = vStarts[vPage];
+      kids.forEach((k, i) => k.classList.toggle('hidden', i < vst || i >= vst + QP() + 2));
       if (isMT()) kids.forEach((k) => { const sp = [...k.querySelectorAll('span')].find((x) => !x.children.length && x.textContent.trim().length > 3 && !/rounded-full/.test(x.className)); if (sp && !sp.hasAttribute('data-notr')) { sp.setAttribute('data-notr', ''); const t = document.createElement('span'); t.className = 'block text-[13px] font-bold text-[#3B5E42] leading-snug'; t.textContent = sp.textContent; sp.after(t); } });
+      let vis = kids.filter((k) => !k.classList.contains('hidden'));
+      if (vbox.clientHeight) { while (vis.length > 1 && vbox.scrollHeight > vbox.clientHeight + 1) vis.pop().classList.add('hidden'); }
+      else while (vis.length > QP()) vis.pop().classList.add('hidden');
+      vStarts[vPage + 1] = vst + vis.length;
       const mine = chosen().length > 0, btn = document.getElementById('refreshWorkflowBtn');
       const badge0 = document.getElementById('workflowSourceBadge'); if (badge0) badge0.textContent = L2('Your questions', 'Vos questions');
       if (!mine) {
@@ -3587,13 +3626,13 @@
         document.getElementById('questionsDoneCounter').textContent = '0';
       }
       if (mine) {
-        btn.querySelector('span').textContent = L2(`More (${vPage + 1}/${n}) ›`, `Suite (${vPage + 1}/${n}) ›`);
-        btn.classList.toggle('hidden', n < 2 || !document.getElementById('inlineAddQuestionBox').classList.contains('hidden'));
+        btn.querySelector('span').textContent = `${L2('More', 'Suite')} ${vst + 1}–${vStarts[vPage + 1]} / ${n} ›`;
+        btn.classList.toggle('hidden', (vPage === 0 && vStarts[1] >= n) || !document.getElementById('inlineAddQuestionBox').classList.contains('hidden'));
         const badge = document.getElementById('workflowSourceBadge'); if (badge) badge.textContent = L2('Most important first', 'Les plus importantes en premier');
       }
     };
     const qCycle = cycleWorkflowQuestions;
-    cycleWorkflowQuestions = function () { vPage++; renderVisitQuestionsChecklist(); applyLang(); };
+    cycleWorkflowQuestions = function () { vPage++; if ((vStarts[vPage] || 0) >= visitQuestions.length) vPage = 0; renderVisitQuestionsChecklist(); applyLang(); };
     const qInline = saveInlineQuestion;
     saveInlineQuestion = function () { qInline(); if (chosen().length) { syncVisit(); renderVisitQuestionsChecklist(); applyLang(); } };
 
@@ -3628,11 +3667,20 @@
     function readLanding() {
       // what's on the first page, in the language it's showing, without the buttons' small print
       const root = document.getElementById('screenLanding'), bits = [];
-      root.querySelectorAll('h1, p').forEach((el) => { const t = el.textContent.replace(/\s+/g, ' ').trim(); if (t) bits.push(/[.!?:。？！]$/.test(t) ? t : t + '.'); });
+      root.querySelectorAll('h1, p').forEach((el) => { if (el.id === 'landingIntro') return; const t = el.textContent.replace(/\s+/g, ' ').trim(); if (t) bits.push(/[.!?:。？！]$/.test(t) ? t : t + '.'); });
       const modes = [...root.querySelectorAll('button[onclick*="setInputMode"]')].map((b) => b.textContent.replace(/[✓]/g, '').replace(/\s*\+\s*/g, isMT() ? ', ' : lang === 'fr' ? ' et ' : ' and ').replace(/\s*\/\s*/g, isMT() ? ', ' : lang === 'fr' ? ' ou ' : ' or ').replace(/\s+/g, ' ').trim()).filter(Boolean);
       const q = bits.findIndex((t) => /answer|répondre/i.test(t) && /\?/.test(t));
       if (modes.length && q > -1) bits.splice(q + 1, 0, modes.join(lang === 'fr' ? ', ou ' : ', or ') + '.');
       return bits.join(' ');
+    }
+    // Reid reads the first page himself, in the first person
+    const INTRO = "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.";
+    async function readFirstPage() {
+      const g = sayGen;
+      const intro = isMT() ? await mt(INTRO) : tr(INTRO), ready = isMT() ? await mt('When you are ready, tap Get started.') : tr('When you are ready, tap Get started.');
+      if (g !== sayGen) return;
+      const parts = readLanding().split('. ');   // the page title first, then Reid's own introduction, then the rest
+      await say(parts[0] + '. ' + intro + ' ' + parts.slice(1).join('. ') + ' ' + ready, true);
     }
     hello.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-hi]'); if (!b) return;
@@ -3640,10 +3688,36 @@
       if (b.dataset.hi === 'no') return;
       greeted = true;
       const was = inputPreference; inputPreference = 'voice';   // he reads it even if typing was chosen
-      await say(readLanding() + ' ' + tr('When you are ready, tap Get started.'), isMT() || lang === 'fr');
+      await readFirstPage();
       inputPreference = was;
     });
     setTimeout(showHello, 400);
+
+    // everything that's on the screen right now, in the order it appears, in the language it's showing
+    function screenText() {
+      const st = steps[currentIndex];
+      const id = st.mode === 'landing' ? 'screenLanding' : st.mode === 'voice' ? 'voiceCaptureScreen' : LISTMODES[st.mode] ? 'screenList'
+        : { doctorSummary: 'screenDoctorSummary', visitQuestions: 'screenVisitQuestions', nextSteps: 'screenNextSteps', shareFinish: 'screenShareFinish' }[st.mode];
+      const root = document.getElementById(id), out = [];
+      const end = () => { if (out.length && !/[.!?:…。？！]$/.test(out[out.length - 1])) out[out.length - 1] += '.'; };
+      const walk = (el) => {
+        if (el.nodeType === 3) { const t = el.nodeValue.replace(/[›✓★⚠▶↻←→]/g, ' ').replace(/\s+/g, ' ').trim(); if (t) out.push(t); return; }
+        if (el.nodeType !== 1 || el.classList.contains('hidden') || el.getAttribute('aria-hidden') === 'true' || el.tagName === 'SVG' || el.tagName === 'svg') return;
+        if (isMT() && el.hasAttribute('data-notr') && el.closest('#listItems, #visitQuestionsContainer')) return;
+        if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') { const v = (el.value || '').trim(); out.push(v ? L2('Your answer so far: ', 'Votre réponse pour l’instant : ') + v : L2('Your answer is empty.', 'Votre réponse est vide.')); end(); return; }
+        [...el.childNodes].forEach(walk);
+        if (/^(P|H1|H2|BUTTON|LI|LABEL)$/.test(el.tagName)) end();
+      };
+      if (root) walk(root);
+      return out.join(' ').replace(/\s+\./g, '.');
+    }
+    function readScreen() { hush(); if (steps[currentIndex].mode === 'landing') { const was = inputPreference; inputPreference = 'voice'; readFirstPage().then(() => { inputPreference = was; }); return; } const st = steps[currentIndex];
+      if (st.mode === 'ideas' || st.mode === 'priority') {   // numbered, so the person can answer with a number
+        const t = document.getElementById('listTitle').textContent + '. ' + document.getElementById('listHelp').textContent + ' '
+          + qShown.map((q, i) => `${i + 1}. ${stop(q)}` + (st.mode === 'ideas' && qPicked.includes(q) ? L2(' Added.', ' Ajoutée.') : '') + (st.mode === 'priority' && qPrio.includes(q) ? L2(' Most important, number ', ' Importante, numéro ') + (qPrio.indexOf(q) + 1) + '.' : '')).join(' ');
+        say(isMT() ? t : t, lang === 'fr'); return;
+      }
+      say(screenText(), isMT() || lang === 'fr'); }
 
     // tap Reid (top left) to pause or resume listening, on any screen
     (function () {
@@ -3658,6 +3732,7 @@
         const fr = lang === 'fr', voice = inputPreference === 'voice', onStep = steps[currentIndex].mode !== 'landing';
         menu.innerHTML = `<p class="text-sm font-extrabold text-[#3B5E42] px-1">${fr ? 'Reid, votre aide IA' : 'Reid, your AI helper'}</p>
           ${onStep ? `<button type="button" data-r="explain" class="${MB} bg-[#1E2634] text-white">${ico('explain', 1)}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
+          <button type="button" data-r="read" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('pages')}${fr ? 'Lire ce qui est à l’écran' : 'Read what’s on this screen'}</button>
           ${onStep ? `<button type="button" data-r="repeat" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('voice')}${fr ? 'Répéter la question' : 'Repeat the question'}</button>` : ''}
           ${voice && onStep ? `<button type="button" data-r="listen" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter de nouveau' : 'Start listening')}</button>` : ''}
           <a href="${chatHref()}" data-r="chat" class="${MB} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Clavarder : textez Rama' : 'Chat: text Rama for help'}</a>
@@ -3671,6 +3746,7 @@
         if (b.dataset.r === 'chat' && !canText()) { e.preventDefault(); showToast(lang === 'fr' ? 'Textez Rama au 416-454-5597' : 'Text Rama at 416-454-5597'); }
         if (b.dataset.r === 'explain') explainStep();
         if (b.dataset.r === 'repeat') speakStep();
+        if (b.dataset.r === 'read') readScreen();
         if (b.dataset.r === 'listen') toggleListening();
       });
       document.addEventListener('click', (e) => { if (!menu.contains(e.target)) close(); });
@@ -3789,7 +3865,7 @@
     document.getElementById('langPick').addEventListener('click', () => { ensureCtx(); openModal('helpSettingsModal'); setView = 'answer'; spokenView = null; renderSettings(); applyLang(); });
     // a question shown in the doctor's language with the patient's language under it
     function qText(q, cls) {
-      return isMT() ? `<span class="block ${cls}" data-notr>${esc(q)}</span><span class="block text-[13px] font-bold text-[#3B5E42] leading-snug">${esc(q)}</span>` : `<span class="block ${cls}">${esc(q)}</span>`;
+      return isMT() ? `<span class="block qtxt ${cls}" data-notr>${esc(q)}</span><span class="block text-[13px] font-bold text-[#3B5E42] leading-snug">${esc(q)}</span>` : `<span class="block qtxt ${cls}">${esc(q)}</span>`;
     }
 
     // ---------- tie everything into the prototype's own flow ----------
