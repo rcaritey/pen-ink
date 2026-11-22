@@ -131,6 +131,15 @@
   <style>
     #appContainer { padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
   </style>
+  <style id="wideLayout">
+    #appContainer.wide { display: grid !important; grid-template-columns: 280px 1fr; grid-template-rows: auto auto 1fr auto; column-gap: 40px; padding-left: 32px; padding-right: 32px; }
+    #appContainer.wide > header { grid-column: 1; grid-row: 1; flex-direction: column; align-items: stretch; gap: 18px; }
+    #appContainer.wide > header > button { justify-content: center; }
+    #appContainer.wide > #progressHeader { grid-column: 1; grid-row: 2; align-self: start; margin-top: 28px; }
+    #appContainer.wide > section { grid-column: 2; grid-row: 1 / span 3; }
+    #appContainer.wide > footer { grid-column: 2; grid-row: 4; }
+    #appContainer.wide #reidHello { right: auto; width: 330px; top: 84px; }
+  </style>
   <style id="textSizes">
     .ts-1 #screenQuestion { font-size: 1.75rem !important; } .ts-2 #screenQuestion { font-size: 2rem !important; }
     .ts-1 #listTitle { font-size: 1.6rem !important; } .ts-2 #listTitle { font-size: 1.8rem !important; }
@@ -3795,13 +3804,15 @@
       if (vw < 500) {                       // phone, upright: the whole screen
         z = vh < 740 ? Math.max(0.82, vh / 740) : 1;
         w = vw / z; h = vh / z;
-        main.style.borderRadius = '0'; main.style.borderWidth = '0';
+        main.style.borderRadius = '0'; main.style.borderWidth = '0'; main.classList.remove('wide');
       } else {                              // iPad or computer: the page, as big as fits
-        // upright iPad: the page scaled up. Sideways iPad or computer: the screen is short, so the page
-        // keeps its height and uses the extra width (up to 760) instead of leaving empty sides.
-        const wide = vw > vh;
-        z = Math.min(1.7, (vh * 0.96) / 820, wide ? 9 : (vw * 0.96) / 420);
-        w = wide ? Math.round(Math.min(760, Math.max(420, (vw * 0.96) / z))) : 420; h = 820;
+        // Computer or sideways iPad: a wide layout. Reid, Help and the progress sit in a column on the left,
+        // the question gets the rest. Less stacked up, so the whole page can be bigger.
+        // Upright iPad: the phone page, scaled up.
+        const wide = vw >= 900 && vw > vh * 1.1;
+        main.classList.toggle('wide', wide);
+        if (wide) { z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000); w = 1000; h = 640; }
+        else { z = Math.min(1.7, (vh * 0.96) / 820, (vw * 0.96) / 420); w = 420; h = 820; }
         main.style.borderRadius = ''; main.style.borderWidth = '';
       }
       main.style.zoom = z; main.style.width = w + 'px'; main.style.maxWidth = 'none'; main.style.height = h + 'px';
@@ -3975,6 +3986,7 @@
     const hourStr = (h, m) => { const d = new Date(2000, 0, 1, h, m); return d.toLocaleTimeString(LOC[lang] || 'en-CA', { hour: 'numeric', minute: '2-digit' }); };
     const CELL = 'tactile-btn h-[40px] rounded-xl font-extrabold text-[18px] flex items-center justify-center';
     const PILL = 'tactile-btn min-h-[52px] rounded-2xl font-extrabold text-[17px] flex items-center justify-center';
+    const wideNow = () => document.getElementById('appContainer').classList.contains('wide');
     function renderPicker(step) {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const fr = lang === 'fr', notSure = /^(not booked|not sure|pas encore|pas sûr)/i.test(step.answer || '');
@@ -3983,18 +3995,19 @@
         if (!calMonth) { const iso = step.dateISO ? new Date(step.dateISO + 'T00:00') : today; calMonth = new Date(iso.getFullYear(), iso.getMonth(), 1); }
         const y = calMonth.getFullYear(), m = calMonth.getMonth(), first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
         const wk = [...Array(7)].map((_, i) => new Date(2023, 0, 1 + i).toLocaleDateString(LOC[lang] || 'en-CA', { weekday: 'narrow' }));
+        const notBtn = `<button type="button" data-unsure="day" class="${PILL} ${wideNow() ? 'px-4' : 'w-full'} ${notSure ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${notSure ? '✓ ' : ''}${L2('Not booked yet', 'Pas encore fixé')}</button>`;
         const canBack = y > today.getFullYear() || (y === today.getFullYear() && m > today.getMonth());
         html += `<div class="flex items-stretch gap-[10px]">
             <button type="button" data-cal="-1" ${canBack ? '' : 'disabled'} aria-label="${L2('Previous month', 'Mois précédent')}" class="${PILL} w-[56px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] ${canBack ? '' : 'opacity-30'}">◀</button>
             <div class="flex-1 flex items-center justify-center font-extrabold text-[18px] text-[#1E2634]" data-notr>${calMonth.toLocaleDateString(LOC[lang] || 'en-CA', { month: 'long', year: 'numeric' })}</div>
-            <button type="button" data-cal="1" aria-label="${L2('Next month', 'Mois suivant')}" class="${PILL} w-[56px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">▶</button></div>
+            <button type="button" data-cal="1" aria-label="${L2('Next month', 'Mois suivant')}" class="${PILL} w-[56px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">▶</button>${wideNow() ? notBtn : ''}</div>
           <div class="grid grid-cols-7 gap-[6px] text-center text-[12px] font-extrabold text-[#425268]" data-notr>${wk.map((d) => `<span>${d}</span>`).join('')}</div>
           <div class="grid grid-cols-7 gap-[6px]" data-notr>${'<span></span>'.repeat(first)}${[...Array(days)].map((_, i) => {
             const d = new Date(y, m, i + 1), iso = `${y}-${String(m + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
             const past = d < today, on = step.dateISO === iso && !notSure, isToday = d.getTime() === today.getTime();
             return `<button type="button" data-day="${iso}" ${past ? 'disabled' : ''} aria-label="${dayStr(d)}" class="${CELL} ${on ? 'bg-[#1E2634] text-white' : past ? 'text-[#425268]/35' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} ${isToday && !on ? 'ring-2 ring-[#3B5E42]' : ''}">${i + 1}</button>`;
           }).join('')}</div>
-          <button type="button" data-unsure="day" class="${PILL} w-full ${notSure ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${notSure ? '✓ ' : ''}${L2('Not booked yet', 'Pas encore fixé')}</button>`;
+          ${wideNow() ? '' : notBtn}`;
       } else {
         const hours = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
         const t = /^(\d{1,2}):(\d{2})/.exec(step.time24 || '') || null, H = t ? +t[1] : null, M = t ? +t[2] : null;
