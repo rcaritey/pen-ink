@@ -3629,7 +3629,7 @@
       // what's on the first page, in the language it's showing, without the buttons' small print
       const root = document.getElementById('screenLanding'), bits = [];
       root.querySelectorAll('h1, p').forEach((el) => { const t = el.textContent.replace(/\s+/g, ' ').trim(); if (t) bits.push(/[.!?:。？！]$/.test(t) ? t : t + '.'); });
-      const modes = [...root.querySelectorAll('button[onclick*="setInputMode"]')].map((b) => b.textContent.replace(/[✓]/g, '').replace(/\s*[+/]\s*/g, ', ').replace(/\s+/g, ' ').trim()).filter(Boolean);
+      const modes = [...root.querySelectorAll('button[onclick*="setInputMode"]')].map((b) => b.textContent.replace(/[✓]/g, '').replace(/\s*\+\s*/g, isMT() ? ', ' : lang === 'fr' ? ' et ' : ' and ').replace(/\s*\/\s*/g, isMT() ? ', ' : lang === 'fr' ? ' ou ' : ' or ').replace(/\s+/g, ' ').trim()).filter(Boolean);
       const q = bits.findIndex((t) => /answer|répondre/i.test(t) && /\?/.test(t));
       if (modes.length && q > -1) bits.splice(q + 1, 0, modes.join(lang === 'fr' ? ', ou ' : ', or ') + '.');
       return bits.join(' ');
