@@ -3275,7 +3275,7 @@
       const card = (h, inner, sub) => `<div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5 space-y-2"><p class="font-extrabold text-base text-[#1E2634]">${h}</p>${sub ? `<p class="text-sm text-[#425268] leading-snug">${sub}</p>` : ''}${inner}</div>`;
       // one row of the main menu: big, icon-free, label on the left, current setting and › on the right
       const row = (k, label, val) => `<button type="button" data-go="${k}" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-between gap-2 text-left"><span class="flex items-center gap-3">${ico(k)}<span>${label}</span></span><span class="text-sm text-[#425268] font-bold shrink-0">${val || ''} ›</span></button>`;
-      const head = (title, back) => `<div class="flex items-center justify-between gap-2">${back ? `<button type="button" data-go="menu" class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">‹ ${T('Back', 'Retour')}</button>` : ''}<h2 id="settingsTitle" class="text-xl font-extrabold text-[#1E2634] flex-1 ${back ? 'text-center' : ''}">${title}</h2>
+      const head = (title, back) => `<div class="flex items-center justify-between gap-2">${back ? `<button type="button" data-go="${typeof back === 'string' ? back : 'menu'}" class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">‹ ${T('Back', 'Retour')}</button>` : ''}<h2 id="settingsTitle" class="text-xl font-extrabold text-[#1E2634] flex-1 ${back ? 'text-center' : ''}">${title}</h2>
           <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm">${T('Done', 'Terminé')}</button></div>`;
       const onStep = steps[currentIndex].mode !== 'landing';
       let body = '';
@@ -3325,9 +3325,13 @@
           <button type="button" data-act="share" class="${B}">${T('Send the recap to family', 'Envoyer le résumé à la famille')}</button>
           <p class="text-sm text-[#425268] leading-snug">${T('To save as a PDF instead of printing, choose Save as PDF (or Save to Files) in the print window.', 'Pour un PDF, choisissez Enregistrer en PDF dans la fenêtre d’impression.')}</p></div>`;
       } else if (setView === 'privacy') {
+        const ok1 = consent && consent.choice === 'yes';
+        body = head(T('Your privacy', 'Vos renseignements'), 1) + `<div class="flex flex-col gap-[10px]">${privacySummary('data-go="privacyFull"')}
+          <button type="button" data-act="consent-${ok1 ? 'no' : 'yes'}" class="${B}">${ok1 ? T('Stop sharing (type only)', 'Arrêter d’envoyer (écrire seulement)') : T('I agree to share as described', 'J’accepte comme décrit')}</button></div>`;
+      } else if (setView === 'privacyFull') {
         const ok = consent && consent.choice === 'yes', said = consent ? new Date(consent.at).toLocaleDateString(LOC[lang] || 'en-CA', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
         const ul = (items) => `<ul class="text-sm text-[#1E2634] space-y-1.5 list-disc pl-5 leading-snug">${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;
-        body = head(T('Your privacy', 'Vos renseignements'), 1) + `<div class="flex flex-col gap-[10px]">
+        body = head(T('All the details', 'Tous les détails'), 'privacy') + `<div class="flex flex-col gap-[10px]">
           ${card(T('Kept on this device only', 'Gardé sur cet appareil seulement'), ul([
             T('Your answers, medicines, questions, settings and visit notes, so you don’t have to answer again next time. There is no account.', 'Vos réponses, médicaments, questions, réglages et notes de visite, pour ne pas tout redire la prochaine fois. Aucun compte.'),
             T('The visit recording (sound and words).', 'L’enregistrement de la visite (son et mots).'),
@@ -4165,25 +4169,34 @@
     }
     steps.splice(steps.findIndex((x) => x.id === 'setup'), 0, { id: 'consent', phaseIndex: 0, mode: 'consent', topic: 'Your information', question: 'Your information', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] });
     LISTMODES.consent = 1;
+    function privacySummary(linkAttr) {
+      const tick = (b, t) => `<div class="flex items-start gap-3"><svg class="shrink-0 mt-[3px]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B5E42" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>
+          <p class="text-[15px] text-[#1E2634] leading-snug"><b class="font-extrabold">${b}</b> ${t}</p></div>`;
+      return `<div class="w-full bg-[#E9F0E8] rounded-[22px] px-4 py-4 flex flex-col gap-3">
+          <p class="text-[12px] font-extrabold uppercase tracking-[.14em] text-[#3B5E42]">${L2('Your privacy', 'Vos renseignements')}</p>
+          <h2 class="font-serif text-[1.6rem] leading-tight text-[#1E2634]">${L2('Your story stays yours', 'Votre histoire vous appartient')}</h2>
+          <p class="text-[15px] text-[#1E2634] leading-snug">${L2('What you tell me about your health is personal. Here is exactly where it goes, in plain words.', 'Ce que vous me dites sur votre santé est personnel. Voici exactement où ça va, en mots simples.')}</p>
+          <button type="button" ${linkAttr} class="text-left text-[15px] font-extrabold text-[#3B5E42] underline underline-offset-4 min-h-[36px]">${L2('Read the full details ›', 'Lire tous les détails ›')}</button>
+          ${tick(L2('Kept on your phone.', 'Gardé sur votre téléphone.'), L2('Your answers and visit recordings are saved only on this device. No account.', 'Vos réponses et enregistrements restent sur cet appareil. Aucun compte.'))}
+          ${tick(L2('Voice to words, in Canada.', 'La voix en mots, au Canada.'), L2('Microsoft turns your voice into words in Toronto and doesn’t keep it.', 'Microsoft transforme votre voix en mots à Toronto et ne la garde pas.'))}
+          ${tick(L2('Help from Claude, in the United States.', 'L’aide de Claude, aux États-Unis.'), L2('Your answers, never your name, for questions, recaps and translations. Deleted within 30 days, never used for training.', 'Vos réponses, jamais votre nom, pour les questions, résumés et traductions. Supprimées en 30 jours, jamais pour l’entraînement.'))}
+          ${tick(L2('No ads, no tracking.', 'Pas de publicité, pas de pistage.'), L2('Nothing is sold. Everything is encrypted on the way.', 'Rien n’est vendu. Tout est chiffré en chemin.'))}
+          ${tick(L2('You’re in control.', 'Vous décidez.'), L2('Change your mind or erase everything any time, in Help.', 'Changez d’avis ou effacez tout à tout moment, dans Aide.'))}
+        </div>`;
+    }
     function renderConsent(items, foot) {
       const $ = (id) => document.getElementById(id), ok = consent && consent.choice === 'yes', no = consent && consent.choice === 'no';
-      $('listTitle').textContent = L2('Your information', 'Vos renseignements');
-      $('listHelp').textContent = L2('Please read, then choose. You can change this later in Help.', 'Lisez, puis choisissez. Vous pourrez changer plus tard dans Aide.');
+      $('listTitle').textContent = L2('Before we begin', 'Avant de commencer');
+      $('listHelp').textContent = L2('Please read, then choose below.', 'Lisez, puis choisissez plus bas.');
       $('listCounter').classList.add('hidden');
-      const row = (icon, t) => `<div class="flex items-start gap-3"><span class="text-xl leading-none mt-0.5" aria-hidden="true">${icon}</span><p class="text-[15px] font-bold text-[#1E2634] leading-snug">${t}</p></div>`;
-      items.innerHTML = `<div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-3.5 flex flex-col gap-2.5">
-          ${row('📱', L2('Your answers are saved on this device only, so you don’t have to answer again next time.', 'Vos réponses sont gardées sur cet appareil seulement, pour ne pas tout redire.'))}
-          ${row('🎙', L2('Your voice goes to Microsoft in Canada to become words. It isn’t kept.', 'Votre voix va à Microsoft au Canada pour devenir des mots. Elle n’est pas gardée.'))}
-          ${row('✨', L2('Your answers (never your name) go to Claude, an AI in the United States, for questions, recaps and translations. Deleted within 30 days.', 'Vos réponses (jamais votre nom) vont à Claude, une IA aux États-Unis, pour les questions, résumés et traductions. Supprimées en 30 jours.'))}
-          ${row('🔒', L2('Encrypted on the way. No ads, no tracking, never sold.', 'Chiffré en chemin. Pas de publicité, pas de pistage, jamais vendu.'))}
-          <button type="button" data-cs="more" class="text-left text-[14px] font-extrabold text-[#3B5E42] underline underline-offset-2 min-h-[40px]">${L2('Read everything ›', 'Tout lire ›')}</button></div>
+      items.innerHTML = `${privacySummary('data-cs="more"')}
         <button type="button" data-cs="yes" class="tactile-btn w-full min-h-[58px] rounded-[18px] ${ok ? 'bg-[#3B5E42]' : 'bg-[#1E2634]'} text-white font-extrabold text-lg">${ok ? '✓ ' : ''}${L2('I agree', 'J’accepte')}</button>
         <button type="button" data-cs="no" class="tactile-btn w-full min-h-[54px] rounded-[18px] ${no ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-[15px]">${no ? '✓ ' : ''}${L2('No thanks: I’ll type, nothing is sent', 'Non merci : j’écris, rien n’est envoyé')}</button>`;
       items.classList.add('overflow-y-auto'); foot.innerHTML = '';
     }
     document.getElementById('listItems').addEventListener('click', (e) => {
       const b = e.target.closest('[data-cs]'); if (!b) return; ensureCtx();
-      if (b.dataset.cs === 'more') { openModal('helpSettingsModal'); setView = 'privacy'; spokenView = null; renderSettings(); applyLang(); return; }
+      if (b.dataset.cs === 'more') { openModal('helpSettingsModal'); setView = 'privacyFull'; spokenView = null; renderSettings(); applyLang(); return; }
       setConsent(b.dataset.cs); renderList(); applyLang();
       setTimeout(() => goNext(), 350);
     });
