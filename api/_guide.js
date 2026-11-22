@@ -3,12 +3,34 @@
 //
 // What this is: a plain-language map of what clinicians routinely want to know, used to steer
 // which questions Claude asks the patient before a visit and which questions it suggests for the doctor.
-// Structure (topics only, never copied questionnaire wording or scoring):
-// - OLDCARTS / SOCRATES, the standard symptom-history checklists taught to clinicians.
-// - Common screening topics (mood, anxiety, falls, pain, sleep, bladder, swallowing).
-// - Condition and symptom modules for the most common reasons people see a doctor.
-// - Parkinson's non-motor topics. The MDS-UPDRS and NMSQuest themselves are licensed by the
-//   International Parkinson and Movement Disorder Society; none of their items are reproduced here.
+//
+// Sources (checked 22 Nov 2026). Topics only: no list is copied, every question is written in our own words.
+// General patient question lists, the most widely used:
+// - Choosing Wisely Canada, "Four Questions to Ask Your Health Care Provider" (tests, treatments, procedures).
+//   https://choosingwiselycanada.org/pamphlet/four-questions/
+// - ISMP Canada with CPSI (now Healthcare Excellence Canada), Patients for Patient Safety Canada, the Canadian
+//   Pharmacists Association and CSHP, "5 Questions to Ask About Your Medications": changes, continue, proper use,
+//   monitor, follow-up. Endorsed by 200+ organizations including Accreditation Canada.
+//   https://www.ismp-canada.org/medrec/5questions.htm
+// - Institute for Healthcare Improvement, Ask Me 3 (main problem, what to do, why it matters). Trademarked:
+//   we follow the idea, never the branded wording. https://www.ihi.org/library/tools/ask-me-3-good-questions-your-good-health
+// - AHRQ (US), Questions Are the Answer and the QuestionBuilder app (questions sorted by type of visit).
+//   https://www.ahrq.gov/questions/question-builder/index.html
+// Evidence for question prompt lists: Sansoni, Grootemaat & Duncan, "Question prompt lists in health
+//   consultations: A review", Patient Education and Counseling 98 (2015) 1454-1464: a list the doctor supports
+//   increases question asking. Most of the research is in cancer care.
+// Condition and setting lists:
+// - Parkinson's: Parkinson Canada visit worksheets (https://www.parkinson.ca) and the Parkinson's Foundation
+//   pre-appointment worksheet and "Key Questions for Your Doctor's Visit" (https://www.parkinson.org).
+// - Cancer: Canadian Cancer Society, "Questions to ask" by topic (diagnosis, staging, treatment, side effects,
+//   supportive care, clinical trials). https://cancer.ca
+// - Heart and stroke: Heart & Stroke Foundation of Canada, "Be a partner in your health care".
+//   https://www.heartandstroke.ca
+// - Emergency department: Alzheimer Society of Canada "Be Ready for an Emergency Department Visit" (questions
+//   before going home), Nova Scotia Health "Your Emergency Department Visit" discharge checklist.
+// Clinician history checklists: OLDCARTS / SOCRATES, the standard symptom-history checklists taught to clinicians.
+// The MDS-UPDRS and NMSQuest are licensed by the International Parkinson and Movement Disorder Society; none of
+// their items are reproduced here.
 // Review this file with a clinician before any paid release.
 
 export const CLINICAL_GUIDE = `CLINICAL QUESTION GUIDE
@@ -136,6 +158,15 @@ F. FIT THE DOCTOR BEING SEEN
 - Physiotherapist, occupational or speech therapist: goals, home exercises, safety at home, equipment, swallowing or voice, how progress is measured.
 - Pharmacist: timing, interactions, side effects, missed doses, cost and coverage.
 - Foot care or skin clinic: the skin, nails and feet area, plus any background condition that can affect the feet, skin or nerves (for example diabetes, circulation problems or Parkinson's).
+
+H. WHAT TRUSTED PATIENT QUESTION LISTS COVER (use these topics; write the questions in your own words)
+- Understanding: what the main problem is, what the patient needs to do, and why it matters.
+- Tests, treatments and procedures: whether it is really needed, the downsides, simpler or safer options, and what happens if they wait or do nothing.
+- Medicines: what was added, stopped or changed and why; what to keep taking; how and for how long to take it; how to tell it's working and which side effects to watch; tests and the next visit.
+- Parkinson's: how things may change over time and what can help (including exercise), the top priorities for this visit, non-motor symptoms such as mood and worry, an exact medicine schedule, and how to reach the team between visits.
+- Cancer: what the tests and results mean, type and stage, treatment choices and goals, what happens without treatment and how long they can take to decide, side effects, fertility when relevant, clinical trials, support services, getting copies of results, and who to call between appointments.
+- Heart and stroke: their own risk factors, blood pressure and other targets, what their results mean and how to track progress, warning signs, and safe activity.
+- Emergency department: what was found and what is still pending, how results not back yet will reach them and their family doctor, medicine changes, warning signs to come back, who follows up and when, and whether it is safe to go home.
 
 G. SAFETY (this overrides the "questions only" rule)
 - If something described could be an emergency happening now or recently (chest pain or pressure, signs of stroke such as a drooping face, weak arm or slurred speech, severe trouble breathing, heavy bleeding, a head injury on a blood thinner, fainting with chest pain), make the first question: "Is this happening now? If so, call 911 instead of waiting for this appointment."

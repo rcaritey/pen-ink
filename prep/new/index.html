@@ -2697,7 +2697,28 @@
   }
 
     CanadaRec.hearing = () => {}; CanadaRec.talkOver = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false; CanadaRec.quick = false; CanadaRec.everHeard = false;
-    CanadaRec.talkingNow = () => speaking;
+    // While Reid talks the microphone stays on. Sound that starts in the first moment is Reid's own voice
+    // coming back, so it's ignored. A voice that starts later turns Reid down at once; if the words
+    // aren't Reid's own, he stops and listens.
+    let speakStart = 0, talkWords = new Set(), ducked = false, duckTimer = null, sayGen = 0;
+    const vwords = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/).filter((w) => w.length > 1);
+    CanadaRec.talkingNow = (start) => !!(start && speaking && performance.now() - speakStart < 900);
+    CanadaRec.talkOver = () => {
+      if (!speaking || !audioEl || performance.now() - speakStart < 900) return;
+      audioEl.volume = 0.15; ducked = true; clearTimeout(duckTimer);
+      duckTimer = setTimeout(() => { if (ducked && audioEl) { audioEl.volume = 1; ducked = false; } }, 3000);
+    };
+    // stop Reid now (new page, the person spoke, or a new thing to say)
+    function hush() {
+      sayGen++; clearTimeout(duckTimer); ducked = false;
+      if (audioEl) { const a = audioEl; audioEl = null; try { a.pause(); } catch (e) { /* already stopped */ } if (a.onended) a.onended(); }
+      speaking = false;
+    }
+    // a phrase heard while Reid was talking: his own words coming back, or the person?
+    function isEcho(t) {
+      const w = vwords(t); if (!w.length) return true;
+      return w.filter((x) => !talkWords.has(x)).length / w.length < 0.5;
+    }
 
     let rec = null, speaking = false, audioEl = null, sharedCtx = null, recRec = null;
     // iPhones only start sound and the microphone from a tap: switch the sound system on during one
@@ -2717,7 +2738,7 @@
       if (/^(erase|undo|erase that|delete that|efface|efface ça|annuler)$/.test(low)) { undoLastWord(); return; }
       if (/^(repeat|repeat that|say that again|répète|répétez)$/.test(low)) { speakStep(); return; }
       if (/^(stop|pause|wait|hold on|arrête|attends|attendez)$/.test(low)) { if (isListening) toggleListening(); return; }
-      if (/^(help|help me|aide|aidez-moi)$/.test(low)) { askReid(lang === 'fr' ? 'Que dois-je faire sur cet écran ?' : 'What should I do on this screen?'); return; }
+      if (/^(help|help me|explain|explain this( screen| page)?|what do i do( here)?|what do i do now|aide|aidez-moi|explique|expliquez|qu'est-ce que je fais)$/.test(low)) { explainStep(); return; }
       if (step.mode === 'ideas' && /(new|more|other|different) (questions|ideas)|reid.*more|generate|nouvelles questions|d'autres questions/.test(low) && low.split(' ').length <= 8) { fetchClaudeQuestions(true); return; }
       if (/^(skip|skip (this|that|it|these)( one)?|passer|on passe)$/.test(low) && (step.id === 'detail' || /^dq\d+$/.test(step.id))) { skipDetail(step); return; }
       if (step.id === 'detail' && /^(yes|yeah|yes please|sure|ok|okay|oui|d'accord|allez-y)$/.test(low)) { selectPreset('Yes, ask me'); return; }
@@ -2729,12 +2750,17 @@
       step.customActive = true;
       handleTextChange(); setCompanionState('captured'); saveAll();
     }
+    function onHeard(t) {
+      if (!t) return;
+      if (speaking || ducked) { if (isEcho(t)) { if (audioEl) audioEl.volume = 1; ducked = false; return; } hush(); }
+      heard(t);
+    }
     function startRec() {
-      if (inputPreference !== 'voice' || !isListening || speaking || recRec) return;
+      if (inputPreference !== 'voice' || !isListening || recRec) return;
       if (steps[currentIndex].mode === 'landing') return;
       if (rec) return;
       rec = new CanadaRec(); rec.lang = lang === 'fr' ? 'fr-CA' : 'en-CA';
-      rec.onresult = (e) => { const r = e.results[e.results.length - 1]; const t = (r && r[0] && r[0].transcript || '').trim(); if (t) heard(t); };
+      rec.onresult = (e) => { const r = e.results[e.results.length - 1]; onHeard((r && r[0] && r[0].transcript || '').trim()); };
       rec.onend = () => { rec = null; if (isListening && !speaking && !recRec) setTimeout(startRec, 300); };
       rec.onerror = (e) => {
         console.warn('Listening problem', e && e.error);
@@ -2751,27 +2777,40 @@
     // ---------- Reid speaks (Azure neural voices, Canada Central) ----------
     async function say(text) {
       if (!text || inputPreference !== 'voice' || !readAloud) return;
-      stopRec(); speaking = true;
+      hush(); const g = sayGen; speaking = true; speakStart = performance.now(); talkWords = new Set(vwords(text));
+      if (isListening) startRec();
       try {
         const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, slow: slowVoice, voice: voiceName || (lang === 'fr' ? 'fr-CA-SylvieNeural' : undefined) }) });
-        if (r.ok) {
+        if (r.ok && g === sayGen) {
           const url = URL.createObjectURL(await r.blob());
-          if (audioEl) audioEl.pause();
-          audioEl = new Audio(url);
-          await new Promise((res) => { audioEl.onended = res; audioEl.onerror = res; audioEl.play().catch(res); });
+          if (g !== sayGen) { URL.revokeObjectURL(url); return; }
+          const a = new Audio(url); audioEl = a;
+          await new Promise((res) => { a.onended = res; a.onerror = res; a.onplaying = () => { speakStart = performance.now(); }; a.play().catch(res); });
           URL.revokeObjectURL(url);
         }
       } catch (e) { console.warn('Reid could not speak', e); }
-      speaking = false;
+      if (g !== sayGen) return;
+      speaking = false; audioEl = null;
       if (isListening) startRec();
     }
     function speakStep() {
       const step = steps[currentIndex]; if (!step || step.mode === 'landing') return;
       if (step.mode !== 'voice') { const f = SPEAK[step.mode]; if (f) say(f()); return; }
       if (!step.question) return;
-      const opts = (step.presets || []).map((x) => tr(x));
-      say(tr(step.question) + (step.helperText ? ' ' + tr(step.helperText) : '') + (opts.length ? (lang === 'fr' ? ' Vous pouvez toucher ou dire : ' : ' You can tap or say: ') + opts.join(', ') + '.' : ''));
+      say(tr(step.question));
+    }
+    // "Explain this screen": what to do here, the choices, and the ways to answer
+    function explainStep() {
+      const step = steps[currentIndex], fr = lang === 'fr'; if (!step) return;
+      let t;
+      if (step.mode === 'voice') {
+        const opts = (step.presets || []).map((x) => tr(x));
+        t = tr(step.question) + ' ' + (step.helperText ? tr(step.helperText) + ' ' : '')
+          + (opts.length ? (fr ? 'Vous pouvez toucher ou dire : ' : 'You can tap or say: ') + opts.join(', ') + '. ' : '')
+          + (fr ? 'Ou dites votre réponse avec vos mots. Quand vous avez fini, dites suivant. Pour revenir, dites retour.' : 'Or say your answer in your own words. When you are done, say next. To go back, say back.');
+      } else t = (EXPLAIN[step.mode] || (() => ''))();
+      showToast(t.length > 140 ? t.slice(0, 137) + '…' : t); say(t);
     }
     // Questions said to Reid ("what does that mean?") get a short answer from Claude
     async function askReid(q) {
@@ -3083,7 +3122,7 @@
         saveAll(); renderSettings(); renderCurrentStep();
       }));
       const act = (k) => panel.querySelector(`[data-act="${k}"]`), on = (k, f) => { const el = act(k); if (el) el.addEventListener(k === 'open' ? 'change' : 'click', f); };
-      on('explain', () => { closeModal('helpSettingsModal'); askReid(fr ? 'Expliquez simplement ce que je dois faire sur cet écran.' : 'Explain simply what I should do on this screen.'); });
+      on('explain', () => { closeModal('helpSettingsModal'); explainStep(); });
       on('test', () => say(fr ? 'Bonjour, je suis Reid.' : "Hi, I'm Reid. This is how I sound."));
       on('print-doc', () => printPages('doctor'));
       on('show-doc', () => { closeModal('helpSettingsModal'); openFullDoctorCard(); });
@@ -3137,12 +3176,22 @@
         .map((x) => (x.label ? x.label + ': ' : '') + x.answer.trim());
     }
     function syncVisit() { const old = visitQuestions; visitQuestions = chosen().map((t) => ({ text: t, done: !!(old.find((o) => o.text === t) || {}).done })); }
-    const COMMON = {
-      en: ['What is causing this?', 'Do I need any tests?', 'What is the treatment, and how long before it helps?', 'Is the treatment safe with my other medications?',
-        'Are there side effects I should watch for?', 'What can I do at home to help?', 'What should I watch for, and when should I call you?', 'When should I come back?'],
-      fr: ["Qu'est-ce qui cause ça ?", 'Ai-je besoin de tests ?', 'Quel est le traitement, et combien de temps avant que ça aide ?', 'Le traitement est-il sans danger avec mes autres médicaments ?',
-        'Y a-t-il des effets secondaires à surveiller ?', "Qu'est-ce que je peux faire à la maison pour aider ?", "Qu'est-ce que je dois surveiller, et quand dois-je vous appeler ?", 'Quand dois-je revenir ?']
-    };
+    // Common questions, in our own words, following widely used Canadian and international patient question lists
+    const CW = 'Choosing Wisely Canada', ISMP = 'ISMP Canada · medicines', ASK = 'IHI patient questions', CONTACT = 'Parkinson Canada · Cancer Society';
+    const COMMON_SRC = [
+      ['What is my main problem, in plain words?', "Quel est mon problème principal, en mots simples ?", ASK],
+      ['What do I need to do, and why does it matter?', "Qu'est-ce que je dois faire, et pourquoi est-ce important ?", ASK],
+      ['Do I really need this test or treatment?', 'Ai-je vraiment besoin de ce test ou de ce traitement ?', CW],
+      ['What are the downsides or risks?', 'Quels sont les inconvénients ou les risques ?', CW],
+      ['Is there a simpler or safer option?', 'Y a-t-il une option plus simple ou plus sûre ?', CW],
+      ['What happens if I wait or do nothing?', "Qu'arrive-t-il si j'attends ou si je ne fais rien ?", CW],
+      ['Are any of my medicines being started, stopped or changed, and why?', 'Est-ce que des médicaments sont ajoutés, arrêtés ou changés, et pourquoi ?', ISMP],
+      ['How will I know the medicine is working, and what side effects should I watch for?', 'Comment saurai-je que le médicament fonctionne, et quels effets secondaires surveiller ?', ISMP],
+      ['Do I need any tests, and when should I book my next visit?', 'Ai-je besoin de tests, et quand dois-je prendre le prochain rendez-vous ?', ISMP],
+      ['Who do I contact if I have questions before then?', "Qui dois-je contacter si j'ai des questions d'ici là ?", CONTACT]
+    ];
+    const COMMON = { en: COMMON_SRC.map((c) => c[0]), fr: COMMON_SRC.map((c) => c[1]) };
+    const commonSrc = (q) => (COMMON_SRC.find((c) => c[0] === q || c[1] === q) || [])[2];
     function ideaPool() {
       const mine = qLines(SID('ask').answer).concat(qLines(SID('ideasmore').answer), ownQs), out = [];
       aiPool.concat(COMMON[lang === 'fr' ? 'fr' : 'en']).forEach((q) => {
@@ -3268,7 +3317,7 @@
         items.innerHTML = qShown.map((q, i) => {
           const on = qPicked.includes(q);
           const who = (SID('who').answer || '').trim(), tag = aiTags[q] === 'd' ? (who && who.length <= 24 ? L2('For your ', 'Pour : ') + who.toLowerCase() : L2('For this doctor', 'Pour ce médecin'))
-            : aiTags[q] === 'c' ? L2('About your visit', 'Sur votre visite') : L2('Common question', 'Question courante');
+            : aiTags[q] === 'c' ? L2('About your visit', 'Sur votre visite') : (commonSrc(q) || L2('Common question', 'Question courante'));
           return `<button type="button" data-i="${i}" aria-pressed="${on}" class="${on ? B_ON : B_OFF}">
             <span class="w-7 h-7 rounded-full ${on ? 'bg-[#3B5E42] text-white' : 'bg-white border border-[#D6CFC0] text-[#425268]'} font-extrabold text-sm flex items-center justify-center shrink-0">${on ? '✓' : i + 1}</span>
             <span class="min-w-0"><span class="block text-[11px] font-extrabold uppercase tracking-wide ${aiTags[q] === 'd' ? 'text-[#B84A27]' : 'text-[#425268]'}">${esc(tag)}</span>
@@ -3360,7 +3409,7 @@
     // ---------- what Reid says on each screen that isn't a question ----------
     const stop = (t) => /[.!?]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
     const readList = () => qShown.map((q, i) => `${i + 1}. ${stop(q)}`).join(' ');
-    const SPEAK = {
+    const EXPLAIN = {
       ideas: () => L2('Here are some questions you might not think of. ', 'Voici des questions auxquelles vous ne penseriez peut-être pas. ') + readList()
         + L2(' Tap the ones you want, or say their number. Say more for others. Then say next.', ' Touchez celles que vous voulez, ou dites leur numéro. Dites plus pour en voir d’autres. Puis dites suivant.'),
       priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Tap or say the most important first. Then say next.', ' Touchez ou dites la plus importante en premier. Puis dites suivant.')
@@ -3374,6 +3423,15 @@
       shareFinish: () => L2('Here is your visit recap. ', 'Voici le résumé de votre visite. ') + (SID('recap').answer ? L2('What the doctor said: ', 'Ce qu’a dit le médecin : ') + SID('recap').answer + ' ' : '')
         + (nextStepTasks.some((t) => t.selected) ? L2('Next steps: ', 'Prochaines étapes : ') + nextStepTasks.filter((t) => t.selected).map((t) => tr(t.text)).join(', ') + '. ' : '')
         + L2('You can send it to family, or print it.', 'Vous pouvez l’envoyer à la famille, ou l’imprimer.')
+    };
+    const SPEAK = {
+      ideas: () => L2('Which of these would you like to ask? ', 'Lesquelles voulez-vous poser ? ') + readList(),
+      priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
+      review: () => L2('Does everything look right?', 'Est-ce que tout est correct ?'),
+      doctorSummary: () => L2('Would you like to print the summary for your doctor?', 'Voulez-vous imprimer le résumé pour votre médecin ?'),
+      visitQuestions: () => chosen().length ? L2('Which questions has the doctor answered? ', 'À quelles questions le médecin a-t-il répondu ? ') + visitQuestions.slice(vPage * Q_PER, vPage * Q_PER + Q_PER).map((q, i) => `${i + 1}. ${stop(q.text)}`).join(' ') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
+      nextSteps: () => L2('What happens next?', 'Et ensuite ?'),
+      shareFinish: () => L2('Would you like to send your recap to family?', 'Voulez-vous envoyer le résumé à la famille ?')
     };
 
     // ---------- at the visit: your chosen questions, 4 at a time ----------
@@ -3423,13 +3481,36 @@
     (function () {
       const emb = document.getElementById('companionEmblem'), wrap = emb && emb.parentElement;
       if (!wrap) return;
-      wrap.style.cursor = 'pointer'; wrap.setAttribute('role', 'button'); wrap.setAttribute('aria-label', 'Pause or resume listening');
-      wrap.addEventListener('click', () => { if (inputPreference === 'voice' && steps[currentIndex].mode !== 'landing') toggleListening(); });
+      wrap.style.cursor = 'pointer'; wrap.setAttribute('role', 'button'); wrap.setAttribute('aria-label', 'Reid: options'); wrap.setAttribute('aria-haspopup', 'true');
+      const menu = document.createElement('div'); menu.id = 'reidMenu';
+      menu.className = 'hidden absolute left-4 top-[78px] z-40 w-[270px] bg-[#FAF7F0] border-2 border-[#1E2634] rounded-[20px] p-3 flex flex-col gap-[10px] shadow-2xl';
+      document.getElementById('appContainer').appendChild(menu);
+      const MB = 'tactile-btn w-full min-h-[52px] px-3 rounded-2xl font-extrabold text-base flex items-center gap-3 text-left';
+      const open = () => {
+        const fr = lang === 'fr', voice = inputPreference === 'voice', onStep = steps[currentIndex].mode !== 'landing';
+        menu.innerHTML = `<p class="text-sm font-extrabold text-[#3B5E42] px-1">${fr ? 'Reid, votre aide IA' : 'Reid, your AI helper'}</p>
+          ${onStep ? `<button type="button" data-r="explain" class="${MB} bg-[#1E2634] text-white">${ico('explain', 1)}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
+          ${onStep ? `<button type="button" data-r="repeat" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('voice')}${fr ? 'Répéter la question' : 'Repeat the question'}</button>` : ''}
+          ${voice && onStep ? `<button type="button" data-r="listen" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter de nouveau' : 'Start listening')}</button>` : ''}
+          <button type="button" data-r="close" class="${MB} bg-white border border-[#D6CFC0] text-[#1E2634] justify-center">${fr ? 'Fermer' : 'Close'}</button>`;
+        menu.classList.remove('hidden');
+      };
+      const close = () => menu.classList.add('hidden');
+      wrap.addEventListener('click', (e) => { e.stopPropagation(); ensureCtx(); if (menu.classList.contains('hidden')) open(); else close(); });
+      menu.addEventListener('click', (e) => {
+        e.stopPropagation(); const b = e.target.closest('[data-r]'); if (!b) return; close();
+        if (b.dataset.r === 'explain') explainStep();
+        if (b.dataset.r === 'repeat') speakStep();
+        if (b.dataset.r === 'listen') toggleListening();
+      });
+      document.addEventListener('click', (e) => { if (!menu.contains(e.target)) close(); });
     })();
 
     // ---------- tie everything into the prototype's own flow ----------
     const protoRender = renderCurrentStep;
+    let lastShownStep = null;
     renderCurrentStep = function () {
+      if (steps[currentIndex] !== lastShownStep) { lastShownStep = steps[currentIndex]; hush(); }
       if (steps[currentIndex].mode === 'visitQuestions') syncVisit();
       protoRender();
       const step = steps[currentIndex];
