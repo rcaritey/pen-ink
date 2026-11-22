@@ -2880,6 +2880,7 @@
       return '';
     }
     function heard(t) {
+      if (typeof recAskHeard === 'function' && recAskHeard(t.toLowerCase().replace(/[.!,。！，？、؟،]/g, '').trim())) return;
       const step = steps[currentIndex]; if (!step || step.mode === 'landing') return;
       const low = t.toLowerCase().replace(/[.!,。！，？、؟،]/g, '').trim();
       if (step.mode === 'ideas' && curIdea() !== undefined) {
@@ -3132,6 +3133,43 @@
         if (isListening) setTimeout(startRec, 300);
       }
     };
+
+    // ---------- before every recording: Reid checks that everyone agreed ----------
+    let recAsk = null;
+    const recordNow = toggleVisitRecording;
+    toggleVisitRecording = function () {
+      if (isRecording) { recordNow(); return; }        // pausing never needs a check
+      if (recAsk) return;
+      ensureCtx();
+      const fr = lang === 'fr';
+      recAsk = document.createElement('div');
+      recAsk.className = 'fixed inset-0 z-[80] bg-black/40 flex items-end sm:items-center justify-center p-3';
+      recAsk.setAttribute('role', 'dialog'); recAsk.setAttribute('aria-modal', 'true'); recAsk.setAttribute('aria-labelledby', 'recAskTitle');
+      recAsk.innerHTML = `<div class="w-full max-w-md bg-[#FAF7F1] rounded-3xl p-5 space-y-4 shadow-xl">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#3B5E42]">${fr ? 'Avant d’enregistrer' : 'Before I record'}</p>
+        <h2 id="recAskTitle" class="text-xl font-extrabold text-[#1E2634] leading-snug">${fr ? 'Tout le monde dans la pièce est-il d’accord pour être enregistré, y compris le médecin ?' : 'Has everyone in the room agreed to be recorded, including the doctor?'}</h2>
+        <p class="text-[15px] text-[#425268] leading-snug">${fr ? 'Si vous n’avez pas encore demandé, demandez maintenant. Un simple « Est-ce que ça vous dérange si j’enregistre pour m’en souvenir ? » suffit.' : 'If you haven’t asked yet, ask now. “Do you mind if I record this so I can remember it?” is enough.'}</p>
+        <button type="button" data-ra="yes" class="tactile-btn w-full min-h-[56px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">${fr ? 'Oui, tout le monde est d’accord' : 'Yes, everyone agreed'}</button>
+        <button type="button" data-ra="no" class="tactile-btn w-full min-h-[56px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${fr ? 'Pas encore' : 'Not yet'}</button>
+      </div>`;
+      document.body.appendChild(recAsk);
+      recAsk.addEventListener('click', (e) => { const b = e.target.closest('[data-ra]'); if (b) answerRecAsk(b.dataset.ra === 'yes'); });
+      applyLang(recAsk);
+      recAsk.querySelector('[data-ra="yes"]').focus();
+      say(fr ? 'Avant que j’enregistre : est-ce que tout le monde dans la pièce est d’accord, y compris le médecin ?' : 'Before I record: has everyone in the room agreed, including the doctor?');
+    };
+    function answerRecAsk(yes) {
+      if (!recAsk) return;
+      recAsk.remove(); recAsk = null; hush(false);
+      if (yes) recordNow();
+      else say(lang === 'fr' ? 'D’accord. Je n’enregistre pas. Touchez Enregistrer quand tout le monde est d’accord.' : 'Okay, I won’t record. Tap Record when everyone has agreed.');
+    }
+    function recAskHeard(low) {
+      if (!recAsk) return false;
+      if (/^(yes|yeah|yep|yes everyone agreed|everyone agreed|they agreed|ok|okay|oui|oui tout le monde est d’accord|ils sont d’accord|sí|si|sì|sim|da|tak|так|да|네|vâng|có|haan|ہاں|بله|نعم|是|好|係)$/.test(low)) { answerRecAsk(true); return true; }
+      if (/^(no|not yet|nope|no thanks|non|pas encore|não|nie|нет|ні|아니|không|nahin|نہیں|نه|لا|不|不要|唔要)$/.test(low)) { answerRecAsk(false); return true; }
+      return true;   // while asking, other words don't move the app
+    }
 
     // ---------- after the visit: Reid fills in the notes from the recording ----------
     async function recapFromRecording() {
