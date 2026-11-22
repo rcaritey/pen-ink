@@ -574,7 +574,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 .choice:has(input:checked) .help, .choice:has(input:checked) span { color: var(--bg); }
 /* Reid: the AI helper. Lives next to the logo; a small thought bubble says what he's doing. */
 .reid { display: none; align-items: center; gap: 10px; min-width: 0; }
-body.in-steps.voice-mode .reid { display: inline-flex; }
+body.in-steps .reid { display: inline-flex; }
+@media (max-width: 640px) { body.in-steps:not(.voice-mode) .reid-think { display: none; } }
 .reid-face { position: relative; width: 44px; height: 44px; border-radius: 50%; background: var(--ink); display: inline-flex; align-items: center; justify-content: center; flex: none; }
 .reid-face svg { width: 28px; height: 28px; }
 .reid-dot { position: absolute; right: -2px; bottom: -2px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--bg); background: var(--muted); }
@@ -1538,7 +1539,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (err) { console.warn(err); }
   const SAY = {
     en: {
-      hello: "Hi, I'm WellHeard's helper, an AI. One question at a time. Say next when you're done, or say help any time.",
+      hello: "Hi, I'm Reid, WellHeard's AI helper. We'll go one question at a time, at your pace. Say next when you're done, or say help any time.",
       heard: "Here's what I heard:", heardQ: "Is that right? Say yes, or say change it.",
       again: "Okay, let's try that again. Go ahead whenever you're ready.",
       sorry: "I didn't catch anything. Please try again, or type it if that's easier.",
@@ -1605,7 +1606,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
       deadBack: "I can hear you now. Go ahead."
     },
     fr: {
-      hello: "Bonjour, je suis l'assistant de WellHeard, une intelligence artificielle. Une question à la fois. Dites suivant quand vous avez fini, ou dites aide à tout moment.",
+      hello: "Bonjour, je suis Reid, l'assistant IA de WellHeard. Une question à la fois, à votre rythme. Dites suivant quand vous avez fini, ou dites aide à tout moment.",
       heard: "Voici ce que j'ai entendu :", heardQ: "Est-ce bien ça ? Dites oui, ou dites changer.",
       again: "D'accord, on recommence. Allez-y quand vous êtes prêt.",
       sorry: "Je n'ai rien entendu. Essayez encore, ou écrivez-le si c'est plus simple.",
@@ -2557,7 +2558,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     Object.values(screens).forEach(el => el.hidden = true);
     const onWelcome = step < 0;
     try { history.replaceState(null, "", onWelcome ? location.pathname : "#" + STEPS[step].id); } catch (err) { console.warn(err); }
-    $("progress").hidden = onWelcome; $("actions").hidden = onWelcome; document.body.classList.toggle("in-steps", !onWelcome);
+    $("progress").hidden = onWelcome; $("actions").hidden = onWelcome; document.body.classList.toggle("in-steps", !onWelcome); if (!onWelcome && !isVoice()) setTimeout(() => reidThink("off"), 0);
     window.scrollTo(0, 0);
     if (onWelcome) { renderWelcome(); screens.welcome.hidden = false; focusHeading(screens.welcome); return; }
     const s = STEPS[step];
@@ -2809,12 +2810,12 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   CanadaRec.writing = d => { micWriting = Math.max(0, micWriting + d); if (lastSt === "listening") guideView("listening"); };
   // Reid, the AI helper: a short thought for each state. Plain, kind, never pretending to be a person.
   const REID = {
-    en: { listening: "I'm listening. Take your time.", hearing: "I'm hearing you\u2026", writing: "Got it. Writing that down.", speaking: "",
-          paused: "Paused. I'll wait for you.", typing: "Type away. Tap Next when it looks right.", confirm: "Just checking I got that right.",
-          stuck: "Having trouble? Tap Help.", off: "" },
-    fr: { listening: "Je vous \u00e9coute. Prenez votre temps.", hearing: "Je vous entends\u2026", writing: "Compris. Je l'\u00e9cris.", speaking: "",
-          paused: "En pause. Je vous attends.", typing: "\u00c9crivez. Touchez Suivant quand c'est bon.", confirm: "Je v\u00e9rifie que j'ai bien compris.",
-          stuck: "Un souci ? Touchez Aide.", off: "" }
+    en: { listening: "I'm listening. No rush.", hearing: "I'm with you\u2026", writing: "Got it. I'm writing that down.", speaking: "",
+          paused: "Paused. I'm here when you're ready.", typing: "Take your time. Tap Next when it looks right.", confirm: "Let me make sure I got that right.",
+          stuck: "That's okay. Tap Help and I'll walk you through it.", off: "I'm here if you need me." },
+    fr: { listening: "Je vous \u00e9coute. Rien ne presse.", hearing: "Je suis avec vous\u2026", writing: "Compris. Je l'\u00e9cris.", speaking: "",
+          paused: "En pause. Je suis l\u00e0 quand vous voulez.", typing: "Prenez votre temps. Touchez Suivant quand c'est bon.", confirm: "Je v\u00e9rifie que j'ai bien compris.",
+          stuck: "Ce n'est rien. Touchez Aide, je vous guide.", off: "Je suis l\u00e0 si vous avez besoin." }
   };
   let reidLast = "";
   function reidThink(st) {
