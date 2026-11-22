@@ -3295,6 +3295,7 @@
       privacy: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
       device: '<rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>',
       chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+      translate: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
       erase: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>'
     };
     const ico = (k, dark) => `<span class="w-9 h-9 rounded-xl ${dark ? 'bg-white/15 text-white' : 'bg-white border border-[#D6CFC0] text-[#3B5E42]'} flex items-center justify-center shrink-0" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ''}</svg></span>`;
@@ -3307,7 +3308,8 @@
         if (el.closest('li') && el.tagName !== 'LI') return;
         if (el.matches('[onclick]') || (el.tagName === 'BUTTON' && /^‹/.test(el.textContent.trim()))) return;
         const leaves = [...el.querySelectorAll('*')].filter((c) => !c.children.length && c.textContent.replace(/[›↺▶🖨\s]/g, '')).map((c) => c.textContent.trim());
-        let t = el.tagName === 'LI' ? [...el.children].map((c) => c.textContent.trim()).filter(Boolean).join(': ') : (leaves.length > 1 ? leaves.join(', ') : el.textContent.replace(/\s+/g, ' ').trim());
+        const ownText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+        let t = el.tagName === 'LI' && !ownText ? [...el.children].map((c) => c.textContent.trim()).filter(Boolean).join(': ') : (leaves.length > 1 && !ownText ? leaves.join(', ') : el.textContent.replace(/\s+/g, ' ').trim());
         t = t.replace(/\s*·\s*/g, ', ');
         if (el.tagName === 'BUTTON') t = t.replace(/[›↺▶🖨]/g, '').replace(/^✓\s*(.*)$/, fr ? '$1, choisi' : '$1, selected').trim();
         if (t) parts.push(t.replace(/([^.!?:])$/, '$1.'));
@@ -3334,6 +3336,7 @@
           ${onStep ? row('steps', T('See all steps', 'Voir toutes les étapes')) : ''}
           ${row('pages', T('Print or share my pages', 'Imprimer ou partager'))}
           ${row('privacy', T('Your privacy', 'Vos renseignements'))}
+          ${row('translate', T('When words come out wrong', 'Quand les mots sont mal compris'))}
           ${row('device', T('Full screen & other devices', 'Plein écran et autres appareils'))}
           <button type="button" data-act="erase" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2">${ico('erase')}${T('Erase my answers', 'Effacer mes réponses')}</button>
           <a href="${chatHref()}" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3">${ico('chat')}<span>${T('Chat: text Rama for help', 'Clavarder : textez Rama')}</span></a>
@@ -3370,6 +3373,27 @@
           <button type="button" data-act="print-recap" class="${B}">🖨 ${T('Print the visit recap', 'Imprimer le résumé de la visite')}</button>
           <button type="button" data-act="share" class="${B}">${T('Send the recap to family', 'Envoyer le résumé à la famille')}</button>
           <p class="text-sm text-[#425268] leading-snug">${T('To save as a PDF instead of printing, choose Save as PDF (or Save to Files) in the print window.', 'Pour un PDF, choisissez Enregistrer en PDF dans la fenêtre d’impression.')}</p></div>`;
+      } else if (setView === 'translate') {
+        const ul = (arr) => `<ul class="list-disc pl-5 space-y-1.5 text-[15px] text-[#1E2634] leading-snug">${arr.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+        body = head(T('When words come out wrong', 'Quand les mots sont mal compris'), 1) + `<div class="flex flex-col gap-[10px]">
+          <p class="bg-[#FDF3E1] border-2 border-[#D97706] rounded-2xl p-3.5 text-[15px] font-bold text-[#7A4A06] leading-snug">${T('Reid uses a computer to turn speech into words and to translate. Computers make mistakes. WellHeard helps you remember; it does not replace your doctor, your pharmacist or a professional interpreter.', 'Reid utilise un ordinateur pour transformer la parole en mots et pour traduire. Les ordinateurs se trompent. WellHeard vous aide à vous souvenir ; il ne remplace ni votre médecin, ni votre pharmacien, ni un interprète professionnel.')}</p>
+          ${card(T('Where mistakes happen most', 'Où les erreurs arrivent le plus'), ul([
+            T('<b>Medicine names</b> that sound alike', '<b>Noms de médicaments</b> qui se ressemblent'),
+            T('<b>Doses and numbers</b>: 15 and 50, 1 and 10', '<b>Doses et chiffres</b> : 15 et 50, 1 et 10'),
+            T('<b>Dates and times</b>', '<b>Dates et heures</b>'),
+            T('Small words that flip the meaning, like <b>"not"</b> or <b>"don’t"</b>', 'Petits mots qui changent le sens, comme <b>« pas »</b> ou <b>« ne… plus »</b>'),
+            T('Strong accents, quiet voices, people talking at once, and background noise', 'Accents forts, voix faibles, gens qui parlent en même temps, bruit de fond')]))}
+          ${card(T('How WellHeard helps you catch them', 'Comment WellHeard vous aide à les repérer'), ul([
+            T('Your questions show the <b>English</b> and <b>your language</b> together, so the doctor reads the English and you read yours.', 'Vos questions s’affichent en <b>anglais</b> et dans <b>votre langue</b>, pour que le médecin lise l’anglais et vous la vôtre.'),
+            T('The page for your doctor is always in <b>English</b>.', 'La page pour votre médecin est toujours en <b>anglais</b>.'),
+            T('In your recap, tap <b>▶</b> beside a line to <b>hear the recording</b> of that moment.', 'Dans votre résumé, touchez <b>▶</b> à côté d’une ligne pour <b>réécouter</b> ce moment.'),
+            T('Lines with medicines, doses, dates or "not" are marked <b>⚠ Check this</b>.', 'Les lignes avec des médicaments, doses, dates ou « pas » sont marquées <b>⚠ À vérifier</b>.')]))}
+          ${card(T('What to do', 'Quoi faire'), ul([
+            T('Before you leave, ask the doctor to <b>write down</b> any new medicine and dose.', 'Avant de partir, demandez au médecin d’<b>écrire</b> tout nouveau médicament et sa dose.'),
+            T('Check medicines and doses with your <b>pharmacist</b> when you pick them up.', 'Vérifiez médicaments et doses avec votre <b>pharmacien</b> quand vous les récupérez.'),
+            T('For a new diagnosis, surgery or treatment choice, ask for a <b>professional interpreter</b>. Many Ontario hospitals offer one for free, often by phone or video. Doctors’ offices may not, so ask when you book.', 'Pour un nouveau diagnostic, une opération ou un choix de traitement, demandez un <b>interprète professionnel</b>. Beaucoup d’hôpitaux de l’Ontario en offrent un gratuitement, souvent par téléphone ou vidéo. Les cabinets peut-être pas : demandez en prenant rendez-vous.'),
+            T('Family can help, but a professional interpreter is best for anything serious.', 'La famille peut aider, mais un interprète professionnel est préférable pour tout ce qui est sérieux.'),
+            T('If something in your recap looks wrong, <b>change it</b>. It’s your page.', 'Si quelque chose semble faux dans votre résumé, <b>corrigez-le</b>. C’est votre page.')]))}</div>`;
       } else if (setView === 'privacy') {
         const ok1 = consent && consent.choice === 'yes';
         body = head(T('Your privacy', 'Vos renseignements'), 1) + `<div class="flex flex-col gap-[10px]">${privacySummary('data-go="privacyFull"')}
@@ -4421,11 +4445,16 @@
       note.innerHTML = `<div class="w-full bg-[#FAF7F0] rounded-t-[32px] p-5 flex flex-col gap-3 border-t-2 border-[#1E2634]">
         <h2 class="text-xl font-extrabold text-[#1E2634]" data-notr>🌐 ${esc(langName(lang))}</h2>
         <div class="bg-[#FDF3E1] border-2 border-[#D97706] rounded-2xl p-3 text-[14px] font-bold text-[#7A4A06] leading-snug">${MT_WARN()}</div>
+        <button type="button" data-n="more" class="text-left text-[15px] font-extrabold text-[#3B5E42] underline underline-offset-2 min-h-[44px]">What to do if words come out wrong ›</button>
         <button type="button" data-n="ok" class="tactile-btn w-full min-h-[56px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">OK</button></div>`;
       note.classList.remove('hidden'); applyLang();
       say(WARN_EN.replace('⚠ ', ''));
     }
-    note.addEventListener('click', (e) => { if (e.target.closest('[data-n]') || e.target === note) { note.classList.add('hidden'); hush(true); } });
+    note.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-n]');
+      if (b || e.target === note) { note.classList.add('hidden'); hush(true); }
+      if (b && b.dataset.n === 'more') { openModal('helpSettingsModal'); setView = 'translate'; spokenView = null; renderSettings(); applyLang(); }
+    });
     function setLang(c) {
       if (!LOC[c] || c === lang) return;
       lang = c; voiceName = ''; stopRec(); hush(); qPage = 0;
