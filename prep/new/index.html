@@ -1,0 +1,2682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WellHeard</title>
+  <link rel="stylesheet" href="/prep/new/tw.css">
+  <meta name="theme-color" content="#FAF7F0">
+  <style>
+    @font-face { font-family: "Atkinson Hyperlegible"; font-weight: 400; font-display: swap; src: url(/prep/fonts/atkinson-hyperlegible-latin-400-normal.woff2) format("woff2"); }
+    @font-face { font-family: "Atkinson Hyperlegible"; font-weight: 700; font-display: swap; src: url(/prep/fonts/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2"); }
+  </style>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-outer: #EAE5DC;
+      --bg-paper: #FAF7F0;
+      --surface-stone: #F0EBE1;
+      --surface-sage: #E5EFE7;
+      --ink-navy: #1E2634;
+      --ink-muted: #425268;
+      --sage-green: #3B5E42;
+      --terracotta: #B84A27;
+      --terracotta-lip: #7C2D12;
+      --border-warm: #D6CFC0;
+    }
+
+    body {
+      font-family: 'Atkinson Hyperlegible', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-outer);
+      color: var(--ink-navy);
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Tremor-forgiving tactile button physics */
+    .tactile-btn {
+      transition: transform 0.08s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    .tactile-btn:active {
+      transform: scale(0.985);
+    }
+    .tactile-btn:focus-visible {
+      outline: 3px solid #D97706;
+      outline-offset: 2px;
+    }
+
+    /* Color-blind-safe primary forward capsule button (distinct shape, elevation & badge) */
+    .primary-capsule-btn {
+      background-color: #B84A27;
+      color: #FFFFFF;
+      border-radius: 999px;
+      box-shadow: 0 4px 0 #7C2D12;
+      border: 2px solid #9E3C1D;
+    }
+    .primary-capsule-btn:hover {
+      background-color: #A64020;
+    }
+    .primary-capsule-btn:active {
+      transform: translateY(2px) scale(0.99);
+      box-shadow: 0 2px 0 #7C2D12;
+    }
+
+    /* State-reactive WellHeard Companion emblem animations */
+    @keyframes companionPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 94, 66, 0.45);
+      }
+      50% {
+        box-shadow: 0 0 0 7px rgba(59, 94, 66, 0);
+      }
+    }
+    @keyframes companionNod {
+      0% { transform: translateY(0) scale(1); }
+      30% { transform: translateY(3px) scale(1.06); }
+      65% { transform: translateY(-1px) scale(1.02); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    .companion-listening {
+      animation: companionPulse 2.2s ease-in-out infinite;
+    }
+    .companion-nod {
+      animation: companionNod 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @keyframes companionAsk {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.45); }
+      50% { box-shadow: 0 0 0 7px rgba(217, 119, 6, 0); }
+    }
+    .companion-asking {
+      animation: companionAsk 1.8s ease-in-out infinite;
+    }
+
+    /* Gentle voice wave animation */
+    @keyframes soundWave {
+      0%, 100% { height: 6px; }
+      50% { height: 20px; }
+    }
+    .wave-1 { animation: soundWave 0.95s ease-in-out infinite; }
+    .wave-2 { animation: soundWave 0.75s ease-in-out infinite 0.18s; }
+    .wave-3 { animation: soundWave 1.0s ease-in-out infinite 0.32s; }
+    .paused-wave span {
+      animation: none !important;
+      height: 6px !important;
+    }
+
+    /* Safe Dead-Zone Inspection Overlay */
+    .inspect-mode .dead-zone {
+      background-image: repeating-linear-gradient(
+        45deg,
+        rgba(220, 38, 38, 0.18),
+        rgba(220, 38, 38, 0.18) 6px,
+        rgba(217, 119, 6, 0.16) 6px,
+        rgba(217, 119, 6, 0.16) 12px
+      );
+      outline: 1.5px dashed #DC2626;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body class="min-h-screen w-full flex flex-col items-center justify-center sm:py-3">
+
+  <!-- Centered 420x820 Zero-Scroll Mobile Device Frame -->
+  <main
+    id="appContainer"
+    class="w-full max-w-[420px] h-[100dvh] sm:h-[820px] sm:max-h-[93vh] bg-[#FAF7F0] sm:rounded-[36px] sm:shadow-2xl sm:border-[3px] border-[#1E2634] overflow-hidden flex flex-col justify-between relative px-5 pt-4 pb-4"
+    aria-label="WellHeard Appointment Companion"
+  >
+
+    <!-- 1. PERSISTENT TOP HEADER WITH STATE-REACTIVE COMPANION EMBLEM -->
+    <header class="w-full flex items-center justify-between gap-3 shrink-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <!-- State-Reactive WellHeard Companion Badge -->
+        <div
+          id="companionEmblem"
+          class="w-11 h-11 rounded-full bg-[#1E2634] flex items-center justify-center shrink-0 relative companion-listening transition-colors"
+          title="Reid — WellHeard's AI helper"
+          aria-hidden="true"
+        >
+          <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+            <path d="M14 3.5C7.65 3.5 2.5 7.95 2.5 13.45C2.5 16.12 3.72 18.54 5.72 20.32L4.3 24.1L8.75 22.45C10.35 23 12.12 23.3 14 23.3C20.35 23.3 25.5 18.85 25.5 13.45C25.5 7.95 20.35 3.5 14 3.5Z" fill="#FAF7F0"/>
+            <circle cx="10.4" cy="12.2" r="1.45" fill="#1E2634"/>
+            <circle cx="17.6" cy="12.2" r="1.45" fill="#1E2634"/>
+            <path d="M10.4 15.8C11.4 17.1 13.1 17.6 14.6 17.3C15.9 17.0 17.0 16.2 17.8 15.1" stroke="#3B5E42" stroke-width="2.3" stroke-linecap="round"/>
+          </svg>
+          <span id="companionStatusDot" class="w-3 h-3 rounded-full bg-[#3B5E42] border-2 border-[#FAF7F0] absolute -bottom-0.5 -right-0.5"></span>
+        </div>
+
+        <div class="min-w-0">
+          <span class="block text-2xl font-extrabold tracking-tight text-[#1E2634] leading-none truncate">
+            Well<span class="text-[#3B5E42]">Heard</span>
+          </span>
+          <span id="companionStateCaption" class="block text-[11px] font-bold text-[#3B5E42] mt-0.5 truncate">
+            Reid is listening
+          </span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onclick="openModal('helpSettingsModal')"
+        class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center gap-2 shrink-0 hover:bg-[#E6DFD0]"
+        aria-label="Help and Settings"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span>Help / Settings</span>
+      </button>
+    </header>
+
+    <!-- 2. NON-CLICKABLE 3-PHASE PROGRESS HEADER (Steps 1–11) -->
+    <div id="progressHeader" class="hidden w-full mt-2.5 mb-1 shrink-0" role="region" aria-label="Appointment preparation progress">
+      <div class="flex items-center justify-between text-xs font-extrabold mb-1">
+        <span id="phaseLabel0" class="text-[#1E2634]">1. Prepare</span>
+        <span id="phaseLabel1" class="text-[#425268]">2. At Visit</span>
+        <span id="phaseLabel2" class="text-[#425268]">3. After</span>
+      </div>
+
+      <div class="w-full grid grid-cols-3 gap-2.5" aria-hidden="true">
+        <div class="h-2.5 rounded-full bg-[#E2DBD0] overflow-hidden">
+          <div id="phaseBar0" class="h-full bg-[#3B5E42] rounded-full transition-all duration-300" style="width: 16%"></div>
+        </div>
+        <div class="h-2.5 rounded-full bg-[#E2DBD0] overflow-hidden">
+          <div id="phaseBar1" class="h-full bg-[#3B5E42] rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div class="h-2.5 rounded-full bg-[#E2DBD0] overflow-hidden">
+          <div id="phaseBar2" class="h-full bg-[#3B5E42] rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mt-1.5">
+        <span id="stepSubtitle" class="text-sm font-extrabold text-[#3B5E42]">
+          1. Prepare · Step 1 of 6
+        </span>
+        <span id="stepTopicTag" class="text-xs font-extrabold text-[#425268] uppercase tracking-wider">
+          Your Name
+        </span>
+      </div>
+    </div>
+
+    <!-- 3. MAIN ZERO-SCROLL WORKSPACE -->
+    <section class="w-full flex-1 flex flex-col justify-between py-1 min-h-0 overflow-hidden" aria-live="polite">
+
+      <!-- =========================================================
+           STEP 0: LANDING / INTRO / HOW IT WORKS
+           ========================================================= -->
+      <div id="screenLanding" class="w-full h-full flex flex-col justify-between min-h-0 pt-0.5">
+        <div class="w-full shrink-0">
+          <h1 class="text-[1.45rem] leading-tight font-extrabold text-[#1E2634] tracking-tight">
+            Get ready for your appointment
+          </h1>
+          <p class="text-[13px] leading-snug text-[#425268] mt-1 font-medium">
+            Speak or tap with <strong class="text-[#1E2634]">Reid</strong>, WellHeard's AI helper. He builds a clear page for your doctor and suggests questions using Claude, by Anthropic. Your name is never sent.
+          </p>
+        </div>
+
+        <!-- Compact 3-Step "How it works" Card -->
+        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] px-3.5 py-2.5 flex flex-col gap-2 shrink-0" aria-label="How WellHeard works">
+          <p class="text-[11px] font-extrabold uppercase tracking-wider text-[#425268]">
+            How it works
+          </p>
+
+          <div class="flex items-start gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-[#1E2634] text-white font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+            <p class="text-[12.5px] leading-snug text-[#1E2634]">
+              <strong class="font-extrabold">Prepare</strong> — Speak or tap concerns &amp; questions to build your doctor's page.
+            </p>
+          </div>
+
+          <div class="flex items-start gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-[#3B5E42] text-white font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+            <p class="text-[12.5px] leading-snug text-[#1E2634]">
+              <strong class="font-extrabold">At your visit</strong> — Hand over your page &amp; record answers together.
+            </p>
+          </div>
+
+          <div class="flex items-start gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-[#425268] text-white font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+            <p class="text-[12.5px] leading-snug text-[#1E2634]">
+              <strong class="font-extrabold">After &amp; share</strong> — Get a plain recap to share with family or keep for next time.
+            </p>
+          </div>
+        </div>
+
+        <!-- "How would you like to answer?" Selector (56px buttons + 14px Dead Zone) -->
+        <div class="w-full shrink-0">
+          <p class="text-xs font-extrabold uppercase tracking-wider text-[#1E2634] mb-1.5">
+            How would you like to answer?
+          </p>
+          <div class="w-full flex items-stretch">
+            <button
+              id="modeVoiceBtn"
+              type="button"
+              onclick="setInputMode('voice')"
+              aria-pressed="true"
+              class="tactile-btn flex-1 min-h-[56px] px-3 rounded-[16px] bg-[#1E2634] text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-2xs"
+            >
+              <span>✓ Speak + Tap</span>
+            </button>
+
+            <!-- 14px Tremor-Safe Dead Zone -->
+            <div class="w-[14px] shrink-0 dead-zone" aria-hidden="true"></div>
+
+            <button
+              id="modeTapBtn"
+              type="button"
+              onclick="setInputMode('tap')"
+              aria-pressed="false"
+              class="tactile-btn flex-1 min-h-[56px] px-3 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-center gap-2 hover:bg-[#E6DFD0]"
+            >
+              <span>Tap / Type only</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Local Privacy Assurance -->
+        <div class="w-full flex items-center justify-center gap-2 text-xs font-extrabold text-[#3B5E42] shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>Private: everything stays on this device.</span>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           MODE A: VOICE + PRESETS SCREEN (Steps 1–6 & Step 9)
+           ========================================================= -->
+      <div id="voiceCaptureScreen" class="hidden w-full h-full flex flex-col justify-between min-h-0">
+        <!-- Question Title + Helper Subtitle -->
+        <div class="w-full shrink-0">
+          <h1 id="screenQuestion" class="w-full text-[1.5rem] leading-tight font-extrabold text-[#1E2634] tracking-tight">
+            What is your name?
+          </h1>
+          <p id="screenHelperText" class="hidden text-xs text-[#425268] mt-0.5 font-bold"></p>
+        </div>
+
+        <!-- Preset Choice Grid (Rounded-Rectangle 16px Cards + 14px Dead-Zone Gaps) -->
+        <div id="quickChipsGrid" class="w-full grid grid-cols-2 gap-[14px] shrink-0" role="group" aria-label="Suggested answers">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Editable Answer Box + Contextual Top-Right Undo Button -->
+        <div id="answerBoxWrapper" class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-3.5 flex flex-col justify-between min-h-[112px] shrink-0 transition-colors">
+          <div class="w-full flex items-center justify-between gap-2 mb-1">
+            <span id="answerBoxHint" class="text-xs font-extrabold uppercase tracking-wider text-[#425268]">
+              Your answer
+            </span>
+            <button
+              id="undoPillBtn"
+              type="button"
+              onclick="undoLastWord()"
+              class="hidden tactile-btn min-h-[38px] px-3.5 rounded-full bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xs shadow-2xs hover:bg-[#FAF7F0]"
+            >
+              ↶ Undo
+            </button>
+          </div>
+
+          <textarea
+            id="answerInput"
+            rows="2"
+            aria-label="Your answer"
+            placeholder="Tap a choice above, or speak your answer..."
+            oninput="handleTextChange()"
+            class="w-full bg-transparent text-[#1E2634] font-bold text-[19px] leading-snug resize-none focus:outline-none placeholder:text-[#5B6675] placeholder:font-normal placeholder:text-base"
+          ></textarea>
+        </div>
+
+        <!-- Reid's Gentle Clarifying Question Card (Shown when an answer is vague or incomplete) -->
+        <div
+          id="samClarifyCard"
+          class="hidden w-full bg-[#FEF6E7] border-2 border-[#D97706] rounded-[18px] p-3 flex flex-col gap-2 shrink-0"
+          role="region"
+          aria-label="Reid has a quick question"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <p id="samClarifyPrompt" class="text-[13.5px] font-extrabold text-[#1E2634] leading-snug">
+              Reid asks: Just to be sure — which foot is bothering you?
+            </p>
+            <button
+              type="button"
+              onclick="dismissClarification()"
+              class="tactile-btn min-h-[34px] px-2.5 rounded-full bg-white border border-[#D6CFC0] text-[#425268] font-extrabold text-xs shrink-0"
+            >
+              Keep as is
+            </button>
+          </div>
+          <div id="samClarifyOptions" class="w-full grid grid-cols-2 gap-[12px]">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Voice Listening Bar + Subtle Simulation Helpers -->
+        <div id="voiceBarContainer" class="w-full flex flex-col gap-1.5 shrink-0">
+          <button
+            id="speakToggleBtn"
+            type="button"
+            onclick="toggleListening()"
+            aria-pressed="true"
+            class="tactile-btn w-full min-h-[54px] px-4 rounded-[18px] bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E2634] flex items-center justify-between"
+          >
+            <span class="flex items-center gap-3 min-w-0">
+              <span id="micBadge" class="w-9 h-9 rounded-full bg-[#3B5E42] text-white flex items-center justify-center shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="22"></line>
+                </svg>
+              </span>
+              <span id="speakBtnLabel" class="font-extrabold text-base text-[#1E4627] truncate">
+                Listening — tap to pause
+              </span>
+            </span>
+
+            <span id="voiceWave" class="flex items-center gap-1 h-5 shrink-0" aria-hidden="true">
+              <span class="w-1.5 bg-[#3B5E42] rounded-full wave-1"></span>
+              <span class="w-1.5 bg-[#3B5E42] rounded-full wave-2"></span>
+              <span class="w-1.5 bg-[#3B5E42] rounded-full wave-3"></span>
+            </span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- =========================================================
+           MODE B: STEP 7 — AT VISIT 1/2: DOCTOR SUMMARY & RECORD
+           ========================================================= -->
+      <div id="screenDoctorSummary" class="hidden w-full h-full flex flex-col justify-between min-h-0">
+        <div class="w-full flex items-center justify-between gap-2 shrink-0">
+          <h1 class="text-[1.4rem] leading-tight font-extrabold text-[#1E2634] tracking-tight">
+            Summary for the doctor
+          </h1>
+          <button
+            type="button"
+            onclick="openFullDoctorCard()"
+            class="tactile-btn min-h-[46px] px-3.5 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xs shrink-0 hover:bg-[#E6DFD0]"
+          >
+            Full screen
+          </button>
+        </div>
+
+        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-4 flex flex-col gap-2.5 shrink-0">
+          <p id="summaryPatientLine" class="text-xs font-extrabold uppercase tracking-wider text-[#3B5E42]">
+            Patient Visit Summary
+          </p>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="bg-white/80 rounded-xl p-2.5 border border-[#D6CFC0]/70">
+              <p class="text-[11px] font-extrabold uppercase text-[#425268]">Seeing</p>
+              <p id="sumWho" class="font-extrabold text-[15px] text-[#1E2634] leading-snug mt-0.5">Foot clinic</p>
+            </div>
+            <div class="bg-white/80 rounded-xl p-2.5 border border-[#D6CFC0]/70">
+              <p class="text-[11px] font-extrabold uppercase text-[#425268]">When</p>
+              <p id="sumWhen" class="font-extrabold text-[15px] text-[#1E2634] leading-snug mt-0.5">Tomorrow · Morning</p>
+            </div>
+            <div class="col-span-2 bg-white/80 rounded-xl p-2.5 border border-[#D6CFC0]/70">
+              <p class="text-[11px] font-extrabold uppercase text-[#425268]">Where</p>
+              <p id="sumWhere" class="font-extrabold text-[15px] text-[#1E2634] leading-snug mt-0.5">Clinic / Office</p>
+            </div>
+          </div>
+          <div class="bg-white/80 rounded-xl p-2.5 border border-[#D6CFC0]/70">
+            <p class="text-[11px] font-extrabold uppercase text-[#425268]">Main concern</p>
+            <p id="sumConcerns" class="font-extrabold text-[16px] text-[#1E2634] leading-snug mt-0.5">New or worse symptom</p>
+          </div>
+        </div>
+
+        <div class="w-full min-h-[60px] px-4 py-3 rounded-[18px] bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E2634] font-extrabold text-base flex items-center gap-3 shrink-0">
+          <span class="w-9 h-9 rounded-full bg-[#3B5E42] text-white flex items-center justify-center shrink-0"><span class="w-3 h-3 rounded-full bg-white"></span></span>
+          <span class="text-[#1E4627] leading-snug">Ask the doctor first, then record with your phone's voice recorder.</span>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           MODE C: STEP 8 — AT VISIT 2/2: WORKFLOW-GROUNDED QUESTIONS
+           ========================================================= -->
+      <div id="screenVisitQuestions" class="hidden w-full h-full flex flex-col justify-between min-h-0">
+        <div class="w-full flex items-start justify-between gap-2 shrink-0">
+          <div class="min-w-0">
+            <h1 class="text-[1.38rem] leading-tight font-extrabold text-[#1E2634] tracking-tight">
+              Questions to ask your doctor
+            </h1>
+            <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+              <span id="workflowSourceBadge" class="px-2 py-0.5 rounded-md bg-[#E5EFE7] text-[#1E4627] font-extrabold text-[11px]">
+                Suggested by Claude
+              </span>
+              <span class="text-[11px] text-[#425268] font-bold">· Not medical advice</span>
+            </div>
+          </div>
+          <span id="questionsDoneCounter" class="px-2.5 py-1 rounded-full bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xs shrink-0">
+            0/3 done
+          </span>
+        </div>
+
+        <div id="visitQuestionsContainer" class="w-full flex flex-col gap-[10px] shrink-0">
+          <!-- Populated dynamically from clinical workflow pathways -->
+        </div>
+
+        <div class="w-full flex items-stretch shrink-0">
+          <button
+            id="revealAddQuestionBtn"
+            type="button"
+            onclick="revealCustomQuestionBox()"
+            class="tactile-btn flex-1 min-h-[50px] px-3 rounded-[16px] bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-1.5 hover:bg-[#E6DFD0]"
+          >
+            <span>+ Add your own</span>
+          </button>
+
+          <div class="w-[12px] shrink-0 dead-zone" aria-hidden="true"></div>
+
+          <button
+            id="refreshWorkflowBtn"
+            type="button"
+            onclick="cycleWorkflowQuestions()"
+            class="tactile-btn min-h-[50px] px-3.5 rounded-[16px] bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-sm flex items-center justify-center gap-1.5 shrink-0 hover:bg-[#D7E7DA]"
+          >
+            <span>↻ More ideas</span>
+          </button>
+
+          <div id="inlineAddQuestionBox" class="hidden w-full bg-white border-2 border-[#1E2634] rounded-[18px] p-2.5 flex items-center gap-2">
+            <input
+              id="inlineQuestionInput"
+              type="text"
+              placeholder="Type or speak your question..."
+              class="flex-1 min-w-0 bg-transparent text-[#1E2634] font-bold text-base focus:outline-none"
+            />
+            <button
+              type="button"
+              onclick="saveInlineQuestion()"
+              class="tactile-btn min-h-[44px] px-4 rounded-xl bg-[#1E2634] text-white font-extrabold text-sm shrink-0"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           MODE D: STEP 10 — AFTER 2/3: NEXT STEPS CHECKLIST
+           ========================================================= -->
+      <div id="screenNextSteps" class="hidden w-full h-full flex flex-col justify-between min-h-0">
+        <div class="w-full shrink-0">
+          <h1 class="text-[1.45rem] leading-tight font-extrabold text-[#1E2634] tracking-tight">
+            What happens next?
+          </h1>
+          <p class="text-xs text-[#425268] font-bold mt-0.5">Tap any tasks to remember after today.</p>
+        </div>
+
+        <div id="nextTasksGrid" class="w-full flex flex-col gap-[12px] shrink-0">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[18px] p-3 flex flex-col gap-2 shrink-0">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-[#425268]">
+              Next appointment or note
+            </span>
+            <div class="flex items-center gap-2">
+              <button
+                id="undoTaskBtn"
+                type="button"
+                onclick="clearCustomTask()"
+                class="hidden tactile-btn min-h-[34px] px-2.5 rounded-full bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xs"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onclick="openQuickDatePicker('nextSteps')"
+                class="tactile-btn min-h-[36px] px-3 rounded-full bg-[#1E2634] text-white font-extrabold text-xs"
+              >
+                + Pick date
+              </button>
+            </div>
+          </div>
+          <input
+            id="customTaskInput"
+            type="text"
+            oninput="handleCustomTaskInput()"
+            placeholder="Tap + Pick date or type a reminder..."
+            class="w-full bg-transparent text-[#1E2634] font-bold text-base focus:outline-none placeholder:text-[#5B6675] placeholder:font-normal"
+          />
+        </div>
+      </div>
+
+      <!-- =========================================================
+           MODE E: STEP 11 — AFTER 3/3: SHARE & FINISH RECAP
+           ========================================================= -->
+      <div id="screenShareFinish" class="hidden w-full h-full flex flex-col justify-between min-h-0">
+        <div class="w-full shrink-0">
+          <h1 class="text-[1.45rem] leading-tight font-extrabold text-[#1E2634] tracking-tight">
+            Your visit recap
+          </h1>
+          <p class="text-xs text-[#3B5E42] font-extrabold mt-0.5">Saved safely on this device.</p>
+        </div>
+
+        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-4 flex flex-col gap-2.5 shrink-0">
+          <div>
+            <p class="text-[11px] font-extrabold uppercase text-[#425268]">Appointment</p>
+            <p id="finalVisitLine" class="font-extrabold text-base text-[#1E2634]">Foot clinic · Tomorrow</p>
+          </div>
+          <div class="border-t border-[#D6CFC0] pt-2">
+            <p class="text-[11px] font-extrabold uppercase text-[#425268]">What the doctor said</p>
+            <p id="finalRecapLine" class="font-extrabold text-base text-[#1E2634]">Keep current plan</p>
+          </div>
+          <div class="border-t border-[#D6CFC0] pt-2">
+            <p class="text-[11px] font-extrabold uppercase text-[#425268]">Next steps</p>
+            <p id="finalTasksLine" class="font-extrabold text-base text-[#1E2634]">Schedule next visit</p>
+          </div>
+        </div>
+
+        <div class="w-full flex items-stretch shrink-0">
+          <button
+            type="button"
+            onclick="shareRecap()"
+            class="tactile-btn flex-1 min-h-[54px] px-3 rounded-[16px] bg-[#1E2634] text-white font-extrabold text-sm flex items-center justify-center gap-2"
+          >
+            <span>Send to family</span>
+          </button>
+          <div class="w-[14px] shrink-0 dead-zone" aria-hidden="true"></div>
+          <button
+            type="button"
+            onclick="window.print()"
+            class="tactile-btn flex-1 min-h-[54px] px-3 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2 hover:bg-[#E6DFD0]"
+          >
+            <span>Print / Save PDF</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 4. PERSISTENT BOTTOM NAVIGATION ROW WITH TREMOR-SAFE DEAD ZONE -->
+    <footer class="w-full pt-2.5 border-t border-[#DDD6C7] flex items-stretch shrink-0">
+      <button
+        id="backNavBtn"
+        type="button"
+        onclick="goBack()"
+        class="hidden tactile-btn min-h-[56px] px-4 rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-center gap-1.5 shrink-0 hover:bg-[#E6DFD0]"
+      >
+        <span>← Back</span>
+      </button>
+
+      <div id="navBuffer" class="hidden w-[18px] shrink-0 dead-zone" aria-hidden="true"></div>
+
+      <button
+        id="nextNavBtn"
+        type="button"
+        onclick="goNext()"
+        class="tactile-btn primary-capsule-btn flex-1 min-h-[56px] pl-5 pr-3 font-extrabold text-[17px] flex items-center justify-between gap-2 min-w-0"
+      >
+        <span id="nextNavLabel" class="truncate">Get started</span>
+        <span id="nextArrowBadge" class="w-9 h-9 rounded-full bg-white/20 text-white font-extrabold text-lg flex items-center justify-center shrink-0">→</span>
+      </button>
+    </footer>
+
+    <!-- Subtle Feedback Toast Banner -->
+    <div
+      id="toastBanner"
+      role="status"
+      aria-live="polite"
+      class="pointer-events-none opacity-0 transition-opacity duration-200 absolute top-20 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full bg-[#1E2634] text-white font-extrabold text-xs shadow-lg whitespace-nowrap"
+    >
+      Saved
+    </div>
+
+    <!-- =========================================================
+         MODAL: TREMOR-FRIENDLY MULTI-YEAR QUICK DATE PICKER
+         ========================================================= -->
+    <div
+      id="quickDateModal"
+      class="hidden absolute inset-0 z-50 bg-[#1E2634]/75 flex flex-col justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="datePickerTitle"
+    >
+      <div class="w-full bg-[#FAF7F0] rounded-t-[32px] p-4 flex flex-col gap-2.5 border-t-2 border-[#1E2634] max-h-[92%] overflow-y-auto">
+        <div class="flex items-center justify-between gap-2 shrink-0">
+          <div class="min-w-0">
+            <h2 id="datePickerTitle" class="text-lg font-extrabold text-[#1E2634] leading-tight">
+              Pick another date
+            </h2>
+            <p id="selectedDatePreview" class="text-xs font-extrabold text-[#3B5E42] truncate mt-0.5">
+              Selected: Tuesday, Nov 24, 2026
+            </p>
+          </div>
+          <button
+            type="button"
+            onclick="closeModal('quickDateModal')"
+            class="tactile-btn min-h-[46px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm shrink-0"
+          >
+            Cancel
+          </button>
+        </div>
+
+        <!-- 1. Year Selector Row -->
+        <div id="yearSelectorRow" class="w-full flex items-stretch shrink-0" role="group" aria-label="Choose year">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- 2. Month Stepper & All-Months Toggle -->
+        <div class="w-full flex items-stretch gap-2 shrink-0">
+          <button
+            type="button"
+            onclick="stepPickerMonth(-1)"
+            aria-label="Previous month"
+            class="tactile-btn w-[52px] min-h-[48px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-lg flex items-center justify-center shrink-0"
+          >
+            ◀
+          </button>
+          <button
+            id="monthGridToggleBtn"
+            type="button"
+            onclick="toggleMonthGrid()"
+            aria-expanded="false"
+            class="tactile-btn flex-1 min-h-[48px] px-3 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-between"
+          >
+            <span id="activeMonthYearLabel">November 2026</span>
+            <span id="monthGridCaret" class="text-xs text-[#3B5E42] font-extrabold">▾ All</span>
+          </button>
+          <button
+            type="button"
+            onclick="stepPickerMonth(1)"
+            aria-label="Next month"
+            class="tactile-btn w-[52px] min-h-[48px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-lg flex items-center justify-center shrink-0"
+          >
+            ▶
+          </button>
+        </div>
+
+        <!-- Expandable 12-Month Grid -->
+        <div id="allMonthsGrid" class="hidden w-full grid grid-cols-4 gap-[10px] shrink-0">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Day Tiles Grid -->
+        <div id="dateDaysWrapper" class="w-full shrink-0">
+          <div id="dateDaysGrid" class="w-full grid grid-cols-7 gap-[8px]">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Waitlist / Approximate Date Toggle -->
+        <button
+          id="notBookedToggleBtn"
+          type="button"
+          onclick="toggleNotBookedYet()"
+          aria-pressed="false"
+          class="tactile-btn w-full min-h-[48px] px-4 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2 shrink-0 hover:bg-[#E6DFD0]"
+        >
+          <span>Exact date not booked yet</span>
+        </button>
+
+        <button
+          type="button"
+          onclick="confirmPickedDate()"
+          class="tactile-btn primary-capsule-btn w-full min-h-[54px] px-5 font-extrabold text-base flex items-center justify-center gap-2 shrink-0"
+        >
+          <span id="confirmDateBtnLabel">Done — Use this date ✓</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL: TREMOR-FRIENDLY QUICK TIME PICKER (ZERO TYPING)
+         ========================================================= -->
+    <div
+      id="quickTimeModal"
+      class="hidden absolute inset-0 z-50 bg-[#1E2634]/75 flex flex-col justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="timePickerTitle"
+    >
+      <div class="w-full bg-[#FAF7F0] rounded-t-[32px] p-4 flex flex-col gap-3 border-t-2 border-[#1E2634]">
+        <div class="flex items-center justify-between gap-2 shrink-0">
+          <div class="min-w-0">
+            <h2 id="timePickerTitle" class="text-lg font-extrabold text-[#1E2634] leading-tight">
+              Pick exact time
+            </h2>
+            <p id="selectedTimePreview" class="text-sm font-extrabold text-[#3B5E42] truncate mt-0.5">
+              Selected: 10:30 AM
+            </p>
+          </div>
+          <button
+            type="button"
+            onclick="closeModal('quickTimeModal')"
+            class="tactile-btn min-h-[48px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm shrink-0"
+          >
+            Cancel
+          </button>
+        </div>
+
+        <!-- 1. AM / PM Large Toggle with 14px Safe Dead Zone -->
+        <div class="w-full flex items-stretch shrink-0" role="group" aria-label="Morning or Afternoon">
+          <button
+            id="timeAmBtn"
+            type="button"
+            onclick="selectPickerMeridiem('AM')"
+            aria-pressed="true"
+            class="tactile-btn flex-1 min-h-[50px] px-3 rounded-2xl bg-[#1E2634] text-white border-2 border-[#1E2634] font-extrabold text-base flex items-center justify-center"
+          >
+            ✓ AM (Morning)
+          </button>
+          <div class="w-[14px] shrink-0 dead-zone" aria-hidden="true"></div>
+          <button
+            id="timePmBtn"
+            type="button"
+            onclick="selectPickerMeridiem('PM')"
+            aria-pressed="false"
+            class="tactile-btn flex-1 min-h-[50px] px-3 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-center hover:bg-[#E6DFD0]"
+          >
+            PM (Afternoon / Eve)
+          </button>
+        </div>
+
+        <!-- 2. Hour Grid (1 to 12) -->
+        <div class="w-full shrink-0">
+          <p class="text-[11px] font-extrabold uppercase tracking-wider text-[#425268] mb-1.5">
+            Hour
+          </p>
+          <div id="timeHoursGrid" class="w-full grid grid-cols-4 gap-[10px]" role="group" aria-label="Choose hour">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- 3. Quarter-Hour Minutes (:00, :15, :30, :45) -->
+        <div class="w-full shrink-0">
+          <p class="text-[11px] font-extrabold uppercase tracking-wider text-[#425268] mb-1.5">
+            Minutes
+          </p>
+          <div id="timeMinutesGrid" class="w-full grid grid-cols-4 gap-[10px]" role="group" aria-label="Choose minutes">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onclick="confirmPickedTime()"
+          class="tactile-btn primary-capsule-btn w-full min-h-[54px] px-5 font-extrabold text-base flex items-center justify-center gap-2 shrink-0 mt-0.5"
+        >
+          <span>Done — Use this time ✓</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL: HELP & SETTINGS DRAWER
+         ========================================================= -->
+    <div
+      id="helpSettingsModal"
+      class="hidden absolute inset-0 z-50 bg-[#1E2634]/75 flex flex-col justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settingsTitle"
+    >
+      <div class="w-full bg-[#FAF7F0] rounded-t-[32px] p-5 flex flex-col gap-3.5 border-t-2 border-[#1E2634]">
+        <div class="flex items-center justify-between">
+          <h2 id="settingsTitle" class="text-xl font-extrabold text-[#1E2634]">
+            Help &amp; Settings
+          </h2>
+          <button
+            type="button"
+            onclick="closeModal('helpSettingsModal')"
+            class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm"
+          >
+            Done
+          </button>
+        </div>
+
+        <!-- Parkinson's Voice Pause Timing ('3 sec', '5 sec', '8 sec') -->
+        <div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5 space-y-2">
+          <p class="font-extrabold text-base text-[#1E2634]">Voice pause timing</p>
+          <p class="text-xs text-[#425268]">Extra pause allowed while speaking before WellHeard finishes listening.</p>
+          <div class="flex items-stretch">
+            <button type="button" onclick="selectWaitOption(this)" class="wait-btn tactile-btn flex-1 min-h-[52px] rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">3 sec</button>
+            <div class="w-[14px] shrink-0 dead-zone" aria-hidden="true"></div>
+            <button type="button" onclick="selectWaitOption(this)" class="wait-btn tactile-btn flex-1 min-h-[52px] rounded-xl bg-[#1E2634] text-white font-extrabold text-base">✓ 5 sec</button>
+            <div class="w-[14px] shrink-0 dead-zone" aria-hidden="true"></div>
+            <button type="button" onclick="selectWaitOption(this)" class="wait-btn tactile-btn flex-1 min-h-[52px] rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">8 sec</button>
+          </div>
+        </div>
+
+        <!-- Read Answers Back Aloud Toggle -->
+        <div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5 flex items-center justify-between gap-3">
+          <div>
+            <p class="font-extrabold text-base text-[#1E2634]">Read answers back aloud</p>
+            <p class="text-xs text-[#425268]">Speak each selected answer out loud</p>
+          </div>
+          <button
+            id="readBackToggleBtn"
+            type="button"
+            onclick="toggleReadBack()"
+            aria-pressed="true"
+            class="tactile-btn min-h-[52px] px-5 rounded-xl bg-[#3B5E42] text-white font-extrabold text-base shrink-0"
+          >
+            On
+          </button>
+        </div>
+
+        <!-- Reset All Answers -->
+        <button
+          type="button"
+          onclick="resetAllFromSettings()"
+          class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2 hover:bg-[#F0EBE1]"
+        >
+          <span>↺ Reset all answers</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL: FULL-SCREEN DOCTOR VIEW
+         ========================================================= -->
+    <div
+      id="fullDoctorModal"
+      class="hidden absolute inset-0 z-50 bg-[#FAF7F0] p-5 flex flex-col justify-between"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="fullDocTitle"
+    >
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-extrabold uppercase tracking-wider text-[#3B5E42]">Doctor View · Large Print</span>
+        <button
+          type="button"
+          onclick="closeModal('fullDoctorModal')"
+          class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm"
+        >
+          Done
+        </button>
+      </div>
+
+      <div class="space-y-3 my-auto">
+        <h2 id="fullDocTitle" class="text-2xl font-extrabold text-[#1E2634]">
+          Summary for the doctor
+        </h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5">
+            <p class="text-xs font-extrabold uppercase text-[#425268]">Seeing</p>
+            <p id="modalDocWho" class="font-extrabold text-[19px] text-[#1E2634]">Foot clinic</p>
+          </div>
+          <div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5">
+            <p class="text-xs font-extrabold uppercase text-[#425268]">When</p>
+            <p id="modalDocWhen" class="font-extrabold text-[19px] text-[#1E2634]">Tomorrow · Morning</p>
+          </div>
+          <div class="col-span-2 bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5">
+            <p class="text-xs font-extrabold uppercase text-[#425268]">Where</p>
+            <p id="modalDocWhere" class="font-extrabold text-[19px] text-[#1E2634]">Clinic / Office</p>
+          </div>
+        </div>
+        <div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-4">
+          <p class="text-xs font-extrabold uppercase text-[#425268]">Main concern</p>
+          <p id="modalDocConcerns" class="font-extrabold text-[20px] text-[#1E2634] mt-0.5">New or worse symptom</p>
+        </div>
+      </div>
+
+      <p class="text-center text-sm font-extrabold text-[#425268]">
+        Hand your phone to the doctor to read.
+      </p>
+    </div>
+
+  </main>
+
+  <script>
+    // Complete 12-Step Sequential Flow (Step 0 Landing + Steps 1–11)
+    const steps = [
+      {
+        id: 'landing',
+        phaseIndex: -1,
+        mode: 'landing',
+        nextLabel: 'Get started'
+      },
+      {
+        id: 'name',
+        phaseIndex: 0,
+        subtitle: '1. Prepare · Step 1 of 6',
+        topic: 'Your Name',
+        mode: 'voice',
+        question: 'What is your name?',
+        helperText: 'Optional — only shown on your doctor summary.',
+        answer: '',
+        customActive: false,
+        presets: ['Helping someone else', 'Skip for now'],
+        customOptionLabel: 'Helping someone else',
+        defaultPlaceholder: 'Say or type your name...',
+        customPlaceholder: 'Say or type their name...',
+        simulatedVoiceSample: 'Margaret',
+        unclearSample: 'M...',
+        clarifyQuestion: 'Reid asks: Did I catch that right — is your name Margaret or Mary?',
+        clarifyChoices: [
+          { label: 'Margaret', value: 'Margaret' },
+          { label: 'Mary', value: 'Mary' }
+        ],
+        nextLabel: 'Next: Who'
+      },
+      {
+        id: 'who',
+        phaseIndex: 0,
+        subtitle: '1. Prepare · Step 2 of 6',
+        topic: 'Who',
+        mode: 'voice',
+        question: 'Who are you seeing?',
+        answer: '',
+        customActive: false,
+        presets: ['Family doctor', 'Neurologist', 'Foot clinic', 'Another specialist'],
+        customOptionLabel: 'Another specialist',
+        defaultPlaceholder: 'Tap a choice above, or speak who you are seeing...',
+        customPlaceholder: 'Say or type who you are seeing (e.g. eye doctor)...',
+        simulatedVoiceSample: 'Dr. Patel, my neurologist',
+        unclearSample: 'The doctor',
+        clarifyQuestion: 'Reid asks: Which doctor are you seeing?',
+        clarifyChoices: [
+          { label: 'Family doctor', value: 'Family doctor' },
+          { label: 'Neurologist', value: 'Neurologist' }
+        ],
+        nextLabel: 'Next: Which day'
+      },
+      {
+        id: 'day',
+        phaseIndex: 0,
+        subtitle: '1. Prepare · Step 3 of 6',
+        topic: 'Day',
+        mode: 'voice',
+        question: 'Which day?',
+        answer: '',
+        customActive: false,
+        presets: ['Today', 'Tomorrow', 'Next week', 'Pick another date'],
+        customOptionLabel: 'Pick another date',
+        defaultPlaceholder: 'Tap a day above, or speak the date...',
+        customPlaceholder: 'Pick another date or speak it...',
+        simulatedVoiceSample: 'Tuesday, Dec 8',
+        unclearSample: 'Next week sometime',
+        clarifyQuestion: 'Reid asks: Do you know which day next week?',
+        clarifyChoices: [
+          { label: 'Tuesday', value: 'Next Tuesday' },
+          { label: 'Thursday', value: 'Next Thursday' }
+        ],
+        nextLabel: 'Next: Time of day'
+      },
+      {
+        id: 'time',
+        phaseIndex: 0,
+        subtitle: '1. Prepare · Step 4 of 6',
+        topic: 'Time',
+        mode: 'voice',
+        question: 'What time of day?',
+        answer: '',
+        customActive: false,
+        presets: ['Morning', 'Afternoon', 'Evening', 'Pick exact time'],
+        customOptionLabel: 'Pick exact time',
+        defaultPlaceholder: 'Tap a time above, or speak the exact time...',
+        customPlaceholder: 'Pick an exact time or speak it...',
+        simulatedVoiceSample: '10:30 AM',
+        unclearSample: 'Around 10',
+        clarifyQuestion: 'Reid asks: Did you mean 10:00 in the morning?',
+        clarifyChoices: [
+          { label: '10:00 AM', value: '10:00 AM' },
+          { label: '10:30 AM', value: '10:30 AM' }
+        ],
+        nextLabel: 'Next: Where'
+      },
+      {
+        id: 'where',
+        phaseIndex: 0,
+        subtitle: '1. Prepare · Step 5 of 6',
+        topic: 'Where',
+        mode: 'voice',
+        question: 'Where is the visit?',
+        answer: '',
+        customActive: false,
+        presets: ['Clinic / Office', 'Hospital', 'Phone / Video call', 'Another location'],
+        customOptionLabel: 'Another location',
+        defaultPlaceholder: 'Tap a location above, or speak the clinic address...',
+        customPlaceholder: 'Say or type the clinic or address...',
+        simulatedVoiceSample: 'Toronto Western Hospital, 4th floor',
+        unclearSample: 'Downtown',
+        clarifyQuestion: 'Reid asks: Is that at the hospital or a clinic?',
+        clarifyChoices: [
+          { label: 'Hospital', value: 'Downtown hospital' },
+          { label: 'Clinic / Office', value: 'Downtown clinic' }
+        ],
+        nextLabel: 'Next: Concerns'
+      },
+      {
+        id: 'concerns',
+        phaseIndex: 0,
+        subtitle: '1. Prepare · Step 6 of 6',
+        topic: 'Concerns',
+        mode: 'voice',
+        question: 'What is on your mind?',
+        answer: '',
+        customActive: false,
+        presets: ['New or worse symptom', 'Medication side effects', 'Test results / Follow-up', 'Describe another concern'],
+        customOptionLabel: 'Describe another concern',
+        defaultPlaceholder: 'Tap a concern above, or speak what is on your mind...',
+        customPlaceholder: 'Say or type what is on your mind...',
+        simulatedVoiceSample: 'More stiffness in my right hand in the mornings',
+        unclearSample: 'Pain in my foot',
+        clarifyQuestion: 'Reid asks: Just to be sure — which foot hurts?',
+        clarifyChoices: [
+          { label: 'Left foot', value: 'Pain in my left foot' },
+          { label: 'Right foot', value: 'Pain in my right foot' }
+        ],
+        nextLabel: 'Next: Doctor Summary'
+      },
+      {
+        id: 'doctorSummary',
+        phaseIndex: 1,
+        subtitle: '2. At Visit · Step 1 of 2',
+        topic: 'Doctor Summary',
+        mode: 'doctorSummary',
+        nextLabel: 'Next: Your Questions'
+      },
+      {
+        id: 'visitQuestions',
+        phaseIndex: 1,
+        subtitle: '2. At Visit · Step 2 of 2',
+        topic: 'Your Questions',
+        mode: 'visitQuestions',
+        nextLabel: "Next: Doctor's Recap"
+      },
+      {
+        id: 'recap',
+        phaseIndex: 2,
+        subtitle: '3. After · Step 1 of 3',
+        topic: "Doctor's Recap",
+        mode: 'voice',
+        question: 'What did the doctor say?',
+        answer: '',
+        customActive: false,
+        presets: ['Keep current plan', 'Adjusted medication', 'Ordered tests / Referral', 'Add other notes'],
+        customOptionLabel: 'Add other notes',
+        defaultPlaceholder: 'Tap a recap choice above, or speak what the doctor said...',
+        customPlaceholder: 'Say or type any other notes from your doctor...',
+        simulatedVoiceSample: 'Adjust morning dose and come back in 6 weeks',
+        unclearSample: 'Change pills',
+        clarifyQuestion: 'Reid asks: Did the doctor increase or lower your dose?',
+        clarifyChoices: [
+          { label: 'Increased dose', value: 'Doctor increased medication dose' },
+          { label: 'Lowered dose', value: 'Doctor lowered medication dose' }
+        ],
+        nextLabel: 'Next: Next Steps'
+      },
+      {
+        id: 'nextSteps',
+        phaseIndex: 2,
+        subtitle: '3. After · Step 2 of 3',
+        topic: 'Next Steps',
+        mode: 'nextSteps',
+        nextLabel: 'Next: Share & Finish'
+      },
+      {
+        id: 'shareFinish',
+        phaseIndex: 2,
+        subtitle: '3. After · Step 3 of 3',
+        topic: 'Share & Finish',
+        mode: 'shareFinish',
+        nextLabel: 'Start a new visit'
+      }
+    ];
+
+    let currentIndex = 0;
+    let inputPreference = 'voice'; // 'voice' | 'tap'
+    let isListening = true;
+    let isRecording = false;
+    let recordSeconds = 0;
+    let recordTimerId = null;
+    let readAnswersBack = true;
+
+    // Workflow-Grounded Clinical Question Sets (Step 8)
+    const clinicalWorkflowSets = {
+      parkinsons: {
+        badge: 'Clinical guide · Parkinson’s Care',
+        batches: [
+          [
+            { text: 'Is my medication wearing off too early?', done: false },
+            { text: 'Are my stiffness or tremors expected right now?', done: false },
+            { text: 'What warning signs mean I should call early?', done: false }
+          ],
+          [
+            { text: 'Should I adjust the timing of my doses?', done: false },
+            { text: 'Would physiotherapy or balance exercises help?', done: false },
+            { text: 'When should we review my medications next?', done: false }
+          ]
+        ]
+      },
+      foot: {
+        badge: 'Clinical guide · Foot & Circulation',
+        batches: [
+          [
+            { text: 'What could be causing this foot symptom?', done: false },
+            { text: 'What foot changes should I watch for at home?', done: false },
+            { text: 'Would special footwear or physio help?', done: false }
+          ],
+          [
+            { text: 'Do we need circulation or nerve testing?', done: false },
+            { text: 'What activities are safe while this heals?', done: false },
+            { text: 'When should I book a follow-up check?', done: false }
+          ]
+        ]
+      },
+      medication: {
+        badge: 'Clinical guide · Medication Review',
+        batches: [
+          [
+            { text: 'Could this symptom be a medication side effect?', done: false },
+            { text: 'Is there a gentler dose or timing to try?', done: false },
+            { text: 'What should I do if I miss a dose?', done: false }
+          ],
+          [
+            { text: 'Do any of my pills interact with each other?', done: false },
+            { text: 'How long until we know if this change works?', done: false },
+            { text: 'Who do I call if side effects get worse?', done: false }
+          ]
+        ]
+      },
+      general: {
+        badge: 'Clinical guide · Visit Essentials',
+        batches: [
+          [
+            { text: 'What is the most likely cause of my symptoms?', done: false },
+            { text: 'What warning signs mean I should seek urgent care?', done: false },
+            { text: 'What is our main goal before my next visit?', done: false }
+          ],
+          [
+            { text: 'Are any tests needed to be sure?', done: false },
+            { text: 'Are my current medications still right for me?', done: false },
+            { text: 'When should I come back to see you?', done: false }
+          ]
+        ]
+      }
+    };
+
+    let activeWorkflowKey = 'foot';
+    let activeWorkflowBatchIdx = 0;
+    let lastWorkflowSignature = '';
+    let visitQuestions = JSON.parse(JSON.stringify(clinicalWorkflowSets.foot.batches[0]));
+
+    function detectClinicalWorkflowKey() {
+      const who = (steps[2].answer || '').toLowerCase();
+      const concern = (steps[6].answer || '').toLowerCase();
+      const combined = `${who} ${concern}`;
+
+      if (
+        combined.includes('neurolog') ||
+        combined.includes('parkinson') ||
+        combined.includes('stiff') ||
+        combined.includes('tremor') ||
+        combined.includes('balance') ||
+        combined.includes('fall')
+      ) {
+        return 'parkinsons';
+      }
+      if (
+        combined.includes('side effect') ||
+        combined.includes('medicat') ||
+        combined.includes('pill') ||
+        combined.includes('dose')
+      ) {
+        return 'medication';
+      }
+      if (
+        combined.includes('foot') ||
+        combined.includes('toe') ||
+        combined.includes('ankle') ||
+        combined.includes('walk')
+      ) {
+        return 'foot';
+      }
+      return 'general';
+    }
+
+    function syncWorkflowQuestionsIfNeeded() {
+      const signature = `${steps[2].answer || ''}|${steps[6].answer || ''}`;
+      if (signature !== lastWorkflowSignature) {
+        lastWorkflowSignature = signature;
+        activeWorkflowKey = detectClinicalWorkflowKey();
+        activeWorkflowBatchIdx = 0;
+        visitQuestions = JSON.parse(
+          JSON.stringify(clinicalWorkflowSets[activeWorkflowKey].batches[0])
+        );
+      }
+      const badgeEl = document.getElementById('workflowSourceBadge');
+      if (badgeEl) {
+        badgeEl.textContent = clinicalWorkflowSets[activeWorkflowKey].badge;
+      }
+    }
+
+    function cycleWorkflowQuestions() {
+      const set = clinicalWorkflowSets[activeWorkflowKey];
+      activeWorkflowBatchIdx = (activeWorkflowBatchIdx + 1) % set.batches.length;
+      visitQuestions = JSON.parse(JSON.stringify(set.batches[activeWorkflowBatchIdx]));
+      setCompanionState('captured');
+      renderVisitQuestionsChecklist();
+      showToast('Updated clinical questions');
+    }
+
+    // Step 10: Next Steps Checklist
+    let nextStepTasks = [
+      { text: 'Book blood work or tests', selected: false },
+      { text: 'Pick up prescription', selected: false },
+      { text: 'Schedule next visit', selected: false }
+    ];
+
+    // Quick Time Picker State (Step 4)
+    let pickerHour = 10;
+    let pickerMinute = '30';
+    let pickerMeridiem = 'AM';
+
+    // Quick Date Picker State (Multi-Year Support for Steps 3 & 10)
+    let pickerTarget = 'day'; // 'day' | 'nextSteps'
+    let pickerYear = 2026;
+    let pickerMonthIndex = 10; // 0 = Jan, 10 = Nov
+    let pickerDay = 24;
+    let pickerNotBookedYet = false;
+    let showAllMonthsGrid = false;
+
+    const fullMonthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const shortMonthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    // State-Reactive WellHeard Companion Controller
+    let companionResetTimer = null;
+    function setCompanionState(state) {
+      const emblem = document.getElementById('companionEmblem');
+      const dot = document.getElementById('companionStatusDot');
+      const caption = document.getElementById('companionStateCaption');
+      if (!emblem || !dot || !caption) return;
+
+      emblem.classList.remove('companion-listening', 'companion-nod', 'companion-asking');
+      clearTimeout(companionResetTimer);
+
+      if (state === 'asking') {
+        emblem.classList.add('companion-asking');
+        dot.className = 'w-3 h-3 rounded-full bg-[#D97706] border-2 border-[#FAF7F0] absolute -bottom-0.5 -right-0.5';
+        caption.textContent = 'Reid has a quick question';
+        caption.className = 'block text-[11px] font-bold text-[#B45309] mt-0.5 truncate';
+      } else if (state === 'captured') {
+        void emblem.offsetWidth;
+        emblem.classList.add('companion-nod');
+        dot.className = 'w-3 h-3 rounded-full bg-[#B84A27] border-2 border-[#FAF7F0] absolute -bottom-0.5 -right-0.5';
+        caption.textContent = 'Reid got it';
+        caption.className = 'block text-[11px] font-bold text-[#B84A27] mt-0.5 truncate';
+        companionResetTimer = setTimeout(() => {
+          setCompanionState(inputPreference === 'voice' && isListening ? 'listening' : 'paused');
+        }, 1200);
+      } else if (state === 'listening' && inputPreference === 'voice' && isListening) {
+        emblem.classList.add('companion-listening');
+        dot.className = 'w-3 h-3 rounded-full bg-[#3B5E42] border-2 border-[#FAF7F0] absolute -bottom-0.5 -right-0.5';
+        caption.textContent = 'Reid is listening';
+        caption.className = 'block text-[11px] font-bold text-[#3B5E42] mt-0.5 truncate';
+      } else {
+        dot.className = 'w-3 h-3 rounded-full bg-[#64748B] border-2 border-[#FAF7F0] absolute -bottom-0.5 -right-0.5';
+        caption.textContent = inputPreference === 'tap' ? 'Tap / Type mode' : 'Reid is paused';
+        caption.className = 'block text-[11px] font-bold text-[#425268] mt-0.5 truncate';
+      }
+    }
+
+    function setInputMode(mode) {
+      inputPreference = mode;
+      const voiceBtn = document.getElementById('modeVoiceBtn');
+      const tapBtn = document.getElementById('modeTapBtn');
+
+      if (mode === 'voice') {
+        voiceBtn.className = 'tactile-btn flex-1 min-h-[56px] px-3 rounded-[16px] bg-[#1E2634] text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-2xs';
+        voiceBtn.innerHTML = '<span>✓ Speak + Tap</span>';
+        voiceBtn.setAttribute('aria-pressed', 'true');
+
+        tapBtn.className = 'tactile-btn flex-1 min-h-[56px] px-3 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-center gap-2 hover:bg-[#E6DFD0]';
+        tapBtn.innerHTML = '<span>Tap / Type only</span>';
+        tapBtn.setAttribute('aria-pressed', 'false');
+
+        isListening = true;
+        setCompanionState('listening');
+      } else {
+        tapBtn.className = 'tactile-btn flex-1 min-h-[56px] px-3 rounded-[16px] bg-[#1E2634] text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-2xs';
+        tapBtn.innerHTML = '<span>✓ Tap / Type only</span>';
+        tapBtn.setAttribute('aria-pressed', 'true');
+
+        voiceBtn.className = 'tactile-btn flex-1 min-h-[56px] px-3 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-center gap-2 hover:bg-[#E6DFD0]';
+        voiceBtn.innerHTML = '<span>Speak + Tap</span>';
+        voiceBtn.setAttribute('aria-pressed', 'false');
+
+        isListening = false;
+        setCompanionState('paused');
+      }
+    }
+
+    function renderCurrentStep() {
+      const step = steps[currentIndex];
+      const isLanding = step.mode === 'landing';
+
+      // 1. Progress Tracker (hidden on Step 0)
+      const progressHeader = document.getElementById('progressHeader');
+      progressHeader.classList.toggle('hidden', isLanding);
+
+      if (!isLanding) {
+        document.getElementById('stepSubtitle').textContent = step.subtitle;
+        document.getElementById('stepTopicTag').textContent = step.topic;
+
+        [0, 1, 2].forEach((idx) => {
+          const lbl = document.getElementById(`phaseLabel${idx}`);
+          lbl.className = idx === step.phaseIndex ? 'text-[#1E2634]' : 'text-[#425268]';
+        });
+
+        const phaseWidths = [0, 0, 0];
+        if (currentIndex >= 1 && currentIndex <= 6) {
+          phaseWidths[0] = Math.round((currentIndex / 6) * 100);
+        } else if (currentIndex <= 8) {
+          phaseWidths[0] = 100;
+          phaseWidths[1] = Math.round(((currentIndex - 6) / 2) * 100);
+        } else {
+          phaseWidths[0] = 100;
+          phaseWidths[1] = 100;
+          phaseWidths[2] = Math.round(((currentIndex - 8) / 3) * 100);
+        }
+
+        document.getElementById('phaseBar0').style.width = `${phaseWidths[0]}%`;
+        document.getElementById('phaseBar1').style.width = `${phaseWidths[1]}%`;
+        document.getElementById('phaseBar2').style.width = `${phaseWidths[2]}%`;
+      }
+
+      // 2. Toggle Active Workspace Panel
+      document.getElementById('screenLanding').classList.toggle('hidden', step.mode !== 'landing');
+      document.getElementById('voiceCaptureScreen').classList.toggle('hidden', step.mode !== 'voice');
+      document.getElementById('screenDoctorSummary').classList.toggle('hidden', step.mode !== 'doctorSummary');
+      document.getElementById('screenVisitQuestions').classList.toggle('hidden', step.mode !== 'visitQuestions');
+      document.getElementById('screenNextSteps').classList.toggle('hidden', step.mode !== 'nextSteps');
+      document.getElementById('screenShareFinish').classList.toggle('hidden', step.mode !== 'shareFinish');
+
+      // 3. Populate Voice / Preset Screen (Steps 1–6 & 9)
+      if (step.mode === 'voice') {
+        document.getElementById('screenQuestion').textContent = step.question;
+        const helperEl = document.getElementById('screenHelperText');
+        if (step.helperText) {
+          helperEl.textContent = step.helperText;
+          helperEl.classList.remove('hidden');
+        } else {
+          helperEl.classList.add('hidden');
+        }
+
+        // On Step 1 ("What is your name?"), YOUR ANSWER sits immediately below the question,
+        // and "Helping someone else" / "Skip for now" sit below the answer box.
+        const voiceScreen = document.getElementById('voiceCaptureScreen');
+        const boxWrapper = document.getElementById('answerBoxWrapper');
+        const chipsGrid = document.getElementById('quickChipsGrid');
+        if (step.id === 'name') {
+          voiceScreen.insertBefore(boxWrapper, chipsGrid);
+        } else {
+          voiceScreen.insertBefore(chipsGrid, boxWrapper);
+        }
+
+        const input = document.getElementById('answerInput');
+        input.value = step.answer;
+        updateUndoVisibility();
+
+        if (step.customActive) {
+          boxWrapper.classList.add('border-2', 'border-[#1E2634]', 'bg-white');
+          boxWrapper.classList.remove('border', 'border-[#D6CFC0]', 'bg-[#F0EBE1]');
+          input.placeholder = step.customPlaceholder;
+        } else {
+          boxWrapper.classList.remove('border-2', 'border-[#1E2634]', 'bg-white');
+          boxWrapper.classList.add('border', 'border-[#D6CFC0]', 'bg-[#F0EBE1]');
+          input.placeholder = step.defaultPlaceholder;
+        }
+
+        // Hide voice bar if user selected "Tap / Type only"
+        const voiceBarContainer = document.getElementById('voiceBarContainer');
+        voiceBarContainer.classList.toggle('hidden', inputPreference === 'tap');
+        syncVoiceBarVisuals();
+
+        evaluateClarificationForStep(step);
+        renderPresetButtons(step);
+      }
+
+      // 4. Populate Step 7 (Summary for the doctor)
+      if (step.mode === 'doctorSummary') {
+        const patientName = (steps[1].answer || '').trim();
+        document.getElementById('summaryPatientLine').textContent = patientName
+          ? `Patient: ${patientName}`
+          : 'Patient Visit Summary';
+        document.getElementById('sumWho').textContent = steps[2].answer || 'Clinic visit';
+        const dayStr = steps[3].answer || 'Scheduled day';
+        const timeStr = steps[4].answer || 'Scheduled time';
+        document.getElementById('sumWhen').textContent = `${dayStr} · ${timeStr}`;
+        document.getElementById('sumWhere').textContent = steps[5].answer || 'Clinic / Office';
+        document.getElementById('sumConcerns').textContent = steps[6].answer || 'General check-in';
+      }
+
+      // 5. Populate Step 8 (Workflow-Grounded Questions Checklist)
+      if (step.mode === 'visitQuestions') {
+        syncWorkflowQuestionsIfNeeded();
+        renderVisitQuestionsChecklist();
+      }
+
+      // 6. Populate Step 10 (Next Steps)
+      if (step.mode === 'nextSteps') {
+        renderNextStepsScreen();
+      }
+
+      // 7. Populate Step 11 (Share & Finish Recap)
+      if (step.mode === 'shareFinish') {
+        const who = steps[2].answer || 'Doctor visit';
+        const day = steps[3].answer || 'Today';
+        document.getElementById('finalVisitLine').textContent = `${who} · ${day}`;
+        document.getElementById('finalRecapLine').textContent = steps[9].answer || 'Visit completed';
+        document.getElementById('finalTasksLine').textContent = getCompiledTasksText();
+      }
+
+      // 8. Bottom Navigation Row
+      const backBtn = document.getElementById('backNavBtn');
+      const navBuffer = document.getElementById('navBuffer');
+      backBtn.classList.toggle('hidden', currentIndex === 0);
+      navBuffer.classList.toggle('hidden', currentIndex === 0);
+
+      document.getElementById('nextNavLabel').textContent = step.nextLabel;
+      document.getElementById('nextArrowBadge').textContent = currentIndex === steps.length - 1 ? '↺' : '→';
+    }
+
+    function renderPresetButtons(step) {
+      const grid = document.getElementById('quickChipsGrid');
+      const currentVal = (step.answer || '').trim().toLowerCase();
+
+      grid.innerHTML = step.presets
+        .map((preset) => {
+          const isCustomOption = preset === step.customOptionLabel;
+          const isSkipOption = preset === 'Skip for now';
+          const isSelected = isCustomOption
+            ? step.customActive
+            : !step.customActive && currentVal !== '' && currentVal === preset.toLowerCase();
+
+          let btnClasses =
+            'tactile-btn w-full min-h-[54px] px-3 py-2 rounded-[16px] font-extrabold text-[16.5px] flex items-center justify-center text-center leading-tight ';
+
+          if (isSelected) {
+            btnClasses += 'bg-[#1E2634] text-white border-2 border-[#1E2634] shadow-2xs';
+          } else if (isCustomOption) {
+            btnClasses += 'bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634] hover:bg-[#E6DFD0]';
+          } else if (isSkipOption) {
+            btnClasses += 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#425268] hover:bg-[#E6DFD0]';
+          } else {
+            btnClasses += 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] hover:bg-[#E5EFE7]';
+          }
+
+          const displayLabel = isSelected ? `✓ ${escapeHtml(preset)}` : escapeHtml(preset);
+
+          return `
+            <button
+              type="button"
+              onclick="selectPreset('${preset.replace(/'/g, "\\'")}')"
+              aria-pressed="${isSelected}"
+              class="${btnClasses}"
+            >
+              ${displayLabel}
+            </button>
+          `;
+        })
+        .join('');
+    }
+
+    function selectPreset(preset) {
+      const step = steps[currentIndex];
+      const input = document.getElementById('answerInput');
+
+      if (preset === 'Skip for now') {
+        step.customActive = false;
+        step.answer = '';
+        input.value = '';
+        goNext();
+        return;
+      }
+
+      if (preset === 'Pick another date') {
+        openQuickDatePicker('day');
+        return;
+      }
+
+      if (preset === 'Pick exact time') {
+        openQuickTimePicker();
+        return;
+      }
+
+      if (preset === step.customOptionLabel) {
+        step.customActive = true;
+        step.answer = '';
+        input.value = '';
+        renderCurrentStep();
+        input.focus();
+        return;
+      }
+
+      step.customActive = false;
+      step.clarificationDismissed = false;
+      step.answer = preset;
+      input.value = preset;
+      setCompanionState('captured');
+      renderCurrentStep();
+    }
+
+    // Reid's Gentle Clarifying Question Logic
+    function isAnswerUnclear(step) {
+      if (!step || step.mode !== 'voice' || step.clarificationDismissed) return false;
+      const val = (step.answer || '').trim();
+      if (!val) return false;
+      const isPreset = step.presets.some((p) => p.toLowerCase() === val.toLowerCase());
+      if (isPreset) return false;
+      if (step.unclearSample && val.toLowerCase() === step.unclearSample.toLowerCase()) return true;
+      return val.length <= 3;
+    }
+
+    function evaluateClarificationForStep(step) {
+      const card = document.getElementById('samClarifyCard');
+      if (!isAnswerUnclear(step) || !step.clarifyQuestion) {
+        card.classList.add('hidden');
+        return;
+      }
+
+      document.getElementById('samClarifyPrompt').textContent = step.clarifyQuestion;
+      const opts = document.getElementById('samClarifyOptions');
+      opts.innerHTML = step.clarifyChoices
+        .map(
+          (choice) => `
+          <button
+            type="button"
+            onclick="applyClarification('${choice.value.replace(/'/g, "\\'")}')"
+            class="tactile-btn w-full min-h-[46px] px-3 rounded-[14px] bg-[#1E2634] text-white font-extrabold text-sm flex items-center justify-center text-center shadow-2xs"
+          >
+            ${escapeHtml(choice.label)}
+          </button>
+        `
+        )
+        .join('');
+
+      card.classList.remove('hidden');
+      setCompanionState('asking');
+    }
+
+    function applyClarification(resolvedValue) {
+      const step = steps[currentIndex];
+      step.answer = resolvedValue;
+      step.customActive = true;
+      step.clarificationDismissed = true;
+      document.getElementById('answerInput').value = resolvedValue;
+      document.getElementById('samClarifyCard').classList.add('hidden');
+      setCompanionState('captured');
+      renderCurrentStep();
+      showToast('Thanks, updated');
+    }
+
+    function dismissClarification() {
+      const step = steps[currentIndex];
+      step.clarificationDismissed = true;
+      document.getElementById('samClarifyCard').classList.add('hidden');
+      setCompanionState(inputPreference === 'voice' && isListening ? 'listening' : 'paused');
+    }
+
+    function simulateUnclearAnswer() {
+      const step = steps[currentIndex];
+      if (!step || step.mode !== 'voice') return;
+      step.clarificationDismissed = false;
+      step.customActive = true;
+      step.answer = step.unclearSample || 'Hmm';
+      document.getElementById('answerInput').value = step.answer;
+      renderCurrentStep();
+    }
+
+    // Tremor-Friendly Quick Time Picker Logic (Step 4)
+    function openQuickTimePicker() {
+      syncPickerMeridiemButtons();
+      renderTimeHoursGrid();
+      renderTimeMinutesGrid();
+      updateSelectedTimePreview();
+      openModal('quickTimeModal');
+    }
+
+    function selectPickerMeridiem(mer) {
+      pickerMeridiem = mer;
+      syncPickerMeridiemButtons();
+      updateSelectedTimePreview();
+    }
+
+    function syncPickerMeridiemButtons() {
+      const amBtn = document.getElementById('timeAmBtn');
+      const pmBtn = document.getElementById('timePmBtn');
+      const isAm = pickerMeridiem === 'AM';
+
+      amBtn.setAttribute('aria-pressed', String(isAm));
+      amBtn.className = isAm
+        ? 'tactile-btn flex-1 min-h-[50px] px-3 rounded-2xl bg-[#1E2634] text-white border-2 border-[#1E2634] font-extrabold text-base flex items-center justify-center'
+        : 'tactile-btn flex-1 min-h-[50px] px-3 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-center hover:bg-[#E6DFD0]';
+      amBtn.textContent = isAm ? '✓ AM (Morning)' : 'AM (Morning)';
+
+      pmBtn.setAttribute('aria-pressed', String(!isAm));
+      pmBtn.className = !isAm
+        ? 'tactile-btn flex-1 min-h-[50px] px-3 rounded-2xl bg-[#1E2634] text-white border-2 border-[#1E2634] font-extrabold text-base flex items-center justify-center'
+        : 'tactile-btn flex-1 min-h-[50px] px-3 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-center hover:bg-[#E6DFD0]';
+      pmBtn.textContent = !isAm ? '✓ PM (Afternoon / Eve)' : 'PM (Afternoon / Eve)';
+    }
+
+    function renderTimeHoursGrid() {
+      const grid = document.getElementById('timeHoursGrid');
+      const hours = [8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7];
+      grid.innerHTML = hours
+        .map((h) => {
+          const active = h === pickerHour;
+          return `
+            <button
+              type="button"
+              onclick="selectPickerHour(${h})"
+              aria-pressed="${active}"
+              class="tactile-btn min-h-[48px] rounded-[14px] font-extrabold text-base flex items-center justify-center ${
+                active
+                  ? 'bg-[#1E2634] text-white border-2 border-[#1E2634] shadow-2xs'
+                  : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] hover:bg-[#E5EFE7]'
+              }"
+            >
+              ${active ? `✓ ${h}` : h}
+            </button>
+          `;
+        })
+        .join('');
+    }
+
+    function selectPickerHour(h) {
+      pickerHour = h;
+      if (h >= 8 && h <= 11 && pickerMeridiem === 'PM') {
+        selectPickerMeridiem('AM');
+      } else if (h >= 1 && h <= 6 && pickerMeridiem === 'AM') {
+        selectPickerMeridiem('PM');
+      }
+      renderTimeHoursGrid();
+      updateSelectedTimePreview();
+    }
+
+    function renderTimeMinutesGrid() {
+      const grid = document.getElementById('timeMinutesGrid');
+      const mins = ['00', '15', '30', '45'];
+      grid.innerHTML = mins
+        .map((m) => {
+          const active = m === pickerMinute;
+          return `
+            <button
+              type="button"
+              onclick="selectPickerMinute('${m}')"
+              aria-pressed="${active}"
+              class="tactile-btn min-h-[48px] rounded-[14px] font-extrabold text-base flex items-center justify-center ${
+                active
+                  ? 'bg-[#1E2634] text-white border-2 border-[#1E2634] shadow-2xs'
+                  : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] hover:bg-[#E5EFE7]'
+              }"
+            >
+              ${active ? `✓ :${m}` : `:${m}`}
+            </button>
+          `;
+        })
+        .join('');
+    }
+
+    function selectPickerMinute(m) {
+      pickerMinute = m;
+      renderTimeMinutesGrid();
+      updateSelectedTimePreview();
+    }
+
+    function formatPickedTimeString() {
+      return `${pickerHour}:${pickerMinute} ${pickerMeridiem}`;
+    }
+
+    function updateSelectedTimePreview() {
+      document.getElementById('selectedTimePreview').textContent = `Selected: ${formatPickedTimeString()}`;
+    }
+
+    function confirmPickedTime() {
+      const formatted = formatPickedTimeString();
+      closeModal('quickTimeModal');
+      setCompanionState('captured');
+      const step = steps[4]; // Time step
+      step.customActive = true;
+      step.answer = formatted;
+      renderCurrentStep();
+      showToast(`Time set: ${formatted}`);
+    }
+
+    // Multi-Year Quick Date Picker Logic (Steps 3 & 10)
+    function openQuickDatePicker(target = 'day') {
+      pickerTarget = target;
+      showAllMonthsGrid = false;
+      document.getElementById('allMonthsGrid').classList.add('hidden');
+      document.getElementById('dateDaysWrapper').classList.remove('hidden');
+      document.getElementById('monthGridToggleBtn').setAttribute('aria-expanded', 'false');
+      document.getElementById('monthGridCaret').textContent = '▾ All';
+
+      clampPickerDay();
+      renderYearSelectorRow();
+      renderMonthHeaderAndGrid();
+      renderDateDaysGrid();
+      syncNotBookedButton();
+      updateSelectedDatePreview();
+      openModal('quickDateModal');
+    }
+
+    function getVisibleYears() {
+      const base = [2026, 2027, 2028];
+      if (pickerYear > 2028) {
+        return [pickerYear - 2, pickerYear - 1, pickerYear];
+      }
+      return base;
+    }
+
+    function renderYearSelectorRow() {
+      const row = document.getElementById('yearSelectorRow');
+      const years = getVisibleYears();
+      const buttonsHtml = years
+        .map((yr) => {
+          const active = yr === pickerYear;
+          return `
+            <button
+              type="button"
+              onclick="selectPickerYear(${yr})"
+              aria-pressed="${active}"
+              class="tactile-btn flex-1 min-h-[48px] px-1.5 rounded-2xl font-extrabold text-[15px] flex items-center justify-center ${
+                active
+                  ? 'bg-[#1E2634] text-white border-2 border-[#1E2634] shadow-2xs'
+                  : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] hover:bg-[#E6DFD0]'
+              }"
+            >
+              ${active ? `✓ ${yr}` : yr}
+            </button>
+          `;
+        })
+        .join('<div class="w-[12px] shrink-0 dead-zone" aria-hidden="true"></div>');
+
+      row.innerHTML = `
+        ${buttonsHtml}
+        <div class="w-[12px] shrink-0 dead-zone" aria-hidden="true"></div>
+        <button
+          type="button"
+          onclick="incrementPickerYear()"
+          aria-label="Add one year"
+          class="tactile-btn min-h-[48px] px-3 rounded-2xl bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634] font-extrabold text-sm flex items-center justify-center shrink-0 hover:bg-[#E6DFD0]"
+        >
+          + Year
+        </button>
+      `;
+    }
+
+    function selectPickerYear(yr) {
+      pickerYear = yr;
+      clampPickerDay();
+      renderYearSelectorRow();
+      renderMonthHeaderAndGrid();
+      renderDateDaysGrid();
+      updateSelectedDatePreview();
+    }
+
+    function incrementPickerYear() {
+      pickerYear = Math.max(2029, pickerYear + 1);
+      clampPickerDay();
+      renderYearSelectorRow();
+      renderMonthHeaderAndGrid();
+      renderDateDaysGrid();
+      updateSelectedDatePreview();
+    }
+
+    function stepPickerMonth(delta) {
+      let nextMonth = pickerMonthIndex + delta;
+      if (nextMonth < 0) {
+        nextMonth = 11;
+        if (pickerYear > 2026) pickerYear--;
+      } else if (nextMonth > 11) {
+        nextMonth = 0;
+        pickerYear++;
+      }
+      pickerMonthIndex = nextMonth;
+      clampPickerDay();
+      renderYearSelectorRow();
+      renderMonthHeaderAndGrid();
+      renderDateDaysGrid();
+      updateSelectedDatePreview();
+    }
+
+    function toggleMonthGrid() {
+      showAllMonthsGrid = !showAllMonthsGrid;
+      const grid = document.getElementById('allMonthsGrid');
+      const daysWrap = document.getElementById('dateDaysWrapper');
+      const toggleBtn = document.getElementById('monthGridToggleBtn');
+      const caret = document.getElementById('monthGridCaret');
+
+      grid.classList.toggle('hidden', !showAllMonthsGrid);
+      daysWrap.classList.toggle('hidden', showAllMonthsGrid || pickerNotBookedYet);
+      toggleBtn.setAttribute('aria-expanded', String(showAllMonthsGrid));
+      caret.textContent = showAllMonthsGrid ? '▴ Days' : '▾ All';
+      renderMonthHeaderAndGrid();
+    }
+
+    function selectPickerMonthIndex(idx) {
+      pickerMonthIndex = idx;
+      clampPickerDay();
+      showAllMonthsGrid = false;
+      document.getElementById('allMonthsGrid').classList.add('hidden');
+      document.getElementById('dateDaysWrapper').classList.toggle('hidden', pickerNotBookedYet);
+      document.getElementById('monthGridToggleBtn').setAttribute('aria-expanded', 'false');
+      document.getElementById('monthGridCaret').textContent = '▾ All';
+      renderMonthHeaderAndGrid();
+      renderDateDaysGrid();
+      updateSelectedDatePreview();
+    }
+
+    function renderMonthHeaderAndGrid() {
+      document.getElementById('activeMonthYearLabel').textContent =
+        `${fullMonthNames[pickerMonthIndex]} ${pickerYear}`;
+
+      const grid = document.getElementById('allMonthsGrid');
+      grid.innerHTML = shortMonthNames
+        .map((mName, idx) => {
+          const active = idx === pickerMonthIndex;
+          return `
+            <button
+              type="button"
+              onclick="selectPickerMonthIndex(${idx})"
+              aria-pressed="${active}"
+              class="tactile-btn min-h-[48px] rounded-[14px] font-extrabold text-sm flex items-center justify-center ${
+                active
+                  ? 'bg-[#1E2634] text-white border-2 border-[#1E2634]'
+                  : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] hover:bg-[#E5EFE7]'
+              }"
+            >
+              ${active ? `✓ ${mName}` : mName}
+            </button>
+          `;
+        })
+        .join('');
+    }
+
+    function getDaysInMonth(year, monthIndex) {
+      return new Date(year, monthIndex + 1, 0).getDate();
+    }
+
+    function clampPickerDay() {
+      const maxDays = getDaysInMonth(pickerYear, pickerMonthIndex);
+      if (pickerDay > maxDays) pickerDay = maxDays;
+      if (pickerDay < 1) pickerDay = 1;
+    }
+
+    function renderDateDaysGrid() {
+      const grid = document.getElementById('dateDaysGrid');
+      const totalDays = getDaysInMonth(pickerYear, pickerMonthIndex);
+      const tiles = [];
+
+      for (let d = 1; d <= totalDays; d++) {
+        const isSelected = !pickerNotBookedYet && d === pickerDay;
+        tiles.push(`
+          <button
+            type="button"
+            onclick="selectPickerDay(${d})"
+            aria-pressed="${isSelected}"
+            class="tactile-btn min-h-[46px] rounded-[14px] font-extrabold text-[15px] flex items-center justify-center ${
+              isSelected
+                ? 'bg-[#1E2634] text-white border-2 border-[#1E2634] shadow-2xs'
+                : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] hover:bg-[#E5EFE7]'
+            }"
+          >
+            ${isSelected ? `✓ ${d}` : d}
+          </button>
+        `);
+      }
+      grid.innerHTML = tiles.join('');
+    }
+
+    function selectPickerDay(dayNum) {
+      pickerDay = dayNum;
+      pickerNotBookedYet = false;
+      syncNotBookedButton();
+      renderDateDaysGrid();
+      updateSelectedDatePreview();
+    }
+
+    function toggleNotBookedYet() {
+      pickerNotBookedYet = !pickerNotBookedYet;
+      syncNotBookedButton();
+      if (!showAllMonthsGrid) {
+        document.getElementById('dateDaysWrapper').classList.toggle('hidden', pickerNotBookedYet);
+      }
+      renderDateDaysGrid();
+      updateSelectedDatePreview();
+    }
+
+    function syncNotBookedButton() {
+      const btn = document.getElementById('notBookedToggleBtn');
+      btn.setAttribute('aria-pressed', String(pickerNotBookedYet));
+      if (pickerNotBookedYet) {
+        btn.className = 'tactile-btn w-full min-h-[48px] px-4 rounded-[16px] bg-[#1E2634] text-white border-2 border-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2 shrink-0';
+        btn.innerHTML = '<span>✓ Exact date not booked yet</span>';
+      } else {
+        btn.className = 'tactile-btn w-full min-h-[48px] px-4 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2 shrink-0 hover:bg-[#E6DFD0]';
+        btn.innerHTML = '<span>Exact date not booked yet</span>';
+      }
+    }
+
+    function formatPickedDateString() {
+      const shortM = shortMonthNames[pickerMonthIndex];
+      if (pickerNotBookedYet) {
+        return `Approx. ${shortM} ${pickerYear} (not booked yet)`;
+      }
+      const dateObj = new Date(pickerYear, pickerMonthIndex, pickerDay);
+      const weekday = weekdays[dateObj.getDay()];
+      return `${weekday}, ${shortM} ${pickerDay}, ${pickerYear}`;
+    }
+
+    function updateSelectedDatePreview() {
+      document.getElementById('selectedDatePreview').textContent = `Selected: ${formatPickedDateString()}`;
+    }
+
+    function confirmPickedDate() {
+      const formatted = formatPickedDateString();
+      closeModal('quickDateModal');
+      setCompanionState('captured');
+
+      if (pickerTarget === 'nextSteps') {
+        const taskInput = document.getElementById('customTaskInput');
+        const existing = taskInput.value.trim();
+        taskInput.value = existing ? `${existing} (${formatted})` : `Follow-up visit: ${formatted}`;
+        handleCustomTaskInput();
+        showToast('Follow-up date added');
+        return;
+      }
+
+      const step = steps[3]; // Day step
+      step.customActive = true;
+      step.answer = formatted;
+      renderCurrentStep();
+      showToast(`Date set: ${formatted}`);
+    }
+
+    // Simulated Voice Capture + Companion Nod
+    function simulateVoiceAnswer() {
+      const step = steps[currentIndex];
+      if (!step || step.mode !== 'voice') return;
+      const sample = step.simulatedVoiceSample || 'Confirmed';
+      step.answer = sample;
+      step.customActive = true;
+      step.clarificationDismissed = true;
+      document.getElementById('answerInput').value = sample;
+      setCompanionState('captured');
+      renderCurrentStep();
+      showToast('Got it');
+    }
+
+    function syncVoiceBarVisuals() {
+      const btn = document.getElementById('speakToggleBtn');
+      const badge = document.getElementById('micBadge');
+      const label = document.getElementById('speakBtnLabel');
+      const wave = document.getElementById('voiceWave');
+
+      btn.setAttribute('aria-pressed', String(isListening));
+
+      if (isListening) {
+        btn.className = 'tactile-btn w-full min-h-[54px] px-4 rounded-[18px] bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E2634] flex items-center justify-between';
+        badge.className = 'w-9 h-9 rounded-full bg-[#3B5E42] text-white flex items-center justify-center shrink-0';
+        label.textContent = 'Listening — tap to pause';
+        label.className = 'font-extrabold text-base text-[#1E4627] truncate';
+        wave.classList.remove('paused-wave');
+      } else {
+        btn.className = 'tactile-btn w-full min-h-[54px] px-4 rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] flex items-center justify-between';
+        badge.className = 'w-9 h-9 rounded-full bg-[#5D6B7E] text-white flex items-center justify-center shrink-0';
+        label.textContent = 'Paused — tap to speak';
+        label.className = 'font-extrabold text-base text-[#1E2634] truncate';
+        wave.classList.add('paused-wave');
+      }
+    }
+
+    function toggleListening() {
+      isListening = !isListening;
+      syncVoiceBarVisuals();
+      setCompanionState(isListening ? 'listening' : 'paused');
+    }
+
+    function handleTextChange() {
+      const step = steps[currentIndex];
+      step.answer = document.getElementById('answerInput').value;
+      step.clarificationDismissed = false;
+      const matchesPreset = step.presets
+        .filter((p) => p !== step.customOptionLabel && p !== 'Skip for now')
+        .some((p) => p.toLowerCase() === step.answer.trim().toLowerCase());
+      if (!matchesPreset && step.answer.trim().length > 0) {
+        step.customActive = true;
+      }
+      evaluateClarificationForStep(step);
+      renderPresetButtons(step);
+      updateUndoVisibility();
+    }
+
+    function updateUndoVisibility() {
+      const val = document.getElementById('answerInput').value.trim();
+      document.getElementById('undoPillBtn').classList.toggle('hidden', val.length === 0);
+    }
+
+    function undoLastWord() {
+      const input = document.getElementById('answerInput');
+      const words = input.value.trim().split(/\s+/);
+      words.pop();
+      input.value = words.length ? words.join(' ') : '';
+      handleTextChange();
+    }
+
+    // Step 7: Record Visit Toggle & Doctor View
+    function toggleVisitRecording() {
+      isRecording = !isRecording;
+      const btn = document.getElementById('recordVisitBtn');
+      const circle = document.getElementById('recordCircle');
+      const label = document.getElementById('recordBtnLabel');
+
+      btn.setAttribute('aria-pressed', String(isRecording));
+
+      if (isRecording) {
+        btn.className = 'tactile-btn w-full min-h-[60px] px-4 rounded-[18px] bg-[#FEE2E2] border border-[#DC2626]/40 text-[#991B1B] font-extrabold text-base flex items-center justify-between shrink-0';
+        circle.className = 'w-9 h-9 rounded-full bg-[#DC2626] text-white flex items-center justify-center shrink-0 animate-pulse';
+        label.textContent = 'Recording — tap to pause';
+        label.className = 'text-[#991B1B] truncate';
+        recordTimerId = setInterval(() => {
+          recordSeconds++;
+          const m = Math.floor(recordSeconds / 60);
+          const s = String(recordSeconds % 60).padStart(2, '0');
+          document.getElementById('recordTimer').textContent = `${m}:${s}`;
+        }, 1000);
+      } else {
+        clearInterval(recordTimerId);
+        btn.className = 'tactile-btn w-full min-h-[60px] px-4 rounded-[18px] bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E2634] font-extrabold text-base flex items-center justify-between shrink-0';
+        circle.className = 'w-9 h-9 rounded-full bg-[#3B5E42] text-white flex items-center justify-center shrink-0';
+        label.textContent = recordSeconds > 0 ? 'Resume Recording' : 'Record Visit';
+        label.className = 'text-[#1E4627] truncate';
+      }
+    }
+
+    function openFullDoctorCard() {
+      const patientName = (steps[1].answer || '').trim();
+      document.getElementById('fullDocTitle').textContent = patientName
+        ? `Summary for the doctor · ${patientName}`
+        : 'Summary for the doctor';
+      document.getElementById('modalDocWho').textContent = steps[2].answer || 'Clinic visit';
+      const dayStr = steps[3].answer || 'Scheduled day';
+      const timeStr = steps[4].answer || 'Scheduled time';
+      document.getElementById('modalDocWhen').textContent = `${dayStr} · ${timeStr}`;
+      document.getElementById('modalDocWhere').textContent = steps[5].answer || 'Clinic / Office';
+      document.getElementById('modalDocConcerns').textContent = steps[6].answer || 'General check-in';
+      openModal('fullDoctorModal');
+    }
+
+    // Step 8: Your Questions Checklist
+    function renderVisitQuestionsChecklist() {
+      const container = document.getElementById('visitQuestionsContainer');
+      container.innerHTML = visitQuestions
+        .map((q, idx) => {
+          if (q.done) {
+            return `
+              <button
+                type="button"
+                onclick="toggleVisitQuestion(${idx})"
+                aria-pressed="true"
+                class="tactile-btn w-full min-h-[50px] px-3.5 py-2 rounded-[16px] bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634] flex items-center justify-between gap-2 text-left"
+              >
+                <span class="font-bold text-[15px] line-through text-[#425268] leading-snug">${escapeHtml(q.text)}</span>
+                <span class="px-2 py-0.5 rounded-full bg-[#3B5E42] text-white font-extrabold text-[11px] shrink-0">✓ Done</span>
+              </button>
+            `;
+          }
+          return `
+            <button
+              type="button"
+              onclick="toggleVisitQuestion(${idx})"
+              aria-pressed="false"
+              class="tactile-btn w-full min-h-[50px] px-3.5 py-2 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] flex items-center gap-2.5 text-left hover:bg-[#E6DFD0]"
+            >
+              <span class="w-5 h-5 rounded-full bg-white border border-[#D6CFC0] shrink-0"></span>
+              <span class="font-extrabold text-[15.5px] leading-snug">${escapeHtml(q.text)}</span>
+            </button>
+          `;
+        })
+        .join('');
+
+      const asked = visitQuestions.filter((q) => q.done).length;
+      document.getElementById('questionsDoneCounter').textContent = `${asked}/${visitQuestions.length} done`;
+    }
+
+    function toggleVisitQuestion(idx) {
+      visitQuestions[idx].done = !visitQuestions[idx].done;
+      renderVisitQuestionsChecklist();
+    }
+
+    function revealCustomQuestionBox() {
+      document.getElementById('revealAddQuestionBtn').classList.add('hidden');
+      document.getElementById('refreshWorkflowBtn').classList.add('hidden');
+      const box = document.getElementById('inlineAddQuestionBox');
+      box.classList.remove('hidden');
+      document.getElementById('inlineQuestionInput').focus();
+    }
+
+    function saveInlineQuestion() {
+      const input = document.getElementById('inlineQuestionInput');
+      const val = input.value.trim();
+      if (val) {
+        if (visitQuestions.length >= 3) {
+          visitQuestions[visitQuestions.length - 1] = { text: val, done: false };
+        } else {
+          visitQuestions.push({ text: val, done: false });
+        }
+        input.value = '';
+        setCompanionState('captured');
+        showToast('Question added');
+      }
+      document.getElementById('inlineAddQuestionBox').classList.add('hidden');
+      document.getElementById('revealAddQuestionBtn').classList.remove('hidden');
+      document.getElementById('refreshWorkflowBtn').classList.remove('hidden');
+      renderVisitQuestionsChecklist();
+    }
+
+    // Step 10: Next Steps Checklist
+    function renderNextStepsScreen() {
+      const grid = document.getElementById('nextTasksGrid');
+      grid.innerHTML = nextStepTasks
+        .map((task, idx) => {
+          const isSelected = task.selected;
+          const classes = isSelected
+            ? 'tactile-btn w-full min-h-[54px] px-4 py-2 rounded-[16px] bg-[#1E2634] text-white border-2 border-[#1E2634] font-extrabold text-[16.5px] flex items-center justify-between text-left'
+            : 'tactile-btn w-full min-h-[54px] px-4 py-2 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[16.5px] flex items-center justify-between text-left hover:bg-[#E5EFE7]';
+          return `
+            <button
+              type="button"
+              onclick="toggleNextTask(${idx})"
+              aria-pressed="${isSelected}"
+              class="${classes}"
+            >
+              <span>${isSelected ? `✓ ${escapeHtml(task.text)}` : escapeHtml(task.text)}</span>
+            </button>
+          `;
+        })
+        .join('');
+    }
+
+    function toggleNextTask(idx) {
+      nextStepTasks[idx].selected = !nextStepTasks[idx].selected;
+      setCompanionState('captured');
+      renderNextStepsScreen();
+    }
+
+    function handleCustomTaskInput() {
+      const val = document.getElementById('customTaskInput').value.trim();
+      document.getElementById('undoTaskBtn').classList.toggle('hidden', val.length === 0);
+    }
+
+    function clearCustomTask() {
+      document.getElementById('customTaskInput').value = '';
+      handleCustomTaskInput();
+    }
+
+    function getCompiledTasksText() {
+      const picked = nextStepTasks
+        .filter((t) => t.selected)
+        .map((t) => t.text);
+      const extra = document.getElementById('customTaskInput').value.trim();
+      if (extra) picked.push(extra);
+      return picked.length ? picked.join(', ') : 'No tasks added';
+    }
+
+    // Sequential Navigation
+    function saveCurrentStepState() {
+      const step = steps[currentIndex];
+      if (step.mode === 'voice') {
+        step.answer = document.getElementById('answerInput').value;
+      }
+    }
+
+    function goNext() {
+      saveCurrentStepState();
+      if (currentIndex < steps.length - 1) {
+        currentIndex++;
+        renderCurrentStep();
+      } else {
+        resetAllFromSettings(true);
+      }
+    }
+
+    function goBack() {
+      saveCurrentStepState();
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderCurrentStep();
+      }
+    }
+
+    function resetAllFromSettings(skipModalClose = false) {
+      steps.forEach((s) => { if ('answer' in s) s.answer = ''; });
+      try { localStorage.removeItem(STORE); } catch (e) { /* storage blocked */ }
+      steps.forEach((s) => {
+        if ('customActive' in s) s.customActive = false;
+      });
+
+      lastWorkflowSignature = '';
+      activeWorkflowKey = 'foot';
+      activeWorkflowBatchIdx = 0;
+      visitQuestions = JSON.parse(JSON.stringify(clinicalWorkflowSets.foot.batches[0]));
+
+      nextStepTasks = [
+        { text: 'Book blood work or tests', selected: false },
+        { text: 'Pick up prescription', selected: false },
+        { text: 'Schedule next visit', selected: false }
+      ];
+      document.getElementById('customTaskInput').value = '';
+
+
+      if (!skipModalClose) closeModal('helpSettingsModal');
+      currentIndex = 0;
+      renderCurrentStep();
+      showToast('Ready for a new visit');
+    }
+
+    // Utilities & Modals
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function selectWaitOption(btn) {
+      document.querySelectorAll('.wait-btn').forEach((b) => {
+        b.textContent = b.textContent.replace(/^✓\s*/, '');
+        b.className = 'wait-btn tactile-btn flex-1 min-h-[52px] rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base';
+      });
+      const label = btn.textContent.replace(/^✓\s*/, '');
+      btn.textContent = `✓ ${label}`;
+      btn.className = 'wait-btn tactile-btn flex-1 min-h-[52px] rounded-xl bg-[#1E2634] text-white font-extrabold text-base';
+      showToast(`Voice pause timing set to ${label}`);
+    }
+
+    function toggleReadBack() {
+      readAnswersBack = !readAnswersBack;
+      const btn = document.getElementById('readBackToggleBtn');
+      btn.setAttribute('aria-pressed', String(readAnswersBack));
+      if (readAnswersBack) {
+        btn.textContent = 'On';
+        btn.className = 'tactile-btn min-h-[52px] px-5 rounded-xl bg-[#3B5E42] text-white font-extrabold text-base shrink-0';
+      } else {
+        btn.textContent = 'Off';
+        btn.className = 'tactile-btn min-h-[52px] px-5 rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base shrink-0';
+      }
+    }
+
+    let toastTimer;
+    function showToast(msg) {
+      const toast = document.getElementById('toastBanner');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 1800);
+    }
+
+    function toggleInspectMode() {
+      const app = document.getElementById('appContainer');
+      const btn = document.getElementById('inspectToggleBtn');
+      const active = app.classList.toggle('inspect-mode');
+      btn.setAttribute('aria-pressed', String(active));
+      btn.textContent = active ? 'Hide Safe Dead Zones' : 'Highlight Safe Dead Zones';
+    }
+
+
+    // =====================================================================
+    // WellHeard wiring (not in the prototype): saving on this device, Reid's
+    // voice (Azure, Canada Central), listening (Azure, Canada Central), and
+    // Claude's suggested questions. Same server functions as /prep.
+    // =====================================================================
+    const STORE = 'wellheard-new-v1';
+    function saveAll() {
+      try {
+        localStorage.setItem(STORE, JSON.stringify({
+          currentIndex, inputPreference,
+          answers: steps.map((s) => s.answer || ''), custom: steps.map((s) => !!s.customActive),
+          visitQuestions, nextStepTasks, task: (document.getElementById('customTaskInput') || {}).value || '',
+          aiPool, aiAt
+        }));
+      } catch (e) { /* private mode or storage full: carry on without saving */ }
+    }
+    function loadAll() {
+      try {
+        const d = JSON.parse(localStorage.getItem(STORE) || 'null'); if (!d) return;
+        (d.answers || []).forEach((a, i) => { if (steps[i] && 'answer' in steps[i]) steps[i].answer = String(a || ''); });
+        (d.custom || []).forEach((c, i) => { if (steps[i] && 'customActive' in steps[i]) steps[i].customActive = !!c; });
+        if (Array.isArray(d.visitQuestions) && d.visitQuestions.length) visitQuestions = d.visitQuestions;
+        if (Array.isArray(d.nextStepTasks)) nextStepTasks = d.nextStepTasks;
+        if (Array.isArray(d.aiPool)) { aiPool = d.aiPool; aiAt = d.aiAt || 0; }
+        document.getElementById('customTaskInput').value = d.task || '';
+        if (d.inputPreference === 'tap') setInputMode('tap');
+        if (Number.isInteger(d.currentIndex) && d.currentIndex > 0 && d.currentIndex < steps.length) currentIndex = d.currentIndex;
+        lastWorkflowSignature = `${steps[2].answer || ''}|${steps[6].answer || ''}`;
+      } catch (e) { /* bad saved data: start fresh */ }
+    }
+    setInterval(saveAll, 2000);
+    document.addEventListener('visibilitychange', saveAll);
+
+    // ---------- listening, processed in Canada (copied from /prep) ----------
+  class CanadaRec {
+    constructor() {
+      this.lang = "en-CA"; this.continuous = true; this.interimResults = false;
+      this.onstart = this.onresult = this.onerror = this.onend = this.onspeechstart = this.onaudiostart = null;
+      this._results = []; this._running = false; this._pending = 0; this._ending = false;
+    }
+    async start() {
+      if (this._running) return;
+      this._running = true; this._ending = false;
+      CanadaRec.session("play-and-record");
+      try {
+        this._stream = await Promise.race([
+          navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } }),
+          new Promise((_, no) => setTimeout(() => no(Object.assign(new Error("no answer from the microphone"), { name: "Timeout" })), 20000))]);
+      } catch (err) {
+        this._running = false;
+        const e = err && (err.name === "NotAllowedError" || err.name === "SecurityError") ? "not-allowed" : err && err.name === "Timeout" ? "needs-tap" : "audio-capture";
+        if (this.onerror) this.onerror({ error: e }); if (this.onend) this.onend(); return;
+      }
+      if (!this._running) { this._release(); return; }   // stopped while waiting for the microphone
+      // Use the app's own sound system, which the first tap already switched on. A new one made later,
+      // without a tap, stays "suspended" in most browsers and would never hear anything.
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const shared = CanadaRec.sharedCtx && CanadaRec.sharedCtx();
+      try {
+        this._ctx = shared || new AC(); this._ownCtx = !shared;
+        if (this._ctx.state !== "running") await Promise.race([this._ctx.resume(), new Promise(r => setTimeout(r, 1500))]);
+      } catch (err) { console.warn("Listening could not start", err); }
+      if (!this._ctx || this._ctx.state !== "running") {   // the browser wants a tap first
+        this._release(); this._running = false;
+        if (this.onerror) this.onerror({ error: "needs-tap" }); if (this.onend) this.onend(); return;
+      }
+      const src = this._ctx.createMediaStreamSource(this._stream);
+      const rate = this._ctx.sampleRate, step = rate / 16000;
+      // voice activity: a phrase starts when the sound rises well above the room's noise, and ends after a pause
+      let zeroMs = 0, noise = 0.002, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [], lvlT = 0, deadMs = 0;
+      const END_MS = 1100, START_MS = 120, MAX_MS = 25000, blockMs = 4096 / rate * 1000;
+      // handles one block of 4096 samples from the microphone
+      const handle = x => {
+        CanadaRec.beat = this._beat = performance.now();
+        if (!this._running) return;
+        let sum = 0, peak = 0; for (let i = 0; i < x.length; i++) { sum += x[i] * x[i]; const a = x[i] < 0 ? -x[i] : x[i]; if (a > peak) peak = a; }
+        const rms = Math.sqrt(sum / x.length);
+        // muted on the computer (or by a headset switch): nothing at all comes through, not even room noise
+        // A muted Windows microphone isn't always perfectly flat: the browser's noise processing leaves a faint trace.
+        // A live microphone, even in a quiet room, picks up far more than this.
+        if (peak > 0.01) CanadaRec.everHeard = true;
+        zeroMs = peak === 0 ? zeroMs + 4096 / rate * 1000 : 0;
+        if (zeroMs > 2500 && CanadaRec.everHeard && !(this._healT && performance.now() - this._healT < 10000)) { zeroMs = 0; console.info("mic silent: reopening"); this._heal(); return; }
+        // muted: almost nothing. Back: clear sound (a voice), not the faint room noise that flickers around the line.
+        if (peak < 0.0015 && !CanadaRec.everHeard) { deadMs += 4096 / rate * 1000; CanadaRec.dead(deadMs); }
+        else if (deadMs && peak > 0.006) { deadMs = 0; CanadaRec.dead(0); }
+        // downsample to 16 kHz
+        const out = new Float32Array(Math.floor(x.length / step));
+        for (let i = 0; i < out.length; i++) out[i] = x[Math.floor(i * step)];
+        // a computer's microphone hears a voice far more quietly than a phone held close: the bar is low and
+        // follows the room's own noise
+        const loud = rms > Math.max(0.0035, noise * 3.5);
+        const now = performance.now(); if (now - lvlT > 90) { lvlT = now; CanadaRec.level(Math.min(1, rms / Math.max(0.02, noise * 8))); }
+        if (!speaking) {
+          noise = noise * 0.95 + Math.min(rms, 0.05) * 0.05;
+          pre.push(out); if (pre.length > 3) pre.shift();   // keep the start of the first word
+          loudMs = loud ? loudMs + blockMs : 0;
+          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; this._echo = CanadaRec.talkingNow(true); this._gap = this._lastEnd ? performance.now() - this._lastEnd : 1e9; if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); CanadaRec.talkOver(); }
+          return;
+        }
+        buf.push(out);
+        if (CanadaRec.talkingNow(false) && buf.length < 6) this._echo = true;   // the app started speaking just as the phrase began
+        quietMs = loud ? 0 : quietMs + blockMs;
+        const len = buf.length * blockMs;
+        // Short replies ("yes", "next") are finished sooner; long answers keep a longer pause so a breath doesn't cut them.
+        // When the app has just asked "Is that right?", every reply is short.
+        const endMs = CanadaRec.quick || (!CanadaRec.listMode && len < 1600) ? 600 : END_MS;   // lists: a pause starts a new line, so keep it longer
+        if (quietMs >= endMs || len >= MAX_MS) { const b = buf; buf = []; speaking = false; loudMs = 0; this._lastEnd = performance.now() - quietMs; this._send(b, this._gap); }
+      };
+      // The microphone's sound comes through an AudioWorklet: its own sound lane, which iPhones don't pause the way
+      // they sometimes pause the older ScriptProcessor (still used where the newer one isn't available).
+      let proc = null;
+      if (this._ctx.audioWorklet && window.AudioWorkletNode && !CanadaRec.noWorklet) {
+        try {
+          await CanadaRec.loadWorklet(this._ctx);
+          proc = new AudioWorkletNode(this._ctx, "wh-listen", { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1 });
+          proc.port.onmessage = ev => handle(ev.data);
+          CanadaRec.node = "worklet";
+        } catch (err) { console.warn("AudioWorklet unavailable, using the older way", err); proc = null; }
+      }
+      if (!this._running) { this._release(); return; }   // stopped while the sound lane was loading
+      if (!proc) { proc = this._ctx.createScriptProcessor(4096, 1, 1); proc.onaudioprocess = ev => handle(ev.inputBuffer.getChannelData(0)); CanadaRec.node = "script"; }
+      src.connect(proc); proc.connect(this._ctx.destination);
+      if (!this._live) { this._live = true; CanadaRec.live++; }
+      CanadaRec.liveSince = this._liveAt = performance.now(); CanadaRec.cur = this;
+      this._src = src; this._proc = proc; this._flush = () => { if (speaking && buf.length) { const b = buf; buf = []; speaking = false; this._send(b); } };
+      if (this.onstart) this.onstart(); if (this.onaudiostart) this.onaudiostart();
+    }
+    async _send(chunks, gap) {
+      CanadaRec.hearing(false);
+      if (this._echo) { this._echo = false; return; }   // overlapped the app's own voice: don't send it
+      let n = 0; chunks.forEach(c => n += c.length);
+      if (n < 16000 * 0.2) return;   // under 0.2 s: a click (a quick "yes" is longer)
+      const pcm = new Int16Array(n); let o = 0;
+      chunks.forEach(c => { for (let i = 0; i < c.length; i++) { const s = Math.max(-1, Math.min(1, c[i])); pcm[o++] = s < 0 ? s * 0x8000 : s * 0x7fff; } });
+      const wav = new DataView(new ArrayBuffer(44 + pcm.length * 2));
+      const w = (p, s) => { for (let i = 0; i < s.length; i++) wav.setUint8(p + i, s.charCodeAt(i)); };
+      w(0, "RIFF"); wav.setUint32(4, 36 + pcm.length * 2, true); w(8, "WAVE"); w(12, "fmt ");
+      wav.setUint32(16, 16, true); wav.setUint16(20, 1, true); wav.setUint16(22, 1, true); wav.setUint32(24, 16000, true);
+      wav.setUint32(28, 32000, true); wav.setUint16(32, 2, true); wav.setUint16(34, 16, true); w(36, "data"); wav.setUint32(40, pcm.length * 2, true);
+      for (let i = 0; i < pcm.length; i++) wav.setInt16(44 + i * 2, pcm[i], true);
+      this._pending++; CanadaRec.writing(1);
+      try {
+        const r = await fetch("/api/stt?lang=" + (/^fr/i.test(this.lang) ? "fr" : "en"), { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav.buffer });
+        const d = r.ok ? await r.json() : null;
+        if (!r.ok) console.warn("Listening service error", r.status);
+        const text = d && d.ok ? String(d.text || "").trim() : "";
+        if (text && this.onresult && (this._running || this._ending)) {
+          const res = [{ transcript: text, confidence: 1 }]; res.isFinal = true; res.gap = gap === undefined ? 1e9 : gap;
+          this._results.push(res);
+          this.onresult({ resultIndex: this._results.length - 1, results: this._results });
+        }
+      } catch (err) { console.warn("Couldn't reach the listening service", err); }
+      finally { this._pending--; CanadaRec.writing(-1); this._maybeEnd(); }
+    }
+    _release() {
+      try { if (this._proc) { this._proc.onaudioprocess = null; if (this._proc.port) this._proc.port.onmessage = null; this._proc.disconnect(); } if (this._src) this._src.disconnect(); } catch (err) { console.warn(err); }
+      if (this._stream) this._stream.getTracks().forEach(t => t.stop());
+      if (this._ctx && this._ownCtx) this._ctx.close().catch(() => {});
+      this._stream = this._ctx = this._proc = this._src = null;
+      if (this._live) { this._live = false; CanadaRec.live = Math.max(0, CanadaRec.live - 1); }
+      if (CanadaRec.cur === this) CanadaRec.cur = null;
+      CanadaRec.hearing(false); CanadaRec.level(0); if (CanadaRec.deadNow) CanadaRec.dead(0);
+      // Only switch the iPhone back to "playback" when no other listener is open: doing it while one is
+      // listening silences its microphone (the screen still says Listening, but nothing comes through).
+      if (!CanadaRec.live) CanadaRec.session("playback");
+    }
+    // The microphone went completely silent after it had been working (an iPhone switched its sound
+    // away from recording): open it again, without telling the rest of the app.
+    async _heal() {
+      if (!this._running || this._healing) return;
+      this._healing = true; this._healT = performance.now();
+      try { if (this._proc) { this._proc.onaudioprocess = null; if (this._proc.port) this._proc.port.onmessage = null; this._proc.disconnect(); } if (this._src) this._src.disconnect(); } catch (err) { console.warn(err); }
+      if (this._stream) this._stream.getTracks().forEach(t => t.stop());
+      this._stream = this._proc = this._src = null;
+      if (this._live) { this._live = false; CanadaRec.live = Math.max(0, CanadaRec.live - 1); }
+      const on = this.onstart, aud = this.onaudiostart; this.onstart = this.onaudiostart = null;
+      this._running = false; this._healing = false;
+      try { await this.start(); } finally { this.onstart = on; this.onaudiostart = aud; }
+    }
+    _maybeEnd() { if (this._ending && !this._pending) { this._ending = false; if (this.onend) this.onend(); } }
+    stop() {   // finish the phrase being said, deliver it, then end
+      if (!this._running) return;
+      if (this._flush) this._flush();
+      this._running = false; this._ending = true; this._release(); this._maybeEnd();
+    }
+    abort() {  // drop everything, end now
+      const was = this._running || this._ending;
+      this._running = false; this._ending = false; this._release();
+      if (was && this.onend) this.onend();
+    }
+    // Safari 17+: tell the iPhone whether we're only playing sound or also recording,
+    // so the app's voice comes out of the main speaker.
+    static live = 0; static beat = 0; static liveSince = 0; static cur = null; static node = "";
+    // the sound lane: gathers the microphone's sound into blocks of 4096 samples, the size the listening logic expects
+    static loadWorklet(ctx) {
+      if (!ctx._whListen) {
+        const code = "class L extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(4096);this.i=0}process(inp){const c=inp[0]&&inp[0][0];if(c){for(let k=0;k<c.length;k++){this.b[this.i++]=c[k];if(this.i===4096){this.port.postMessage(this.b,[this.b.buffer]);this.b=new Float32Array(4096);this.i=0}}}return true}}registerProcessor('wh-listen',L);";
+        const url = URL.createObjectURL(new Blob([code], { type: "application/javascript" }));
+        ctx._whListen = ctx.audioWorklet.addModule(url).finally(() => URL.revokeObjectURL(url));
+      }
+      return ctx._whListen;
+    }
+    static session(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (err) { console.warn(err); } }
+  }
+
+  CanadaRec.hearing = () => {}; CanadaRec.talkOver = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false; CanadaRec.quick = false; CanadaRec.everHeard = false;
+  CanadaRec.talkingNow = () => speaking;
+
+    let rec = null, speaking = false, audioEl = null, sharedCtx = null;
+    // iPhones only let sound and the microphone start from a tap: switch the sound system on during one
+    function ensureCtx() {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!sharedCtx && AC) { sharedCtx = new AC(); CanadaRec.sharedCtx = () => sharedCtx; }
+        if (sharedCtx && sharedCtx.state !== 'running') sharedCtx.resume();
+      } catch (e) { console.warn('Sound could not start', e); }
+    }
+    function startRec() {
+      if (inputPreference !== 'voice' || !isListening || speaking) return;
+      if (!rec) {
+        rec = new CanadaRec(); rec.lang = 'en-CA';
+        rec.onresult = (e) => {
+          const r = e.results[e.results.length - 1]; const t = (r && r[0] && r[0].transcript || '').trim(); if (!t) return;
+          const step = steps[currentIndex]; if (!step || step.mode !== 'voice') return;
+          const low = t.toLowerCase().replace(/[.!?,]/g, '').trim();
+          if (/^(next|next please|done|i'm done|carry on|continue)$/.test(low)) { goNext(); return; }
+          if (/^(back|go back)$/.test(low)) { goBack(); return; }
+          if (/^(erase|undo|erase that)$/.test(low)) { undoLastWord(); return; }
+          if (/^(repeat|repeat that|say that again)$/.test(low)) { speakStep(); return; }
+          const input = document.getElementById('answerInput');
+          const before = step.customActive ? input.value.trim() : '';
+          input.value = before ? before + ' ' + t : t;
+          handleTextChange(); setCompanionState('captured'); saveAll();
+        };
+        rec.onend = () => { rec = null; if (isListening && !speaking && inputPreference === 'voice' && steps[currentIndex].mode === 'voice') setTimeout(startRec, 300); };
+        rec.onerror = (e) => { console.warn('Listening problem', e && e.error); if (e && (e.error === 'not-allowed' || e.error === 'needs-tap')) { isListening = false; syncVoiceBarVisuals(); setCompanionState('paused'); showToast('Microphone is off. Tap the bar to try again.'); } };
+      }
+      try { rec.start(); } catch (e) { console.warn('Could not start listening', e); }
+    }
+    function stopRec() { if (rec) { try { rec.abort ? rec.abort() : rec.stop(); } catch (e) { /* already stopped */ } rec = null; } }
+    // the prototype's bar now really starts and stops listening
+    toggleListening = function () {
+      ensureCtx(); isListening = !isListening; syncVoiceBarVisuals(); setCompanionState(isListening ? 'listening' : 'paused');
+      if (isListening) startRec(); else stopRec();
+    };
+
+    // ---------- Reid reads each question out loud (Azure neural voice, Canada Central) ----------
+    async function speakStep() {
+      const step = steps[currentIndex];
+      if (inputPreference !== 'voice' || !step || step.mode !== 'voice' || !step.question) return;
+      stopRec(); speaking = true;
+      try {
+        const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: step.question + (step.helperText ? ' ' + step.helperText : '') }) });
+        if (r.ok) {
+          const url = URL.createObjectURL(await r.blob());
+          if (audioEl) audioEl.pause();
+          audioEl = new Audio(url);
+          await new Promise((res) => { audioEl.onended = res; audioEl.onerror = res; audioEl.play().catch(res); });
+          URL.revokeObjectURL(url);
+        }
+      } catch (e) { console.warn('Reid could not speak', e); }
+      speaking = false;
+      if (steps[currentIndex] === step && isListening) startRec();
+    }
+
+    // ---------- Claude's suggested questions (step 8), 3 at a time ----------
+    let aiPool = [], aiAt = 0, aiSig = '';
+    async function fetchClaudeQuestions() {
+      const sig = `${steps[2].answer}|${steps[6].answer}`;
+      if (aiSig === sig && aiPool.length) return;
+      aiSig = sig;
+      const badge = document.getElementById('workflowSourceBadge'); if (badge) badge.textContent = 'Reid is thinking…';
+      try {
+        const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ lang: 'en', seeing: steps[2].answer || '', purpose: steps[6].answer || '', story: '', meds: [], tell: [], ask: [], asked: [] }) });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok && Array.isArray(d.questions) && d.questions.length) {
+          aiPool = d.questions.map((q) => q.q).filter(Boolean); aiAt = 0;
+          visitQuestions = aiPool.slice(0, 3).map((t) => ({ text: t, done: false }));
+          if (badge) badge.textContent = 'Suggested by Claude';
+        } else if (badge) badge.textContent = 'Common questions';
+      } catch (e) { console.warn('Suggestions unavailable', e); if (badge) badge.textContent = 'Common questions'; }
+      if (steps[currentIndex].mode === 'visitQuestions') renderVisitQuestionsChecklist();
+      saveAll();
+    }
+    const protoCycle = cycleWorkflowQuestions;
+    cycleWorkflowQuestions = function () {
+      if (aiPool.length > 3) {
+        aiAt = (aiAt + 3) % aiPool.length;
+        visitQuestions = aiPool.slice(aiAt, aiAt + 3).map((t) => ({ text: t, done: false }));
+        renderVisitQuestionsChecklist(); showToast('More questions'); saveAll(); return;
+      }
+      protoCycle();
+    };
+
+    // ---------- Send to family: the phone's own share sheet ----------
+    function shareRecap() {
+      const text = ['Visit recap', document.getElementById('finalVisitLine').textContent,
+        'What the doctor said: ' + document.getElementById('finalRecapLine').textContent,
+        'Next steps: ' + document.getElementById('finalTasksLine').textContent].join('\n');
+      if (navigator.share) navigator.share({ title: 'Visit recap', text }).catch(() => {});
+      else location.href = 'mailto:?subject=' + encodeURIComponent('Visit recap') + '&body=' + encodeURIComponent(text);
+    }
+
+    // ---------- tie it into the prototype's own render ----------
+    const protoRender = renderCurrentStep;
+    renderCurrentStep = function () {
+      protoRender();
+      const step = steps[currentIndex];
+      if (step.mode === 'visitQuestions' && (steps[2].answer || steps[6].answer)) fetchClaudeQuestions();
+      if (step.mode !== 'voice') stopRec();
+      saveAll();
+    };
+    const protoNext = goNext, protoBack = goBack;
+    goNext = function () {
+      ensureCtx();
+      const was = currentIndex; protoNext();
+      if (currentIndex !== was) {
+        if (was === 0 && inputPreference === 'voice') { isListening = true; syncVoiceBarVisuals(); setCompanionState('listening'); }
+        speakStep();
+      }
+    };
+    goBack = function () { protoBack(); speakStep(); };
+    isListening = false;
+
+    // Initial render
+    loadAll();
+    setCompanionState('listening');
+    renderCurrentStep();
+  </script>
+</body>
+</html>
