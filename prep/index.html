@@ -2140,6 +2140,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
         return false;
       }
       const questionPage = target && /^(ask-\d+|ideas-new|pr-new|rc-more|rv-add|hp-q)$/.test(target.id);
+      if (/^(stop|stop please|please stop|stop it|stop listening|stop talking|pause|pause please|please pause|wait|wait please|wait a (minute|moment|second|sec)|hold on|hang on|one (minute|moment|second)|arr[eê]te|arr[eê]tez|pause s'il (te|vous) pla[iî]t|attends|attendez|un instant)$/.test(x)) { pause(); return true; }
       // a short request for a setting ("slow down please"), not part of an answer (and not while saying questions for the doctor)
       if (!questionPage && api.onSetting && x.split(" ").length <= 7) { const said = api.onSetting(x); if (said) { if (api.onShowHelp) api.onShowHelp(said); sayThen(said + (lastQ ? " " + say("backTo") + " " + lastQ : "")); return true; } }
       if (!questionPage && x.split(" ").length <= 25 && RE_ASK.test(x) && RE_ASK2.test(x) && api.onHelp) { askHelp(x); return true; }
@@ -2424,7 +2425,8 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
       if (!turnWords.length && waitFrom && S.waitMs) {
         // answered within a third of the wait, three times in a row: wait 5 seconds less next time (never under 10)
         const took = Date.now() - waitFrom; waitFrom = 0;
-        if (took < S.waitMs / 3) { S.quickRuns = (S.quickRuns || 0) + 1; if (S.quickRuns >= 3 && S.waitMs > 10000) { S.waitMs = Math.max(10000, S.waitMs - 5000); S.quickRuns = 0; } }
+        if (took < 4000 && S.waitMs > 15000) { S.waitMs = 15000; S.quickRuns = 0; }   // answered right away: back to normal timing
+        else if (took < S.waitMs / 3) { S.quickRuns = (S.quickRuns || 0) + 1; if (S.quickRuns >= 3 && S.waitMs > 10000) { S.waitMs = Math.max(10000, S.waitMs - 5000); S.quickRuns = 0; } }
         else S.quickRuns = 0;
         save();
       }
@@ -3077,6 +3079,25 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     }
     if (has(/ (in french|en français|en francais|parle français|parlez français) /) && !fr) { setTimeout(() => $("change-lang").click(), 0); return "D'accord, on continue en français."; }
     if (has(/ (in english|en anglais) /) && fr) { setTimeout(() => $("change-lang").click(), 0); return "Okay, let's carry on in English."; }
+    const stepNow = S.step, rd = roadOf(stepNow);
+    // moving around: only when the whole thing said is the request, so an answer like "it started at the beginning of May" never moves the page
+    const PRE = "^ (please |ok |okay |can we |can you |could we |let's |lets |i want to |i'd like to |take me |go )*";
+    const cmd = re => new RegExp(PRE + re + "( please| s'il (te|vous) pla[iî]t)? $").test(x);
+    if (cmd("(go )?(back )?(to )?(the )?(beginning|start|top|first question|first step)|start from the (beginning|top)|(retour|retourne[rz]?|revenir|reviens) au d[ée]but|au d[ée]but|premi[eè]re question")) {
+      const first = STEPS.findIndex(s => s.id === "name");
+      setTimeout(() => show(first >= 0 ? first : 0), 50); return fr ? "D'accord, on retourne au début. Vos réponses sont gardées." : "Okay, back to the beginning. Your answers are kept.";
+    }
+    if (cmd("(go )?back( one)?( to the (previous|last) (question|step))?|(the )?previous (question|step)|step back|retour|reviens|revenir|recule[rz]?|(la )?question pr[ée]c[ée]dente")) {
+      setTimeout(() => $("back").click(), 50); return fr ? "D'accord, on revient en arrière." : "Okay, going back.";
+    }
+    if (cmd("skip( this| it| that)?( one| question| step)?|pass|passer|on passe|passe") && STEPS[stepNow] && STEPS[stepNow].skip) {
+      setTimeout(() => $("next").click(), 50); return fr ? "D'accord, on passe celle-ci." : "Okay, skipping this one.";
+    }
+    if (cmd("(where am i|what step am i on|what step is this|which step is this|how many (more|left|steps left|questions left)|how much (more|longer)|are we (almost )?(done|finished)|o[uù] (j'en )?suis(-je)?|combien (d'[ée]tapes )?(il )?reste)") && rd >= 0) {
+      const r = ROAD[rd], left = ROAD.length - rd - 1;
+      return fr ? `Vous êtes à l'étape ${rd + 1} sur ${ROAD.length} : ${r.fr}. ${left ? `Encore ${left} après celle-ci.` : "C'est la dernière."}`
+                : `You're on step ${rd + 1} of ${ROAD.length}: ${r.t}. ${left ? `${left} more after this one.` : "This is the last one."}`;
+    }
     if (has(/ (louder|too quiet|can't hear you|cant hear you|volume|plus fort) /)) return fr ? "Montez le volume avec les boutons sur le côté de votre téléphone, ou sur votre clavier." : "Turn the volume up with the buttons on the side of your phone, or on your keyboard.";
     return null;
   }
