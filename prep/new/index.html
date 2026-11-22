@@ -88,6 +88,19 @@
       65% { transform: translateY(-1px) scale(1.02); }
       100% { transform: translateY(0) scale(1); }
     }
+    /* Reid's face */
+    .reid-face * { transform-box: fill-box; transform-origin: center; }
+    .reid-eyes { animation: reidBlink 5.5s infinite; }
+    @keyframes reidBlink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.12); } }
+    .reid-mouth, .reid-waves, .reid-dots { opacity: 0; transition: opacity .2s; }
+    .reid-talk .reid-smile { opacity: 0; }
+    .reid-talk .reid-mouth { opacity: 1; animation: reidTalk .26s ease-in-out infinite alternate; }
+    @keyframes reidTalk { from { transform: scaleY(.3); } to { transform: scaleY(1.15); } }
+    .companion-listening .reid-waves { opacity: 1; animation: reidWave 1.6s ease-in-out infinite; }
+    @keyframes reidWave { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+    .companion-asking .reid-dots { opacity: 1; }
+    .companion-asking .reid-pupil { transform: translate(.6px, -1.3px); }
+    @media (prefers-reduced-motion: reduce) { .reid-eyes, .reid-talk .reid-mouth, .companion-listening .reid-waves { animation: none; } }
     .companion-listening {
       animation: companionPulse 2.2s ease-in-out infinite;
     }
@@ -151,6 +164,11 @@
     .wide .qtxt, .wide #visitQuestionsContainer span { font-size: 18px !important; }
     .wide #screenDoctorSummary p, .wide #screenNextSteps p, .wide #screenShareFinish p { font-size: 16px !important; }
   </style>
+  <style>
+    #appContainer.narrow > header .text-2xl { font-size: 1.3rem !important; }
+    #appContainer.narrow > header .truncate { overflow: visible; text-overflow: clip; }
+    #appContainer.narrow > header button { padding-left: 10px; padding-right: 10px; }
+  </style>
   <style id="textSizes">
     /* Large / Extra large make the whole page bigger; if a page then runs long, it can scroll */
     .ts-1 #appContainer > section, .ts-2 #appContainer > section { overflow-y: auto !important; }
@@ -175,11 +193,17 @@
           title="Reid — WellHeard's AI helper"
           aria-hidden="true"
         >
-          <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
-            <path d="M14 3.5C7.65 3.5 2.5 7.95 2.5 13.45C2.5 16.12 3.72 18.54 5.72 20.32L4.3 24.1L8.75 22.45C10.35 23 12.12 23.3 14 23.3C20.35 23.3 25.5 18.85 25.5 13.45C25.5 7.95 20.35 3.5 14 3.5Z" fill="#FAF7F0"/>
-            <circle cx="10.4" cy="12.2" r="1.45" fill="#1E2634"/>
-            <circle cx="17.6" cy="12.2" r="1.45" fill="#1E2634"/>
-            <path d="M10.4 15.8C11.4 17.1 13.1 17.6 14.6 17.3C15.9 17.0 17.0 16.2 17.8 15.1" stroke="#3B5E42" stroke-width="2.3" stroke-linecap="round"/>
+          <svg class="reid-face" width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <path class="reid-hair" d="M9 13.5c1.2-5.6 6-8.8 11.4-8.6 5.6.2 9.8 3.6 10.9 8.4-2.6-2.1-6.1-3.1-10.6-3.1-4.6 0-8.6 1.1-11.7 3.3z" fill="#9FC2A6"/>
+            <g class="reid-eyes">
+              <ellipse cx="14.2" cy="18" rx="3.1" ry="3.7" fill="#FAF7F0"/><ellipse cx="25.8" cy="18" rx="3.1" ry="3.7" fill="#FAF7F0"/>
+              <circle class="reid-pupil" cx="14.8" cy="18.6" r="1.6" fill="#1E2634"/><circle class="reid-pupil" cx="26.4" cy="18.6" r="1.6" fill="#1E2634"/>
+            </g>
+            <circle cx="10.2" cy="24.6" r="2.1" fill="#E07A52" opacity=".55"/><circle cx="29.8" cy="24.6" r="2.1" fill="#E07A52" opacity=".55"/>
+            <path class="reid-smile" d="M14.6 25.4Q20 30.6 25.4 25.4" stroke="#9FC2A6" stroke-width="2.6" stroke-linecap="round"/>
+            <ellipse class="reid-mouth" cx="20" cy="27.2" rx="3.4" ry="2.5" fill="#9FC2A6"/>
+            <g class="reid-waves" stroke="#9FC2A6" stroke-width="1.8" stroke-linecap="round"><path d="M34.5 15.5q2 2.5 0 5"/><path d="M37 13.5q3.2 4.5 0 9"/></g>
+            <g class="reid-dots" fill="#FAF7F0"><circle cx="30.5" cy="7" r="1.5"/><circle cx="34.5" cy="4.6" r="1.1"/></g>
           </svg>
           <span id="companionStatusDot" class="w-3 h-3 rounded-full bg-[#3B5E42] border-2 border-[#FAF7F0] absolute -bottom-0.5 -right-0.5"></span>
         </div>
@@ -250,11 +274,12 @@
             Get ready for your appointment
           </h1>
           <p id="landingIntro" class="text-[13px] leading-snug text-[#425268] mt-1 font-medium">
-            Speak or tap with <strong class="text-[#1E2634]">Reid</strong>, WellHeard's AI helper. He builds a clear page for your doctor and suggests questions using Claude, by Anthropic. Your name is never sent.
+            <strong class="text-[#1E2634]">Reid</strong>, your AI helper, makes a clear page for your doctor and suggests questions to ask.
           </p>
+          <button type="button" id="privacyLink" class="mt-1 text-[13px] font-extrabold text-[#3B5E42] underline underline-offset-2 min-h-[36px] text-left">🔒 How your information stays private ›</button>
           <div class="mt-1.5 flex items-stretch gap-[10px]">
           <button type="button" id="langPick" class="tactile-btn min-h-[48px] px-3 rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center gap-2"><span aria-hidden="true">🌐</span><span id="langPickName" data-notr>English</span><span class="text-[#425268]">· Language ›</span></button>
-          <button type="button" id="fsPick" class="hidden tactile-btn flex-1 min-h-[48px] px-3 rounded-xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-sm items-center justify-center gap-2"><span aria-hidden="true">⛶</span><span>Full screen ›</span></button>
+          <button type="button" id="fsPick" class="hidden fs-landing tactile-btn flex-1 min-h-[48px] px-3 rounded-xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-sm items-center justify-center gap-2"><span aria-hidden="true">⛶</span><span>Full screen ›</span></button>
           </div>
         </div>
 
@@ -286,8 +311,8 @@
           </div>
         </div>
 
-        <!-- "How would you like to answer?" Selector (56px buttons + 14px Dead Zone) -->
-        <div class="w-full shrink-0">
+        <!-- "How would you like to answer?" Selector: moved to the Before we start page -->
+        <div class="hidden w-full shrink-0" id="landingModes">
           <p class="text-xs font-extrabold uppercase tracking-wider text-[#1E2634] mb-1.5">
             How would you like to answer?
           </p>
@@ -2457,7 +2482,7 @@
       'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
       'Private: everything stays on this device.': 'Privé : tout reste sur cet appareil.',
-      'Help / Settings': 'Aide / Réglages', 'Help': 'Aide', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'Full screen ›': 'Plein écran ›', 'Which day is the appointment?': 'Quel jour est le rendez-vous ?', 'Tap the day, or say it.': 'Touchez le jour, ou dites-le.', 'What time is the appointment?': 'À quelle heure est le rendez-vous ?', 'Tap the hour, then the minutes, or say it.': 'Touchez l’heure, puis les minutes, ou dites-la.', 'Please turn your phone upright.': 'Veuillez tenir votre téléphone à la verticale.', 'WellHeard is easier to read this way.': 'WellHeard est plus facile à lire ainsi.', 'Use WellHeard full screen ›': 'Utiliser WellHeard en plein écran ›', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Vous pouvez me parler ou toucher l'écran. Je prépare une page claire pour votre médecin et je suggère des questions avec Claude, d'Anthropic. Votre nom n'est jamais envoyé.", 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
+      'Help / Settings': 'Aide / Réglages', 'Help': 'Aide', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'Before we start': 'Avant de commencer', '🔒 How your information stays private ›': '🔒 Comment vos renseignements restent privés ›', ', your AI helper, makes a clear page for your doctor and suggests questions to ask.': ', votre assistant IA, prépare une page claire pour votre médecin et suggère des questions.', "Hi, I'm Reid, WellHeard's AI helper. I'll make a clear page for your doctor and suggest questions to ask. You can speak or tap with me.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Je prépare une page claire pour votre médecin et je suggère des questions. Vous pouvez me parler ou toucher l'écran.", 'Full screen ›': 'Plein écran ›', 'Which day is the appointment?': 'Quel jour est le rendez-vous ?', 'Tap the day, or say it.': 'Touchez le jour, ou dites-le.', 'What time is the appointment?': 'À quelle heure est le rendez-vous ?', 'Tap the hour, then the minutes, or say it.': 'Touchez l’heure, puis les minutes, ou dites-la.', 'Please turn your phone upright.': 'Veuillez tenir votre téléphone à la verticale.', 'WellHeard is easier to read this way.': 'WellHeard est plus facile à lire ainsi.', 'Use WellHeard full screen ›': 'Utiliser WellHeard en plein écran ›', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Vous pouvez me parler ou toucher l'écran. Je prépare une page claire pour votre médecin et je suggère des questions avec Claude, d'Anthropic. Votre nom n'est jamais envoyé.", 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
       '1. Prepare': '1. Préparer', '2. At Visit': '2. Au rendez-vous', '3. After': '3. Après',
       'What is your name?': 'Comment vous appelez-vous ?', 'Optional — only shown on your doctor summary.': 'Facultatif — seulement sur le résumé pour le médecin.',
       'Helping someone else': "J'aide quelqu'un", 'Skip for now': 'Passer pour l’instant',
@@ -2796,8 +2821,9 @@
         }, () => res(false));
       });
     }
+    function talkFace(on) { const e = document.getElementById('companionEmblem'); if (e) e.classList.toggle('reid-talk', !!on); }
     function hush(listen) {
-      const was = speaking;
+      const was = speaking; talkFace(false);
       sayGen++; clearTimeout(duckTimer); ducked = false;
       if (audioEl) { const a = audioEl; audioEl = null; try { a.pause(); } catch (e) { /* already stopped */ } if (a.onended) a.onended(); }
       speaking = false;
@@ -2920,7 +2946,7 @@
     // ---------- Reid speaks (Azure neural voices, Canada Central) ----------
     async function say(text, raw) {
       if (!text || inputPreference !== 'voice' || !readAloud) return;
-      hush(); const g = sayGen; speaking = true; speakStart = performance.now();
+      hush(); const g = sayGen; speaking = true; speakStart = performance.now(); talkFace(true);
       if (isMT() && !raw && !Object.values(uic()).includes(text)) { text = await mt(text); if (g !== sayGen) return; }
       talkWords = new Set(vwords(text));
       if (IOS) stopRec(); else if (isListening) startRec();
@@ -2947,7 +2973,7 @@
         }
       } catch (e) { console.warn('Reid could not speak', e); }
       if (g !== sayGen) return;
-      speaking = false; audioEl = null;
+      speaking = false; audioEl = null; talkFace(false);
       if (isListening) startRec();
     }
     function speakStep() {
@@ -3521,6 +3547,8 @@
       const step = steps[currentIndex], $ = (id) => document.getElementById(id);
       const items = $('listItems'), foot = $('listFoot');
       $('listCounter').classList.remove('hidden');
+      document.getElementById('listItems').classList.remove('overflow-y-auto');
+      if (step.mode === 'setup') { renderSetup(items, foot); return; }
       if (step.mode === 'ideas') {
         const pool = ideaPool(), cur = curIdea(), done = pool.filter((q) => qPicked.includes(q) || qSkipped.includes(q)).length;
         qShown = cur ? [cur] : [];
@@ -3653,6 +3681,7 @@
     const stop = (t) => /[.!?]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
     const readList = () => qShown.map((q, i) => `${i + 1}. ${stop(q)}`).join(' ');
     const EXPLAIN = {
+      setup: () => L2('This page sets up WellHeard for you. Tap Change to pick your language. Tap a bigger A for bigger text. Choose speak and tap, or tap and type. Turn Reid’s reading on or off. Then tap Next.', 'Cette page règle WellHeard pour vous. Touchez Changer pour la langue, un plus grand A pour un texte plus grand, puis Suivant.'),
       ideas: () => L2('Reid suggests questions one at a time. For each, tap or say yes to add it, no to skip it, or most important. Previous goes back one. Your own adds a question. Reid, more asks Claude for new ideas. ', 'Reid propose une question à la fois. Pour chacune, dites oui, non, ou très important. ') + (curIdea() ? stop(curIdea()) : '')
         + L2(' Tap the ones you want, or say their number. Say more for others. Then say next.', ' Touchez celles que vous voulez, ou dites leur numéro. Dites plus pour en voir d’autres. Puis dites suivant.'),
       priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Tap or say the most important first. Then say next.', ' Touchez ou dites la plus importante en premier. Puis dites suivant.')
@@ -3671,6 +3700,7 @@
       ideas: () => curIdea() ? L2('Would you like to ask the doctor: ', 'Voulez-vous demander au médecin : ') + stop(curIdea()) + L2(' Say yes, no, or most important.', ' Dites oui, non, ou très important.') : L2('That’s all my suggestions. Would you like me to suggest more?', 'C’est tout. Voulez-vous que j’en suggère d’autres ?'),
       priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Say the number of the most important one.', ' Dites le numéro de la plus importante.') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       review: () => L2('Does everything look right?', 'Est-ce que tout est correct ?'),
+      setup: () => L2('Before we start, would you like to change the language or the text size?', 'Avant de commencer, voulez-vous changer la langue ou la taille du texte ?'),
       doctorSummary: () => L2('Would you like to print the summary for your doctor?', 'Voulez-vous imprimer le résumé pour votre médecin ?'),
       visitQuestions: () => chosen().length ? L2('Which questions has the doctor answered? ', 'À quelles questions le médecin a-t-il répondu ? ') + visitQuestions.slice(vStarts[vPage] || 0, vStarts[vPage + 1] || QP()).map((q, i) => `${i + 1}. ${stop(q.text)}`).join(' ') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       nextSteps: () => L2('What happens next?', 'Et ensuite ?'),
@@ -3742,14 +3772,14 @@
     function readLanding() {
       // what's on the first page, in the language it's showing, without the buttons' small print
       const root = document.getElementById('screenLanding'), bits = [];
-      root.querySelectorAll('h1, p').forEach((el) => { if (el.id === 'landingIntro') return; const t = el.textContent.replace(/\s+/g, ' ').trim(); if (t) bits.push(/[.!?:。？！]$/.test(t) ? t : t + '.'); });
+      root.querySelectorAll('h1, p').forEach((el) => { if (el.id === 'landingIntro' || el.closest('#landingModes')) return; const t = el.textContent.replace(/\s+/g, ' ').trim(); if (t) bits.push(/[.!?:。？！]$/.test(t) ? t : t + '.'); });
       const modes = [...root.querySelectorAll('button[onclick*="setInputMode"]')].map((b) => b.textContent.replace(/[✓]/g, '').replace(/\s*\+\s*/g, isMT() ? ', ' : lang === 'fr' ? ' et ' : ' and ').replace(/\s*\/\s*/g, isMT() ? ', ' : lang === 'fr' ? ' ou ' : ' or ').replace(/\s+/g, ' ').trim()).filter(Boolean);
       const q = bits.findIndex((t) => /answer|répondre/i.test(t) && /\?/.test(t));
       if (modes.length && q > -1) bits.splice(q + 1, 0, modes.join(lang === 'fr' ? ', ou ' : ', or ') + '.');
       return bits.join(' ');
     }
     // Reid reads the first page himself, in the first person
-    const INTRO = "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.";
+    const INTRO = "Hi, I'm Reid, WellHeard's AI helper. I'll make a clear page for your doctor and suggest questions to ask. You can speak or tap with me.";
     async function readFirstPage() {
       const g = sayGen;
       const intro = isMT() ? await mt(INTRO) : tr(INTRO), ready = isMT() ? await mt('When you are ready, tap Get started.') : tr('When you are ready, tap Get started.');
@@ -3830,6 +3860,7 @@
       const ts = [1, 1.18, 1.36][textSize] || 1; z *= ts; w /= ts; h /= ts;
       document.documentElement.classList.toggle('ts-1', textSize === 1); document.documentElement.classList.toggle('ts-2', textSize === 2);
       const hs = document.getElementById('hsLabel'); if (hs) { hs.textContent = w < 385 ? 'Help' : 'Help / Settings'; }
+      main.classList.toggle('narrow', w < 385);
       main.style.zoom = z; main.style.width = w + 'px'; main.style.maxWidth = 'none'; main.style.height = h + 'px';
       if (LISTMODES[steps[currentIndex].mode]) renderList();
       if (steps[currentIndex].mode === 'visitQuestions') renderVisitQuestionsChecklist();
@@ -3886,8 +3917,43 @@
     }
     fsSheet.addEventListener('click', (e) => { if (e.target.closest('[data-f]') || e.target === fsSheet) { fsSheet.classList.add('hidden'); hush(true); sessionStorage.setItem('wh-fs', '1'); } });
     const fsPick = document.getElementById('fsPick');
-    if (inSafariOnly) { fsPick.classList.remove('hidden'); fsPick.classList.add('flex'); }
+    // (the first page's button is replaced by the row on 'Before we start')
     fsPick.addEventListener('click', () => { ensureCtx(); showFS(); });
+
+
+    // ---------- "Before we start": language, text size, how you answer, Reid's voice, full screen ----------
+    steps.splice(1, 0, { id: 'setup', phaseIndex: 0, mode: 'setup', topic: 'Before we start', question: 'Before we start', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] });
+    LISTMODES.setup = 1;
+    function renderSetup(items, foot) {
+      const $ = (id) => document.getElementById(id), fr = lang === 'fr';
+      $('listTitle').textContent = L2('Before we start', 'Avant de commencer');
+      $('listHelp').textContent = L2('Change anything you like. You can change these later in Help / Settings.', 'Changez ce que vous voulez. Vous pourrez les changer plus tard dans Aide / Réglages.');
+      $('listCounter').classList.add('hidden');
+      const lab = (t) => `<p class="text-[12px] font-extrabold uppercase tracking-wider text-[#425268] -mb-1">${t}</p>`;
+      const ON = 'bg-[#1E2634] text-white', OFF = 'bg-white border border-[#D6CFC0] text-[#1E2634]';
+      const two = (k, a, b, onA) => `<div class="flex items-stretch"><button type="button" data-su="${k}" data-v="1" class="tactile-btn flex-1 min-h-[54px] rounded-2xl font-extrabold text-[16px] ${onA ? ON : OFF}">${onA ? '✓ ' : ''}${a}</button><div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-su="${k}" data-v="0" class="tactile-btn flex-1 min-h-[54px] rounded-2xl font-extrabold text-[16px] ${!onA ? ON : OFF}">${!onA ? '✓ ' : ''}${b}</button></div>`;
+      items.innerHTML = `${lab(L2('Language', 'Langue'))}
+        <button type="button" data-su="lang" class="tactile-btn w-full min-h-[54px] px-4 rounded-2xl ${OFF} font-extrabold text-[16px] flex items-center justify-between"><span><span aria-hidden="true">🌐</span> <span data-notr>${esc(langName(lang))}</span></span><span class="text-[#425268]">${L2('Change', 'Changer')} ›</span></button>
+        ${lab(L2('Text size', 'Taille du texte'))}
+        <div class="flex items-stretch gap-[10px]">${[[0, L2('Normal', 'Normal')], [1, L2('Large', 'Grand')], [2, L2('Extra large', 'Très grand')]].map(([v, t]) => `<button type="button" data-su="ts" data-v="${v}" class="tactile-btn flex-1 min-h-[58px] rounded-2xl ${textSize === v ? ON : OFF} font-extrabold flex flex-col items-center justify-center leading-none"><span style="font-size:${16 + v * 6}px">A</span><span class="text-[12px] mt-1">${t}</span></button>`).join('')}</div>
+        ${lab(L2('How you answer', 'Comment vous répondez'))}
+        ${two('mode', L2('Speak + tap', 'Parler + toucher'), L2('Tap + type', 'Toucher + écrire'), inputPreference === 'voice')}
+        ${lab(L2('Reid reads questions aloud', 'Reid lit les questions'))}
+        ${two('read', L2('On', 'Oui'), L2('Off', 'Non'), readAloud)}
+        ${inSafariOnly ? `<button type="button" data-su="fs" class="tactile-btn w-full min-h-[54px] px-4 rounded-2xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-[16px] flex items-center justify-between mt-1"><span>⛶ ${L2('Make it full screen', 'Mettre en plein écran')}</span><span>›</span></button>` : ''}`;
+      items.classList.add('overflow-y-auto'); foot.innerHTML = '';
+    }
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-su]'); if (!b) return; ensureCtx();
+      const k = b.dataset.su, on = b.dataset.v === '1';
+      if (k === 'lang') { openModal('helpSettingsModal'); setView = 'answer'; spokenView = null; renderSettings(); applyLang(); return; }
+      if (k === 'fs') { showFS(); return; }
+      if (k === 'ts') { textSize = Number(b.dataset.v); applyTextSize(); }
+      if (k === 'mode') { setInputMode(on ? 'voice' : 'tap'); if (!on) stopRec(); }
+      if (k === 'read') { readAloud = on; if (!on) hush(); }
+      saveAll(); renderList(); applyLang();
+    });
+    document.getElementById('privacyLink').addEventListener('click', () => { ensureCtx(); openModal('helpSettingsModal'); setView = 'privacy'; spokenView = null; renderSettings(); applyLang(); });
 
     // tap Reid (top left) to pause or resume listening, on any screen
     (function () {
