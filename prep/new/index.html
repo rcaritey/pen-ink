@@ -836,7 +836,7 @@
       aria-modal="true"
       aria-labelledby="settingsTitle"
     >
-      <div class="w-full bg-[#FAF7F0] rounded-t-[32px] p-5 flex flex-col gap-3.5 border-t-2 border-[#1E2634]">
+      <div class="w-full bg-[#FAF7F0] rounded-t-[32px] p-5 flex flex-col gap-3.5 border-t-2 border-[#1E2634] max-h-[96%] overflow-y-auto">
         <div class="flex items-center justify-between">
           <h2 id="settingsTitle" class="text-xl font-extrabold text-[#1E2634]">
             Help &amp; Settings
@@ -2461,7 +2461,7 @@
     function saveAll() {
       try {
         localStorage.setItem(STORE, JSON.stringify({
-          currentIndex, inputPreference, lang, slowVoice, readAloud, transcript, recapDone, recapContact,
+          currentIndex, inputPreference, lang, slowVoice, readAloud, voiceName, transcript, recapDone, recapContact,
           answers: Object.fromEntries(steps.filter((s) => 'answer' in s).map((s) => [s.id, s.answer || ''])),
           custom: Object.fromEntries(steps.filter((s) => 'customActive' in s).map((s) => [s.id, !!s.customActive])),
           visitQuestions, nextStepTasks, task: document.getElementById('customTaskInput').value || '', aiPool, aiAt, ownQs, vagueOk
@@ -2477,7 +2477,7 @@
         if (Array.isArray(d.nextStepTasks)) nextStepTasks = d.nextStepTasks;
         aiPool = Array.isArray(d.aiPool) ? d.aiPool : []; aiAt = d.aiAt || 0; ownQs = Array.isArray(d.ownQs) ? d.ownQs : [];
         vagueOk = d.vagueOk || {}; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || '';
-        lang = d.lang === 'fr' ? 'fr' : 'en'; slowVoice = !!d.slowVoice; readAloud = d.readAloud !== false;
+        lang = d.lang === 'fr' ? 'fr' : 'en'; slowVoice = !!d.slowVoice; voiceName = typeof d.voiceName === 'string' ? d.voiceName : ''; readAloud = d.readAloud !== false;
         document.getElementById('customTaskInput').value = d.task || '';
         if (d.inputPreference === 'tap') setInputMode('tap');
         if (Number.isInteger(d.currentIndex) && d.currentIndex > 0 && d.currentIndex < steps.length) currentIndex = d.currentIndex;
@@ -2715,7 +2715,7 @@
       stopRec(); speaking = true;
       try {
         const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, slow: slowVoice, voice: lang === 'fr' ? 'fr-CA-SylvieNeural' : undefined }) });
+          body: JSON.stringify({ text, slow: slowVoice, voice: voiceName || (lang === 'fr' ? 'fr-CA-SylvieNeural' : undefined) }) });
         if (r.ok) {
           const url = URL.createObjectURL(await r.blob());
           if (audioEl) audioEl.pause();
@@ -2926,47 +2926,107 @@
     const B = 'tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2';
     const BON = 'tactile-btn flex-1 min-h-[52px] rounded-xl bg-[#1E2634] text-white font-extrabold text-base';
     const BOFF = 'tactile-btn flex-1 min-h-[52px] rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base';
+    let setView = 'menu', voiceName = '';
     function renderSettings() {
       const fr = lang === 'fr', panel = document.querySelector('#helpSettingsModal > div');
+      const T = (en, f) => fr ? f : en;
       const pair = (k, a, b, on) => `<div class="flex items-stretch"><button type="button" data-set="${k}" data-v="1" class="${on ? BON : BOFF}">${on ? '✓ ' : ''}${a}</button><div class="w-[14px] shrink-0"></div><button type="button" data-set="${k}" data-v="0" class="${!on ? BON : BOFF}">${!on ? '✓ ' : ''}${b}</button></div>`;
-      const card = (h, inner, sub) => `<div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5 space-y-2"><p class="font-extrabold text-base text-[#1E2634]">${h}</p>${sub ? `<p class="text-xs text-[#425268]">${sub}</p>` : ''}${inner}</div>`;
-      panel.innerHTML = `<div class="flex items-center justify-between"><h2 id="settingsTitle" class="text-xl font-extrabold text-[#1E2634]">${fr ? 'Aide et réglages' : 'Help & Settings'}</h2>
-          <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm">${fr ? 'Terminé' : 'Done'}</button></div>
-        <div class="flex flex-col gap-3.5 overflow-y-auto" style="max-height:72vh">
-        ${steps[currentIndex].mode !== 'landing' ? `<button type="button" data-act="explain" class="${B}">${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
-        ${card(fr ? 'Ce que vous pouvez dire' : 'What you can say', `<p class="text-sm text-[#1E2634] leading-snug">${fr ? '« Suivant » · « Retour » · « Efface » · « Répète » · « Pause » · « Aide », ou posez une question.' : '"Next" · "Back" · "Erase" · "Repeat" · "Pause" · "Help", or ask Reid a question.'}</p>`)}
-        ${card(fr ? 'Langue' : 'Language', pair('lang', 'English', 'Français', lang === 'en'))}
-        ${card(fr ? 'Reid lit les questions à voix haute' : 'Reid reads questions aloud', pair('read', fr ? 'Oui' : 'On', fr ? 'Non' : 'Off', readAloud))}
-        ${card(fr ? 'Vitesse de la voix' : 'Voice speed', pair('slow', fr ? 'Normale' : 'Normal', fr ? 'Plus lente' : 'Slower', !slowVoice))}
-        ${card(fr ? 'Vos renseignements' : 'Your information', '', fr ? "Tout reste sur cet appareil. La voix et l'écoute de Reid passent par Microsoft Azure au Canada et rien n'est gardé. Les suggestions viennent de Claude (Anthropic) ; votre nom n'est jamais envoyé. L'enregistrement garde seulement les mots, ici." : "Everything stays on this device. Reid's voice and listening go through Microsoft Azure in Canada, and nothing is kept there. Suggestions come from Claude (Anthropic); your name is never sent. Recording keeps only the words, here.")}
-        <button type="button" data-act="backup" class="${B}">${fr ? 'Sauvegarder (pour un autre appareil)' : 'Save a backup (for another device)'}</button>
-        <label class="${B} cursor-pointer">${fr ? 'Ouvrir une sauvegarde' : 'Open a backup'}<input type="file" accept=".json,application/json" data-act="open" class="hidden"></label>
-        <button type="button" data-act="erase" class="${B}">${fr ? '↺ Effacer mes réponses' : '↺ Erase my answers'}</button>
-        <p class="text-xs text-center text-[#425268]">${fr ? 'Besoin d’aide ? hello@pen-ink.ca' : 'Need help? hello@pen-ink.ca'} · Pen &amp; Ink</p></div>`;
+      const card = (h, inner, sub) => `<div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5 space-y-2"><p class="font-extrabold text-base text-[#1E2634]">${h}</p>${sub ? `<p class="text-sm text-[#425268] leading-snug">${sub}</p>` : ''}${inner}</div>`;
+      // one row of the main menu: big, icon-free, label on the left, current setting and › on the right
+      const row = (k, label, val) => `<button type="button" data-go="${k}" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-between gap-2 text-left"><span>${label}</span><span class="text-sm text-[#425268] font-bold shrink-0">${val || ''} ›</span></button>`;
+      const head = (title, back) => `<div class="flex items-center justify-between gap-2">${back ? `<button type="button" data-go="menu" class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">‹ ${T('Back', 'Retour')}</button>` : ''}<h2 id="settingsTitle" class="text-xl font-extrabold text-[#1E2634] flex-1 ${back ? 'text-center' : ''}">${title}</h2>
+          <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm">${T('Done', 'Terminé')}</button></div>`;
+      const onStep = steps[currentIndex].mode !== 'landing';
+      let body = '';
+      if (setView === 'menu') {
+        body = head(T('Help & Settings', 'Aide et réglages')) + `<div class="flex flex-col gap-[10px]">
+          ${onStep ? `<button type="button" data-act="explain" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">${T('Explain this screen', 'Expliquer cet écran')}</button>` : ''}
+          ${row('say', T('What you can say', 'Ce que vous pouvez dire'))}
+          ${row('voice', T("Reid's voice", 'La voix de Reid'), (readAloud ? T('On', 'Oui') : T('Off', 'Non')) + ' · ' + (slowVoice ? T('Slower', 'Lente') : T('Normal', 'Normale')))}
+          ${row('answer', T('Language & answering', 'Langue et réponses'), (fr ? 'Français' : 'English') + ' · ' + (inputPreference === 'voice' ? T('Talking', 'Parler') : T('Typing', 'Écrire')))}
+          ${onStep ? row('steps', T('See all steps', 'Voir toutes les étapes')) : ''}
+          ${row('pages', T('Print or share my pages', 'Imprimer ou partager'))}
+          ${row('privacy', T('Your privacy', 'Vos renseignements'))}
+          ${row('device', T('Another phone or computer', 'Un autre appareil'))}
+          <button type="button" data-act="erase" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">↺ ${T('Erase my answers', 'Effacer mes réponses')}</button>
+          <p class="text-xs text-center text-[#425268]">${T('Need help?', 'Besoin d’aide ?')} hello@pen-ink.ca · Pen &amp; Ink</p></div>`;
+      } else if (setView === 'say') {
+        const li = (a, b) => `<li class="flex justify-between gap-3 py-1.5 border-b border-[#D6CFC0]"><b class="text-[#1E2634]">${a}</b><span class="text-[#425268] text-right">${b}</span></li>`;
+        body = head(T('What you can say', 'Ce que vous pouvez dire'), 1) + card(T('Say any of these, any time', 'Dites-les à tout moment'), `<ul class="text-sm">
+          ${li(T('"Next"', '« Suivant »'), T("I'm done with this answer", "J'ai fini cette réponse"))}
+          ${li(T('"Back"', '« Retour »'), T('Previous question', 'Question précédente'))}
+          ${li(T('"Erase"', '« Efface »'), T('Take back the last word', 'Retirer le dernier mot'))}
+          ${li(T('"Repeat"', '« Répète »'), T('Hear the question again', 'Réentendre la question'))}
+          ${li(T('"Pause"', '« Pause »'), T('Reid stops listening', 'Reid arrête d’écouter'))}
+          ${li(T('"Help"', '« Aide »'), T('Reid explains the screen', 'Reid explique l’écran'))}</ul>`,
+          T('You can also ask Reid a question, like "What does that mean?" He answers in a few words. For medical questions, he\'ll suggest asking your doctor.', 'Vous pouvez aussi poser une question à Reid, comme « Qu’est-ce que ça veut dire ? ». Pour les questions médicales, il vous suggérera de demander au médecin.'));
+      } else if (setView === 'voice') {
+        body = head(T("Reid's voice", 'La voix de Reid'), 1) + `<div class="flex flex-col gap-[12px]">
+          ${card(T('Reads each question aloud', 'Lit chaque question à voix haute'), pair('read', T('On', 'Oui'), T('Off', 'Non'), readAloud))}
+          ${card(T('Speed', 'Vitesse'), pair('slow', T('Normal', 'Normale'), T('Slower', 'Plus lente'), !slowVoice))}
+          ${card(T('Voice', 'Voix'), pair('voicename', fr ? 'Sylvie' : 'Liam', fr ? 'Antoine' : 'Clara', !voiceName))}
+          ${card(T('Hear it', 'Écouter'), `<button type="button" data-act="test" class="${B}">▶ ${T('Play a sample', 'Écouter un exemple')}</button>`)}</div>`;
+      } else if (setView === 'answer') {
+        body = head(T('Language & answering', 'Langue et réponses'), 1) + `<div class="flex flex-col gap-[12px]">
+          ${card(T('Language', 'Langue'), pair('lang', 'English', 'Français', !fr), T('Screens, Reid\'s voice, listening and your printed pages.', 'Les écrans, la voix de Reid, l’écoute et vos pages imprimées.'))}
+          ${card(T('How you answer', 'Comment vous répondez'), pair('mode', T('Talking + tapping', 'Parler + toucher'), T('Tapping + typing', 'Toucher + écrire'), inputPreference === 'voice'))}</div>`;
+      } else if (setView === 'steps') {
+        const names = ['1. Prepare', '2. At Visit', '3. After'], namesFr = ['1. Préparer', '2. Au rendez-vous', '3. Après'];
+        body = head(T('All steps', 'Toutes les étapes'), 1) + `<div class="flex flex-col gap-2">${[0, 1, 2].map((ph) => `<p class="text-xs font-extrabold uppercase tracking-wider text-[#425268] mt-1">${(fr ? namesFr : names)[ph]}</p>
+          <div class="grid grid-cols-2 gap-[10px]">${steps.map((st, i) => st.phaseIndex === ph ? `<button type="button" data-jump="${i}" class="tactile-btn min-h-[48px] px-2 rounded-xl ${i === currentIndex ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-sm">${i === currentIndex ? '✓ ' : ''}${tr(st.topic)}</button>` : '').join('')}</div>`).join('')}</div>`;
+      } else if (setView === 'pages') {
+        body = head(T('Print or share', 'Imprimer ou partager'), 1) + `<div class="flex flex-col gap-[12px]">
+          <button type="button" data-act="print-doc" class="${B}">🖨 ${T("Print the doctor's page and My page", 'Imprimer la page du médecin et Ma page')}</button>
+          <button type="button" data-act="show-doc" class="${B}">${T("Show the doctor's page on screen", 'Montrer la page du médecin à l’écran')}</button>
+          <button type="button" data-act="print-recap" class="${B}">🖨 ${T('Print the visit recap', 'Imprimer le résumé de la visite')}</button>
+          <button type="button" data-act="share" class="${B}">${T('Send the recap to family', 'Envoyer le résumé à la famille')}</button>
+          <p class="text-sm text-[#425268] leading-snug">${T('To save as a PDF instead of printing, choose Save as PDF (or Save to Files) in the print window.', 'Pour un PDF, choisissez Enregistrer en PDF dans la fenêtre d’impression.')}</p></div>`;
+      } else if (setView === 'privacy') {
+        body = head(T('Your privacy', 'Vos renseignements'), 1) + card(T('Where your answers go', 'Où vont vos réponses'), `<ul class="text-sm text-[#1E2634] space-y-2 list-disc pl-5">
+          <li>${T('Your answers are saved only on this phone. There is no account and no copy on our side.', 'Vos réponses sont gardées seulement sur ce téléphone. Pas de compte, pas de copie chez nous.')}</li>
+          <li>${T("Reid's voice and listening use Microsoft Azure in Canada. The sound is turned into words and not kept.", 'La voix et l’écoute de Reid utilisent Microsoft Azure au Canada. Le son devient des mots et n’est pas gardé.')}</li>
+          <li>${T('Suggested questions come from Claude, an AI by Anthropic. Your name and the date are never sent.', 'Les questions suggérées viennent de Claude, une IA d’Anthropic. Votre nom et la date ne sont jamais envoyés.')}</li>
+          <li>${T('Recording the visit keeps only the words, on this phone. Always ask the doctor first.', 'L’enregistrement garde seulement les mots, sur ce téléphone. Demandez toujours au médecin d’abord.')}</li>
+          <li>${T('Reid never diagnoses or gives medical advice.', 'Reid ne pose jamais de diagnostic et ne donne pas d’avis médical.')}</li></ul>`);
+      } else if (setView === 'device') {
+        body = head(T('Another phone or computer', 'Un autre appareil'), 1) + `<div class="flex flex-col gap-[12px]">
+          ${card(T('1. On this phone', '1. Sur ce téléphone'), `<button type="button" data-act="backup" class="${B}">${T('Save a backup file', 'Enregistrer une sauvegarde')}</button>`, T('Send the file to the other device, by email or message.', 'Envoyez le fichier à l’autre appareil, par courriel ou message.'))}
+          ${card(T('2. On the other device', '2. Sur l’autre appareil'), `<label class="${B} cursor-pointer">${T('Open the backup file', 'Ouvrir la sauvegarde')}<input type="file" accept=".json,application/json" data-act="open" class="hidden"></label>`, T('Open pen-ink.ca/prep/new, then tap this.', 'Ouvrez pen-ink.ca/prep/new, puis touchez ceci.'))}</div>`;
+      }
+      panel.innerHTML = body;
+      panel.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { setView = b.dataset.go; renderSettings(); applyLang(); }));
+      panel.querySelectorAll('[data-jump]').forEach((b) => b.addEventListener('click', () => { closeModal('helpSettingsModal'); stopRec(); currentIndex = Number(b.dataset.jump); renderCurrentStep(); speakStep(); }));
       panel.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
         const on = b.dataset.v === '1';
-        if (b.dataset.set === 'lang') { lang = on ? 'en' : 'fr'; stopRec(); }
+        if (b.dataset.set === 'lang') { lang = on ? 'en' : 'fr'; voiceName = ''; stopRec(); }
         if (b.dataset.set === 'read') readAloud = on;
         if (b.dataset.set === 'slow') slowVoice = !on;
+        if (b.dataset.set === 'voicename') voiceName = on ? '' : (fr ? 'fr-CA-AntoineNeural' : 'en-CA-ClaraNeural');
+        if (b.dataset.set === 'mode') { setInputMode(on ? 'voice' : 'tap'); if (!on) stopRec(); }
         saveAll(); renderSettings(); renderCurrentStep();
       }));
-      const act = (k) => panel.querySelector(`[data-act="${k}"]`);
-      if (act('explain')) act('explain').addEventListener('click', () => { closeModal('helpSettingsModal'); askReid(fr ? 'Expliquez simplement ce que je dois faire sur cet écran.' : 'Explain simply what I should do on this screen.'); });
-      act('backup').addEventListener('click', () => {
+      const act = (k) => panel.querySelector(`[data-act="${k}"]`), on = (k, f) => { const el = act(k); if (el) el.addEventListener(k === 'open' ? 'change' : 'click', f); };
+      on('explain', () => { closeModal('helpSettingsModal'); askReid(fr ? 'Expliquez simplement ce que je dois faire sur cet écran.' : 'Explain simply what I should do on this screen.'); });
+      on('test', () => say(fr ? 'Bonjour, je suis Reid.' : "Hi, I'm Reid. This is how I sound."));
+      on('print-doc', () => printPages('doctor'));
+      on('show-doc', () => { closeModal('helpSettingsModal'); openFullDoctorCard(); });
+      on('print-recap', () => printPages('recap'));
+      on('share', () => shareRecap());
+      on('backup', () => {
         saveAll(); const blob = new Blob([localStorage.getItem(STORE) || '{}'], { type: 'application/json' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'wellheard-backup.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       });
-      act('open').addEventListener('change', async (e) => {
+      on('open', async (e) => {
         const f = e.target.files && e.target.files[0]; if (!f) return;
         try { const txt = await f.text(); JSON.parse(txt); localStorage.setItem(STORE, txt); location.reload(); } catch (err) { showToast(fr ? 'Ce fichier ne peut pas être ouvert.' : "That file can't be opened."); }
       });
-      act('erase').addEventListener('click', () => {
+      on('erase', () => {
         if (!confirm(fr ? 'Effacer toutes vos réponses de cet appareil ?' : 'Erase all your answers from this device?')) return;
         transcript = ''; recapDone = false; aiPool = []; ownQs = []; vagueOk = {}; resetAllFromSettings();
       });
     }
     const protoOpen = openModal;
-    openModal = function (id) { if (id === 'helpSettingsModal') { renderSettings(); if (isListening) { stopRec(); } } protoOpen(id); applyLang(); };
+    openModal = function (id) { if (id === 'helpSettingsModal') { setView = 'menu'; renderSettings(); if (isListening) { stopRec(); } } protoOpen(id); applyLang(); };
 
     // ---------- tie everything into the prototype's own flow ----------
     const protoRender = renderCurrentStep;
