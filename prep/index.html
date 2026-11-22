@@ -688,11 +688,12 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
       <fieldset class="plain"><legend class="q-legend">Wait before checking in</legend>
         <p class="help">How long I stay quiet before asking if you need more time.</p>
         <div class="row">
+          <label class="choice" for="vw-auto"><input type="radio" name="vwait" id="vw-auto" value="auto"><span><b>Match my pace</b><br><span class="small">Recommended. Reid learns how quickly you usually answer.</span></span></label>
           <label class="choice" for="vw-15"><input type="radio" name="vwait" id="vw-15" value="15000"><span><b>15 seconds</b></span></label>
           <label class="choice" for="vw-30"><input type="radio" name="vwait" id="vw-30" value="30000"><span><b>30 seconds</b></span></label>
           <label class="choice" for="vw-60"><input type="radio" name="vwait" id="vw-60" value="60000"><span><b>1 minute</b></span></label>
           <label class="choice" for="vw-0"><input type="radio" name="vwait" id="vw-0" value="0"><span><b>Never</b></span></label>
-          <p class="help">WellHeard learns as you go: if you answer quickly a few times in a row, it waits a little less (never under 10 seconds). If you need the time, it stops shortening.</p>
+          <p class="help">With Match my pace, Reid waits about twice as long as you usually take to start answering, plus a few seconds. If you need more time, he gives more.</p>
         </div>
       </fieldset>
       <fieldset class="plain"><legend class="q-legend">Interrupt by talking</legend>
@@ -1458,8 +1459,9 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     b.time = toTime24(b.time);
     b.mode = x.mode === "voice" || x.mode === "type" ? x.mode : "";
     b.voiceName = str(x.voiceName);
-    b.waitMs = x.waitMs === 0 ? 0 : Number.isInteger(x.waitMs) && x.waitMs >= 10000 && x.waitMs <= 60000 ? x.waitMs : 15000;
-    b.quickRuns = Number.isInteger(x.quickRuns) ? Math.max(0, Math.min(5, x.quickRuns)) : 0;
+    b.waitMs = x.waitMs === 0 ? 0 : Number.isInteger(x.waitMs) && x.waitMs >= 5000 && x.waitMs <= 60000 ? x.waitMs : 15000;
+    b.pace = Number.isInteger(x.pace) && x.pace > 0 && x.pace < 120000 ? x.pace : 0;
+    b.waitFixed = !!x.waitFixed;
     b.slowVoice = !!x.slowVoice;
     b.readBack = !!x.readBack;
     b.barge = typeof x.barge === "boolean" ? x.barge : null;
@@ -2167,7 +2169,9 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
         if (!active || held) return;
         if (CanadaRec.deadNow || CanadaRec.quietSince) return;   // the muted-microphone steps handle this
         prompted = true; if (!bargeOn()) pauseRec(); view("speaking");
-        S.quickRuns = 0; waitFrom = 0; save();   // they needed the full wait: stop shortening it
+        waitFrom = 0;   // they needed the full wait: give more time from now on
+        if (!S.waitFixed) { S.waitMs = Math.min(60000, S.waitMs + 10000); S.pace = Math.max(S.pace || 0, Math.round((S.waitMs - 3000) / 2)); }
+        save();
         const g = gen; checking = true; await speak(say("silence"));
         if (active && !held && g === gen) startRec();
       }, ms);
@@ -2422,14 +2426,6 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
       const norm = x => x.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
       const nt = norm(t);
       if (nt.split(" ").length >= 2 && norm(target.value).endsWith(nt)) { log("skipped repeat: " + t); return; }
-      if (!turnWords.length && waitFrom && S.waitMs) {
-        // answered within a third of the wait, three times in a row: wait 5 seconds less next time (never under 10)
-        const took = Date.now() - waitFrom; waitFrom = 0;
-        if (took < 4000 && S.waitMs > 15000) { S.waitMs = 15000; S.quickRuns = 0; }   // answered right away: back to normal timing
-        else if (took < S.waitMs / 3) { S.quickRuns = (S.quickRuns || 0) + 1; if (S.quickRuns >= 3 && S.waitMs > 10000) { S.waitMs = Math.max(10000, S.waitMs - 5000); S.quickRuns = 0; } }
-        else S.quickRuns = 0;
-        save();
-      }
       target._hist = target._hist || []; target._hist.push(target.value); if (target._hist.length > 30) target._hist.shift();
       added = true; turnWords.push(t);
       let v = target.value;
@@ -2485,6 +2481,16 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
       help: () => { if (!active) return false; if (held) { held = false; } helpNext = true; if (api.onShowHelp) api.onShowHelp(say("help") + " " + say("helpAsk")); sayThen(say("help") + " " + say("helpAsk")); return true; },
       backToQ: () => { if (!active) return; helpNext = false; held = false; gen++; quiet(); if (lastQ) sayThen(lastQ); else startRec(); },
       held: () => held, active: () => active, confirming: () => confirming, hasCarry: () => active && !!onCarry, carryFn: () => active ? onCarry : null, canListen: !!SR, canSpeak, pickVoice, nextVoice, voiceName: () => cloudOn ? cloudPick()[0] : (chosen ? chosen.name : ""),
+      // Called when the microphone first hears them after a question. The wait before Reid checks in
+      // follows their own pace: about twice how long they usually take to start, plus 3 seconds,
+      // between 5 seconds and 1 minute. Someone who answers right away gets a normal conversational wait.
+      speechStarted: () => {
+        if (!waitFrom || !S.waitMs || S.waitFixed) { waitFrom = 0; return; }
+        const took = Date.now() - waitFrom; waitFrom = 0;
+        S.pace = S.pace ? Math.round(S.pace * 0.6 + took * 0.4) : took;
+        S.waitMs = Math.max(5000, Math.min(60000, Math.round((S.pace * 2 + 3000) / 1000) * 1000));
+        save();
+      },
       onStuck: null, onShowHelp: null, onSetting: null, voiceLabel: () => cloudOn ? cloudPick()[1] : (chosen ? chosen.name.replace(/\s*\(.*\)\s*$/, "") : ""), onEnd: null, onTalk: null, onHelp: null, fixWords: null, onErase: null };
     return api;
   })();
@@ -2753,7 +2759,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   };
   // while listening: "Hearing you..." during a phrase, "Writing it down..." while it's turned into words
   let micHearing = false, micWriting = 0, lastSt = "off";
-  CanadaRec.hearing = on => { micHearing = on; if (lastSt === "listening") guideView("listening"); };
+  CanadaRec.hearing = on => { micHearing = on; if (on) Voice.speechStarted(); if (lastSt === "listening") guideView("listening"); };
   // Muted microphone: say so in plain words, how to fix it on this kind of device, or type instead.
   // Step-by-step fix for this kind of device: every click named, and what you should see.
   function micHelpHow() {
@@ -3061,11 +3067,11 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
       S.slowVoice = false; save(); sync(); return fr ? "D'accord, je vais parler à vitesse normale." : "Okay, I'll speak at my normal speed.";
     }
     if (has(/ (more time|wait longer|don't rush|dont rush|not so quick|plus de temps|attend(s|ez) plus) /)) {
-      S.waitMs = Math.min(60000, Math.max(15000, (S.waitMs || 15000)) + 15000); save();
+      S.waitMs = Math.min(60000, Math.max(15000, (S.waitMs || 15000)) + 15000); S.pace = Math.round((S.waitMs - 3000) / 2); save();
       return fr ? `D'accord, j'attendrai ${S.waitMs / 1000} secondes avant de vérifier.` : `Okay, I'll wait ${S.waitMs / 1000} seconds before checking in.`;
     }
     if (has(/ (less time|wait less|don't wait so long|dont wait so long|moins de temps|attend(s|ez) moins) /)) {
-      S.waitMs = Math.max(10000, (S.waitMs || 15000) - 10000); save();
+      S.waitMs = Math.max(5000, (S.waitMs || 15000) - 5000); S.pace = Math.round((S.waitMs - 3000) / 2); save();
       return fr ? `D'accord, j'attendrai ${S.waitMs / 1000} secondes.` : `Okay, I'll wait ${S.waitMs / 1000} seconds before checking in.`;
     }
     if (has(/ (stop me interrupting|don't let me interrupt|dont let me interrupt|no interrupting|interrupting off) /)) {
@@ -3142,11 +3148,11 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   $("vb-stop").addEventListener("click", () => { closeMore(); Voice.stop(); $("change-mode").click(); });
   $("vb-settings").addEventListener("click", () => {
     closeMore(); const open = $("vb-panel").hidden; $("vb-panel").hidden = !open; $("vb-settings").setAttribute("aria-expanded", String(open));
-    $(S.waitMs === 0 ? "vw-0" : S.waitMs <= 15000 ? "vw-15" : S.waitMs <= 30000 ? "vw-30" : "vw-60").checked = true; $(S.slowVoice ? "vs-s" : "vs-n").checked = true;
+    $(S.waitMs === 0 ? "vw-0" : !S.waitFixed ? "vw-auto" : S.waitMs <= 15000 ? "vw-15" : S.waitMs <= 30000 ? "vw-30" : "vw-60").checked = true; $(S.slowVoice ? "vs-s" : "vs-n").checked = true;
     $(Voice.bargeOn() ? "vi-on" : "vi-off").checked = true; $(S.readBack ? "vr-on" : "vr-off").checked = true;
   });
   document.querySelectorAll('input[name="vbarge"]').forEach(r => r.addEventListener("change", () => { S.barge = r.value === "on"; save(); }));
-  document.querySelectorAll('input[name="vwait"]').forEach(r => r.addEventListener("change", () => { S.waitMs = Number(r.value); S.quickRuns = 0; save(); }));
+  document.querySelectorAll('input[name="vwait"]').forEach(r => r.addEventListener("change", () => { if (r.value === "auto") { S.waitFixed = false; S.pace = 0; S.waitMs = 15000; } else { S.waitMs = Number(r.value); S.waitFixed = true; } save(); }));
   document.querySelectorAll('input[name="vread"]').forEach(r => r.addEventListener("change", () => { S.readBack = r.value === "on"; save(); }));
   document.querySelectorAll('input[name="vspeed"]').forEach(r => r.addEventListener("change", () => { S.slowVoice = r.value === "s"; save(); }));
   function onEnter(id) {
