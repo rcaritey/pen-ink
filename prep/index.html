@@ -652,6 +652,27 @@ body.in-steps footer.foot { display: none; }
   body.voice-mode { padding-bottom: 0; }
   body.voice-mode > main.wrap { padding-bottom: 200px; }
 }
+/* Top of the app, matched to the prototype (22 Nov): big face with a status dot, large wordmark, Reid's line in green,
+   one big Help / Settings button in every mode (so the bottom bar keeps just Back and Pause) */
+body.in-steps .appbar { column-gap: 14px; padding-block: 18px 10px; }
+body.in-steps .appbar .reid-face { width: 64px; height: 64px; }
+body.in-steps .appbar .reid-face svg { width: 38px; height: 38px; }
+body.in-steps .appbar .reid-dot { width: 16px; height: 16px; right: 0; bottom: 0; border-width: 3px; }
+body.in-steps .appbar .brand { font-family: var(--body); font-size: 2.1rem; font-weight: 700; letter-spacing: -.03em; }
+body.in-steps .appbar .brand .w1 { color: var(--ink); } body.in-steps .appbar .brand .w2 { color: #3B5E42; }
+body.in-steps .appbar .reid-think { font-size: 1rem; font-weight: 700; color: #3B5E42; margin-top: 2px; }
+body.in-steps .hs-btn, body.in-steps.voice-mode .hs-btn { display: inline-flex; min-height: 60px; padding: 0 18px; border-radius: 20px; font-size: 1.1rem; background: var(--stone); border: 2px solid var(--line); box-shadow: none; }
+body.in-steps .hs-btn svg { width: 24px; height: 24px; }
+@media (max-width: 400px) { body.in-steps .appbar .brand { font-size: 1.7rem; } body.in-steps .hs-btn span { display: none; } body.in-steps .hs-btn { padding: 0 14px; } }
+body.in-steps.voice-mode .vdock .vbar #vb-help { display: none; }
+.vdock .vbar { grid-template-columns: 1fr 1fr; }
+.vdock .vbar #vb-pause { grid-column: 2; }
+.ph-row { gap: 16px; margin-top: 4px; }
+.ph-l { font-size: 1.1rem; }
+.ph-row .ph:nth-child(2) .ph-l { text-align: center; } .ph-row .ph:nth-child(3) .ph-l { text-align: right; }
+.ph-bar { height: 14px; }
+.ph-sub { margin: 8px 0 10px; font-size: 1.3rem; }
+.ph-topic { font-size: 1rem; letter-spacing: .08em; }
 /* At the visit */
 .big-say { font-family: var(--display); font-weight: 800; font-size: 1.45rem; line-height: 1.3; border-left: 5px solid var(--go); padding-left: 14px; margin: 8px 0 14px; }
 #s-visit #show-doc, .rec-no { width: 100%; min-height: 56px; margin-top: 14px; }
