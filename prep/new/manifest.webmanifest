@@ -1,0 +1,10 @@
+{
+  "name": "WellHeard",
+  "short_name": "WellHeard",
+  "start_url": "/prep/new/",
+  "scope": "/prep/new/",
+  "display": "standalone",
+  "background_color": "#FAF7F0",
+  "theme_color": "#FAF7F0",
+  "icons": [{ "src": "/prep/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }]
+}

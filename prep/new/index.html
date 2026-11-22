@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="WellHeard" />
+  <link rel="apple-touch-icon" href="/prep/apple-touch-icon.png" />
+  <link rel="manifest" href="/prep/new/manifest.webmanifest" />
   <title>WellHeard</title>
   <link rel="stylesheet" href="/prep/new/tw.css">
   <meta name="theme-color" content="#FAF7F0">
@@ -121,6 +127,9 @@
       outline: 1.5px dashed #DC2626;
       border-radius: 8px;
     }
+  </style>
+  <style>
+    #appContainer { padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
   </style>
   <style id="textSizes">
     .ts-1 #screenQuestion { font-size: 1.75rem !important; } .ts-2 #screenQuestion { font-size: 2rem !important; }
@@ -2431,7 +2440,7 @@
       'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
       'Private: everything stays on this device.': 'Privé : tout reste sur cet appareil.',
-      'Help / Settings': 'Aide / Réglages', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Vous pouvez me parler ou toucher l'écran. Je prépare une page claire pour votre médecin et je suggère des questions avec Claude, d'Anthropic. Votre nom n'est jamais envoyé.", 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
+      'Help / Settings': 'Aide / Réglages', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'Use WellHeard full screen ›': 'Utiliser WellHeard en plein écran ›', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Vous pouvez me parler ou toucher l'écran. Je prépare une page claire pour votre médecin et je suggère des questions avec Claude, d'Anthropic. Votre nom n'est jamais envoyé.", 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
       '1. Prepare': '1. Préparer', '2. At Visit': '2. Au rendez-vous', '3. After': '3. Après',
       'What is your name?': 'Comment vous appelez-vous ?', 'Optional — only shown on your doctor summary.': 'Facultatif — seulement sur le résumé pour le médecin.',
       'Helping someone else': "J'aide quelqu'un", 'Skip for now': 'Passer pour l’instant',
@@ -3207,7 +3216,7 @@
           ${onStep ? row('steps', T('See all steps', 'Voir toutes les étapes')) : ''}
           ${row('pages', T('Print or share my pages', 'Imprimer ou partager'))}
           ${row('privacy', T('Your privacy', 'Vos renseignements'))}
-          ${row('device', T('Another phone or computer', 'Un autre appareil'))}
+          ${row('device', T('Full screen & other devices', 'Plein écran et autres appareils'))}
           <button type="button" data-act="erase" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2">${ico('erase')}${T('Erase my answers', 'Effacer mes réponses')}</button>
           <a href="${chatHref()}" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3">${ico('chat')}<span>${T('Chat: text Rama for help', 'Clavarder : textez Rama')}</span></a>
           <p class="text-xs text-center text-[#425268]">416-454-5597 · hello@pen-ink.ca</p></div>`;
@@ -3251,7 +3260,16 @@
           <li>${T('Recording the visit keeps the words and the sound on this phone only, so you can replay what the doctor said. Erase my answers deletes it. Always ask the doctor first.', 'L’enregistrement garde les mots et le son sur ce téléphone seulement, pour réentendre le médecin. Effacer mes réponses le supprime. Demandez toujours au médecin d’abord.')}</li>
           <li>${T('Reid never diagnoses or gives medical advice.', 'Reid ne pose jamais de diagnostic et ne donne pas d’avis médical.')}</li></ul>`);
       } else if (setView === 'device') {
-        body = head(T('Another phone or computer', 'Un autre appareil'), 1) + `<div class="flex flex-col gap-[12px]">
+        const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const canFS = !ios && document.documentElement.requestFullscreen;
+        const already = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+        const fsCard = already ? card(T('Full screen', 'Plein écran'), '', T('WellHeard is already open full screen. ✓', 'WellHeard est déjà en plein écran. ✓'))
+          : ios ? card(T('Full screen on iPhone', 'Plein écran sur iPhone'), `<ol class="text-sm text-[#1E2634] font-bold space-y-1.5 list-decimal pl-5 leading-snug">
+              <li>${T('Tap the Share button (a square with an arrow up) at the bottom of Safari. You may need to tap ⋯ first.', 'Touchez Partager (un carré avec une flèche vers le haut) en bas de Safari. Touchez peut-être ⋯ d’abord.')}</li>
+              <li>${T('Scroll down and tap Add to Home Screen.', 'Faites défiler et touchez Sur l’écran d’accueil.')}</li>
+              <li>${T('Tap Add. Then open WellHeard from its new icon on your Home Screen.', 'Touchez Ajouter. Puis ouvrez WellHeard avec sa nouvelle icône.')}</li></ol>`, T('It then opens full screen, without Safari’s bars, like an app. Your answers stay.', 'Il s’ouvre alors en plein écran, sans les barres de Safari, comme une app. Vos réponses restent.'))
+          : card(T('Full screen', 'Plein écran'), canFS ? `<button type="button" data-act="fullscreen" class="${B}">${T('Go full screen', 'Passer en plein écran')}</button>` : '', T('On Android you can also tap ⋮ then Add to Home screen, so it always opens full screen.', 'Sur Android, touchez aussi ⋮ puis Ajouter à l’écran d’accueil pour toujours l’ouvrir en plein écran.'));
+        body = head(T('Full screen & other devices', 'Plein écran et autres appareils'), 1) + `<div class="flex flex-col gap-[12px]">${fsCard}
           ${card(T('1. On this phone', '1. Sur ce téléphone'), `<button type="button" data-act="backup" class="${B}">${T('Save a backup file', 'Enregistrer une sauvegarde')}</button>`, T('Send the file to the other device, by email or message.', 'Envoyez le fichier à l’autre appareil, par courriel ou message.'))}
           ${card(T('2. On the other device', '2. Sur l’autre appareil'), `<label class="${B} cursor-pointer">${T('Open the backup file', 'Ouvrir la sauvegarde')}<input type="file" accept=".json,application/json" data-act="open" class="hidden"></label>`, T('Open pen-ink.ca/prep/new, then tap this.', 'Ouvrez pen-ink.ca/prep/new, puis touchez ceci.'))}</div>`;
       }
@@ -3285,6 +3303,7 @@
         const f = e.target.files && e.target.files[0]; if (!f) return;
         try { const txt = await f.text(); JSON.parse(txt); localStorage.setItem(STORE, txt); location.reload(); } catch (err) { showToast(fr ? 'Ce fichier ne peut pas être ouvert.' : "That file can't be opened."); }
       });
+      on('fullscreen', () => { closeModal('helpSettingsModal'); try { document.documentElement.requestFullscreen(); } catch (e) { /* not allowed */ } });
       on('erase', () => {
         if (!confirm(fr ? 'Effacer toutes vos réponses de cet appareil ?' : 'Erase all your answers from this device?')) return;
         transcript = ''; recapDone = false; aiPool = []; ownQs = []; vagueOk = {}; resetAllFromSettings();
@@ -3661,7 +3680,8 @@
       hello.innerHTML = `<span class="absolute -top-[9px] left-[34px] w-4 h-4 bg-white border-l-2 border-t-2 border-[#1E2634] rotate-45" aria-hidden="true"></span>
         <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?</p>
         <div class="flex items-stretch"><button type="button" data-hi="yes" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">▶ Yes, read it</button>
-        <div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-hi="no" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">No thanks</button></div>`;
+        <div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-hi="no" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">No thanks</button></div>
+        ${IOS && !(navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)) ? `<button type="button" data-hi="fs" class="text-sm font-extrabold text-[#3B5E42] underline text-left min-h-[40px]">Use WellHeard full screen ›</button>` : ''}`;
       hello.classList.remove('hidden'); applyLang();
     }
     function readLanding() {
@@ -3685,6 +3705,7 @@
     hello.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-hi]'); if (!b) return;
       ensureCtx(); hello.classList.add('hidden'); sessionStorage.setItem('wh-hello', '1');
+      if (b.dataset.hi === 'fs') { openModal('helpSettingsModal'); setView = 'device'; spokenView = null; renderSettings(); applyLang(); return; }
       if (b.dataset.hi === 'no') return;
       greeted = true;
       const was = inputPreference; inputPreference = 'voice';   // he reads it even if typing was chosen
