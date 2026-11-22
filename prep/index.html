@@ -572,6 +572,30 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
 .choice:has(input:checked) { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .choice:has(input:checked) b::before { content: "\2713  "; }
 .choice:has(input:checked) .help, .choice:has(input:checked) span { color: var(--bg); }
+/* tap tiles: big stone buttons with 14px dead zones; chosen = navy with a tick */
+.tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 8px 0 10px; }
+.tiles-2 { grid-template-columns: 1fr 1fr; } .tiles-4 { grid-template-columns: repeat(4, 1fr); }
+.tile { font: inherit; font-weight: 700; font-size: 1.05rem; min-height: 56px; padding: 8px 10px; border-radius: 16px; cursor: pointer;
+  background: var(--stone); color: var(--ink); border: 2px solid var(--line); line-height: 1.2; }
+.tile:hover { border-color: var(--ink); }
+.tile-other { border-style: dashed; }
+.tile[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tile[aria-pressed="true"]::before { content: "\2713  "; }
+.tile:disabled { opacity: .35; cursor: default; }
+.lbl { display: block; font-weight: 700; font-size: 1.15rem; margin-top: 6px; }
+.picked { font-weight: 700; color: #3B5E42; margin: 0; min-height: 1.4em; }
+.go-btn { width: 100%; min-height: 60px; margin-top: 16px; background: var(--go); color: var(--go-ink); border: 2px solid var(--go-lip); border-radius: 999px; box-shadow: 0 4px 0 var(--go-lip); font-size: 1.2rem; }
+.go-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--go-lip); }
+dialog.picker { width: min(460px, 96vw); max-height: 94dvh; overflow-y: auto; border: 2px solid var(--ink); border-radius: 24px; background: var(--bg); color: var(--ink); padding: 16px; }
+dialog.picker::backdrop { background: rgba(30,38,52,.72); }
+.pk-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.pk-month { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 8px 0; font-weight: 700; font-size: 1.2rem; }
+.pk-arrow { min-width: 56px; min-height: 56px; padding: 0; }
+.pk-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.pk-days .wd { text-align: center; font-weight: 700; color: var(--muted); font-size: .95rem; }
+.pk-days .tile { min-height: 48px; padding: 0; font-size: 1.1rem; border-radius: 12px; }
+.pk-days .tile.today { outline: 3px solid #3B5E42; outline-offset: -3px; }
+.pk-days .tile[aria-pressed="true"]::before { content: ""; }
 /* Reid: the AI helper. Lives next to the logo; a small thought bubble says what he's doing. */
 .reid { display: none; align-items: center; gap: 10px; min-width: 0; }
 body.in-steps .reid { display: inline-flex; }
@@ -820,13 +844,54 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     <div class="field">
       <label for="seeing">Who are you seeing?</label>
       <p class="help" id="seeing-help">For example: neurologist or family doctor.</p>
+      <div class="tiles" id="seeing-tiles" role="group" aria-label="Common choices">
+        <button type="button" class="tile" data-v="Family doctor">Family doctor</button>
+        <button type="button" class="tile" data-v="Neurologist">Neurologist</button>
+        <button type="button" class="tile" data-v="Surgeon">Surgeon</button>
+        <button type="button" class="tile tile-other" data-other>Someone else</button>
+      </div>
       <input type="text" id="seeing" aria-describedby="seeing-help" autocomplete="off">
     </div>
     <input type="text" id="when-said" class="visually-hidden" tabindex="-1" aria-hidden="true" autocomplete="off">
-    <div class="two">
-      <div class="field"><label for="date">Date</label><input type="date" id="date"></div>
-      <div class="field"><label for="time">Time</label><input type="time" id="time" step="300"></div>
+    <!-- big tap tiles and pickers for date and time (the phone's own pickers are hard with a tremor);
+         the real fields stay underneath so saving and printing work as before -->
+    <div class="field">
+      <span class="lbl" id="date-lbl">Which day?</span>
+      <div class="tiles" id="date-tiles" role="group" aria-labelledby="date-lbl">
+        <button type="button" class="tile" data-d="0">Today</button>
+        <button type="button" class="tile" data-d="1">Tomorrow</button>
+        <button type="button" class="tile tile-other" data-pick>Pick a date</button>
+        <button type="button" class="tile" data-d="none">Not booked yet</button>
+      </div>
+      <p class="picked" id="date-show" aria-live="polite"></p>
     </div>
+    <div class="field">
+      <span class="lbl" id="time-lbl">What time?</span>
+      <div class="tiles" id="time-tiles" role="group" aria-labelledby="time-lbl">
+        <button type="button" class="tile tile-other" data-pick>Pick a time</button>
+        <button type="button" class="tile" data-t="none">Not sure yet</button>
+      </div>
+      <p class="picked" id="time-show" aria-live="polite"></p>
+    </div>
+    <div class="two visually-hidden" aria-hidden="true">
+      <div class="field"><label for="date">Date</label><input type="date" id="date" tabindex="-1"></div>
+      <div class="field"><label for="time">Time</label><input type="time" id="time" step="300" tabindex="-1"></div>
+    </div>
+    <dialog class="picker" id="date-dlg" aria-labelledby="dp-title">
+      <div class="pk-head"><h3 id="dp-title">Pick a date</h3><button type="button" class="btn secondary" data-close>Cancel</button></div>
+      <p class="picked" id="dp-sel"></p>
+      <div class="pk-month"><button type="button" class="btn secondary pk-arrow" id="dp-prev" aria-label="Previous month">&#9664;</button><span id="dp-month"></span><button type="button" class="btn secondary pk-arrow" id="dp-next" aria-label="Next month">&#9654;</button></div>
+      <div class="pk-days" id="dp-days"></div>
+      <button type="button" class="btn go-btn" id="dp-ok">Use this date</button>
+    </dialog>
+    <dialog class="picker" id="time-dlg" aria-labelledby="tp-title">
+      <div class="pk-head"><h3 id="tp-title">Pick a time</h3><button type="button" class="btn secondary" data-close>Cancel</button></div>
+      <p class="picked" id="tp-sel"></p>
+      <div class="tiles tiles-2" id="tp-ampm"><button type="button" class="tile" data-m="am">Morning (AM)</button><button type="button" class="tile" data-m="pm">Afternoon (PM)</button></div>
+      <span class="lbl">Hour</span><div class="tiles tiles-4" id="tp-h"></div>
+      <span class="lbl">Minutes</span><div class="tiles tiles-4" id="tp-m"></div>
+      <button type="button" class="btn go-btn" id="tp-ok">Use this time</button>
+    </dialog>
   </section>
 
   <!-- 3 OWN WORDS -->
@@ -1462,6 +1527,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     b.waitMs = x.waitMs === 0 ? 0 : Number.isInteger(x.waitMs) && x.waitMs >= 5000 && x.waitMs <= 60000 ? x.waitMs : 15000;
     b.pace = Number.isInteger(x.pace) && x.pace > 0 && x.pace < 120000 ? x.pace : 0;
     b.waitFixed = !!x.waitFixed;
+    b.dateNone = !!x.dateNone; b.timeNone = !!x.timeNone;
     b.slowVoice = !!x.slowVoice;
     b.readBack = !!x.readBack;
     b.barge = typeof x.barge === "boolean" ? x.barge : null;
@@ -2566,7 +2632,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     Object.values(screens).forEach(el => el.hidden = true);
     const onWelcome = step < 0;
     try { history.replaceState(null, "", onWelcome ? location.pathname : "#" + STEPS[step].id); } catch (err) { console.warn(err); }
-    $("progress").hidden = onWelcome; $("actions").hidden = onWelcome; document.body.classList.toggle("in-steps", !onWelcome); if (!onWelcome && !isVoice()) setTimeout(() => reidThink("off"), 0);
+    $("progress").hidden = onWelcome; $("actions").hidden = onWelcome; document.body.classList.toggle("in-steps", !onWelcome); if (STEPS[S.step] && STEPS[S.step].id === "who") whoSync(); if (!onWelcome && !isVoice()) setTimeout(() => reidThink("off"), 0);
     window.scrollTo(0, 0);
     if (onWelcome) { renderWelcome(); screens.welcome.hidden = false; focusHeading(screens.welcome); return; }
     const s = STEPS[step];
@@ -3369,11 +3435,95 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     if (id === "detail") { renderClarify(); voiceAsk(false); }
   });
 
+  // ---------- Who and when: tap tiles and big pickers ----------
+  const fr2 = () => S.lang === "fr";
+  const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const setField = (id, v) => { const el = $(id); if (id === "time") setTimeValue(el, v); else el.value = v; S[id] = v; save(); whoSync(); };
+  function whoSync() {
+    $("time").tabIndex = -1;   // the real field stays hidden; the tiles above are what people use
+    const sv = (S.seeing || "").trim().toLowerCase();
+    let other = !!sv;
+    document.querySelectorAll("#seeing-tiles [data-v]").forEach(b => { const on = b.dataset.v.toLowerCase() === sv; if (on) other = false; b.setAttribute("aria-pressed", String(on)); });
+    document.querySelector("#seeing-tiles [data-other]").setAttribute("aria-pressed", String(other));
+    const t0 = new Date(), today = ymd(t0), t1 = new Date(t0); t1.setDate(t0.getDate() + 1); const tom = ymd(t1);
+    const d = S.date || "";
+    $("date-tiles").querySelector('[data-d="0"]').setAttribute("aria-pressed", String(d === today));
+    $("date-tiles").querySelector('[data-d="1"]').setAttribute("aria-pressed", String(d === tom));
+    $("date-tiles").querySelector('[data-d="none"]').setAttribute("aria-pressed", String(S.dateNone === true && !d));
+    $("date-tiles").querySelector("[data-pick]").setAttribute("aria-pressed", String(!!d && d !== today && d !== tom));
+    $("date-show").textContent = d ? fmtDate(d) : "";
+    $("time-tiles").querySelector("[data-pick]").setAttribute("aria-pressed", String(!!S.time));
+    $("time-tiles").querySelector('[data-t="none"]').setAttribute("aria-pressed", String(S.timeNone === true && !S.time));
+    $("time-show").textContent = S.time ? fmtTime(S.time) : "";
+  }
+  $("seeing-tiles").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.other !== undefined) { setField("seeing", ""); $("seeing").focus(); return; }
+    setField("seeing", b.dataset.v);
+  });
+  $("seeing").addEventListener("input", whoSync);
+  // date picker
+  let dpMonth = new Date(), dpPick = "";
+  function dpRender() {
+    const L = fr2() ? "fr-CA" : "en-CA", y = dpMonth.getFullYear(), m = dpMonth.getMonth();
+    $("dp-month").textContent = new Date(y, m, 1).toLocaleDateString(L, { month: "long", year: "numeric" });
+    const first = new Date(y, m, 1).getDay(), n = new Date(y, m + 1, 0).getDate(), today = ymd(new Date());
+    const wds = [0, 1, 2, 3, 4, 5, 6].map(i => new Date(2026, 10, 1 + i).toLocaleDateString(L, { weekday: "short" }).replace(".", ""));
+    let h = wds.map(w => `<span class="wd" aria-hidden="true">${esc(w)}</span>`).join("") + "<span></span>".repeat(first);
+    for (let dd = 1; dd <= n; dd++) {
+      const v = ymd(new Date(y, m, dd)), lab = new Date(y, m, dd).toLocaleDateString(L, { weekday: "long", month: "long", day: "numeric" });
+      h += `<button type="button" class="tile${v === today ? " today" : ""}" data-v="${v}" aria-label="${esc(lab)}" aria-pressed="${v === dpPick}">${dd}</button>`;
+    }
+    $("dp-days").innerHTML = h;
+    $("dp-sel").textContent = dpPick ? (fr2() ? "Choisi : " : "Chosen: ") + fmtDate(dpPick) : (fr2() ? "Touchez un jour." : "Tap a day.");
+    $("dp-ok").disabled = !dpPick;
+  }
+  $("dp-days").addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return; dpPick = b.dataset.v; dpRender(); });
+  $("dp-prev").addEventListener("click", () => { dpMonth = new Date(dpMonth.getFullYear(), dpMonth.getMonth() - 1, 1); dpRender(); });
+  $("dp-next").addEventListener("click", () => { dpMonth = new Date(dpMonth.getFullYear(), dpMonth.getMonth() + 1, 1); dpRender(); });
+  $("dp-ok").addEventListener("click", () => { if (!dpPick) return; S.dateNone = false; setField("date", dpPick); $("date-dlg").close(); });
+  $("date-tiles").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.pick !== undefined) {
+      dpPick = S.date || ""; const base = S.date ? new Date(S.date + "T12:00") : new Date(); dpMonth = new Date(base.getFullYear(), base.getMonth(), 1);
+      dpRender(); $("date-dlg").showModal(); return;
+    }
+    if (b.dataset.d === "none") { S.dateNone = true; setField("date", ""); return; }
+    const d = new Date(); d.setDate(d.getDate() + Number(b.dataset.d)); S.dateNone = false; setField("date", ymd(d));
+  });
+  // time picker
+  let tpAm = true, tpH = 0, tpM = -1;
+  function tpRender() {
+    $("tp-ampm").querySelector('[data-m="am"]').setAttribute("aria-pressed", String(tpAm));
+    $("tp-ampm").querySelector('[data-m="pm"]').setAttribute("aria-pressed", String(!tpAm));
+    $("tp-h").innerHTML = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6].map(h => `<button type="button" class="tile" data-h="${h}" aria-pressed="${h === tpH}">${h}</button>`).join("");
+    $("tp-m").innerHTML = [0, 15, 30, 45].map(m => `<button type="button" class="tile" data-mm="${m}" aria-pressed="${m === tpM}">:${String(m).padStart(2, "0")}</button>`).join("");
+    const ok = tpH && tpM >= 0;
+    $("tp-sel").textContent = ok ? (fr2() ? "Choisi : " : "Chosen: ") + fmtTime(tp24()) : (fr2() ? "Touchez l'heure, puis les minutes." : "Tap the hour, then the minutes.");
+    $("tp-ok").disabled = !ok;
+  }
+  const tp24 = () => { let h = tpH % 12; if (!tpAm) h += 12; return `${String(h).padStart(2, "0")}:${String(tpM).padStart(2, "0")}`; };
+  $("tp-ampm").addEventListener("click", e => { const b = e.target.closest("[data-m]"); if (!b) return; tpAm = b.dataset.m === "am"; tpRender(); });
+  $("tp-h").addEventListener("click", e => { const b = e.target.closest("[data-h]"); if (!b) return; tpH = Number(b.dataset.h);
+    tpAm = tpH >= 7 && tpH <= 11; if (tpH === 12) tpAm = false; tpRender(); });   // 7-11 are mornings, 12-6 afternoons; AM/PM can still be changed
+  $("tp-m").addEventListener("click", e => { const b = e.target.closest("[data-mm]"); if (!b) return; tpM = Number(b.dataset.mm); tpRender(); });
+  $("tp-ok").addEventListener("click", () => { if (!tpH || tpM < 0) return; S.timeNone = false; setField("time", tp24()); $("time-dlg").close(); });
+  $("time-tiles").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.pick !== undefined) {
+      if (S.time) { const [h, m] = S.time.split(":").map(Number); tpAm = h < 12; tpH = h % 12 || 12; tpM = m - m % 15; } else { tpAm = true; tpH = 0; tpM = -1; }
+      tpRender(); $("time-dlg").showModal(); return;
+    }
+    S.timeNone = true; setField("time", "");
+  });
+  document.querySelectorAll("dialog.picker [data-close]").forEach(b => b.addEventListener("click", () => b.closest("dialog").close()));
+
   // ---------- simple fields ----------
   const simple = ["who", "seeing", "date", "time", "purpose", "story"];
   const bgFields = { "bg-conditions": "conditions", "bg-changes": "changes", "bg-team": "team", "bg-allergies": "allergies" };
   function fillFields() {
     simple.forEach(k => { if (k === "time") setTimeValue($(k), S[k]); else $(k).value = S[k]; });
+    whoSync();
     Object.entries(bgFields).forEach(([id, k]) => $(id).value = S.bg[k]);
   }
   simple.forEach(k => $(k).addEventListener("input", e => { S[k] = e.target.value; if (k === "purpose") $("purpose-error").hidden = true; save(); }));
