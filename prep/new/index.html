@@ -2486,7 +2486,7 @@
           currentIndex, inputPreference, lang, slowVoice, readAloud, voiceName, transcript, recapDone, recapContact,
           answers: Object.fromEntries(steps.filter((s) => 'answer' in s).map((s) => [s.id, s.answer || ''])),
           custom: Object.fromEntries(steps.filter((s) => 'customActive' in s).map((s) => [s.id, !!s.customActive])),
-          visitQuestions, nextStepTasks, task: document.getElementById('customTaskInput').value || '', aiPool, aiAt, ownQs, vagueOk, qPicked, qPrio, aiTags,
+          visitQuestions, nextStepTasks, task: document.getElementById('customTaskInput').value || '', aiPool, aiAt, ownQs, vagueOk, qPicked, qPrio, aiTags, recapSrc,
           detailQs: detailQs.map((d) => ({ q: d.q, label: d.label }))
         }));
       } catch (e) { /* private mode or full: carry on without saving */ }
@@ -2499,7 +2499,7 @@
         if (Array.isArray(d.visitQuestions) && d.visitQuestions.length) visitQuestions = d.visitQuestions;
         if (Array.isArray(d.nextStepTasks)) nextStepTasks = d.nextStepTasks;
         aiPool = Array.isArray(d.aiPool) ? d.aiPool : []; aiAt = d.aiAt || 0; ownQs = Array.isArray(d.ownQs) ? d.ownQs : [];
-        vagueOk = d.vagueOk || {}; qPicked = Array.isArray(d.qPicked) ? d.qPicked : []; qPrio = Array.isArray(d.qPrio) ? d.qPrio : []; aiTags = d.aiTags && typeof d.aiTags === 'object' ? d.aiTags : {}; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || '';
+        vagueOk = d.vagueOk || {}; qPicked = Array.isArray(d.qPicked) ? d.qPicked : []; qPrio = Array.isArray(d.qPrio) ? d.qPrio : []; aiTags = d.aiTags && typeof d.aiTags === 'object' ? d.aiTags : {}; recapSrc = d.recapSrc && typeof d.recapSrc === 'object' ? d.recapSrc : {}; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || '';
         lang = d.lang === 'fr' ? 'fr' : 'en'; slowVoice = !!d.slowVoice; voiceName = typeof d.voiceName === 'string' ? d.voiceName : ''; readAloud = d.readAloud !== false;
         document.getElementById('customTaskInput').value = d.task || '';
         if (d.inputPreference === 'tap') setInputMode('tap');
@@ -2626,7 +2626,7 @@
         if (!r.ok) console.warn("Listening service error", r.status);
         const text = d && d.ok ? String(d.text || "").trim() : "";
         if (text && this.onresult && (this._running || this._ending)) {
-          const res = [{ transcript: text, confidence: 1 }]; res.isFinal = true; res.gap = gap === undefined ? 1e9 : gap;
+          const res = [{ transcript: text, confidence: 1 }]; res.audio = wav.buffer; res.isFinal = true; res.gap = gap === undefined ? 1e9 : gap;
           this._results.push(res);
           this.onresult({ resultIndex: this._results.length - 1, results: this._results });
         }
@@ -2947,7 +2947,7 @@
         stopRec();
         const go = () => {
           recRec = new CanadaRec(); recRec.lang = lang === 'fr' ? 'fr-CA' : 'en-CA';
-          recRec.onresult = (e) => { const r = e.results[e.results.length - 1]; const t = (r && r[0] && r[0].transcript || '').trim(); if (t) { transcript += (transcript ? '\n' : '') + t; saveAll(); } };
+          recRec.onresult = (e) => { const r = e.results[e.results.length - 1]; const t = (r && r[0] && r[0].transcript || '').trim(); if (t) { transcript += (transcript ? '\n' : '') + t; if (r.audio) clipDB.put(transcript.split('\n').length, r.audio); saveAll(); } };
           recRec.onend = () => { recRec = null; if (isRecording) setTimeout(go, 200); };
           recRec.onerror = (e) => console.warn('Recording problem', e && e.error);
           try { recRec.start(); } catch (e) { console.warn('Could not record', e); }
@@ -2966,11 +2966,12 @@
       recapDone = true; showToast(lang === 'fr' ? 'Reid prépare vos notes…' : 'Reid is writing your notes…');
       try {
         const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ mode: 'recap', lang, transcript, questions: visitQuestions.map((q) => q.text), purpose: SID('concerns').answer || '', seeing: SID('who').answer || '' }) });
+          body: JSON.stringify({ mode: 'recap', lang, transcript: transcript.split('\n').map((l, i) => `[${i + 1}] ${l}`).join('\n'), questions: visitQuestions.map((q) => q.text), purpose: SID('concerns').answer || '', seeing: SID('who').answer || '' }) });
         const d = await r.json().catch(() => ({}));
         if (!r.ok || !d.ok) { recapDone = false; return; }
         const rc = SID('recap');
         rc.answer = String(d.said || '').trim(); rc.customActive = true;
+        recapSrc = {}; rc.answer.split('\n').map((x) => x.trim()).filter(Boolean).forEach((line, i) => { if (d.saidFrom && d.saidFrom[i] && d.saidFrom[i].length) recapSrc[line] = d.saidFrom[i]; });
         (d.todo || []).forEach((t) => { if (!nextStepTasks.some((x) => x.text === t)) nextStepTasks.push({ text: t, selected: true }); });
         const next = [d.nextWith, d.nextDate, d.nextTime, d.nextWhen].filter(Boolean).join(', ');
         if (next) document.getElementById('customTaskInput').value = (lang === 'fr' ? 'Prochain rendez-vous : ' : 'Next appointment: ') + next;
@@ -3131,7 +3132,7 @@
           <li>${T('Your answers are saved only on this phone. There is no account and no copy on our side.', 'Vos réponses sont gardées seulement sur ce téléphone. Pas de compte, pas de copie chez nous.')}</li>
           <li>${T("Reid's voice and listening use Microsoft Azure in Canada. The sound is turned into words and not kept.", 'La voix et l’écoute de Reid utilisent Microsoft Azure au Canada. Le son devient des mots et n’est pas gardé.')}</li>
           <li>${T('Suggested questions come from Claude, an AI by Anthropic. Your name and the date are never sent.', 'Les questions suggérées viennent de Claude, une IA d’Anthropic. Votre nom et la date ne sont jamais envoyés.')}</li>
-          <li>${T('Recording the visit keeps only the words, on this phone. Always ask the doctor first.', 'L’enregistrement garde seulement les mots, sur ce téléphone. Demandez toujours au médecin d’abord.')}</li>
+          <li>${T('Recording the visit keeps the words and the sound on this phone only, so you can replay what the doctor said. Erase my answers deletes it. Always ask the doctor first.', 'L’enregistrement garde les mots et le son sur ce téléphone seulement, pour réentendre le médecin. Effacer mes réponses le supprime. Demandez toujours au médecin d’abord.')}</li>
           <li>${T('Reid never diagnoses or gives medical advice.', 'Reid ne pose jamais de diagnostic et ne donne pas d’avis médical.')}</li></ul>`);
       } else if (setView === 'device') {
         body = head(T('Another phone or computer', 'Un autre appareil'), 1) + `<div class="flex flex-col gap-[12px]">
@@ -3493,7 +3494,7 @@
 
     // starting over clears the questions too
     const qReset = resetAllFromSettings;
-    resetAllFromSettings = function (x) { aiTags = {}; qPicked = []; qPrio = []; detailQs = []; ownQs = []; prioWarned = false; spliceDetail(); qReset(x); visitQuestions = []; };
+    resetAllFromSettings = function (x) { aiTags = {}; recapSrc = {}; clipDB.clear(); qPicked = []; qPrio = []; detailQs = []; ownQs = []; prioWarned = false; spliceDetail(); qReset(x); visitQuestions = []; };
 
     // Chat: opens the phone's Messages app with a text to Rama, saying only which screen they're on
     function chatHref() {
@@ -3535,6 +3536,91 @@
       document.addEventListener('click', (e) => { if (!menu.contains(e.target)) close(); });
     })();
 
+
+    // =====================================================================
+    // After the visit: hear the doctor's own words for each recap point, and
+    // a warning on anything that is easy to mishear (medicines, doses, numbers,
+    // dates, "not"). The sound stays on this device only.
+    // =====================================================================
+    var recapSrc = {};
+    const clipDB = (() => {
+      let p = null;
+      const open = () => p || (p = new Promise((res, rej) => { try { const r = indexedDB.open('wellheard-audio', 1); r.onupgradeneeded = () => r.result.createObjectStore('clips'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }));
+      const run = (mode, fn) => open().then((db) => new Promise((res, rej) => { const t = db.transaction('clips', mode), q = fn(t.objectStore('clips')); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }));
+      return { put: (k, v) => run('readwrite', (st) => st.put(v, k)).catch(() => {}), get: (k) => run('readonly', (st) => st.get(k)).catch(() => null), clear: () => run('readwrite', (st) => st.clear()).catch(() => {}) };
+    })();
+    function riskOf(line) {
+      const l = ' ' + lc(line) + ' ', hits = [];
+      const meds = qLines(String(SID('meds').answer || '').replace(/,/g, '\n')).map((m) => lc(m).split(/\s+/)[0]).filter((m) => m.length > 3);
+      if (meds.some((m) => l.includes(m)) || /\b(medicine|medication|pill|tablet|capsule|prescription|drug|médicament|comprimé)/.test(l)) hits.push(L2('medicine', 'médicament'));
+      if (/\d|\b(mg|mcg|ml|units?|milligrams?|dose|doses|twice|once|three times|times a day|daily|every|fois|par jour|dose)\b/.test(l)) hits.push(L2('dose or number', 'dose ou nombre'));
+      if (/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|june|july|august|september|october|november|december|tomorrow|next week|weeks?|months?|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|semaines?|mois|demain)\b/.test(l)) hits.push(L2('date', 'date'));
+      if (/\b(not|don't|do not|doesn't|never|stop|stopped|avoid|no longer|pas|jamais|arrêter|éviter|ne plus)\b/.test(l)) hits.push(L2('"not" or "stop"', '« pas » ou « arrêter »'));
+      return hits;
+    }
+    const recapLines = () => String(SID('recap').answer || '').split('\n').map((x) => x.trim()).filter(Boolean);
+    async function playLine(line) {
+      const nums = (recapSrc[line] || []).slice().sort((a, b) => a - b);
+      if (!nums.length) { showToast(L2('No recording for this line.', 'Pas d’enregistrement pour cette ligne.')); return; }
+      hush(); const g = sayGen; speaking = true; if (IOS) stopRec();
+      ensureCtx();
+      for (const n of nums) {
+        if (g !== sayGen) break;
+        const buf = await clipDB.get(n); if (!buf) continue;
+        let ok = false;
+        if (sharedCtx) { if (sharedCtx.state !== 'running') { try { await sharedCtx.resume(); } catch (e) { /* tap needed */ } } if (sharedCtx.state === 'running') ok = await playBuffer(buf.slice(0), g); }
+        if (!ok && g === sayGen) {
+          const url = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })), a = new Audio(url); audioEl = a;
+          await new Promise((res) => { a.onended = res; a.onerror = res; a.play().catch(res); }); URL.revokeObjectURL(url);
+        }
+      }
+      if (g === sayGen) { speaking = false; audioEl = null; if (isListening) startRec(); }
+    }
+    // the sheet: each point the doctor made, a ▶ to hear it, and a ⚠ on what to double-check
+    let hearPage = 0;
+    const hear = document.createElement('div'); hear.id = 'hearSheet';
+    hear.className = 'hidden absolute inset-0 z-50 bg-[#1E2634]/40 flex items-end';
+    document.getElementById('appContainer').appendChild(hear);
+    function openHear() {
+      const lines = recapLines(), per = 3, n = Math.max(1, Math.ceil(lines.length / per)); hearPage = ((hearPage % n) + n) % n;
+      const shown = lines.slice(hearPage * per, hearPage * per + per), anyRisk = lines.some((x) => riskOf(x).length);
+      hear.innerHTML = `<div class="w-full bg-[#FAF7F0] rounded-t-[32px] p-5 flex flex-col gap-3 border-t-2 border-[#1E2634]">
+        <div class="flex items-center justify-between gap-2"><h2 class="text-xl font-extrabold text-[#1E2634]">${L2('What the doctor said', 'Ce qu’a dit le médecin')}</h2>
+          <button type="button" data-h="close" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm">${L2('Done', 'Terminé')}</button></div>
+        ${anyRisk ? `<div class="bg-[#FDF3E1] border-2 border-[#D97706] rounded-2xl p-3 text-sm font-bold text-[#7A4A06] leading-snug">⚠ ${L2('Reid can mishear. Check anything marked ⚠ — medicines, doses, numbers, dates and words like "not" — against the label, your printout, the pharmacist or the clinic.', 'Reid peut mal entendre. Vérifiez tout ce qui est marqué ⚠ — médicaments, doses, nombres, dates et « pas » — avec l’étiquette, le pharmacien ou la clinique.')}</div>` : ''}
+        ${lines.length ? shown.map((x, i) => { const r = riskOf(x), has = (recapSrc[x] || []).length;
+          return `<div class="w-full bg-white border ${r.length ? 'border-2 border-[#D97706]' : 'border-[#D6CFC0]'} rounded-2xl p-3 flex items-center gap-3">
+            <div class="flex-1 min-w-0"><p class="font-extrabold text-[15px] text-[#1E2634] leading-snug" data-notr>${esc(x)}</p>
+            ${r.length ? `<p class="text-xs font-extrabold text-[#B45309] mt-1">⚠ ${L2('Check', 'Vérifiez')}: ${r.join(', ')}</p>` : ''}</div>
+            ${has ? `<button type="button" data-h="play" data-i="${hearPage * per + i}" class="tactile-btn w-[56px] h-[56px] rounded-full bg-[#3B5E42] text-white font-extrabold text-lg shrink-0" aria-label="${L2('Hear the doctor say this', 'Entendre le médecin')}">▶</button>` : ''}</div>`; }).join('')
+          : `<p class="text-base font-bold text-[#425268]">${L2('Nothing yet. Record the visit, or type what the doctor said.', 'Rien pour l’instant. Enregistrez la visite, ou écrivez ce qu’a dit le médecin.')}</p>`}
+        ${n > 1 ? `<button type="button" data-h="more" class="tactile-btn w-full min-h-[52px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">${L2('More', 'Plus')} (${hearPage + 1}/${n}) ›</button>` : ''}
+        <p class="text-xs text-[#425268] text-center">${L2('The recording stays on this phone only.', 'L’enregistrement reste sur ce téléphone seulement.')}</p></div>`;
+      hear.classList.remove('hidden'); applyLang();
+    }
+    hear.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-h]');
+      if (!b) { if (e.target === hear) { hear.classList.add('hidden'); hush(true); } return; }
+      if (b.dataset.h === 'close') { hear.classList.add('hidden'); hush(true); }
+      if (b.dataset.h === 'more') { hearPage++; openHear(); }
+      if (b.dataset.h === 'play') playLine(recapLines()[Number(b.dataset.i)]);
+    });
+    // a button on the recap screen, and the recap card on the last screen opens the sheet
+    const hearBtn = document.createElement('button'); hearBtn.type = 'button'; hearBtn.id = 'hearBtn';
+    hearBtn.className = 'tactile-btn hidden w-full min-h-[50px] px-3 rounded-[16px] bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-sm shrink-0';
+    hearBtn.addEventListener('click', () => { hearPage = 0; openHear(); });
+    function placeHearBtn(step) {
+      const show = step.id === 'recap' && recapLines().length > 0;
+      if (show) {
+        const risky = recapLines().some((x) => riskOf(x).length);
+        hearBtn.textContent = (Object.keys(recapSrc).length ? '▶ ' + L2('Hear the doctor · check', 'Entendre le médecin · vérifier') : L2('Check', 'Vérifier')) + (risky ? ' ⚠' : '');
+        const scr = document.getElementById('voiceCaptureScreen'), box = document.getElementById('answerBoxWrapper');
+        if (hearBtn.parentNode !== scr || hearBtn.nextSibling !== box) scr.insertBefore(hearBtn, box);
+      }
+      hearBtn.classList.toggle('hidden', !show);
+    }
+    (function () { const c = document.getElementById('finalRecapLine'); const card = c && c.parentElement; if (card) { card.style.cursor = 'pointer'; card.addEventListener('click', () => { hearPage = 0; openHear(); }); } })();
+
     // ---------- tie everything into the prototype's own flow ----------
     const protoRender = renderCurrentStep;
     let lastShownStep = null;
@@ -3558,6 +3644,7 @@
       if (LISTMODES[step.mode]) renderList();
       if (step.mode === 'ideas' && (SID('concerns').answer || SID('story').answer)) fetchClaudeQuestions();
       if (step.id === 'recap') recapFromRecording();
+      placeHearBtn(step);
       if (step.mode === 'landing') stopRec();
       // the Next button just says Next, so it is never cut off
       const nl = document.getElementById('nextNavLabel');

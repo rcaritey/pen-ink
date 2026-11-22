@@ -252,6 +252,7 @@ Fill in the patient's after-visit notes:
 - "todo": things to do after the visit, each one complete short sentence that makes sense on its own (what, and when if it was said), starting with a verb, saying who does it when it is not the patient ("The doctor is sending the blood work requisition"). Include tests, medicines to start, stop or change (including taking a medicine more regularly), activities or exercise the doctor recommends, referrals, and booking the next visit.
 - "nextWith": who the next appointment is with, as said. "nextWhen": when, in the doctor's words ("in about 6 months"). "nextDate" (YYYY-MM-DD) and "nextTime" (HH:MM, 24-hour) only if an exact date or time was said, otherwise "".
 - "contact": who to contact with questions before the next visit and how, if it was said, otherwise "".
+- "saidFrom": for each line of "said", in the same order, the numbers of the transcript lines (written as [n] at the start of each line) where the doctor said it, so the family can play the doctor's own words. Use [] for every line when the transcript has no numbers.
 
 Rules, most important first:
 - Restate, never advise. Only what was said in the transcript. Never add medical information, never explain, never guess, never fill a gap. If something is unclear, leave it out.
@@ -269,8 +270,9 @@ const RECAP_SCHEMA = {
     todo: { type: 'array', items: { type: 'string' } },
     nextWith: { type: 'string' }, nextWhen: { type: 'string' }, nextDate: { type: 'string' }, nextTime: { type: 'string' },
     contact: { type: 'string' },
+    saidFrom: { type: 'array', items: { type: 'array', items: { type: 'integer' } } },
   },
-  required: ['answers', 'said', 'also', 'todo', 'nextWith', 'nextWhen', 'nextDate', 'nextTime', 'contact'],
+  required: ['answers', 'said', 'also', 'todo', 'nextWith', 'nextWhen', 'nextDate', 'nextTime', 'contact', 'saidFrom'],
   additionalProperties: false,
 };
 
@@ -388,6 +390,7 @@ export default async function handler(req, res) {
         said: clean(out.said, 2000), also: L(out.also), todo: L(out.todo),
         nextWith: clean(out.nextWith, 200), nextWhen: clean(out.nextWhen, 200), nextDate: date, nextTime: time,
         contact: clean(out.contact, 400),
+        saidFrom: (Array.isArray(out.saidFrom) ? out.saidFrom : []).slice(0, 20).map((v) => (Array.isArray(v) ? v.filter((n) => Number.isInteger(n) && n > 0).slice(0, 12) : [])),
       });
     }
 
