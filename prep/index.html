@@ -831,8 +831,8 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
 
   <!-- 1, part 2: who and when -->
   <section class="screen" id="s-who" hidden>
-    <h2>Who and when</h2>
-    <p class="muted">All optional. Tap Skip if you'd rather not say.</p>
+    <h2>Who are you seeing?</h2>
+    <p class="muted">Optional. Tap Skip if you'd rather not say.</p>
     <fieldset class="plain" id="doclang-set" hidden>
       <legend class="q-legend">Language for the doctor's pages</legend>
       <p class="help">You can answer in French. Claude translates your answers for the doctor.</p>
@@ -842,7 +842,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
       </div>
     </fieldset>
     <div class="field">
-      <label for="seeing">Who are you seeing?</label>
+      <label for="seeing" class="visually-hidden">Who are you seeing?</label>
       <p class="help" id="seeing-help">For example: neurologist or family doctor.</p>
       <div class="tiles" id="seeing-tiles" role="group" aria-label="Common choices">
         <button type="button" class="tile" data-v="Family doctor">Family doctor</button>
@@ -852,6 +852,11 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
       </div>
       <input type="text" id="seeing" aria-describedby="seeing-help" autocomplete="off">
     </div>
+  </section>
+
+  <section class="screen" id="s-when" hidden>
+    <h2>When is it?</h2>
+    <p class="muted">Optional. Tap Skip if you don't know yet.</p>
     <input type="text" id="when-said" class="visually-hidden" tabindex="-1" aria-hidden="true" autocomplete="off">
     <!-- big tap tiles and pickers for date and time (the phone's own pickers are hard with a tremor);
          the real fields stay underneath so saving and printing work as before -->
@@ -973,13 +978,9 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
       <p class="help" id="med-note-help">For example: started magnesium in September.</p>
       <textarea id="med-note" aria-describedby="med-note-help" style="min-height:90px"></textarea>
     </div>
-    <p class="muted vfield">Prescription medicines. Not sure of a dose? Leave it blank.</p>
+    <p class="muted vfield">Everything you take: prescriptions, and also vitamins, supplements and anything from the drugstore. Not sure of a dose? Leave it blank.</p>
     <div class="list vfield" id="med-list"></div>
-    <div class="vfield"><button type="button" class="btn secondary" data-add="med">Add another medication</button></div>
-    <h3 class="vfield" style="margin-top:8px">Other things you take</h3>
-    <p class="muted vfield">Vitamins, supplements, herbal remedies, or anything from the drugstore without a prescription.</p>
-    <div class="list vfield" id="otc-list"></div>
-    <div class="vfield"><button type="button" class="btn secondary" data-add="otc">Add another</button></div>
+    <div class="vfield"><button type="button" class="btn secondary" data-add="med">+ Add another medicine or vitamin</button></div>
   </section>
 
   <!-- 6 MORE DETAIL -->
@@ -1388,7 +1389,8 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   const STEPS = [
     { id: "name", sec: "prep", stop: 0, name: "Your name", skip: true },
     { id: "appt", sec: "prep", stop: 0, name: "The appointment" },
-    { id: "who", sec: "prep", stop: 0, name: "Who and when", skip: true },
+    { id: "who", sec: "prep", stop: 0, name: "Who you're seeing", skip: true },
+    { id: "when", sec: "prep", stop: 0, name: "When", skip: true },
     { id: "words", sec: "prep", stop: 1, name: "In your own words" },
     { id: "bg", sec: "prep", stop: 2, name: "Your health", skip: true },
     { id: "bgchg", sec: "prep", stop: 2, name: "Recent changes", skip: true },
@@ -2632,7 +2634,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     Object.values(screens).forEach(el => el.hidden = true);
     const onWelcome = step < 0;
     try { history.replaceState(null, "", onWelcome ? location.pathname : "#" + STEPS[step].id); } catch (err) { console.warn(err); }
-    $("progress").hidden = onWelcome; $("actions").hidden = onWelcome; document.body.classList.toggle("in-steps", !onWelcome); if (STEPS[S.step] && STEPS[S.step].id === "who") whoSync(); if (!onWelcome && !isVoice()) setTimeout(() => reidThink("off"), 0);
+    $("progress").hidden = onWelcome; $("actions").hidden = onWelcome; document.body.classList.toggle("in-steps", !onWelcome); if (STEPS[S.step] && /^(who|when)$/.test(STEPS[S.step].id)) whoSync(); if (!onWelcome && !isVoice()) setTimeout(() => reidThink("off"), 0);
     window.scrollTo(0, 0);
     if (onWelcome) { renderWelcome(); screens.welcome.hidden = false; focusHeading(screens.welcome); return; }
     const s = STEPS[step];
@@ -2987,7 +2989,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   document.addEventListener("visibilitychange", () => { if (!document.hidden) keepAwake(); });
   document.addEventListener("pointerdown", () => keepAwake(), { capture: true });
   function setGuide(text) { $("guide-help").hidden = true; guideLine = text; $("guide-say").textContent = text.replace(HOWTO, " ").replace(/\s+/g, " ").trim() || text; }
-  const LISTS = { tell: { add: "tell", pre: "tell-", box: "tell-list" }, ask: { add: "ask", pre: "ask-", box: "ask-list" }, recap2: { add: "todo", pre: "todo-", box: "rc-todo-list" }, meds: { add: "med", pre: "mn-", box: "med-list" }, otc: { add: "otc", pre: "mn-", box: "otc-list" } };
+  const LISTS = { tell: { add: "tell", pre: "tell-", box: "tell-list" }, ask: { add: "ask", pre: "ask-", box: "ask-list" }, recap2: { add: "todo", pre: "todo-", box: "rc-todo-list" }, meds: { add: "med", pre: "mn-", box: "med-list" }, otc: { add: "otc", pre: "mn-", box: "med-list" } };
   let listOn = null;
   // the first empty line in the list, or a new one (fresh = always a new line unless the last is empty)
   function listSlot(L, fresh) {
@@ -3004,6 +3006,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     if (!isVoice()) return;
     $("guide").hidden = false;
     if (id === "words") { setGuide(say("wordsQ")); return askWords(); }
+    if (id === "when" && S.consent !== null) { keepAwake(); return askWhen(); }
     if (id === "detail") { listOn = null; setGuide(say("preparing")); return; }   // enterDetail asks the questions
     // At the very start, say what the helper is and ask once (out loud) whether Claude may help.
     if (S.consent === null && id !== "detail") {
@@ -3063,7 +3066,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     }
     listOn = null;
     // Who are you seeing? Then: what day and time?
-    const go = id === "who" ? askWhen : id === "recapfu" ? () => askNextWhen(next) : next;
+    const go =  id === "recapfu" ? () => askNextWhen(next) : next;
     Voice.ask(line, field ? $(field) : null, go, guideView, { readback: field === "who" ? true : field ? "fix" : false, q: say(k) });
   }
   function askList(L, k, after, spoken) {
@@ -3771,17 +3774,18 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     if (changed) save();
   }
   function renderMeds() {
-    [["med-list", false], ["otc-list", true]].forEach(([boxId, other]) => {
+    // one list for everything they take (prescriptions and drugstore items together, as on the doctor's page)
+    [["med-list", false]].forEach(([boxId]) => {
       const box = $(boxId); box.innerHTML = "";
-      if (!other && !S.meds.some(m => !m.o)) S.meds.push({ n: "", d: "", w: "", o: false });
+      if (!S.meds.length) S.meds.push({ n: "", d: "", w: "", o: false });
       S.meds.forEach((m, i) => {
-        if (!!m.o !== other) return;
+        const other = !!m.o;
         const w = document.createElement("div"); w.className = "med-wrap";
         w.innerHTML = `<div class="med">
-          <div class="field"><label for="mn-${i}">${other ? "Product" : "Medication"}</label><input type="text" id="mn-${i}" value="${esc(m.n)}" autocomplete="off"></div>
+          <div class="field"><label for="mn-${i}">Medicine or vitamin</label><input type="text" id="mn-${i}" value="${esc(m.n)}" autocomplete="off"></div>
           <div class="field"><label for="md-${i}">Dose</label><input type="text" id="md-${i}" value="${esc(m.d)}" autocomplete="off"></div>
           <div class="field"><label for="mw-${i}">When</label><input type="text" id="mw-${i}" value="${esc(m.w)}" autocomplete="off"></div>
-          <button type="button" class="icon-btn" aria-label="Remove ${other ? "item" : "medication"} ${i + 1}">Remove</button></div>`;
+          <button type="button" class="icon-btn" aria-label="Remove ${esc(m.n || "this line")}">Remove</button></div>`;
         const [n, d, wh] = w.querySelectorAll("input");
         n.addEventListener("input", e => { S.meds[i].n = e.target.value; save(); });
         d.addEventListener("input", e => { S.meds[i].d = e.target.value; save(); });
