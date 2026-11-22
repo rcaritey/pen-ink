@@ -186,6 +186,26 @@ Answer in one or two short, warm, spoken sentences (under 45 words), in the lang
 - If they ask a medical question (what is wrong, what to take, whether something is serious), do not answer it. Say it's a good question for their doctor and that they can add it to their questions later in the app. If it sounds urgent (chest pain, trouble breathing, signs of a stroke, thoughts of self-harm), tell them to call 911 now.
 - Never diagnose or give medical advice. Plain words, no lists, no markdown. Do not repeat the app's question back word for word.`;
 
+// Reid's gentle check when a short answer could mean different things ("the doctor", "my foot").
+const VAGUE = `You are Reid, WellHeard's AI helper: caring, thoughtful, never overbearing. A patient is preparing for a medical appointment.
+You receive one question from the app and the patient's short answer. Decide whether the answer is too vague for the doctor's page.
+
+Vague means a doctor reading it would not know what is meant: "my foot" (what about it?), "the doctor" (which one?), "pills" (which?), "downtown" (hospital or clinic?).
+NOT vague: anything a doctor would understand as written, a name, a place name, "regular check-up", "test results", "neurologist", "Sunnybrook Hospital", or "I don't know".
+If in doubt, it is NOT vague. Most answers are fine.
+
+If vague: "ask" is one short, kind question (under 15 words) starting "Just to be sure" or similar; "options" are exactly 2 likely completions of their answer, written as the patient's own words (under 8 words each), using only what they said plus the most common plain meanings.
+Never add a diagnosis, a cause, a medicine name or anything medical they did not say. For a body part, options name what they might be noticing in everyday words (for example "pain in my foot", "numbness or tingling in my foot").
+If not vague: unclear false, ask "", options [].
+Write in the language given.`;
+
+const VAGUE_SCHEMA = {
+  type: 'object',
+  properties: { unclear: { type: 'boolean' }, ask: { type: 'string' }, options: { type: 'array', items: { type: 'string' } } },
+  required: ['unclear', 'ask', 'options'],
+  additionalProperties: false,
+};
+
 const HELP_SCHEMA = {
   type: 'object',
   properties: { answer: { type: 'string' } },
@@ -315,7 +335,7 @@ export default async function handler(req, res) {
   const body = typeof req.body === 'object' && req.body ? req.body : (() => {
     try { return JSON.parse(req.body || '{}'); } catch { return {}; }
   })();
-  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap'].includes(body.mode) ? body.mode : 'suggest';
+  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague'].includes(body.mode) ? body.mode : 'suggest';
   const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -372,6 +392,17 @@ export default async function handler(req, res) {
     }
 
     // ---- spoken help: the patient asked the app something mid-question
+    if (mode === 'vague') {
+      const said = clean(body.text, 120);
+      if (!said) return res.status(400).json({ ok: false, error: 'Nothing to check.' });
+      const ctx = `Language: ${LANG_NAME[lang]}\nThe app asked: ${clean(body.question, 300) || 'not given'}\nThe patient answered: ${said}`;
+      const out = await askClaude(VAGUE, ctx, VAGUE_SCHEMA, 200);
+      const options = Array.isArray(out && out.options) ? out.options.map((o) => clean(o, 80)).filter(Boolean).slice(0, 2) : [];
+      const ask = clean(out && out.ask, 160);
+      const unclear = !!(out && out.unclear) && !!ask && options.length === 2;
+      return res.status(200).json({ ok: true, unclear, ask: unclear ? ask : '', options: unclear ? options : [] });
+    }
+
     if (mode === 'help') {
       const ask = clean(body.text, 400);
       if (!ask) return res.status(400).json({ ok: false, error: 'Nothing was asked.' });
