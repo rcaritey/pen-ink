@@ -2828,7 +2828,13 @@
       speaking = false;
       if (listen && was && isListening) setTimeout(startRec, 150);
     }
-    document.addEventListener('pointerdown', () => { ensureCtx(); if (speaking) hush(true); }, true);
+    let tapAt = null;
+    document.addEventListener('pointerdown', (e) => { ensureCtx(); tapAt = { x: e.clientX, y: e.clientY, t: Date.now() }; }, true);
+    document.addEventListener('pointerup', (e) => {
+      if (!tapAt) return; const moved = Math.abs(e.clientX - tapAt.x) + Math.abs(e.clientY - tapAt.y), quick = Date.now() - tapAt.t < 600; tapAt = null;
+      if (speaking && moved < 12 && quick) hush(true);   // a tap, not a scroll
+    }, true);
+    document.addEventListener('pointercancel', () => { tapAt = null; }, true);
     // a phrase heard while Reid was talking: his own words coming back, or the person?
     function isEcho(t) {
       const w = vwords(t); if (!w.length) return true;
@@ -2945,6 +2951,14 @@
     };
 
     // ---------- Reid speaks (Azure neural voices, Canada Central) ----------
+    // split speech into short pieces at sentence ends (about 180 characters each)
+    function speechParts(text) {
+      const sentences = String(text).match(/[^.!?。？！]+[.!?。？！]*\s*/g) || [text], out = [];
+      let cur = '';
+      sentences.forEach((x) => { if ((cur + x).length > 180 && cur) { out.push(cur.trim()); cur = ''; } cur += x; });
+      if (cur.trim()) out.push(cur.trim());
+      return out.length ? out : [String(text)];
+    }
     async function say(text, raw) {
       if (!text || inputPreference !== 'voice' || !readAloud) return;
       hush(); const g = sayGen; speaking = true; speakStart = performance.now(); talkFace(true);
@@ -2952,11 +2966,14 @@
       talkWords = new Set(vwords(text));
       if (IOS) stopRec(); else if (isListening) startRec();
       try {
-        const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, slow: slowVoice, voice: voiceName || VOICE_OF[lang] }) });
-        if (r.ok && g === sayGen) {
-          const blob = await r.blob();
-          if (g !== sayGen) return;
+        const parts = speechParts(text);
+        const get = (t) => fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: t, slow: slowVoice, voice: voiceName || VOICE_OF[lang] }) }).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+        let next = get(parts[0]);
+        for (let i = 0; i < parts.length; i++) {
+          const blob = await next; if (g !== sayGen) return;
+          next = i + 1 < parts.length ? get(parts[i + 1]) : null;
+          if (!blob) continue;
           // iPhones only let an <audio> play right after a tap. The sound system opened by the first tap
           // (Get started) stays open, so Reid speaks through it whenever he needs to.
           let done = false;
@@ -2969,8 +2986,9 @@
             const a = new Audio(url); audioEl = a;
             const ok = await new Promise((res) => { a.onended = () => res(true); a.onerror = () => res(true); a.onplaying = () => { speakStart = performance.now(); }; a.play().catch(() => res(false)); });
             URL.revokeObjectURL(url);
-            if (!ok && g === sayGen) showToast(lang === 'fr' ? 'Touchez l’écran pour entendre Reid.' : 'Tap the screen to hear Reid.');
+            if (!ok && g === sayGen) { showToast(lang === 'fr' ? 'Touchez l’écran pour entendre Reid.' : 'Tap the screen to hear Reid.'); break; }
           }
+          if (g !== sayGen) return;
         }
       } catch (e) { console.warn('Reid could not speak', e); }
       if (g !== sayGen) return;
@@ -3718,7 +3736,7 @@
       priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Say the number of the most important one.', ' Dites le numéro de la plus importante.') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       review: () => L2('Does everything look right?', 'Est-ce que tout est correct ?'),
       meds: () => document.getElementById('listTitle').textContent && steps[currentIndex].mode === 'meds' ? (medDraft.sugg.length ? L2('Did you mean ', 'Vouliez-vous dire ') + medDraft.sugg[0].name + '?' : document.getElementById('listTitle').textContent) : '',
-      consent: () => L2('Before we start: your answers stay on this device. To help you, your voice goes to Microsoft in Canada and your answers, never your name, go to Claude in the United States. Do you agree? Tap I agree, or No thanks.', 'Vos réponses restent sur cet appareil. Pour vous aider, votre voix va à Microsoft au Canada et vos réponses, jamais votre nom, à Claude aux États-Unis. Acceptez-vous ?'),
+      consent: () => L2("Before we begin, a quick word about your privacy. Everything you tell me stays on your phone. To help you, I send your voice to Microsoft, here in Canada, to turn it into words. And I send your answers, never your name, to Claude, in the United States, so I can suggest good questions. Is that alright with you? You can tap I agree, or No thanks.", "Avant de commencer, un mot sur votre vie privée. Tout ce que vous me dites reste sur votre téléphone. Pour vous aider, j'envoie votre voix à Microsoft, ici au Canada, pour la transformer en mots. Et j'envoie vos réponses, jamais votre nom, à Claude, aux États-Unis, pour vous suggérer de bonnes questions. Est-ce que ça vous convient ? Touchez J'accepte, ou Non merci."),
       setup: () => L2('Before we start, would you like to change the language or the text size?', 'Avant de commencer, voulez-vous changer la langue ou la taille du texte ?'),
       doctorSummary: () => L2('Would you like to print the summary for your doctor?', 'Voulez-vous imprimer le résumé pour votre médecin ?'),
       visitQuestions: () => chosen().length ? L2('Which questions has the doctor answered? ', 'À quelles questions le médecin a-t-il répondu ? ') + visitQuestions.slice(vStarts[vPage] || 0, vStarts[vPage + 1] || QP()).map((q, i) => `${i + 1}. ${stop(q.text)}`).join(' ') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
