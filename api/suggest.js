@@ -457,7 +457,11 @@ export default async function handler(req, res) {
     const langNote = mode === 'clarify'
       ? `\n\n## Languages\nThe patient speaks ${LANG_NAME[lang]}. Write every question ("q") in ${LANG_NAME[lang]}. Write every "label" in ${LANG_NAME[docLang]}, because labels go on the doctor's page. Their answers may be in either language.`
       : `\n\n## Languages\nWrite every question ("q") in ${LANG_NAME[docLang]}, because the patient will ask the doctor in that language. Write every "why" in ${LANG_NAME[lang]}, because the patient reads it.`;
-    const out = await askClaude(mode === 'clarify' ? CLARIFY : SYSTEM, buildPrompt(p) + langNote, QUESTION_SCHEMA, 2500);
+    // focus=doctor: questions about what this kind of doctor checks, manages and decides
+    const focusNote = mode === 'clarify' ? '' : (body.focus === 'doctor'
+      ? `\n\n## This time\nEvery question must be specific to the kind of doctor they are seeing (see "Seeing"): what this doctor checks, manages or decides, their tests and treatments, and how that touches the patient's other conditions and medications. Use section F of the guide. If "Seeing" is a family doctor, ask about coordinating care, referrals and follow-up.`
+      : '') + '\n\nNever repeat, reword or closely echo anything under "Questions they already have" or "Questions already asked". Each new question must cover a different topic.';
+    const out = await askClaude(mode === 'clarify' ? CLARIFY : SYSTEM, buildPrompt(p) + langNote + focusNote, QUESTION_SCHEMA, 2500);
     const questions = tidy(out.questions);
     if (!questions.length) {
       return res.status(502).json({ ok: false, error: 'The suggestions came back in a form we could not read. Please try again.' });

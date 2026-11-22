@@ -2486,7 +2486,7 @@
           currentIndex, inputPreference, lang, slowVoice, readAloud, voiceName, transcript, recapDone, recapContact,
           answers: Object.fromEntries(steps.filter((s) => 'answer' in s).map((s) => [s.id, s.answer || ''])),
           custom: Object.fromEntries(steps.filter((s) => 'customActive' in s).map((s) => [s.id, !!s.customActive])),
-          visitQuestions, nextStepTasks, task: document.getElementById('customTaskInput').value || '', aiPool, aiAt, ownQs, vagueOk, qPicked, qPrio,
+          visitQuestions, nextStepTasks, task: document.getElementById('customTaskInput').value || '', aiPool, aiAt, ownQs, vagueOk, qPicked, qPrio, aiTags,
           detailQs: detailQs.map((d) => ({ q: d.q, label: d.label }))
         }));
       } catch (e) { /* private mode or full: carry on without saving */ }
@@ -2499,13 +2499,13 @@
         if (Array.isArray(d.visitQuestions) && d.visitQuestions.length) visitQuestions = d.visitQuestions;
         if (Array.isArray(d.nextStepTasks)) nextStepTasks = d.nextStepTasks;
         aiPool = Array.isArray(d.aiPool) ? d.aiPool : []; aiAt = d.aiAt || 0; ownQs = Array.isArray(d.ownQs) ? d.ownQs : [];
-        vagueOk = d.vagueOk || {}; qPicked = Array.isArray(d.qPicked) ? d.qPicked : []; qPrio = Array.isArray(d.qPrio) ? d.qPrio : []; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || '';
+        vagueOk = d.vagueOk || {}; qPicked = Array.isArray(d.qPicked) ? d.qPicked : []; qPrio = Array.isArray(d.qPrio) ? d.qPrio : []; aiTags = d.aiTags && typeof d.aiTags === 'object' ? d.aiTags : {}; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || '';
         lang = d.lang === 'fr' ? 'fr' : 'en'; slowVoice = !!d.slowVoice; voiceName = typeof d.voiceName === 'string' ? d.voiceName : ''; readAloud = d.readAloud !== false;
         document.getElementById('customTaskInput').value = d.task || '';
         if (d.inputPreference === 'tap') setInputMode('tap');
         if (Number.isInteger(d.currentIndex) && d.currentIndex > 0 && d.currentIndex < steps.length) currentIndex = d.currentIndex;
         lastWorkflowSignature = `${SID('who').answer || ''}|${SID('concerns').answer || ''}`;
-        if (aiPool.length) aiSig = lastWorkflowSignature;
+        
       } catch (e) { /* bad saved data: start fresh */ }
     }
     setInterval(saveAll, 2000);
@@ -2706,6 +2706,7 @@
       if (/^(repeat|repeat that|say that again|répète|répétez)$/.test(low)) { speakStep(); return; }
       if (/^(stop|pause|wait|hold on|arrête|attends|attendez)$/.test(low)) { if (isListening) toggleListening(); return; }
       if (/^(help|help me|aide|aidez-moi)$/.test(low)) { askReid(lang === 'fr' ? 'Que dois-je faire sur cet écran ?' : 'What should I do on this screen?'); return; }
+      if (step.mode === 'ideas' && /(new|more|other|different) (questions|ideas)|reid.*more|generate|nouvelles questions|d'autres questions/.test(low) && low.split(' ').length <= 8) { fetchClaudeQuestions(true); return; }
       if (/^(skip|skip (this|that|it|these)( one)?|passer|on passe)$/.test(low) && (step.id === 'detail' || /^dq\d+$/.test(step.id))) { skipDetail(step); return; }
       if (step.id === 'detail' && /^(yes|yeah|yes please|sure|ok|okay|oui|d'accord|allez-y)$/.test(low)) { selectPreset('Yes, ask me'); return; }
       if (step.mode !== 'voice') { if (!listHeard(step, low)) if (/\?\s*$/.test(t) || QWORD.test(low)) askReid(t); return; }
@@ -2757,7 +2758,8 @@
       const step = steps[currentIndex]; if (!step || step.mode === 'landing') return;
       if (step.mode !== 'voice') { const f = SPEAK[step.mode]; if (f) say(f()); return; }
       if (!step.question) return;
-      say(tr(step.question) + (step.helperText ? ' ' + tr(step.helperText) : ''));
+      const opts = (step.presets || []).map((x) => tr(x));
+      say(tr(step.question) + (step.helperText ? ' ' + tr(step.helperText) : '') + (opts.length ? (lang === 'fr' ? ' Vous pouvez toucher ou dire : ' : ' You can tap or say: ') + opts.join(', ') + '.' : ''));
     }
     // Questions said to Reid ("what does that mean?") get a short answer from Claude
     async function askReid(q) {
@@ -2959,21 +2961,48 @@
     const B = 'tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2';
     const BON = 'tactile-btn flex-1 min-h-[52px] rounded-xl bg-[#1E2634] text-white font-extrabold text-base';
     const BOFF = 'tactile-btn flex-1 min-h-[52px] rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base';
-    let setView = 'menu', voiceName = '';
+    let setView = 'menu', voiceName = '', spokenView = null;
+    const ICONS = {
+      explain: '<path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/>',
+      say: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>',
+      voice: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>',
+      answer: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+      steps: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+      pages: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+      privacy: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+      device: '<rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>',
+      erase: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>'
+    };
+    const ico = (k, dark) => `<span class="w-9 h-9 rounded-xl ${dark ? 'bg-white/15 text-white' : 'bg-white border border-[#D6CFC0] text-[#3B5E42]'} flex items-center justify-center shrink-0" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ''}</svg></span>`;
+    // Reid reads each Help & Settings page aloud when it opens
+    function speakSettings(panel) {
+      if (spokenView === setView) return; spokenView = setView;
+      const fr = lang === 'fr', parts = [];
+      panel.querySelectorAll('h2, p, li, button').forEach((el) => {
+        if (el.closest('li') && el.tagName !== 'LI') return;
+        if (el.matches('[data-go="menu"], [onclick]')) return;
+        const leaves = [...el.querySelectorAll('*')].filter((c) => !c.children.length && c.textContent.replace(/[›↺▶🖨\s]/g, '')).map((c) => c.textContent.trim());
+        let t = el.tagName === 'LI' ? [...el.children].map((c) => c.textContent.trim()).filter(Boolean).join(': ') : (leaves.length > 1 ? leaves.join(', ') : el.textContent.replace(/\s+/g, ' ').trim());
+        t = t.replace(/\s*·\s*/g, ', ');
+        if (el.tagName === 'BUTTON') t = t.replace(/[›↺▶🖨]/g, '').replace(/^✓\s*(.*)$/, fr ? '$1, choisi' : '$1, selected').trim();
+        if (t) parts.push(t.replace(/([^.!?:])$/, '$1.'));
+      });
+      say(parts.join(' '));
+    }
     function renderSettings() {
       const fr = lang === 'fr', panel = document.querySelector('#helpSettingsModal > div');
       const T = (en, f) => fr ? f : en;
       const pair = (k, a, b, on) => `<div class="flex items-stretch"><button type="button" data-set="${k}" data-v="1" class="${on ? BON : BOFF}">${on ? '✓ ' : ''}${a}</button><div class="w-[14px] shrink-0"></div><button type="button" data-set="${k}" data-v="0" class="${!on ? BON : BOFF}">${!on ? '✓ ' : ''}${b}</button></div>`;
       const card = (h, inner, sub) => `<div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5 space-y-2"><p class="font-extrabold text-base text-[#1E2634]">${h}</p>${sub ? `<p class="text-sm text-[#425268] leading-snug">${sub}</p>` : ''}${inner}</div>`;
       // one row of the main menu: big, icon-free, label on the left, current setting and › on the right
-      const row = (k, label, val) => `<button type="button" data-go="${k}" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-between gap-2 text-left"><span>${label}</span><span class="text-sm text-[#425268] font-bold shrink-0">${val || ''} ›</span></button>`;
+      const row = (k, label, val) => `<button type="button" data-go="${k}" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-between gap-2 text-left"><span class="flex items-center gap-3">${ico(k)}<span>${label}</span></span><span class="text-sm text-[#425268] font-bold shrink-0">${val || ''} ›</span></button>`;
       const head = (title, back) => `<div class="flex items-center justify-between gap-2">${back ? `<button type="button" data-go="menu" class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">‹ ${T('Back', 'Retour')}</button>` : ''}<h2 id="settingsTitle" class="text-xl font-extrabold text-[#1E2634] flex-1 ${back ? 'text-center' : ''}">${title}</h2>
           <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm">${T('Done', 'Terminé')}</button></div>`;
       const onStep = steps[currentIndex].mode !== 'landing';
       let body = '';
       if (setView === 'menu') {
         body = head(T('Help & Settings', 'Aide et réglages')) + `<div class="flex flex-col gap-[10px]">
-          ${onStep ? `<button type="button" data-act="explain" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">${T('Explain this screen', 'Expliquer cet écran')}</button>` : ''}
+          ${onStep ? `<button type="button" data-act="explain" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#1E2634] text-white font-extrabold text-base flex items-center justify-center gap-3">${ico('explain', 1)}${T('Explain this screen', 'Expliquer cet écran')}</button>` : ''}
           ${row('say', T('What you can say', 'Ce que vous pouvez dire'))}
           ${row('voice', T("Reid's voice", 'La voix de Reid'), (readAloud ? T('On', 'Oui') : T('Off', 'Non')) + ' · ' + (slowVoice ? T('Slower', 'Lente') : T('Normal', 'Normale')))}
           ${row('answer', T('Language & answering', 'Langue et réponses'), (fr ? 'Français' : 'English') + ' · ' + (inputPreference === 'voice' ? T('Talking', 'Parler') : T('Typing', 'Écrire')))}
@@ -2981,7 +3010,7 @@
           ${row('pages', T('Print or share my pages', 'Imprimer ou partager'))}
           ${row('privacy', T('Your privacy', 'Vos renseignements'))}
           ${row('device', T('Another phone or computer', 'Un autre appareil'))}
-          <button type="button" data-act="erase" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">↺ ${T('Erase my answers', 'Effacer mes réponses')}</button>
+          <button type="button" data-act="erase" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2">${ico('erase')}${T('Erase my answers', 'Effacer mes réponses')}</button>
           <p class="text-xs text-center text-[#425268]">${T('Need help?', 'Besoin d’aide ?')} hello@pen-ink.ca · Pen &amp; Ink</p></div>`;
       } else if (setView === 'say') {
         const li = (a, b) => `<li class="flex justify-between gap-3 py-1.5 border-b border-[#D6CFC0]"><b class="text-[#1E2634]">${a}</b><span class="text-[#425268] text-right">${b}</span></li>`;
@@ -3027,6 +3056,7 @@
           ${card(T('2. On the other device', '2. Sur l’autre appareil'), `<label class="${B} cursor-pointer">${T('Open the backup file', 'Ouvrir la sauvegarde')}<input type="file" accept=".json,application/json" data-act="open" class="hidden"></label>`, T('Open pen-ink.ca/prep/new, then tap this.', 'Ouvrez pen-ink.ca/prep/new, puis touchez ceci.'))}</div>`;
       }
       panel.innerHTML = body;
+      speakSettings(panel);
       panel.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { setView = b.dataset.go; renderSettings(); applyLang(); }));
       panel.querySelectorAll('[data-jump]').forEach((b) => b.addEventListener('click', () => { closeModal('helpSettingsModal'); stopRec(); currentIndex = Number(b.dataset.jump); renderCurrentStep(); speakStep(); }));
       panel.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
@@ -3059,7 +3089,7 @@
       });
     }
     const protoOpen = openModal;
-    openModal = function (id) { if (id === 'helpSettingsModal') { setView = 'menu'; renderSettings(); if (isListening) { stopRec(); } } protoOpen(id); applyLang(); };
+    openModal = function (id) { if (id === 'helpSettingsModal') { setView = 'menu'; spokenView = null; renderSettings(); if (isListening) { stopRec(); } } protoOpen(id); applyLang(); };
 
 
     // =====================================================================
@@ -3073,9 +3103,18 @@
     const lc = (t) => String(t || '').trim().toLowerCase();
     const NONE = /^(none( yet)?|no,? that'?s all|nothing|no|aucune?( pour l.instant)?|non,? c.est tout|rien)\.?$/i;
     function qLines(t) { return String(t || '').split(/\n+/).map((x) => x.trim()).filter((x) => x && !NONE.test(x)); }
+    const STOPW = new Set("the a an i my me is it do does should could can what how when why will would to of for in on and or be this that with any there are am you your we if about get has have need est le la les un une des de du je mon ma mes ce ça que qui quoi est-ce dois-je puis-je il elle y a".split(' '));
+    function qWords(t) { return new Set(lc(t).replace(/[^a-z0-9à-ÿ' -]/g, ' ').split(/[\s'-]+/).filter((w) => w.length > 2 && !STOPW.has(w)).map((w) => w.replace(/(ing|ed|es|e|s)$/, '').slice(0, 5))); }
+    function similar(a, b) {
+      if (lc(a) === lc(b)) return true;
+      const A = qWords(a), B = qWords(b); if (!A.size || !B.size) return false;
+      let n = 0; A.forEach((w) => { if (B.has(w)) n++; });
+      return n / (A.size + B.size - n) >= 0.6;
+    }
+    function dedupe(arr) { const out = []; arr.forEach((q) => { if (q && !out.some((o) => similar(o, q))) out.push(q); }); return out; }
     function uniq(arr) { const seen = new Set(); return arr.filter((x) => { const k = lc(x); if (!k || seen.has(k)) return false; seen.add(k); return true; }); }
     function chosen() {
-      const base = uniq(qLines(SID('ask').answer).concat(qPicked, qLines(SID('ideasmore').answer), ownQs));
+      const base = dedupe(uniq(qLines(SID('ask').answer).concat(qPicked, qLines(SID('ideasmore').answer), ownQs)));
       const top = qPrio.filter((q) => base.includes(q));
       return top.concat(base.filter((q) => !top.includes(q)));
     }
@@ -3091,8 +3130,13 @@
         'Y a-t-il des effets secondaires à surveiller ?', "Qu'est-ce que je peux faire à la maison pour aider ?", "Qu'est-ce que je dois surveiller, et quand dois-je vous appeler ?", 'Quand dois-je revenir ?']
     };
     function ideaPool() {
-      const mine = new Set(qLines(SID('ask').answer).concat(qLines(SID('ideasmore').answer), ownQs).map(lc));
-      return uniq(aiPool.concat(COMMON[lang === 'fr' ? 'fr' : 'en'])).filter((q) => !mine.has(lc(q)));
+      const mine = qLines(SID('ask').answer).concat(qLines(SID('ideasmore').answer), ownQs), out = [];
+      aiPool.concat(COMMON[lang === 'fr' ? 'fr' : 'en']).forEach((q) => {
+        if (qPicked.includes(q)) { if (!out.includes(q)) out.push(q); return; }
+        if (mine.some((m) => similar(m, q)) || out.some((o) => similar(o, q))) return;
+        out.push(q);
+      });
+      return out;
     }
 
     const QSTEPS = [
@@ -3149,6 +3193,40 @@
     };
     function goTo(i) { stopRec(); currentIndex = i; renderCurrentStep(); speakStep(); }
 
+    var aiTags = {}, aiBusy = false;
+    async function askClaudeQs(focus, asked) {
+      const body = Object.assign(picture(), { asked: asked.slice(-30) }); if (focus) body.focus = focus;
+      const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      return r.ok && d.ok && Array.isArray(d.questions) ? d.questions.map((q) => q && q.q).filter(Boolean) : [];
+    }
+    fetchClaudeQuestions = async function (more) {
+      if (aiBusy) return;
+      const p = picture(), sig = JSON.stringify(Object.assign({}, p, { ask: [] }));
+      if (!more && aiSig === sig && aiPool.length) return;
+      if (!more && aiSig !== sig) { aiPool = []; aiTags = {}; }
+      aiSig = sig; aiBusy = aiLoading = true;
+      if (LISTMODES[steps[currentIndex].mode]) { renderList(); applyLang(); }
+      if (more) say(lang === 'fr' ? 'Un instant. Reid cherche d’autres questions.' : 'One moment. Reid is finding more questions.');
+      let added = [];
+      try {
+        const asked = aiPool.concat(chosen());
+        const [c, dq] = await Promise.all([askClaudeQs('', asked).catch(() => []), p.seeing ? askClaudeQs('doctor', asked).catch(() => []) : Promise.resolve([])]);
+        const fresh = [];
+        for (let i = 0; i < Math.max(c.length, dq.length); i++) { if (c[i]) { fresh.push(c[i]); aiTags[c[i]] = 'c'; } if (dq[i]) { fresh.push(dq[i]); aiTags[dq[i]] = 'd'; } }
+        const known = aiPool.concat(chosen(), COMMON.en, COMMON.fr);
+        added = dedupe(fresh).filter((q) => !known.some((k) => similar(k, q)));
+        aiPool = aiPool.concat(added);
+      } catch (e) { console.warn('Suggestions unavailable', e); }
+      aiBusy = aiLoading = false;
+      if (LISTMODES[steps[currentIndex].mode]) {
+        if (more && added.length) qPage = Math.floor(ideaPool().indexOf(added[0]) / Q_PER);
+        renderList(); applyLang();
+        if (more) say(added.length ? (lang === 'fr' ? 'Voici de nouvelles questions. ' : 'Here are some new questions. ') + readList() : (lang === 'fr' ? 'Reid n’a pas d’autres idées pour l’instant.' : 'Reid has no new ideas just now.'));
+      }
+      saveAll();
+    };
+
     // ---------- the shared list screen ----------
     const B_OFF = 'tactile-btn w-full min-h-[52px] px-3.5 py-2 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] flex items-center gap-2.5 text-left hover:bg-[#E6DFD0]';
     const B_ON = 'tactile-btn w-full min-h-[52px] px-3.5 py-2 rounded-[16px] bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634] flex items-center gap-2.5 text-left';
@@ -3158,8 +3236,10 @@
       if (qAdding) return `<div class="w-full bg-white border-2 border-[#1E2634] rounded-[18px] p-2 flex items-center gap-2">
           <input id="listAddInput" type="text" autocomplete="off" placeholder="${esc(L2('Type your question...', 'Écrivez votre question...'))}" class="flex-1 min-w-0 bg-transparent text-[#1E2634] font-bold text-base focus:outline-none px-1">
           <button type="button" data-foot="save" class="tactile-btn min-h-[44px] px-4 rounded-xl bg-[#1E2634] text-white font-extrabold text-sm shrink-0">${L2('Add', 'Ajouter')}</button></div>`;
-      const more = n > 1 ? `<button type="button" data-foot="more" class="${B_FOOT} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627]">↻ ${L2('More', 'Plus')} (${qPage + 1}/${n})</button>` : '';
-      return `<button type="button" data-foot="add" class="${B_FOOT} bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634]">+ ${addLabel}</button>${more ? '<div class="w-[12px] shrink-0" aria-hidden="true"></div>' + more : ''}`;
+      const gap = '<div class="w-[10px] shrink-0" aria-hidden="true"></div>', ideas = steps[currentIndex].mode === 'ideas';
+      const more = n > 1 ? `<button type="button" data-foot="more" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ideas ? L2('Next 4', '4 autres') : L2('More', 'Plus')} ${qPage + 1}/${n} ›</button>` : '';
+      const gen = ideas ? `<button type="button" data-foot="gen" ${aiBusy ? 'disabled' : ''} class="${B_FOOT} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] ${aiBusy ? 'opacity-60' : ''}">${aiBusy ? L2('Thinking…', 'Un instant…') : L2('✨ Reid: more', '✨ Reid : plus')}</button>` : '';
+      return `<button type="button" data-foot="add" class="${B_FOOT} bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634]">+ ${addLabel}</button>${more ? gap + more : ''}${gen ? gap + gen : ''}`;
     }
     function renderList() {
       const step = steps[currentIndex], $ = (id) => document.getElementById(id);
@@ -3169,15 +3249,18 @@
         const pg = pageOf(ideaPool()); qShown = pg.items;
         $('listTitle').textContent = L2('Questions you might not think of', 'Des questions auxquelles vous ne penseriez pas');
         $('listHelp').textContent = aiLoading ? L2('Reid is thinking of questions for your visit…', 'Reid réfléchit à des questions pour votre visite…')
-          : L2('Tap the ones you want. You decide. Suggested by Claude · not medical advice.', 'Touchez celles que vous voulez. Suggérées par Claude · pas un avis médical.');
+          : L2('Tick the ones to include. Ask Reid for more any time. Suggested by Claude · not medical advice.', 'Cochez celles à garder. Demandez-en d’autres à Reid. Suggérées par Claude · pas un avis médical.');
         $('listCounter').textContent = L2(`${qPicked.length} added`, `${qPicked.length} ajoutée(s)`);
         items.innerHTML = qShown.map((q, i) => {
           const on = qPicked.includes(q);
+          const who = (SID('who').answer || '').trim(), tag = aiTags[q] === 'd' ? (who && who.length <= 24 ? L2('For your ', 'Pour : ') + who.toLowerCase() : L2('For this doctor', 'Pour ce médecin'))
+            : aiTags[q] === 'c' ? L2('About your visit', 'Sur votre visite') : L2('Common question', 'Question courante');
           return `<button type="button" data-i="${i}" aria-pressed="${on}" class="${on ? B_ON : B_OFF}">
             <span class="w-7 h-7 rounded-full ${on ? 'bg-[#3B5E42] text-white' : 'bg-white border border-[#D6CFC0] text-[#425268]'} font-extrabold text-sm flex items-center justify-center shrink-0">${on ? '✓' : i + 1}</span>
-            <span class="font-extrabold text-[15.5px] leading-snug">${esc(q)}</span></button>`;
+            <span class="min-w-0"><span class="block text-[11px] font-extrabold uppercase tracking-wide ${aiTags[q] === 'd' ? 'text-[#B84A27]' : 'text-[#425268]'}">${esc(tag)}</span>
+            <span class="block font-extrabold text-[15px] leading-snug">${esc(q)}</span></span></button>`;
         }).join('');
-        foot.innerHTML = footHtml(pg.n, L2('Add your own', 'Ajouter la vôtre'));
+        foot.innerHTML = footHtml(pg.n, L2('Add', 'Ajouter'));
       } else if (step.mode === 'priority') {
         const all = chosen(), pg = pageOf(all); qShown = pg.items;
         $('listTitle').textContent = L2('Which questions matter most?', 'Quelles questions comptent le plus ?');
@@ -3236,6 +3319,7 @@
       const k = b.dataset.foot;
       if (k === 'more') { qPage++; renderList(); applyLang(); if (steps[currentIndex].mode === 'ideas') say(qShown.map((q, i) => `${i + 1}. ${q}`).join(' ')); }
       if (k === 'add') { qAdding = true; renderList(); }
+      if (k === 'gen') fetchClaudeQuestions(true);
       if (k === 'save') listAdd();
       if (k === 'print') printPages('doctor');
     });
@@ -3250,7 +3334,8 @@
           if (LISTMODES[step.mode] && step.mode !== 'review') return listPick(n - 1);
           if (step.mode === 'visitQuestions' && visitQuestions[vPage * Q_PER + n - 1]) { toggleVisitQuestion(vPage * Q_PER + n - 1); return true; }
         }
-        if (/^(more|more please|more ideas|show me more|others|plus|d'autres|autres)$/.test(low)) {
+        if (step.mode === 'ideas' && /(new|more|other|different) (questions|ideas)|reid.*more|generate|nouvelles questions|d'autres questions|autres idées/.test(low)) { fetchClaudeQuestions(true); return true; }
+        if (/^(more|more please|next four|show me more|others|plus|d'autres|autres|les suivantes)$/.test(low)) {
           if (step.mode === 'visitQuestions') { cycleWorkflowQuestions(); return true; }
           if (LISTMODES[step.mode]) { qPage++; renderList(); applyLang(); say(qShown.map((q, i) => `${i + 1}. ${q}`).join(' ')); return true; }
         }
@@ -3259,17 +3344,22 @@
     }
 
     // ---------- what Reid says on each screen that isn't a question ----------
-    const readList = () => qShown.map((q, i) => `${i + 1}. ${q}.`).join(' ');
+    const stop = (t) => /[.!?]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
+    const readList = () => qShown.map((q, i) => `${i + 1}. ${stop(q)}`).join(' ');
     const SPEAK = {
       ideas: () => L2('Here are some questions you might not think of. ', 'Voici des questions auxquelles vous ne penseriez peut-être pas. ') + readList()
         + L2(' Tap the ones you want, or say their number. Say more for others. Then say next.', ' Touchez celles que vous voulez, ou dites leur numéro. Dites plus pour en voir d’autres. Puis dites suivant.'),
       priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Tap or say the most important first. Then say next.', ' Touchez ou dites la plus importante en premier. Puis dites suivant.')
         : L2("You haven't added any questions yet. Add one, or say next.", "Vous n'avez pas encore de questions. Ajoutez-en une, ou dites suivant."),
-      review: () => L2('Check everything. This goes on your pages. Tap anything to change it. When it looks right, say next.', 'Vérifiez tout. Ceci va sur vos pages. Touchez une case pour la changer. Quand tout est bon, dites suivant.'),
-      doctorSummary: () => L2("This is the summary for your doctor. Tap Print, or Full screen to show the doctor. At the visit, ask the doctor first, then tap Record Visit.", "Voici le résumé pour votre médecin. Touchez Imprimer, ou Plein écran pour le montrer. Au rendez-vous, demandez d'abord au médecin, puis touchez Enregistrer la visite."),
-      visitQuestions: () => L2('Your questions for the doctor, most important first. Tap each one once it has been answered, or say its number.', 'Vos questions pour le médecin, les plus importantes en premier. Touchez chacune quand elle a eu une réponse, ou dites son numéro.'),
-      nextSteps: () => L2('What happens next? Tap any tasks to remember after today.', "Et ensuite ? Touchez ce qu'il faut faire après aujourd'hui."),
-      shareFinish: () => L2('Here is your visit recap. You can send it to family, or print it.', 'Voici le résumé de votre visite. Vous pouvez l’envoyer à la famille, ou l’imprimer.')
+      review: () => L2('Check everything. This goes on your pages. ', 'Vérifiez tout. Ceci va sur vos pages. ') + [...document.querySelectorAll('#listItems [data-jump]')].map((b) => { const s = b.querySelectorAll('span'); return s[1].textContent + ': ' + s[3].textContent + '.'; }).join(' ')
+        + L2(' Tap anything to change it. When it looks right, say next.', ' Touchez une case pour la changer. Quand tout est bon, dites suivant.'),
+      doctorSummary: () => [SID('who').answer, [SID('day').answer, SID('time').answer].filter(Boolean).join(', '), SID('where').answer, SID('concerns').answer].filter(Boolean).join('. ') + '. ' + L2("This is the summary for your doctor. Tap Print, or Full screen to show the doctor. At the visit, ask the doctor first, then tap Record Visit.", "Voici le résumé pour votre médecin. Touchez Imprimer, ou Plein écran pour le montrer. Au rendez-vous, demandez d'abord au médecin, puis touchez Enregistrer la visite."),
+      visitQuestions: () => chosen().length ? L2('Your questions for the doctor, most important first. ', 'Vos questions pour le médecin, les plus importantes en premier. ') + visitQuestions.slice(vPage * Q_PER, vPage * Q_PER + Q_PER).map((q, i) => `${i + 1}. ${stop(q.text)}`).join(' ')
+        + L2(' Tap each one once it has been answered, or say its number.', ' Touchez chacune quand elle a eu une réponse, ou dites son numéro.') : L2('No questions chosen yet. Tap Add your own, or Pick questions.', 'Aucune question choisie. Touchez Ajouter, ou Choisir des questions.'),
+      nextSteps: () => L2('What happens next? Tap any tasks to remember after today. ', "Et ensuite ? Touchez ce qu'il faut faire après aujourd'hui. ") + nextStepTasks.map((t) => tr(t.text) + (t.selected ? L2(', ticked', ', coché') : '') + '.').join(' '),
+      shareFinish: () => L2('Here is your visit recap. ', 'Voici le résumé de votre visite. ') + (SID('recap').answer ? L2('What the doctor said: ', 'Ce qu’a dit le médecin : ') + SID('recap').answer + ' ' : '')
+        + (nextStepTasks.some((t) => t.selected) ? L2('Next steps: ', 'Prochaines étapes : ') + nextStepTasks.filter((t) => t.selected).map((t) => tr(t.text)).join(', ') + '. ' : '')
+        + L2('You can send it to family, or print it.', 'Vous pouvez l’envoyer à la famille, ou l’imprimer.')
     };
 
     // ---------- at the visit: your chosen questions, 4 at a time ----------
@@ -3280,6 +3370,14 @@
       vPage = ((vPage % n) + n) % n;
       kids.forEach((k, i) => k.classList.toggle('hidden', Math.floor(i / Q_PER) !== vPage));
       const mine = chosen().length > 0, btn = document.getElementById('refreshWorkflowBtn');
+      const badge0 = document.getElementById('workflowSourceBadge'); if (badge0) badge0.textContent = L2('Your questions', 'Vos questions');
+      if (!mine) {
+        btn.classList.add('hidden');
+        document.getElementById('visitQuestionsContainer').innerHTML = `<div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[16px] p-4 flex flex-col gap-3">
+          <p class="font-extrabold text-[15px] text-[#1E2634] leading-snug">${L2('No questions chosen yet. Tap + Add your own, or go back and pick some.', 'Aucune question choisie. Touchez + Ajouter la vôtre, ou retournez en choisir.')}</p>
+          <button type="button" onclick="goTo(steps.findIndex((x) => x.id === 'ideas'))" class="tactile-btn min-h-[50px] px-3 rounded-[14px] bg-[#1E2634] text-white font-extrabold text-sm">${L2('Pick questions', 'Choisir des questions')}</button></div>`;
+        document.getElementById('questionsDoneCounter').textContent = '0';
+      }
       if (mine) {
         btn.querySelector('span').textContent = L2(`More (${vPage + 1}/${n}) ›`, `Suite (${vPage + 1}/${n}) ›`);
         btn.classList.toggle('hidden', n < 2 || !document.getElementById('inlineAddQuestionBox').classList.contains('hidden'));
@@ -3287,13 +3385,13 @@
       }
     };
     const qCycle = cycleWorkflowQuestions;
-    cycleWorkflowQuestions = function () { if (chosen().length) { vPage++; renderVisitQuestionsChecklist(); applyLang(); return; } qCycle(); };
+    cycleWorkflowQuestions = function () { vPage++; renderVisitQuestionsChecklist(); applyLang(); };
     const qInline = saveInlineQuestion;
     saveInlineQuestion = function () { qInline(); if (chosen().length) { syncVisit(); renderVisitQuestionsChecklist(); applyLang(); } };
 
     // starting over clears the questions too
     const qReset = resetAllFromSettings;
-    resetAllFromSettings = function (x) { qPicked = []; qPrio = []; detailQs = []; ownQs = []; prioWarned = false; spliceDetail(); qReset(x); visitQuestions = []; };
+    resetAllFromSettings = function (x) { aiTags = {}; qPicked = []; qPrio = []; detailQs = []; ownQs = []; prioWarned = false; spliceDetail(); qReset(x); visitQuestions = []; };
 
     // tap Reid (top left) to pause or resume listening, on any screen
     (function () {
@@ -3306,7 +3404,7 @@
     // ---------- tie everything into the prototype's own flow ----------
     const protoRender = renderCurrentStep;
     renderCurrentStep = function () {
-      if (steps[currentIndex].mode === 'visitQuestions' && chosen().length) syncVisit();
+      if (steps[currentIndex].mode === 'visitQuestions') syncVisit();
       protoRender();
       const step = steps[currentIndex];
       if (step.mode === 'voice') {
@@ -3319,7 +3417,6 @@
           });
         }
       }
-      if (step.mode === 'visitQuestions' && !chosen().length && (SID('who').answer || SID('concerns').answer)) fetchClaudeQuestions();
       document.getElementById('screenList').classList.toggle('hidden', !LISTMODES[step.mode]);
       if (step.id !== lastListStep) { lastListStep = step.id; qPage = 0; vPage = 0; qAdding = false; }
       if (LISTMODES[step.mode]) renderList();
