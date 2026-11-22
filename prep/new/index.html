@@ -2421,7 +2421,7 @@
       'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
       'Private: everything stays on this device.': 'Privé : tout reste sur cet appareil.',
-      'Help / Settings': 'Aide / Réglages', 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
+      'Help / Settings': 'Aide / Réglages', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
       '1. Prepare': '1. Préparer', '2. At Visit': '2. Au rendez-vous', '3. After': '3. Après',
       'What is your name?': 'Comment vous appelez-vous ?', 'Optional — only shown on your doctor summary.': 'Facultatif — seulement sur le résumé pour le médecin.',
       'Helping someone else': "J'aide quelqu'un", 'Skip for now': 'Passer pour l’instant',
@@ -3610,6 +3610,41 @@
     }
     const canText = () => /iPhone|iPad|Android|Mac/i.test(navigator.userAgent);
 
+    // ---------- first page: Reid says hello in a speech bubble and offers to read the page ----------
+    // Phones only allow sound after a tap, so Reid can't speak the moment the page opens.
+    // His hello is written; tapping "Yes, read it" is the tap that lets him speak.
+    var greeted = false;
+    const hello = document.createElement('div'); hello.id = 'reidHello';
+    hello.className = 'hidden absolute left-4 right-4 top-[80px] z-40 bg-white border-2 border-[#1E2634] rounded-[22px] p-3.5 flex flex-col gap-[10px] shadow-2xl';
+    document.getElementById('appContainer').appendChild(hello);
+    function showHello() {
+      if (steps[currentIndex].mode !== 'landing' || sessionStorage.getItem('wh-hello')) return;
+      hello.innerHTML = `<span class="absolute -top-[9px] left-[34px] w-4 h-4 bg-white border-l-2 border-t-2 border-[#1E2634] rotate-45" aria-hidden="true"></span>
+        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?</p>
+        <div class="flex items-stretch"><button type="button" data-hi="yes" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">▶ Yes, read it</button>
+        <div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-hi="no" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">No thanks</button></div>`;
+      hello.classList.remove('hidden'); applyLang();
+    }
+    function readLanding() {
+      // what's on the first page, in the language it's showing, without the buttons' small print
+      const root = document.getElementById('screenLanding'), bits = [];
+      root.querySelectorAll('h1, p').forEach((el) => { const t = el.textContent.replace(/\s+/g, ' ').trim(); if (t) bits.push(/[.!?:。？！]$/.test(t) ? t : t + '.'); });
+      const modes = [...root.querySelectorAll('button[onclick*="setInputMode"]')].map((b) => b.textContent.replace(/[✓]/g, '').replace(/\s*[+/]\s*/g, ', ').replace(/\s+/g, ' ').trim()).filter(Boolean);
+      const q = bits.findIndex((t) => /answer|répondre/i.test(t) && /\?/.test(t));
+      if (modes.length && q > -1) bits.splice(q + 1, 0, modes.join(lang === 'fr' ? ', ou ' : ', or ') + '.');
+      return bits.join(' ');
+    }
+    hello.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-hi]'); if (!b) return;
+      ensureCtx(); hello.classList.add('hidden'); sessionStorage.setItem('wh-hello', '1');
+      if (b.dataset.hi === 'no') return;
+      greeted = true;
+      const was = inputPreference; inputPreference = 'voice';   // he reads it even if typing was chosen
+      await say(readLanding() + ' ' + tr('When you are ready, tap Get started.'), isMT() || lang === 'fr');
+      inputPreference = was;
+    });
+    setTimeout(showHello, 400);
+
     // tap Reid (top left) to pause or resume listening, on any screen
     (function () {
       const emb = document.getElementById('companionEmblem'), wrap = emb && emb.parentElement;
@@ -3762,6 +3797,7 @@
     let lastShownStep = null;
     renderCurrentStep = function () {
       if (steps[currentIndex] !== lastShownStep) { lastShownStep = steps[currentIndex]; hush(true); }
+      if (steps[currentIndex].mode !== 'landing') { const h = document.getElementById('reidHello'); if (h) h.classList.add('hidden'); }
       document.getElementById('screenQuestion').toggleAttribute('data-notr', /^dq\d+$/.test(steps[currentIndex].id));
       if (steps[currentIndex].mode === 'visitQuestions') syncVisit();
       protoRender();
@@ -3807,7 +3843,8 @@
         const was = currentIndex; protoNext();
         if (currentIndex !== was) {
           if (was === 0 && inputPreference === 'voice') { isListening = true; syncVoiceBarVisuals(); setCompanionState('listening'); }
-          if (currentIndex === 1 && was === 0) say(lang === 'fr' ? "Bonjour, je suis Reid, l'assistant IA de WellHeard. Une question à la fois, à votre rythme." : "Hi, I'm Reid, WellHeard's AI helper. One question at a time, at your pace.").then(speakStep); else speakStep();
+          if (currentIndex === 1 && was === 0 && greeted) speakStep();
+          else if (currentIndex === 1 && was === 0) say(lang === 'fr' ? "Bonjour, je suis Reid, l'assistant IA de WellHeard. Une question à la fois, à votre rythme." : "Hi, I'm Reid, WellHeard's AI helper. One question at a time, at your pace.").then(speakStep); else speakStep();
         }
       } finally { nexting = false; }
     };
