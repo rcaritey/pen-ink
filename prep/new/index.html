@@ -518,6 +518,19 @@
         </div>
       </div>
 
+      <!-- WellHeard: questions to consider, what matters most, check everything -->
+      <div id="screenList" class="hidden w-full h-full flex flex-col justify-between gap-2 min-h-0">
+        <div class="w-full flex items-start justify-between gap-2 shrink-0">
+          <div class="min-w-0">
+            <h1 id="listTitle" class="text-[1.38rem] leading-tight font-extrabold text-[#1E2634] tracking-tight"></h1>
+            <p id="listHelp" class="text-[13px] text-[#425268] font-bold mt-1 leading-snug"></p>
+          </div>
+          <span id="listCounter" class="px-2.5 py-1 rounded-full bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xs shrink-0"></span>
+        </div>
+        <div id="listItems" class="w-full flex flex-col gap-[10px] shrink-0"></div>
+        <div id="listFoot" class="w-full flex items-stretch shrink-0"></div>
+      </div>
+
       <!-- =========================================================
            MODE D: STEP 10 — AFTER 2/3: NEXT STEPS CHECKLIST
            ========================================================= -->
@@ -2436,6 +2449,15 @@
       'Pick another date': 'Choisir une date', 'Cancel': 'Annuler', 'Exact date not booked yet': 'Date pas encore fixée', 'Done — Use this date ✓': 'Terminé — utiliser cette date ✓',
       'Hour': 'Heure', 'Minutes': 'Minutes', 'Done — Use this time ✓': 'Terminé — utiliser cette heure ✓',
       'Help & Settings': 'Aide et réglages', 'Done': 'Terminé', 'Hand your phone to the doctor to read.': 'Donnez votre téléphone au médecin.',
+      'Yes, ask me': 'Oui, posez-les', 'Skip these': 'Passer', 'More about it': 'Plus de détails',
+      'May I ask a few questions a doctor would likely ask?': 'Puis-je vous poser quelques questions qu’un médecin poserait probablement ?',
+      "So your doctor gets the full picture. Reid can't diagnose. He only asks questions.": 'Pour que le médecin ait le portrait complet. Reid ne pose pas de diagnostic. Il pose seulement des questions.',
+      'Tap one above, or say yes or skip...': 'Touchez un choix, ou dites oui ou passer...', "I'm not sure": 'Je ne sais pas', 'Skip this one': 'Passer celle-ci', 'Say or type your answer...': 'Dites ou écrivez votre réponse...',
+      'Your questions': 'Vos questions', 'What do you want to ask the doctor?': 'Que voulez-vous demander au médecin ?',
+      'Say one question at a time, then pause. Or tap None yet.': 'Dites une question à la fois, puis faites une pause. Ou touchez Aucune pour l’instant.',
+      'None yet': 'Aucune pour l’instant', 'One question per line...': 'Une question par ligne...', 'Questions to consider': 'Questions à considérer',
+      'Anything else': 'Autre chose', "Anything else you'd like to ask?": 'Autre chose à demander ?', 'One question per line. If not, tap Next.': 'Une question par ligne. Sinon, touchez Suivant.',
+      "No, that's all": "Non, c'est tout", 'What matters most': 'Le plus important', 'Check everything': 'Vérifiez tout', 'Most important first': 'Les plus importantes en premier',
       'Reid is listening': 'Reid écoute', 'Reid got it': 'Reid a compris', 'Reid has a quick question': 'Reid a une petite question', 'Reid is paused': 'Reid est en pause', 'Tap / Type mode': 'Mode toucher / écrire'
     };
     const tr = (t) => (lang === 'fr' && FR[t]) || t;
@@ -2464,7 +2486,8 @@
           currentIndex, inputPreference, lang, slowVoice, readAloud, voiceName, transcript, recapDone, recapContact,
           answers: Object.fromEntries(steps.filter((s) => 'answer' in s).map((s) => [s.id, s.answer || ''])),
           custom: Object.fromEntries(steps.filter((s) => 'customActive' in s).map((s) => [s.id, !!s.customActive])),
-          visitQuestions, nextStepTasks, task: document.getElementById('customTaskInput').value || '', aiPool, aiAt, ownQs, vagueOk
+          visitQuestions, nextStepTasks, task: document.getElementById('customTaskInput').value || '', aiPool, aiAt, ownQs, vagueOk, qPicked, qPrio,
+          detailQs: detailQs.map((d) => ({ q: d.q, label: d.label }))
         }));
       } catch (e) { /* private mode or full: carry on without saving */ }
     }
@@ -2476,7 +2499,7 @@
         if (Array.isArray(d.visitQuestions) && d.visitQuestions.length) visitQuestions = d.visitQuestions;
         if (Array.isArray(d.nextStepTasks)) nextStepTasks = d.nextStepTasks;
         aiPool = Array.isArray(d.aiPool) ? d.aiPool : []; aiAt = d.aiAt || 0; ownQs = Array.isArray(d.ownQs) ? d.ownQs : [];
-        vagueOk = d.vagueOk || {}; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || '';
+        vagueOk = d.vagueOk || {}; qPicked = Array.isArray(d.qPicked) ? d.qPicked : []; qPrio = Array.isArray(d.qPrio) ? d.qPrio : []; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || '';
         lang = d.lang === 'fr' ? 'fr' : 'en'; slowVoice = !!d.slowVoice; voiceName = typeof d.voiceName === 'string' ? d.voiceName : ''; readAloud = d.readAloud !== false;
         document.getElementById('customTaskInput').value = d.task || '';
         if (d.inputPreference === 'tap') setInputMode('tap');
@@ -2675,7 +2698,7 @@
     }
     const QWORD = /^(what|what's|why|how|who|which|where|when|can you|could you|do i|should i|is it|does|qu'est|que veut|pourquoi|comment|est-ce que|dois-je)\b/;
     function heard(t) {
-      const step = steps[currentIndex]; if (!step || step.mode !== 'voice') return;
+      const step = steps[currentIndex]; if (!step || step.mode === 'landing') return;
       const low = t.toLowerCase().replace(/[.!,]/g, '').trim();
       if (/^(next|next please|done|i'm done|carry on|continue|suivant|c'est tout|continuer)$/.test(low)) { goNext(); return; }
       if (/^(back|go back|retour|revenir)$/.test(low)) { goBack(); return; }
@@ -2683,6 +2706,9 @@
       if (/^(repeat|repeat that|say that again|répète|répétez)$/.test(low)) { speakStep(); return; }
       if (/^(stop|pause|wait|hold on|arrête|attends|attendez)$/.test(low)) { if (isListening) toggleListening(); return; }
       if (/^(help|help me|aide|aidez-moi)$/.test(low)) { askReid(lang === 'fr' ? 'Que dois-je faire sur cet écran ?' : 'What should I do on this screen?'); return; }
+      if (/^(skip|skip (this|that|it|these)( one)?|passer|on passe)$/.test(low) && (step.id === 'detail' || /^dq\d+$/.test(step.id))) { skipDetail(step); return; }
+      if (step.id === 'detail' && /^(yes|yeah|yes please|sure|ok|okay|oui|d'accord|allez-y)$/.test(low)) { selectPreset('Yes, ask me'); return; }
+      if (step.mode !== 'voice') { if (!listHeard(step, low)) if (/\?\s*$/.test(t) || QWORD.test(low)) askReid(t); return; }
       if ((/\?\s*$/.test(t) || QWORD.test(low)) && low.split(' ').length <= 25 && !step.big) { askReid(t); return; }
       const input = document.getElementById('answerInput');
       const before = input.value.trim();
@@ -2692,7 +2718,7 @@
     }
     function startRec() {
       if (inputPreference !== 'voice' || !isListening || speaking || recRec) return;
-      if (steps[currentIndex].mode !== 'voice') return;
+      if (steps[currentIndex].mode === 'landing') return;
       if (rec) return;
       rec = new CanadaRec(); rec.lang = lang === 'fr' ? 'fr-CA' : 'en-CA';
       rec.onresult = (e) => { const r = e.results[e.results.length - 1]; const t = (r && r[0] && r[0].transcript || '').trim(); if (t) heard(t); };
@@ -2728,7 +2754,9 @@
       if (isListening) startRec();
     }
     function speakStep() {
-      const step = steps[currentIndex]; if (!step || step.mode !== 'voice' || !step.question) return;
+      const step = steps[currentIndex]; if (!step || step.mode === 'landing') return;
+      if (step.mode !== 'voice') { const f = SPEAK[step.mode]; if (f) say(f()); return; }
+      if (!step.question) return;
       say(tr(step.question) + (step.helperText ? ' ' + tr(step.helperText) : ''));
     }
     // Questions said to Reid ("what does that mean?") get a short answer from Claude
@@ -2791,23 +2819,25 @@
       const lines = (t) => String(t || '').split(/\n|,\s*/).map((x) => x.trim()).filter((x) => x && !/^none/i.test(x));
       return { lang, seeing: SID('who').answer || '', purpose: SID('concerns').answer || '', story: SID('story').answer || '',
         conditions: lines(SID('conditions').answer).join(', '), meds: lines(SID('meds').answer), allergies: lines(SID('allergies').answer).join(', '),
-        team: '', changes: '', tell: [], ask: ownQs, asked: [] };
+        team: '', changes: '', tell: detailLines(), ask: qLines(SID('ask').answer).concat(qLines(SID('ideasmore').answer), ownQs), asked: [] };
     }
     async function fetchClaudeQuestions(force) {
       const p = picture(), sig = JSON.stringify(p);
       if (!force && aiSig === sig && aiPool.length) return;
-      aiSig = sig;
+      aiSig = sig; aiLoading = true; if (LISTMODES[steps[currentIndex].mode]) renderList();
       const badge = document.getElementById('workflowSourceBadge'); if (badge) badge.textContent = lang === 'fr' ? 'Reid réfléchit…' : 'Reid is thinking…';
       try {
         const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(p) });
         const d = await r.json().catch(() => ({}));
         if (r.ok && d.ok && Array.isArray(d.questions) && d.questions.length) {
           aiPool = d.questions.map((q) => q.q).filter(Boolean); aiAt = 0;
-          visitQuestions = ownQs.map((t) => ({ text: t, done: false })).concat(aiPool.slice(0, 3).map((t) => ({ text: t, done: false }))).slice(0, Math.max(3, ownQs.length));
+          if (!chosen().length) visitQuestions = ownQs.map((t) => ({ text: t, done: false })).concat(aiPool.slice(0, 3).map((t) => ({ text: t, done: false }))).slice(0, Math.max(3, ownQs.length));
         }
       } catch (e) { console.warn('Suggestions unavailable', e); }
       if (badge) badge.textContent = tr('Suggested by Claude');
+      aiLoading = false;
       if (steps[currentIndex].mode === 'visitQuestions') { renderVisitQuestionsChecklist(); applyLang(); }
+      if (LISTMODES[steps[currentIndex].mode]) renderList();
       saveAll();
     }
     cycleWorkflowQuestions = function () {
@@ -2843,6 +2873,7 @@
       } else if (recRec) {
         const r = recRec; recRec = null; r.onend = null; try { r.stop(); } catch (e) { /* stopped */ }
         showToast(lang === 'fr' ? 'Enregistré. Reid en fera des notes après la visite.' : 'Saved. Reid will turn it into notes after the visit.');
+        if (isListening) setTimeout(startRec, 300);
       }
     };
 
@@ -2870,7 +2901,8 @@
     const esc = (t) => escapeHtml(String(t || ''));
     const items = (t) => String(t || '').split(/\n|,\s*/).map((x) => x.trim()).filter(Boolean);
     function meta() { return [SID('who').answer, SID('where').answer, SID('day').answer, SID('time').answer].filter(Boolean).map(esc).join(' · '); }
-    function allQs() { return visitQuestions.map((q) => q.text).filter(Boolean); }
+    function allQs() { const c = chosen(); return c.length ? c : visitQuestions.map((q) => q.text).filter(Boolean); }
+    const star = (q) => qPrio.includes(q) ? '★ ' : '';
     function doctorPage() {
       const name = SID('name').answer, fr = lang === 'fr';
       const sec = (h, body) => body ? `<h2>${h}</h2>${body}` : '';
@@ -2878,10 +2910,11 @@
       return `<div class="pg"><h1>${fr ? 'Résumé du patient' : 'Patient summary'}${name ? ' · ' + esc(name) : ''}</h1><p class="meta">${meta()}</p>
         ${sec(fr ? 'Raison de la visite' : 'Reason for visit', SID('concerns').answer ? `<p>${esc(SID('concerns').answer)}</p>` : '')}
         ${sec(fr ? 'Avec ses propres mots' : 'In their own words', SID('story').answer ? `<p>${esc(SID('story').answer).replace(/\n/g, '<br>')}</p>` : '')}
+        ${sec(fr ? 'Plus de détails' : 'More detail', list(detailLines()))}
         ${sec(fr ? 'Problèmes de santé' : 'Health conditions', list(items(SID('conditions').answer)))}
         ${sec(fr ? 'Médicaments' : 'Medications', list(items(SID('meds').answer)) || (fr ? '<p>Aucun indiqué.</p>' : '<p>None listed.</p>'))}
         ${sec(fr ? 'Allergies et précautions' : 'Allergies and cautions', list(items(SID('allergies').answer)))}
-        ${sec(fr ? 'Questions du patient' : "Patient's questions", allQs().length ? `<ol>${allQs().map((q) => `<li>${esc(q)}<div class="ans"></div></li>`).join('')}</ol>` : '')}
+        ${sec(fr ? 'Questions du patient' : "Patient's questions", allQs().length ? `<ol>${allQs().map((q) => `<li>${star(q)}${esc(q)}<div class="ans"></div></li>`).join('')}</ol>` : '')}
         <h2>${fr ? 'Comment ce résumé a été préparé' : 'How this summary was prepared'}</h2>
         <p class="foot">${fr ? "Le patient a répondu avant la visite, avec ses propres mots. Un assistant IA (Claude, d'Anthropic) a suggéré des questions seulement. Il n'a pas posé de diagnostic. Réponses non vérifiées. Pas un dossier médical." : "The patient answered questions before the visit, in their own words. An AI assistant (Claude, by Anthropic) suggested questions only. It did not diagnose. Answers are as reported by the patient and have not been verified. Not a medical record."} pen-ink.ca/prep</p></div>`;
     }
@@ -2892,7 +2925,7 @@
         <h2>${fr ? 'Pour commencer' : 'Start with'}</h2><p class="say">${fr ? "« J'ai quelques questions. Est-ce que je peux commencer ? »" : '"I have some questions I\'d like to go through. May I start?"'}</p>
         <p>${fr ? 'Donnez le résumé au médecin. Puis demandez : « Est-ce que je peux enregistrer ce rendez-vous sur mon téléphone ? »' : 'Hand the doctor your summary. Then ask: "Is it okay if I record this appointment on my phone?"'}</p>
         ${mention.length ? `<h2>${fr ? 'À mentionner' : 'Make sure I mention'}</h2><ul>${mention.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-        ${qs.length ? `<h2>${fr ? 'Mes questions' : 'My questions'}</h2><ol>${qs.map((q) => `<li>${esc(q)}</li>`).join('')}</ol>` : ''}
+        ${qs.length ? `<h2>${fr ? 'Mes questions' : 'My questions'}</h2><ol>${qs.map((q) => `<li>${star(q)}${esc(q)}</li>`).join('')}</ol>` : ''}
         <h2>${fr ? 'Avant de partir, demandez' : 'Before you leave, ask'}</h2><p>${fr ? '« Si j’ai des questions avant le prochain rendez-vous, qui dois-je contacter, et comment ? »' : '"If I have questions before my next appointment, who should I contact, and how?"'}</p>
         <p>${fr ? 'Qui et comment' : 'Who and how'}: ______________________ &nbsp; ${fr ? 'Prochain rendez-vous' : 'Next appointment'}: ______________</p>
         <h2>${fr ? 'Mes notes' : 'My notes: what the doctor says'}</h2><div class="ans"></div><div class="ans"></div><div class="ans"></div></div>`;
@@ -3028,9 +3061,252 @@
     const protoOpen = openModal;
     openModal = function (id) { if (id === 'helpSettingsModal') { setView = 'menu'; renderSettings(); if (isListening) { stopRec(); } } protoOpen(id); applyLang(); };
 
+
+    // =====================================================================
+    // Questions, as in the full app: a few questions a doctor would ask,
+    // your own questions, Claude's ideas, anything else, what matters most,
+    // then check everything.
+    // =====================================================================
+    var qPicked = [], qPrio = [], detailQs = [], qPage = 0, vPage = 0, qAdding = false, prioWarned = false, aiLoading = false, returnTo = null, lastListStep = '', qShown = [];
+    const Q_PER = 4, LISTMODES = { ideas: 1, priority: 1, review: 1 };
+    const L2 = (en, f) => lang === 'fr' ? f : en;
+    const lc = (t) => String(t || '').trim().toLowerCase();
+    const NONE = /^(none( yet)?|no,? that'?s all|nothing|no|aucune?( pour l.instant)?|non,? c.est tout|rien)\.?$/i;
+    function qLines(t) { return String(t || '').split(/\n+/).map((x) => x.trim()).filter((x) => x && !NONE.test(x)); }
+    function uniq(arr) { const seen = new Set(); return arr.filter((x) => { const k = lc(x); if (!k || seen.has(k)) return false; seen.add(k); return true; }); }
+    function chosen() {
+      const base = uniq(qLines(SID('ask').answer).concat(qPicked, qLines(SID('ideasmore').answer), ownQs));
+      const top = qPrio.filter((q) => base.includes(q));
+      return top.concat(base.filter((q) => !top.includes(q)));
+    }
+    function detailLines() {
+      return steps.filter((x) => /^dq\d+$/.test(x.id) && (x.answer || '').trim() && !/^(skip this one)$/i.test(x.answer.trim()))
+        .map((x) => (x.label ? x.label + ': ' : '') + x.answer.trim());
+    }
+    function syncVisit() { const old = visitQuestions; visitQuestions = chosen().map((t) => ({ text: t, done: !!(old.find((o) => o.text === t) || {}).done })); }
+    const COMMON = {
+      en: ['What is causing this?', 'Do I need any tests?', 'What is the treatment, and how long before it helps?', 'Is the treatment safe with my other medications?',
+        'Are there side effects I should watch for?', 'What can I do at home to help?', 'What should I watch for, and when should I call you?', 'When should I come back?'],
+      fr: ["Qu'est-ce qui cause ça ?", 'Ai-je besoin de tests ?', 'Quel est le traitement, et combien de temps avant que ça aide ?', 'Le traitement est-il sans danger avec mes autres médicaments ?',
+        'Y a-t-il des effets secondaires à surveiller ?', "Qu'est-ce que je peux faire à la maison pour aider ?", "Qu'est-ce que je dois surveiller, et quand dois-je vous appeler ?", 'Quand dois-je revenir ?']
+    };
+    function ideaPool() {
+      const mine = new Set(qLines(SID('ask').answer).concat(qLines(SID('ideasmore').answer), ownQs).map(lc));
+      return uniq(aiPool.concat(COMMON[lang === 'fr' ? 'fr' : 'en'])).filter((q) => !mine.has(lc(q)));
+    }
+
+    const QSTEPS = [
+      { id: 'detail', topic: 'More about it', question: 'May I ask a few questions a doctor would likely ask?',
+        helperText: "So your doctor gets the full picture. Reid can't diagnose. He only asks questions.",
+        presets: ['Yes, ask me', 'Skip these'], defaultPlaceholder: 'Tap one above, or say yes or skip...', customPlaceholder: 'Tap one above, or say yes or skip...' },
+      { id: 'ask', topic: 'Your questions', question: 'What do you want to ask the doctor?', helperText: 'Say one question at a time, then pause. Or tap None yet.',
+        presets: ['None yet'], lines: true, big: true, defaultPlaceholder: 'One question per line...', customPlaceholder: 'One question per line...' },
+      { id: 'ideas', mode: 'ideas', topic: 'Questions to consider', question: 'Questions you might not think of' },
+      { id: 'ideasmore', topic: 'Anything else', question: "Anything else you'd like to ask?", helperText: 'One question per line. If not, tap Next.',
+        presets: ["No, that's all"], lines: true, big: true, defaultPlaceholder: 'One question per line...', customPlaceholder: 'One question per line...' },
+      { id: 'priority', mode: 'priority', topic: 'What matters most', question: 'Which questions matter most?' },
+      { id: 'review', mode: 'review', topic: 'Check everything', question: 'Check everything' }
+    ].map((e) => Object.assign({ phaseIndex: 0, mode: 'voice', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] }, e));
+    steps.splice(steps.findIndex((x) => x.id === 'allergies') + 1, 0, ...QSTEPS);
+
+    // the doctor-style questions become ordinary answer screens, one question each
+    function spliceDetail() {
+      for (let i = steps.length - 1; i >= 0; i--) if (/^dq\d+$/.test(steps[i].id)) steps.splice(i, 1);
+      const at = steps.findIndex((x) => x.id === 'detail') + 1;
+      steps.splice(at, 0, ...detailQs.map((d, i) => ({ id: 'dq' + i, phaseIndex: 0, mode: 'voice', topic: 'More about it', question: d.q, label: d.label || '',
+        answer: d.a || '', customActive: !!d.a, customOptionLabel: null, nextLabel: 'Next', presets: ["I'm not sure", 'Skip this one'],
+        defaultPlaceholder: 'Say or type your answer...', customPlaceholder: 'Say or type your answer...' })));
+    }
+    try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); if (d0 && Array.isArray(d0.detailQs)) { detailQs = d0.detailQs.filter((d) => d && d.q); spliceDetail(); } } catch (e) { /* start fresh */ }
+
+    async function detailNext(step) {
+      const a = lc(step.answer);
+      const yes = /^(yes|yeah|sure|ok|okay|oui|d'accord|allez)/.test(a);
+      if (!yes) { detailQs = []; spliceDetail(); return; }
+      if (detailQs.length) return;
+      setCompanionState('asking');
+      const wait = lang === 'fr' ? 'Un instant. Reid prépare quelques questions.' : 'One moment. Reid is writing a few questions.';
+      showToast(wait); say(wait);
+      try {
+        const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(Object.assign(picture(), { mode: 'clarify', details: [], asked: [] })) });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok && Array.isArray(d.questions)) detailQs = d.questions.filter((q) => q && q.q).slice(0, 5).map((q) => ({ q: q.q, label: q.label || '' }));
+      } catch (e) { console.warn('Interview unavailable', e); }
+      if (!detailQs.length) showToast(lang === 'fr' ? "Reid n'a pas pu écrire de questions. On continue." : "Reid couldn't write questions just now. Let's carry on.");
+      spliceDetail(); saveAll();
+      setCompanionState(isListening ? 'listening' : 'paused');
+    }
+    function skipDetail(step) {
+      if (step.id === 'detail') { selectPreset('Skip these'); return; }
+      step.answer = ''; step.customActive = false; document.getElementById('answerInput').value = ''; goNext();
+    }
+    const qSelect = selectPreset;
+    selectPreset = function (preset) {
+      const step = steps[currentIndex];
+      if (step.id === 'detail') { step.answer = preset; document.getElementById('answerInput').value = preset; goNext(); return; }
+      if (/^dq\d+$/.test(step.id) && preset === 'Skip this one') { skipDetail(step); return; }
+      qSelect(preset);
+    };
+    function goTo(i) { stopRec(); currentIndex = i; renderCurrentStep(); speakStep(); }
+
+    // ---------- the shared list screen ----------
+    const B_OFF = 'tactile-btn w-full min-h-[52px] px-3.5 py-2 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] flex items-center gap-2.5 text-left hover:bg-[#E6DFD0]';
+    const B_ON = 'tactile-btn w-full min-h-[52px] px-3.5 py-2 rounded-[16px] bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634] flex items-center gap-2.5 text-left';
+    const B_FOOT = 'tactile-btn flex-1 min-h-[50px] px-3 rounded-[16px] font-extrabold text-sm flex items-center justify-center gap-1.5';
+    function pageOf(arr) { const n = Math.max(1, Math.ceil(arr.length / Q_PER)); qPage = ((qPage % n) + n) % n; return { items: arr.slice(qPage * Q_PER, qPage * Q_PER + Q_PER), n }; }
+    function footHtml(n, addLabel) {
+      if (qAdding) return `<div class="w-full bg-white border-2 border-[#1E2634] rounded-[18px] p-2 flex items-center gap-2">
+          <input id="listAddInput" type="text" autocomplete="off" placeholder="${esc(L2('Type your question...', 'Écrivez votre question...'))}" class="flex-1 min-w-0 bg-transparent text-[#1E2634] font-bold text-base focus:outline-none px-1">
+          <button type="button" data-foot="save" class="tactile-btn min-h-[44px] px-4 rounded-xl bg-[#1E2634] text-white font-extrabold text-sm shrink-0">${L2('Add', 'Ajouter')}</button></div>`;
+      const more = n > 1 ? `<button type="button" data-foot="more" class="${B_FOOT} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627]">↻ ${L2('More', 'Plus')} (${qPage + 1}/${n})</button>` : '';
+      return `<button type="button" data-foot="add" class="${B_FOOT} bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634]">+ ${addLabel}</button>${more ? '<div class="w-[12px] shrink-0" aria-hidden="true"></div>' + more : ''}`;
+    }
+    function renderList() {
+      const step = steps[currentIndex], $ = (id) => document.getElementById(id);
+      const items = $('listItems'), foot = $('listFoot');
+      $('listCounter').classList.remove('hidden');
+      if (step.mode === 'ideas') {
+        const pg = pageOf(ideaPool()); qShown = pg.items;
+        $('listTitle').textContent = L2('Questions you might not think of', 'Des questions auxquelles vous ne penseriez pas');
+        $('listHelp').textContent = aiLoading ? L2('Reid is thinking of questions for your visit…', 'Reid réfléchit à des questions pour votre visite…')
+          : L2('Tap the ones you want. You decide. Suggested by Claude · not medical advice.', 'Touchez celles que vous voulez. Suggérées par Claude · pas un avis médical.');
+        $('listCounter').textContent = L2(`${qPicked.length} added`, `${qPicked.length} ajoutée(s)`);
+        items.innerHTML = qShown.map((q, i) => {
+          const on = qPicked.includes(q);
+          return `<button type="button" data-i="${i}" aria-pressed="${on}" class="${on ? B_ON : B_OFF}">
+            <span class="w-7 h-7 rounded-full ${on ? 'bg-[#3B5E42] text-white' : 'bg-white border border-[#D6CFC0] text-[#425268]'} font-extrabold text-sm flex items-center justify-center shrink-0">${on ? '✓' : i + 1}</span>
+            <span class="font-extrabold text-[15.5px] leading-snug">${esc(q)}</span></button>`;
+        }).join('');
+        foot.innerHTML = footHtml(pg.n, L2('Add your own', 'Ajouter la vôtre'));
+      } else if (step.mode === 'priority') {
+        const all = chosen(), pg = pageOf(all); qShown = pg.items;
+        $('listTitle').textContent = L2('Which questions matter most?', 'Quelles questions comptent le plus ?');
+        $('listHelp').textContent = all.length ? L2('Tap the most important first. They go at the top of your pages.', 'Touchez la plus importante en premier. Elles iront en haut de vos pages.')
+          : L2("You haven't added any questions yet. Add one below, or tap Next.", "Vous n'avez pas encore de questions. Ajoutez-en une, ou touchez Suivant.");
+        $('listCounter').textContent = L2(`${qPrio.filter((q) => all.includes(q)).length} most important`, `${qPrio.filter((q) => all.includes(q)).length} importante(s)`);
+        items.innerHTML = qShown.map((q, i) => {
+          const k = qPrio.indexOf(q);
+          return `<button type="button" data-i="${i}" aria-pressed="${k > -1}" class="${k > -1 ? B_ON : B_OFF}">
+            <span class="w-7 h-7 rounded-full ${k > -1 ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#425268]'} font-extrabold text-sm flex items-center justify-center shrink-0">${k > -1 ? '★' + (k + 1) : i + 1}</span>
+            <span class="font-extrabold text-[15.5px] leading-snug">${esc(q)}</span></button>`;
+        }).join('');
+        foot.innerHTML = footHtml(pg.n, L2('A question we missed', 'Une question oubliée'));
+      } else {
+        qShown = [];
+        const ms = qLines(SID('meds').answer), dl = detailLines(), cq = chosen();
+        const tiles = [
+          [L2('Appointment', 'Rendez-vous'), [SID('who').answer, SID('day').answer, SID('time').answer].filter(Boolean).join(' · '), 'who'],
+          [L2('Reason', 'Raison'), SID('concerns').answer, 'concerns'],
+          [L2('Your own words', 'Vos mots'), SID('story').answer, 'story'],
+          [L2('Health', 'Santé'), SID('conditions').answer, 'conditions'],
+          [L2('Medicines', 'Médicaments'), ms.length ? ms.join(', ') : '', 'meds'],
+          [L2('Allergies', 'Allergies'), SID('allergies').answer, 'allergies'],
+          [L2('More detail', 'Plus de détails'), dl.length ? L2(`${dl.length} answer${dl.length > 1 ? 's' : ''}`, `${dl.length} réponse${dl.length > 1 ? 's' : ''}`) : '', 'detail'],
+          [L2('Questions', 'Questions'), cq.length ? L2(`${cq.length} · ${qPrio.filter((q) => cq.includes(q)).length} most important`, `${cq.length} · ${qPrio.filter((q) => cq.includes(q)).length} importante(s)`) : '', 'priority']
+        ];
+        $('listTitle').textContent = L2('Check everything', 'Vérifiez tout');
+        $('listHelp').textContent = L2('This goes on your pages. Tap anything to change it.', 'Ceci va sur vos pages. Touchez une case pour la changer.');
+        $('listCounter').classList.add('hidden');
+        items.innerHTML = `<div class="grid grid-cols-2 gap-[10px]">${tiles.map(([h, v, id]) => `<button type="button" data-jump="${id}" class="tactile-btn min-h-[62px] px-3 py-2 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-left flex flex-col justify-center min-w-0 hover:bg-[#E6DFD0]">
+            <span class="text-[11px] font-extrabold uppercase text-[#425268] flex justify-between w-full"><span>${esc(h)}</span><span class="text-[#3B5E42]">${L2('Change', 'Changer')} ›</span></span>
+            <span class="font-extrabold text-[14px] leading-snug ${v ? 'text-[#1E2634]' : 'text-[#B84A27]'} truncate w-full">${esc(v || L2('Not filled in', 'Pas rempli'))}</span></button>`).join('')}</div>`;
+        foot.innerHTML = `<button type="button" data-foot="print" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">🖨 ${L2('Print my pages', 'Imprimer mes pages')}</button>`;
+      }
+      if (qAdding) { const inp = document.getElementById('listAddInput'); if (inp) { inp.focus(); inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') listAdd(); }); } }
+    }
+    function listPick(i) {
+      const step = steps[currentIndex], q = qShown[i]; if (!q) return false;
+      if (step.mode === 'ideas') qPicked = qPicked.includes(q) ? qPicked.filter((x) => x !== q) : qPicked.concat(q);
+      if (step.mode === 'priority') qPrio = qPrio.includes(q) ? qPrio.filter((x) => x !== q) : qPrio.concat(q);
+      setCompanionState('captured'); renderList(); applyLang(); saveAll(); return true;
+    }
+    function listAdd() {
+      const inp = document.getElementById('listAddInput'), v = inp ? inp.value.trim() : '';
+      if (v) { ownQs.push(v); if (steps[currentIndex].mode === 'ideas') qPicked = qPicked.filter((x) => x !== v); setCompanionState('captured'); showToast(L2('Question added', 'Question ajoutée')); }
+      qAdding = false; if (steps[currentIndex].mode === 'priority') qPage = Math.ceil(chosen().length / Q_PER) - 1;
+      renderList(); applyLang(); saveAll();
+    }
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-i]'); if (b) { listPick(Number(b.dataset.i)); return; }
+      const j = e.target.closest('[data-jump]');
+      if (j) { returnTo = currentIndex; const id = j.dataset.jump; goTo(steps.findIndex((x) => x.id === id)); }
+    });
+    document.getElementById('listFoot').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-foot]'); if (!b) return;
+      const k = b.dataset.foot;
+      if (k === 'more') { qPage++; renderList(); applyLang(); if (steps[currentIndex].mode === 'ideas') say(qShown.map((q, i) => `${i + 1}. ${q}`).join(' ')); }
+      if (k === 'add') { qAdding = true; renderList(); }
+      if (k === 'save') listAdd();
+      if (k === 'print') printPages('doctor');
+    });
+
+    // ---------- voice on the list screens: say a number to tick it, "more" for the next ones ----------
+    const NUMS = { one: 1, first: 1, un: 1, une: 1, premier: 1, première: 1, two: 2, second: 2, deux: 2, deuxième: 2, three: 3, third: 3, trois: 3, troisième: 3, four: 4, fourth: 4, quatre: 4, quatrième: 4 };
+    function listHeard(step, low) {
+      if (low.split(' ').length <= 5) {
+        const m = low.match(/\b([1-4]|one|two|three|four|first|second|third|fourth|une?|deux|trois|quatre|premi[eè]re?|deuxième|troisième|quatrième)\b/);
+        if (m) {
+          const n = Number(m[1]) || NUMS[m[1]] || 0;
+          if (LISTMODES[step.mode] && step.mode !== 'review') return listPick(n - 1);
+          if (step.mode === 'visitQuestions' && visitQuestions[vPage * Q_PER + n - 1]) { toggleVisitQuestion(vPage * Q_PER + n - 1); return true; }
+        }
+        if (/^(more|more please|more ideas|show me more|others|plus|d'autres|autres)$/.test(low)) {
+          if (step.mode === 'visitQuestions') { cycleWorkflowQuestions(); return true; }
+          if (LISTMODES[step.mode]) { qPage++; renderList(); applyLang(); say(qShown.map((q, i) => `${i + 1}. ${q}`).join(' ')); return true; }
+        }
+      }
+      return false;
+    }
+
+    // ---------- what Reid says on each screen that isn't a question ----------
+    const readList = () => qShown.map((q, i) => `${i + 1}. ${q}.`).join(' ');
+    const SPEAK = {
+      ideas: () => L2('Here are some questions you might not think of. ', 'Voici des questions auxquelles vous ne penseriez peut-être pas. ') + readList()
+        + L2(' Tap the ones you want, or say their number. Say more for others. Then say next.', ' Touchez celles que vous voulez, ou dites leur numéro. Dites plus pour en voir d’autres. Puis dites suivant.'),
+      priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Tap or say the most important first. Then say next.', ' Touchez ou dites la plus importante en premier. Puis dites suivant.')
+        : L2("You haven't added any questions yet. Add one, or say next.", "Vous n'avez pas encore de questions. Ajoutez-en une, ou dites suivant."),
+      review: () => L2('Check everything. This goes on your pages. Tap anything to change it. When it looks right, say next.', 'Vérifiez tout. Ceci va sur vos pages. Touchez une case pour la changer. Quand tout est bon, dites suivant.'),
+      doctorSummary: () => L2("This is the summary for your doctor. Tap Print, or Full screen to show the doctor. At the visit, ask the doctor first, then tap Record Visit.", "Voici le résumé pour votre médecin. Touchez Imprimer, ou Plein écran pour le montrer. Au rendez-vous, demandez d'abord au médecin, puis touchez Enregistrer la visite."),
+      visitQuestions: () => L2('Your questions for the doctor, most important first. Tap each one once it has been answered, or say its number.', 'Vos questions pour le médecin, les plus importantes en premier. Touchez chacune quand elle a eu une réponse, ou dites son numéro.'),
+      nextSteps: () => L2('What happens next? Tap any tasks to remember after today.', "Et ensuite ? Touchez ce qu'il faut faire après aujourd'hui."),
+      shareFinish: () => L2('Here is your visit recap. You can send it to family, or print it.', 'Voici le résumé de votre visite. Vous pouvez l’envoyer à la famille, ou l’imprimer.')
+    };
+
+    // ---------- at the visit: your chosen questions, 4 at a time ----------
+    const qVisitRender = renderVisitQuestionsChecklist;
+    renderVisitQuestionsChecklist = function () {
+      qVisitRender();
+      const kids = [...document.getElementById('visitQuestionsContainer').children], n = Math.max(1, Math.ceil(kids.length / Q_PER));
+      vPage = ((vPage % n) + n) % n;
+      kids.forEach((k, i) => k.classList.toggle('hidden', Math.floor(i / Q_PER) !== vPage));
+      const mine = chosen().length > 0, btn = document.getElementById('refreshWorkflowBtn');
+      if (mine) {
+        btn.querySelector('span').textContent = L2(`More (${vPage + 1}/${n}) ›`, `Suite (${vPage + 1}/${n}) ›`);
+        btn.classList.toggle('hidden', n < 2 || !document.getElementById('inlineAddQuestionBox').classList.contains('hidden'));
+        const badge = document.getElementById('workflowSourceBadge'); if (badge) badge.textContent = L2('Most important first', 'Les plus importantes en premier');
+      }
+    };
+    const qCycle = cycleWorkflowQuestions;
+    cycleWorkflowQuestions = function () { if (chosen().length) { vPage++; renderVisitQuestionsChecklist(); applyLang(); return; } qCycle(); };
+    const qInline = saveInlineQuestion;
+    saveInlineQuestion = function () { qInline(); if (chosen().length) { syncVisit(); renderVisitQuestionsChecklist(); applyLang(); } };
+
+    // starting over clears the questions too
+    const qReset = resetAllFromSettings;
+    resetAllFromSettings = function (x) { qPicked = []; qPrio = []; detailQs = []; ownQs = []; prioWarned = false; spliceDetail(); qReset(x); visitQuestions = []; };
+
+    // tap Reid (top left) to pause or resume listening, on any screen
+    (function () {
+      const emb = document.getElementById('companionEmblem'), wrap = emb && emb.parentElement;
+      if (!wrap) return;
+      wrap.style.cursor = 'pointer'; wrap.setAttribute('role', 'button'); wrap.setAttribute('aria-label', 'Pause or resume listening');
+      wrap.addEventListener('click', () => { if (inputPreference === 'voice' && steps[currentIndex].mode !== 'landing') toggleListening(); });
+    })();
+
     // ---------- tie everything into the prototype's own flow ----------
     const protoRender = renderCurrentStep;
     renderCurrentStep = function () {
+      if (steps[currentIndex].mode === 'visitQuestions' && chosen().length) syncVisit();
       protoRender();
       const step = steps[currentIndex];
       if (step.mode === 'voice') {
@@ -3043,9 +3319,13 @@
           });
         }
       }
-      if (step.mode === 'visitQuestions' && (SID('who').answer || SID('concerns').answer)) fetchClaudeQuestions();
+      if (step.mode === 'visitQuestions' && !chosen().length && (SID('who').answer || SID('concerns').answer)) fetchClaudeQuestions();
+      document.getElementById('screenList').classList.toggle('hidden', !LISTMODES[step.mode]);
+      if (step.id !== lastListStep) { lastListStep = step.id; qPage = 0; vPage = 0; qAdding = false; }
+      if (LISTMODES[step.mode]) renderList();
+      if (step.mode === 'ideas' && (SID('concerns').answer || SID('story').answer)) fetchClaudeQuestions();
       if (step.id === 'recap') recapFromRecording();
-      if (step.mode !== 'voice') stopRec();
+      if (step.mode === 'landing') stopRec();
       // the Next button just says Next, so it is never cut off
       const nl = document.getElementById('nextNavLabel');
       if (step.mode !== 'landing' && currentIndex < steps.length - 1) nl.textContent = 'Next';
@@ -3060,6 +3340,13 @@
       try {
         const step = steps[currentIndex];
         if (step.mode === 'voice') { saveCurrentStepState(); if (await vagueCheck(step)) return; }
+        if (step.id === 'detail') await detailNext(step);
+        if (step.mode === 'priority' && chosen().length && !qPrio.length && !prioWarned) {
+          prioWarned = true; const m = lang === 'fr' ? 'Touchez au moins une question importante, puis Suivant.' : 'Tap at least one question that matters most, then Next.';
+          showToast(m); say(m); return;
+        }
+        const inInterview = step.id === 'detail' || (/^dq\d+$/.test(step.id) && steps[currentIndex + 1] && /^dq\d+$/.test(steps[currentIndex + 1].id));
+        if (returnTo !== null && step.mode !== 'review' && !inInterview) { const r = returnTo; returnTo = null; goTo(r); return; }
         const was = currentIndex; protoNext();
         if (currentIndex !== was) {
           if (was === 0 && inputPreference === 'voice') { isListening = true; syncVoiceBarVisuals(); setCompanionState('listening'); }
@@ -3067,7 +3354,7 @@
         }
       } finally { nexting = false; }
     };
-    goBack = function () { stopRec(); protoBack(); speakStep(); };
+    goBack = function () { returnTo = null; stopRec(); protoBack(); speakStep(); };
     const protoSetCompanion = setCompanionState;
     setCompanionState = function (st) { protoSetCompanion(st); applyLang(); };
     isListening = false;
