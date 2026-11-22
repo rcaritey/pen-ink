@@ -154,7 +154,7 @@
     #appContainer.wide #reidHello { right: auto; width: 330px; top: 84px; }
     #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 3; align-self: end; }
     /* bigger text on the wide layout: there's room across */
-    .wide #screenLanding h1 { font-size: 2rem !important; } .wide #landingIntro { font-size: 17px !important; }
+    .wide #screenLanding h1 { font-size: 2rem !important; } .wide #landingIntro, .wide #landingHook { font-size: 17px !important; } .wide #landingWelcome { font-size: 14px !important; }
     .wide #screenLanding [aria-label="How WellHeard works"] p { font-size: 16px !important; }
     .wide #screenLanding button { font-size: 17px !important; }
     .wide #screenQuestion, .wide #listTitle { font-size: 1.9rem !important; }
@@ -271,11 +271,13 @@
            ========================================================= -->
       <div id="screenLanding" class="w-full h-full flex flex-col justify-between min-h-0 pt-0.5">
         <div class="w-full shrink-0">
+          <p id="landingWelcome" class="text-[11px] font-extrabold uppercase tracking-wide text-[#3B5E42]">Welcome to WellHeard</p>
           <h1 class="text-[1.45rem] leading-tight font-extrabold text-[#1E2634] tracking-tight">
-            Get ready for your appointment
+            Ever left the doctor’s and remembered what you forgot to ask?
           </h1>
+          <p id="landingHook" class="text-[13px] leading-snug text-[#425268] mt-1 font-medium">You’re not alone. Most people forget much of what the doctor said soon after the visit.</p>
           <p id="landingIntro" class="text-[13px] leading-snug text-[#425268] mt-1 font-medium">
-            <strong class="text-[#1E2634]">Reid</strong>, your AI helper, makes a clear page for your doctor and suggests questions to ask.
+            <strong class="text-[#1E2634]">Reid</strong>, your AI helper, gets you ready, makes a clear page for your doctor, and writes down what was said.
           </p>
           <button type="button" id="privacyLink" class="mt-1 text-[13px] font-extrabold text-[#3B5E42] underline underline-offset-2 min-h-[36px] text-left">🔒 How your information stays private ›</button>
           <div class="mt-1.5 flex items-stretch gap-[10px]">
@@ -349,7 +351,7 @@
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          <span>Private: everything stays on this device.</span>
+          <span>Private: your answers are saved only on this device.</span>
         </div>
       </div>
 
@@ -1431,7 +1433,7 @@
         caption.className = 'block text-[11px] font-bold text-[#3B5E42] mt-0.5 truncate';
       } else {
         dot.className = 'w-3 h-3 rounded-full bg-[#64748B] border-2 border-[#FAF7F0] absolute -bottom-0.5 -right-0.5';
-        caption.textContent = inputPreference === 'tap' ? 'Tap / Type mode' : 'Reid is paused';
+        caption.textContent = steps[currentIndex] && steps[currentIndex].mode === 'landing' ? 'Your AI helper' : inputPreference === 'tap' ? 'Tap / Type mode' : 'Reid is paused';
         caption.className = 'block text-[11px] font-bold text-[#425268] mt-0.5 truncate';
       }
     }
@@ -2479,10 +2481,10 @@
 
     // ---------- French ----------
     const FR = {
-      'Get ready for your appointment': 'Préparez votre rendez-vous', 'How it works': 'Comment ça marche',
+      'Get ready for your appointment': 'Préparez votre rendez-vous', 'Welcome to WellHeard': 'Bienvenue sur WellHeard', 'Ever left the doctor’s and remembered what you forgot to ask?': 'Déjà sorti de chez le médecin en vous rappelant ce que vous avez oublié de demander ?', 'You’re not alone. Most people forget much of what the doctor said soon after the visit.': 'Vous n’êtes pas seul. La plupart des gens oublient une bonne partie de ce que le médecin a dit peu après la visite.', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what was said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce qui a été dit.', 'Reid is talking': 'Reid parle', 'Your AI helper': 'Votre assistant IA', "Welcome to WellHeard! I'm Reid, your AI helper. Would you like me to read this page to you?": "Bienvenue sur WellHeard ! Je suis Reid, votre assistant IA. Voulez-vous que je vous lise cette page ?", "Welcome to WellHeard. I'm Reid, your AI helper.": "Bienvenue sur WellHeard. Je suis Reid, votre assistant IA.", "I'll help you get ready, make a clear page for your doctor, and write down what was said. You can speak or tap with me.": "Je vous aide à vous préparer, je fais une page claire pour votre médecin et je note ce qui a été dit. Vous pouvez me parler ou toucher l'écran.", 'How it works': 'Comment ça marche',
       'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
-      'Private: everything stays on this device.': 'Privé : tout reste sur cet appareil.',
+      'Private: your answers are saved only on this device.': 'Privé : vos réponses sont gardées seulement sur cet appareil.',
       'Help / Settings': 'Aide / Réglages', 'Help': 'Aide', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'Your information': 'Vos renseignements', 'From your last visit. Still right? Tap Next, or change it.': 'De votre dernière visite. Toujours bon ? Touchez Suivant, ou changez-le.', 'Once a day': 'Une fois par jour', 'Twice a day': 'Deux fois par jour', '3 times a day': '3 fois par jour', '4 times a day': '4 fois par jour', 'Only when needed': 'Au besoin seulement', 'Once a week': 'Une fois par semaine', 'Not sure': 'Pas sûr', 'Not with me': 'Pas avec moi', 'Before we start': 'Avant de commencer', '🔒 How your information stays private ›': '🔒 Comment vos renseignements restent privés ›', ', your AI helper, makes a clear page for your doctor and suggests questions to ask.': ', votre assistant IA, prépare une page claire pour votre médecin et suggère des questions.', "Hi, I'm Reid, WellHeard's AI helper. I'll make a clear page for your doctor and suggest questions to ask. You can speak or tap with me.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Je prépare une page claire pour votre médecin et je suggère des questions. Vous pouvez me parler ou toucher l'écran.", 'Full screen ›': 'Plein écran ›', 'Which day is the appointment?': 'Quel jour est le rendez-vous ?', 'Tap the day, or say it.': 'Touchez le jour, ou dites-le.', 'What time is the appointment?': 'À quelle heure est le rendez-vous ?', 'Tap the hour, then the minutes, or say it.': 'Touchez l’heure, puis les minutes, ou dites-la.', 'Please turn your phone upright.': 'Veuillez tenir votre téléphone à la verticale.', 'WellHeard is easier to read this way.': 'WellHeard est plus facile à lire ainsi.', 'Use WellHeard full screen ›': 'Utiliser WellHeard en plein écran ›', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Vous pouvez me parler ou toucher l'écran. Je prépare une page claire pour votre médecin et je suggère des questions avec Claude, d'Anthropic. Votre nom n'est jamais envoyé.", 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
       '1. Prepare': '1. Préparer', '2. At Visit': '2. Au rendez-vous', '3. After': '3. Après',
       'What is your name?': 'Comment vous appelez-vous ?', 'Optional — only shown on your doctor summary.': 'Facultatif — seulement sur le résumé pour le médecin.',
@@ -2822,7 +2824,12 @@
         }, () => res(false));
       });
     }
-    function talkFace(on) { const e = document.getElementById('companionEmblem'); if (e) e.classList.toggle('reid-talk', !!on); }
+    function talkFace(on) {
+      const e = document.getElementById('companionEmblem'); if (e) e.classList.toggle('reid-talk', !!on);
+      const cap = document.getElementById('companionStateCaption'), dot = document.getElementById('companionStatusDot');
+      if (on && cap) { cap.textContent = tr('Reid is talking'); cap.className = 'block text-[11px] font-bold text-[#B84A27] mt-0.5 truncate'; if (dot) dot.className = 'w-3 h-3 rounded-full bg-[#D97A3A] border-2 border-[#FAF7F0] absolute -bottom-0.5 -right-0.5'; }
+      else if (!on && typeof setCompanionState === 'function') setCompanionState(inputPreference === 'voice' && isListening ? 'listening' : 'paused');
+    }
     function hush(listen) {
       const was = speaking; talkFace(false);
       sayGen++; clearTimeout(duckTimer); ducked = false;
@@ -3845,7 +3852,7 @@
     function showHello() {
       if (steps[currentIndex].mode !== 'landing' || sessionStorage.getItem('wh-hello')) return;
       hello.innerHTML = `<span class="absolute -top-[9px] left-[34px] w-4 h-4 bg-white border-l-2 border-t-2 border-[#1E2634] rotate-45" aria-hidden="true"></span>
-        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?</p>
+        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Welcome to WellHeard! I'm Reid, your AI helper. Would you like me to read this page to you?</p>
         <div class="flex items-stretch"><button type="button" data-hi="yes" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">▶ Yes, read it</button>
         <div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-hi="no" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">No thanks</button></div>
 `;
@@ -3854,20 +3861,23 @@
     function readLanding() {
       // what's on the first page, in the language it's showing, without the buttons' small print
       const root = document.getElementById('screenLanding'), bits = [];
-      root.querySelectorAll('h1, p').forEach((el) => { if (el.id === 'landingIntro' || el.closest('#landingModes')) return; const t = el.textContent.replace(/\s+/g, ' ').trim(); if (t) bits.push(/[.!?:。？！]$/.test(t) ? t : t + '.'); });
+      root.querySelectorAll('h1, p').forEach((el) => { if (/^landing(Intro|Welcome|Hook)$/.test(el.id) || el.tagName === 'H1' || el.closest('#landingModes')) return; const t = el.textContent.replace(/\s+/g, ' ').trim(); if (t) bits.push(/[.!?:。？！]$/.test(t) ? t : t + '.'); });
       const modes = [...root.querySelectorAll('button[onclick*="setInputMode"]')].map((b) => b.textContent.replace(/[✓]/g, '').replace(/\s*\+\s*/g, isMT() ? ', ' : lang === 'fr' ? ' et ' : ' and ').replace(/\s*\/\s*/g, isMT() ? ', ' : lang === 'fr' ? ' ou ' : ' or ').replace(/\s+/g, ' ').trim()).filter(Boolean);
       const q = bits.findIndex((t) => /answer|répondre/i.test(t) && /\?/.test(t));
       if (modes.length && q > -1) bits.splice(q + 1, 0, modes.join(lang === 'fr' ? ', ou ' : ', or ') + '.');
       return bits.join(' ');
     }
     // Reid reads the first page himself, in the first person
-    const INTRO = "Hi, I'm Reid, WellHeard's AI helper. I'll make a clear page for your doctor and suggest questions to ask. You can speak or tap with me.";
+    const HELLO = "Welcome to WellHeard. I'm Reid, your AI helper.";
+    const INTRO = "I'll help you get ready, make a clear page for your doctor, and write down what was said. You can speak or tap with me.";
     async function readFirstPage() {
-      const g = sayGen;
-      const intro = isMT() ? await mt(INTRO) : tr(INTRO), ready = isMT() ? await mt('When you are ready, tap Get started.') : tr('When you are ready, tap Get started.');
+      const g = sayGen, T2 = async (t) => (isMT() ? await mt(t) : tr(t));
+      const hi = await T2(HELLO), intro = await T2(INTRO), ready = await T2('When you are ready, tap Get started.');
       if (g !== sayGen) return;
-      const parts = readLanding().split('. ');   // the page title first, then Reid's own introduction, then the rest
-      await say(parts[0] + '. ' + intro + ' ' + parts.slice(1).join('. ') + ' ' + ready, true);
+      // welcome, the question on the page, the reassurance, Reid's own introduction, then the rest
+      const txt = (id) => { const e = document.getElementById(id); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
+      const h1 = document.querySelector('#screenLanding h1').textContent.replace(/\s+/g, ' ').trim();
+      await say([hi, h1, txt('landingHook'), intro, readLanding(), ready].filter(Boolean).join(' '), true);
     }
     hello.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-hi]'); if (!b) return;
