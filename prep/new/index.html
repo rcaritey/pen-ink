@@ -2747,9 +2747,22 @@
       const input = document.getElementById('answerInput');
       const before = input.value.trim();
       input.value = before ? before + (step.lines ? '\n' : ' ') + t : t;
+      showLatest(input);
       step.customActive = true;
       handleTextChange(); setCompanionState('captured'); saveAll();
     }
+    // the newest words are always in view: the answer box scrolls to the end as Reid hears more
+    function showLatest(input) {
+      requestAnimationFrame(() => { try { input.scrollTo({ top: input.scrollHeight, behavior: 'smooth' }); } catch (e) { input.scrollTop = input.scrollHeight; } });
+    }
+    // while the person is talking, Reid shows he's hearing them, before the words arrive
+    CanadaRec.hearing = (on) => {
+      const st = steps[currentIndex], cap = document.getElementById('companionStateCaption'), box = document.getElementById('answerBoxWrapper');
+      if (!st || st.mode === 'landing' || speaking) return;
+      if (cap) cap.textContent = on ? (lang === 'fr' ? 'Reid vous entend…' : 'Reid is hearing you…') : (isListening ? tr('Reid is listening') : tr('Reid is paused'));
+      if (box && st.mode === 'voice') box.classList.toggle('ring-4', !!on), box.classList.toggle('ring-[#3B5E42]/30', !!on);
+      if (on && st.mode === 'voice') showLatest(document.getElementById('answerInput'));
+    };
     function onHeard(t) {
       if (!t) return;
       if (speaking || ducked) { if (isEcho(t)) { if (audioEl) audioEl.volume = 1; ducked = false; return; } hush(); }
@@ -3515,7 +3528,7 @@
       protoRender();
       const step = steps[currentIndex];
       if (step.mode === 'voice') {
-        const input = document.getElementById('answerInput'); input.rows = step.big ? 5 : 2;
+        const input = document.getElementById('answerInput'); input.rows = step.big ? 5 : 2; showLatest(input);
         if (step.multi) {
           const chosen = (step.answer || '').split(/,\s*/).map((x) => x.trim().toLowerCase());
           document.querySelectorAll('#quickChipsGrid button').forEach((b) => {
