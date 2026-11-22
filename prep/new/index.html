@@ -139,6 +139,17 @@
     #appContainer.wide > section { grid-column: 2; grid-row: 1 / span 3; }
     #appContainer.wide > footer { grid-column: 2; grid-row: 4; }
     #appContainer.wide #reidHello { right: auto; width: 330px; top: 84px; }
+    #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 3; align-self: end; }
+    /* bigger text on the wide layout: there's room across */
+    .wide #screenLanding h1 { font-size: 2rem !important; } .wide #landingIntro { font-size: 17px !important; }
+    .wide #screenLanding [aria-label="How WellHeard works"] p { font-size: 16px !important; }
+    .wide #screenLanding button { font-size: 17px !important; }
+    .wide #screenQuestion, .wide #listTitle { font-size: 1.9rem !important; }
+    .wide #screenHelperText, .wide #listHelp { font-size: 16px !important; }
+    .wide #quickChipsGrid button { font-size: 18px !important; }
+    .wide #answerInput { font-size: 1.2rem !important; }
+    .wide .qtxt, .wide #visitQuestionsContainer span { font-size: 18px !important; }
+    .wide #screenDoctorSummary p, .wide #screenNextSteps p, .wide #screenShareFinish p { font-size: 16px !important; }
   </style>
   <style id="textSizes">
     .ts-1 #screenQuestion { font-size: 1.75rem !important; } .ts-2 #screenQuestion { font-size: 2rem !important; }
@@ -3826,6 +3837,26 @@
     window.addEventListener('orientationchange', () => setTimeout(sizeApp, 300));
     sizeApp();
 
+    // wide layout: Reid's options sit in the left column, always visible
+    const side = document.createElement('div'); side.id = 'sideReid'; side.className = 'hidden flex-col gap-[10px] pb-1';
+    document.getElementById('appContainer').appendChild(side);
+    function renderSide() {
+      const fr = lang === 'fr', onStep = steps[currentIndex].mode !== 'landing', voice = inputPreference === 'voice';
+      const SB = 'tactile-btn w-full min-h-[52px] px-3 rounded-2xl font-extrabold text-[15px] flex items-center gap-3 text-left bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]';
+      side.innerHTML = `<p class="text-xs font-extrabold uppercase tracking-wider text-[#3B5E42] px-1">${fr ? 'Reid peut' : 'Reid can'}</p>
+        <button type="button" data-s="read" class="${SB}">${ico('pages')}${fr ? 'Lire l’écran' : 'Read this screen'}</button>
+        ${onStep ? `<button type="button" data-s="explain" class="${SB}">${ico('explain')}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
+        ${voice && onStep ? `<button type="button" data-s="listen" class="${SB}">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter' : 'Start listening')}</button>` : ''}
+        <a href="${chatHref()}" data-s="chat" class="${SB} bg-[#E5EFE7] border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Textez Rama' : 'Chat: text Rama'}</a>`;
+    }
+    side.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-s]'); if (!b) return; ensureCtx();
+      if (b.dataset.s === 'read') readScreen();
+      if (b.dataset.s === 'explain') explainStep();
+      if (b.dataset.s === 'listen') { toggleListening(); renderSide(); applyLang(); }
+      if (b.dataset.s === 'chat' && !canText()) { e.preventDefault(); showToast(lang === 'fr' ? 'Textez Rama au 416-454-5597' : 'Text Rama at 416-454-5597'); }
+    });
+
     // tap Reid (top left) to pause or resume listening, on any screen
     (function () {
       const emb = document.getElementById('companionEmblem'), wrap = emb && emb.parentElement;
@@ -4070,7 +4101,7 @@
       if (LISTMODES[step.mode]) renderList();
       if (step.mode === 'ideas' && (SID('concerns').answer || SID('story').answer)) fetchClaudeQuestions();
       if (step.id === 'recap') recapFromRecording();
-      placeHearBtn(step); placePicker(step);
+      placeHearBtn(step); placePicker(step); if (typeof renderSide === 'function') renderSide();
       if (step.mode === 'landing') stopRec();
       // the Next button just says Next, so it is never cut off
       const nl = document.getElementById('nextNavLabel');
