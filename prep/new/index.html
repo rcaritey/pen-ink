@@ -2698,6 +2698,20 @@
       duckTimer = setTimeout(() => { if (ducked && audioEl) { audioEl.volume = 1; ducked = false; } }, 3000);
     };
     // stop Reid now (new page, the person spoke, or a new thing to say)
+    // play Reid's voice through the shared sound system; resolves true once played (or stopped), false if it couldn't
+    function playBuffer(arr, g) {
+      return new Promise((res) => {
+        sharedCtx.decodeAudioData(arr, (buf) => {
+          if (g !== sayGen) return res(true);
+          const src = sharedCtx.createBufferSource(), gain = sharedCtx.createGain();
+          src.buffer = buf; src.connect(gain); gain.connect(sharedCtx.destination);
+          let fin = false; const end = () => { if (!fin) { fin = true; res(true); } };
+          audioEl = { pause() { try { src.stop(); } catch (e) { /* already stopped */ } }, set volume(v) { gain.gain.value = v; }, get volume() { return gain.gain.value; }, onended: end };
+          src.onended = end; speakStart = performance.now();
+          try { src.start(); } catch (e) { res(false); }
+        }, () => res(false));
+      });
+    }
     function hush(listen) {
       const was = speaking;
       sayGen++; clearTimeout(duckTimer); ducked = false;
@@ -2705,7 +2719,7 @@
       speaking = false;
       if (listen && was && isListening) setTimeout(startRec, 150);
     }
-    document.addEventListener('pointerdown', () => { if (speaking) hush(true); }, true);
+    document.addEventListener('pointerdown', () => { ensureCtx(); if (speaking) hush(true); }, true);
     // a phrase heard while Reid was talking: his own words coming back, or the person?
     function isEcho(t) {
       const w = vwords(t); if (!w.length) return true;
@@ -2788,11 +2802,22 @@
         const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, slow: slowVoice, voice: voiceName || (lang === 'fr' ? 'fr-CA-SylvieNeural' : undefined) }) });
         if (r.ok && g === sayGen) {
-          const url = URL.createObjectURL(await r.blob());
-          if (g !== sayGen) { URL.revokeObjectURL(url); return; }
-          const a = new Audio(url); audioEl = a;
-          await new Promise((res) => { a.onended = res; a.onerror = res; a.onplaying = () => { speakStart = performance.now(); }; a.play().catch(res); });
-          URL.revokeObjectURL(url);
+          const blob = await r.blob();
+          if (g !== sayGen) return;
+          // iPhones only let an <audio> play right after a tap. The sound system opened by the first tap
+          // (Get started) stays open, so Reid speaks through it whenever he needs to.
+          let done = false;
+          if (sharedCtx) {
+            if (sharedCtx.state !== 'running') { try { await sharedCtx.resume(); } catch (e) { /* needs a tap */ } }
+            if (sharedCtx.state === 'running') done = await playBuffer(await blob.arrayBuffer(), g);
+          }
+          if (!done && g === sayGen) {
+            const url = URL.createObjectURL(blob);
+            const a = new Audio(url); audioEl = a;
+            const ok = await new Promise((res) => { a.onended = () => res(true); a.onerror = () => res(true); a.onplaying = () => { speakStart = performance.now(); }; a.play().catch(() => res(false)); });
+            URL.revokeObjectURL(url);
+            if (!ok && g === sayGen) showToast(lang === 'fr' ? 'Touchez l’écran pour entendre Reid.' : 'Tap the screen to hear Reid.');
+          }
         }
       } catch (e) { console.warn('Reid could not speak', e); }
       if (g !== sayGen) return;
