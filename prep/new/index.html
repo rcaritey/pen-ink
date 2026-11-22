@@ -455,6 +455,70 @@
       </div>
 
       <!-- =========================================================
+           MODE C: STEP 8 — AT VISIT 2/2: WORKFLOW-GROUNDED QUESTIONS
+           ========================================================= -->
+      <div id="screenVisitQuestions" class="hidden w-full h-full flex flex-col justify-between min-h-0">
+        <div class="w-full flex items-start justify-between gap-2 shrink-0">
+          <div class="min-w-0">
+            <h1 class="text-[1.38rem] leading-tight font-extrabold text-[#1E2634] tracking-tight">
+              Questions to ask your doctor
+            </h1>
+            <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+              <span id="workflowSourceBadge" class="px-2 py-0.5 rounded-md bg-[#E5EFE7] text-[#1E4627] font-extrabold text-[11px]">
+                Suggested by Claude
+              </span>
+              <span class="text-[11px] text-[#425268] font-bold">· Not medical advice</span>
+            </div>
+          </div>
+          <span id="questionsDoneCounter" class="px-2.5 py-1 rounded-full bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xs shrink-0">
+            0/3 done
+          </span>
+        </div>
+
+        <div id="visitQuestionsContainer" class="w-full flex flex-col gap-[10px] shrink-0">
+          <!-- Populated dynamically from clinical workflow pathways -->
+        </div>
+
+        <div class="w-full flex items-stretch shrink-0">
+          <button
+            id="revealAddQuestionBtn"
+            type="button"
+            onclick="revealCustomQuestionBox()"
+            class="tactile-btn flex-1 min-h-[50px] px-3 rounded-[16px] bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-1.5 hover:bg-[#E6DFD0]"
+          >
+            <span>+ Add your own</span>
+          </button>
+
+          <div class="w-[12px] shrink-0 dead-zone" aria-hidden="true"></div>
+
+          <button
+            id="refreshWorkflowBtn"
+            type="button"
+            onclick="cycleWorkflowQuestions()"
+            class="tactile-btn min-h-[50px] px-3.5 rounded-[16px] bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-sm flex items-center justify-center gap-1.5 shrink-0 hover:bg-[#D7E7DA]"
+          >
+            <span>↻ More ideas</span>
+          </button>
+
+          <div id="inlineAddQuestionBox" class="hidden w-full bg-white border-2 border-[#1E2634] rounded-[18px] p-2.5 flex items-center gap-2">
+            <input
+              id="inlineQuestionInput"
+              type="text"
+              placeholder="Type or speak your question..."
+              class="flex-1 min-w-0 bg-transparent text-[#1E2634] font-bold text-base focus:outline-none"
+            />
+            <button
+              type="button"
+              onclick="saveInlineQuestion()"
+              class="tactile-btn min-h-[44px] px-4 rounded-xl bg-[#1E2634] text-white font-extrabold text-sm shrink-0"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- =========================================================
            MODE D: STEP 10 — AFTER 2/3: NEXT STEPS CHECKLIST
            ========================================================= -->
       <div id="screenNextSteps" class="hidden w-full h-full flex flex-col justify-between min-h-0">
