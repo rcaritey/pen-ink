@@ -3256,10 +3256,11 @@
     // Reid reads each Help & Settings page aloud when it opens
     function speakSettings(panel) {
       if (spokenView === setView) return; spokenView = setView;
+      if (setView === 'privacyFull') { hush(false); return; }
       const fr = lang === 'fr', parts = [];
       panel.querySelectorAll('h2, p, li, button').forEach((el) => {
         if (el.closest('li') && el.tagName !== 'LI') return;
-        if (el.matches('[data-go="menu"], [onclick]')) return;
+        if (el.matches('[onclick]') || (el.tagName === 'BUTTON' && /^‹/.test(el.textContent.trim()))) return;
         const leaves = [...el.querySelectorAll('*')].filter((c) => !c.children.length && c.textContent.replace(/[›↺▶🖨\s]/g, '')).map((c) => c.textContent.trim());
         let t = el.tagName === 'LI' ? [...el.children].map((c) => c.textContent.trim()).filter(Boolean).join(': ') : (leaves.length > 1 ? leaves.join(', ') : el.textContent.replace(/\s+/g, ' ').trim());
         t = t.replace(/\s*·\s*/g, ', ');
