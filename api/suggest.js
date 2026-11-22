@@ -254,6 +254,7 @@ Fill in the patient's after-visit notes:
 - "todo": things to do after the visit, each one complete short sentence that makes sense on its own (what, and when if it was said), starting with a verb, saying who does it when it is not the patient ("The doctor is sending the blood work requisition"). Include tests, medicines to start, stop or change (including taking a medicine more regularly), activities or exercise the doctor recommends, referrals, and booking the next visit.
 - "nextWith": who the next appointment is with, as said. "nextWhen": when, in the doctor's words ("in about 6 months"). "nextDate" (YYYY-MM-DD) and "nextTime" (HH:MM, 24-hour) only if an exact date or time was said, otherwise "".
 - "contact": who to contact with questions before the next visit and how, if it was said, otherwise "".
+- "medChanges": each medicine the doctor clearly said to start, stop, or take differently (new dose or new times). "name" exactly as said; "change" is "start", "stop" or "change"; "dose" only if said, else ""; "times": the times of day only if said, using "am" (morning or breakfast), "noon" (lunch), "pm" (evening or supper) and "bed" (bedtime), else []; "howOften" in the doctor's words if said ("twice a day", "as needed"), else ""; "from": the transcript line numbers where it was said. Use the patient's current medicine list to match names. Leave out anything you are not sure the doctor decided. Empty if no medicine changed.
 - "saidFrom": for each line of "said", in the same order, the numbers of the transcript lines (written as [n] at the start of each line) where the doctor said it, so the family can play the doctor's own words. Use [] for every line when the transcript has no numbers.
 
 Rules, most important first:
@@ -273,8 +274,12 @@ const RECAP_SCHEMA = {
     nextWith: { type: 'string' }, nextWhen: { type: 'string' }, nextDate: { type: 'string' }, nextTime: { type: 'string' },
     contact: { type: 'string' },
     saidFrom: { type: 'array', items: { type: 'array', items: { type: 'integer' } } },
+    medChanges: { type: 'array', items: { type: 'object', properties: {
+      name: { type: 'string' }, change: { type: 'string', enum: ['start', 'stop', 'change'] }, dose: { type: 'string' },
+      times: { type: 'array', items: { type: 'string', enum: ['am', 'noon', 'pm', 'bed'] } }, howOften: { type: 'string' },
+      from: { type: 'array', items: { type: 'integer' } } }, required: ['name', 'change', 'dose', 'times', 'howOften', 'from'], additionalProperties: false } },
   },
-  required: ['answers', 'said', 'also', 'todo', 'nextWith', 'nextWhen', 'nextDate', 'nextTime', 'contact', 'saidFrom'],
+  required: ['answers', 'said', 'also', 'todo', 'nextWith', 'nextWhen', 'nextDate', 'nextTime', 'contact', 'saidFrom', 'medChanges'],
   additionalProperties: false,
 };
 
@@ -402,6 +407,7 @@ export default async function handler(req, res) {
         `Seeing: ${clean(body.seeing, LIMITS.seeing) || 'not given'}`,
         `Language for the notes: ${LANG_NAME[lang]}`,
         `Questions the patient brought (JSON array):\n${JSON.stringify(questions)}`,
+        `Medicines the patient listed before the visit (JSON array):\n${JSON.stringify(cleanList(body.meds))}`,
         `Transcript:\n${transcript}`,
       ].join('\n\n');
       const out = await askClaude(RECAP, user, RECAP_SCHEMA, 6000);
@@ -414,6 +420,10 @@ export default async function handler(req, res) {
         said: clean(out.said, 2000), also: L(out.also), todo: L(out.todo),
         nextWith: clean(out.nextWith, 200), nextWhen: clean(out.nextWhen, 200), nextDate: date, nextTime: time,
         contact: clean(out.contact, 400),
+        medChanges: (Array.isArray(out.medChanges) ? out.medChanges : []).slice(0, 15).map((m) => ({
+          name: clean(m && m.name, 120), change: ['start', 'stop', 'change'].includes(m && m.change) ? m.change : 'change', dose: clean(m && m.dose, 80),
+          times: (Array.isArray(m && m.times) ? m.times : []).filter((t) => ['am', 'noon', 'pm', 'bed'].includes(t)), howOften: clean(m && m.howOften, 80),
+          from: (Array.isArray(m && m.from) ? m.from : []).filter((n) => Number.isInteger(n) && n > 0).slice(0, 12) })).filter((m) => m.name),
         saidFrom: (Array.isArray(out.saidFrom) ? out.saidFrom : []).slice(0, 20).map((v) => (Array.isArray(v) ? v.filter((n) => Number.isInteger(n) && n > 0).slice(0, 12) : [])),
       });
     }

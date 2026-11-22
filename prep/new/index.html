@@ -2457,7 +2457,7 @@
     // this device.
     // =====================================================================
     const STORE = 'wellheard-new-v1';
-    let lang = 'en', slowVoice = false, readAloud = true, transcript = '', recapDone = false, recapContact = '';
+    let lang = 'en', slowVoice = false, readAloud = true, transcript = '', recapDone = false, recapContact = '', medChanges = [];
     let aiPool = [], aiAt = 0, aiSig = '', vagueOk = {}, ownQs = [];
     visitQuestions = [];   // filled by Claude from the whole picture (the prototype's fixed lists are not used)
 
@@ -2594,7 +2594,7 @@
     function saveAll() {
       try {
         localStorage.setItem(STORE, JSON.stringify({
-          currentIndex, inputPreference, lang, slowVoice, readAloud, voiceName, textSize, transcript, recapDone, recapContact,
+          currentIndex, inputPreference, lang, slowVoice, readAloud, voiceName, textSize, transcript, recapDone, recapContact, medChanges,
           answers: Object.fromEntries(steps.filter((s) => 'answer' in s).map((s) => [s.id, s.answer || ''])),
           custom: Object.fromEntries(steps.filter((s) => 'customActive' in s).map((s) => [s.id, !!s.customActive])),
           dayISO: SID('day').dateISO || '', time24: SID('time').time24 || '',
@@ -2611,7 +2611,7 @@
         if (Array.isArray(d.visitQuestions) && d.visitQuestions.length) visitQuestions = d.visitQuestions;
         if (Array.isArray(d.nextStepTasks)) nextStepTasks = d.nextStepTasks;
         aiPool = Array.isArray(d.aiPool) ? d.aiPool : []; aiAt = d.aiAt || 0; ownQs = Array.isArray(d.ownQs) ? d.ownQs : [];
-        vagueOk = d.vagueOk || {}; SID('day').dateISO = d.dayISO || ''; SID('time').time24 = d.time24 || ''; qPicked = Array.isArray(d.qPicked) ? d.qPicked : []; qPrio = Array.isArray(d.qPrio) ? d.qPrio : []; qSkipped = Array.isArray(d.qSkipped) ? d.qSkipped : []; aiTags = d.aiTags && typeof d.aiTags === 'object' ? d.aiTags : {}; recapSrc = d.recapSrc && typeof d.recapSrc === 'object' ? d.recapSrc : {}; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || '';
+        vagueOk = d.vagueOk || {}; SID('day').dateISO = d.dayISO || ''; SID('time').time24 = d.time24 || ''; qPicked = Array.isArray(d.qPicked) ? d.qPicked : []; qPrio = Array.isArray(d.qPrio) ? d.qPrio : []; qSkipped = Array.isArray(d.qSkipped) ? d.qSkipped : []; aiTags = d.aiTags && typeof d.aiTags === 'object' ? d.aiTags : {}; recapSrc = d.recapSrc && typeof d.recapSrc === 'object' ? d.recapSrc : {}; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || ''; medChanges = Array.isArray(d.medChanges) ? d.medChanges : [];
         lang = LOC[d.lang] ? d.lang : 'en'; slowVoice = !!d.slowVoice; voiceName = typeof d.voiceName === 'string' ? d.voiceName : ''; textSize = [0, 1, 2].includes(d.textSize) ? d.textSize : 1; applyTextSize(); readAloud = d.readAloud !== false;
         document.getElementById('customTaskInput').value = d.task || '';
         if (d.inputPreference === 'tap') setInputMode('tap');
@@ -3184,7 +3184,7 @@
       recapDone = true; showToast(lang === 'fr' ? 'Reid prépare vos notes…' : 'Reid is writing your notes…');
       try {
         const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ mode: 'recap', lang, transcript: transcript.split('\n').map((l, i) => `[${i + 1}] ${l}`).join('\n'), questions: visitQuestions.map((q) => q.text), purpose: SID('concerns').answer || '', seeing: SID('who').answer || '' }) });
+          body: JSON.stringify({ mode: 'recap', lang, transcript: transcript.split('\n').map((l, i) => `[${i + 1}] ${l}`).join('\n'), questions: visitQuestions.map((q) => q.text), meds: medsList.map(fmtMed), purpose: SID('concerns').answer || '', seeing: SID('who').answer || '' }) });
         const d = await r.json().catch(() => ({}));
         if (!r.ok || !d.ok) { recapDone = false; return; }
         const rc = SID('recap');
@@ -3193,7 +3193,7 @@
         (d.todo || []).forEach((t) => { if (!nextStepTasks.some((x) => x.text === t)) nextStepTasks.push({ text: t, selected: true }); });
         const next = [d.nextWith, d.nextDate, d.nextTime, d.nextWhen].filter(Boolean).join(', ');
         if (next) document.getElementById('customTaskInput').value = (lang === 'fr' ? 'Prochain rendez-vous : ' : 'Next appointment: ') + next;
-        recapContact = d.contact || '';
+        recapContact = d.contact || ''; medChanges = Array.isArray(d.medChanges) ? d.medChanges : [];
         renderCurrentStep(); showToast(lang === 'fr' ? 'Reid a rempli ceci à partir de l’enregistrement. Vérifiez et corrigez.' : 'Reid filled this in from the recording. Check it and change anything.');
       } catch (e) { recapDone = false; console.warn('Recap unavailable', e); }
       saveAll();
@@ -3214,7 +3214,7 @@
         ${sec(fr ? 'Avec ses propres mots' : 'In their own words', docT(SID('story').answer) ? `<p>${esc(docT(SID('story').answer)).replace(/\n/g, '<br>')}</p>` : '')}
         ${sec(fr ? 'Plus de détails' : 'More detail', list(detailLines().map(docT)))}
         ${sec(fr ? 'Problèmes de santé' : 'Health conditions', list(items(docT(SID('conditions').answer))))}
-        ${sec(fr ? 'Médicaments' : 'Medications', list(items(docT(SID('meds').answer))) || (fr ? '<p>Aucun indiqué.</p>' : '<p>None listed.</p>'))}
+        ${medsList.length ? chartPrint({ doc: true, title: fr ? 'Médicaments et horaire' : 'Medications and schedule' }) : sec(fr ? 'Médicaments' : 'Medications', list(items(docT(SID('meds').answer))) || (fr ? '<p>Aucun indiqué.</p>' : '<p>None listed.</p>'))}
         ${sec(fr ? 'Allergies et précautions' : 'Allergies and cautions', list(items(docT(SID('allergies').answer))))}
         ${sec(fr ? 'Questions du patient' : "Patient's questions", allQs().length ? `<ol>${allQs().map((q) => `<li>${star(q)}${esc(docT(q))}<div class="ans"></div></li>`).join('')}</ol>` : '')}
         ${isMT() ? `<p class="foot"><b>Translated from ${esc(LANG_EN[lang])} by computer (Claude, Anthropic).</b> The patient's own words may differ. Please confirm medicines, doses, numbers and dates with the patient or an interpreter.</p>` : ''}
@@ -3241,7 +3241,7 @@
         <h2>${fr ? 'Ce qu’a dit le médecin' : 'What the doctor said'}</h2>${said.length ? `<ul>${said.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p>—</p>'}
         <h2>${fr ? 'Prochaines étapes' : 'Next steps'}</h2><ul>${todo.concat(extra ? [extra] : []).map((x) => `<li>${esc(x)}</li>`).join('') || '<li>—</li>'}</ul>
         ${recapContact ? `<h2>${fr ? 'Questions d’ici là' : 'Questions before then'}</h2><p>${esc(recapContact)}</p>` : ''}
-        ${medsList.length ? chartPrint().replace('</h2>', (fr ? ' (avant cette visite)' : ' (before this visit)') + '</h2>').replace('<p class="foot">', `<p class="foot">${fr ? 'Les changements faits pendant la visite ne sont pas inclus. ' : 'Changes made at this visit are not included. '}`) : ''}</div>`;
+        ${chartPrint({ after: true, title: fr ? 'Mes médicaments après la visite' : 'My medicine chart after this visit' })}</div>`;
     }
     let ENC = {};
     try { ENC = JSON.parse(localStorage.getItem('wellheard-en') || '{}'); } catch (e) { ENC = {}; }
@@ -4109,13 +4109,29 @@
     const slotsOf = (m) => (Array.isArray(m.times) ? m.times : DEFAULT_SLOTS[m.freq] || []);
     const doseOf = (m) => (m.dose && !/^(not with me|not sure)$/i.test(m.dose) ? m.dose : '');
     const freqNote = (m, fr) => (m.freq === 'Only when needed' ? (fr ? 'au besoin' : 'as needed') : m.freq === 'Once a week' ? (fr ? '1 fois par semaine' : 'once a week') : '');
-    function chartPrint() {
-      if (!medsList.length) return '';
-      const fr = lang === 'fr', unsure = medsList.some((m) => !m.timesSet);
-      const th = 'style="border:1px solid #999;padding:4pt 6pt;font-size:10pt;text-align:center"', td = 'style="border:1px solid #999;padding:4pt 6pt;text-align:center;font-size:12pt"';
-      return `<h2>${fr ? 'Mes médicaments' : 'My medicine chart'}</h2><table style="border-collapse:collapse;width:100%"><tr><th ${th} style="border:1px solid #999;padding:4pt 6pt;text-align:left;font-size:10pt">${fr ? 'Médicament' : 'Medicine'}</th>${SLOTS.map(([, e, en, f]) => `<th ${th}>${e}<br>${fr ? f : en}</th>`).join('')}</tr>
-        ${medsList.map((m) => { const on = slotsOf(m), note = freqNote(m, fr); return `<tr><td style="border:1px solid #999;padding:4pt 6pt;text-align:left"><b data-notr>${esc(m.name)}</b>${doseOf(m) ? '<br><span data-notr>' + esc(doseOf(m)) + '</span>' : ''}${note ? '<br><i>' + note + '</i>' : ''}</td>${SLOTS.map(([k]) => `<td ${td}>${on.includes(k) ? '💊' : ''}</td>`).join('')}</tr>`; }).join('')}</table>
-        <p class="foot">${unsure ? (fr ? 'Certaines heures sont estimées. ' : 'Some times are a guess. ') : ''}${fr ? 'Vérifiez avec vos étiquettes et votre pharmacien.' : 'Check against your labels and with your pharmacist.'}</p>`;
+    // rows for the chart; after the visit, the doctor's changes are applied and flagged
+    function chartRows(after) {
+      const rows = medsList.map((m) => ({ name: m.name, dose: doseOf(m), note: m.freq, on: slotsOf(m), flag: '', guess: !m.timesSet }));
+      if (after) medChanges.forEach((c) => {
+        const key = c.name.toLowerCase().split(/\s+/)[0];
+        let r = rows.find((x) => x.name.toLowerCase().includes(key) || key.includes(x.name.toLowerCase().split(/\s+/)[0]));
+        if (c.change === 'start' || !r) { rows.push({ name: c.name, dose: c.dose, note: c.howOften, on: c.times || [], flag: 'new', guess: !(c.times || []).length }); return; }
+        if (c.change === 'stop') { r.flag = 'stop'; r.on = []; return; }
+        r.flag = 'change'; if (c.dose) r.dose = c.dose; if ((c.times || []).length) { r.on = c.times; r.guess = false; } if (c.howOften) r.note = c.howOften;
+      });
+      return rows;
+    }
+    function chartPrint(opt) {
+      opt = opt || {};
+      if (!medsList.length && !(opt.after && medChanges.length)) return '';
+      const fr = lang === 'fr', rows = chartRows(opt.after), unsure = rows.some((r) => r.guess && r.flag !== 'stop');
+      const note = (n) => (n === 'Only when needed' ? (fr ? 'au besoin' : 'as needed') : n === 'Once a week' ? (fr ? '1 fois par semaine' : 'once a week') : /^(once a day|twice a day|3 times a day|4 times a day|not sure)$/i.test(n || '') ? '' : n || '');
+      const FL = { new: fr ? '⚠ Nouveau : à vérifier' : '⚠ New: check this', change: fr ? '⚠ Changé : à vérifier' : '⚠ Changed: check this', stop: fr ? '⚠ Arrêter : à vérifier' : '⚠ Stop: check this' };
+      const b = 'border:1px solid #999;padding:4pt 6pt', th = `style="${b};font-size:10pt;text-align:center"`, td = `style="${b};text-align:center;font-size:12pt"`;
+      const title = opt.title || (fr ? 'Mes médicaments' : 'My medicine chart');
+      return `<h2>${title}</h2><table style="border-collapse:collapse;width:100%"><tr><th style="${b};text-align:left;font-size:10pt">${fr ? 'Médicament' : 'Medicine'}</th>${SLOTS.map(([, e, en, f]) => `<th ${th}>${e}<br>${fr ? f : en}</th>`).join('')}</tr>
+        ${rows.map((r) => `<tr><td style="${b};text-align:left"><b data-notr style="${r.flag === 'stop' ? 'text-decoration:line-through' : ''}">${esc(r.name)}</b>${r.dose ? '<br><span data-notr>' + esc(r.dose) + '</span>' : ''}${note(r.note) ? '<br><i>' + esc(note(r.note)) + '</i>' : ''}${r.flag ? `<br><b style="color:#B45309">${FL[r.flag]}</b>` : ''}</td>${SLOTS.map(([k]) => `<td ${td}>${r.on.includes(k) ? '💊' : ''}</td>`).join('')}</tr>`).join('')}</table>
+        <p class="foot">${opt.after && medChanges.length ? (fr ? 'Les lignes ⚠ viennent de l’enregistrement et peuvent être mal entendues. Vérifiez avec votre médecin ou votre pharmacien avant de changer quoi que ce soit. ' : 'Lines marked ⚠ come from the recording and may be misheard. Check with your doctor or pharmacist before changing how you take anything. ') : ''}${opt.after && !medChanges.length && recapDone ? (fr ? 'Aucun changement de médicament entendu dans l’enregistrement. ' : 'No medicine changes were heard in the recording. ') : ''}${unsure ? (fr ? 'Certaines heures sont estimées. ' : 'Some times are a guess. ') : ''}${opt.doc ? (fr ? 'Heures indiquées par le patient.' : 'Times as given by the patient.') : fr ? 'Vérifiez avec vos étiquettes et votre pharmacien.' : 'Check against your labels and with your pharmacist.'}</p>`;
     }
     const fmtMed = (m) => [m.name, m.dose && !/^(not with me|not sure)$/i.test(m.dose) ? m.dose : '', m.freq && m.freq !== 'Not sure' ? m.freq.toLowerCase() : ''].filter(Boolean).join(' · ');
     function syncMeds() {
@@ -4346,7 +4362,7 @@
       resetAllFromSettings(true);
       KEEP.forEach((id) => { const st = SID(id); if (kept[id]) { st.answer = kept[id]; st.customActive = true; st.fromLast = true; } });
       medsList = keptMeds; medDraft = { stage: medsList.length ? 'more' : 'name', name: '', dose: '', freq: '', heard: '', sugg: [] }; if (medsList.length) SID('meds').fromLast = true; syncMeds();
-      consent = keptConsent; transcript = ''; recapDone = false; currentIndex = 0; saveAll(); renderCurrentStep();
+      consent = keptConsent; transcript = ''; recapDone = false; medChanges = []; currentIndex = 0; saveAll(); renderCurrentStep();
     }
 
     // tap Reid (top left) to pause or resume listening, on any screen
