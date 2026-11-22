@@ -252,7 +252,10 @@
           <p id="landingIntro" class="text-[13px] leading-snug text-[#425268] mt-1 font-medium">
             Speak or tap with <strong class="text-[#1E2634]">Reid</strong>, WellHeard's AI helper. He builds a clear page for your doctor and suggests questions using Claude, by Anthropic. Your name is never sent.
           </p>
-          <button type="button" id="langPick" class="tactile-btn mt-1.5 min-h-[44px] px-3 rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center gap-2"><span aria-hidden="true">🌐</span><span id="langPickName" data-notr>English</span><span class="text-[#425268]">· Language ›</span></button>
+          <div class="mt-1.5 flex items-stretch gap-[10px]">
+          <button type="button" id="langPick" class="tactile-btn min-h-[48px] px-3 rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center gap-2"><span aria-hidden="true">🌐</span><span id="langPickName" data-notr>English</span><span class="text-[#425268]">· Language ›</span></button>
+          <button type="button" id="fsPick" class="hidden tactile-btn flex-1 min-h-[48px] px-3 rounded-xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-sm items-center justify-center gap-2"><span aria-hidden="true">⛶</span><span>Full screen ›</span></button>
+          </div>
         </div>
 
         <!-- Compact 3-Step "How it works" Card -->
@@ -2454,7 +2457,7 @@
       'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
       'Private: everything stays on this device.': 'Privé : tout reste sur cet appareil.',
-      'Help / Settings': 'Aide / Réglages', 'Help': 'Aide', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'Which day is the appointment?': 'Quel jour est le rendez-vous ?', 'Tap the day, or say it.': 'Touchez le jour, ou dites-le.', 'What time is the appointment?': 'À quelle heure est le rendez-vous ?', 'Tap the hour, then the minutes, or say it.': 'Touchez l’heure, puis les minutes, ou dites-la.', 'Please turn your phone upright.': 'Veuillez tenir votre téléphone à la verticale.', 'WellHeard is easier to read this way.': 'WellHeard est plus facile à lire ainsi.', 'Use WellHeard full screen ›': 'Utiliser WellHeard en plein écran ›', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Vous pouvez me parler ou toucher l'écran. Je prépare une page claire pour votre médecin et je suggère des questions avec Claude, d'Anthropic. Votre nom n'est jamais envoyé.", 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
+      'Help / Settings': 'Aide / Réglages', 'Help': 'Aide', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'Full screen ›': 'Plein écran ›', 'Which day is the appointment?': 'Quel jour est le rendez-vous ?', 'Tap the day, or say it.': 'Touchez le jour, ou dites-le.', 'What time is the appointment?': 'À quelle heure est le rendez-vous ?', 'Tap the hour, then the minutes, or say it.': 'Touchez l’heure, puis les minutes, ou dites-la.', 'Please turn your phone upright.': 'Veuillez tenir votre téléphone à la verticale.', 'WellHeard is easier to read this way.': 'WellHeard est plus facile à lire ainsi.', 'Use WellHeard full screen ›': 'Utiliser WellHeard en plein écran ›', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Vous pouvez me parler ou toucher l'écran. Je prépare une page claire pour votre médecin et je suggère des questions avec Claude, d'Anthropic. Votre nom n'est jamais envoyé.", 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
       '1. Prepare': '1. Préparer', '2. At Visit': '2. Au rendez-vous', '3. After': '3. Après',
       'What is your name?': 'Comment vous appelez-vous ?', 'Optional — only shown on your doctor summary.': 'Facultatif — seulement sur le résumé pour le médecin.',
       'Helping someone else': "J'aide quelqu'un", 'Skip for now': 'Passer pour l’instant',
@@ -3733,7 +3736,7 @@
         <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?</p>
         <div class="flex items-stretch"><button type="button" data-hi="yes" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">▶ Yes, read it</button>
         <div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-hi="no" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">No thanks</button></div>
-        ${IOS && !(navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)) ? `<button type="button" data-hi="fs" class="text-sm font-extrabold text-[#3B5E42] underline text-left min-h-[40px]">Use WellHeard full screen ›</button>` : ''}`;
+`;
       hello.classList.remove('hidden'); applyLang();
     }
     function readLanding() {
@@ -3758,10 +3761,11 @@
       const b = e.target.closest('[data-hi]'); if (!b) return;
       ensureCtx(); hello.classList.add('hidden'); sessionStorage.setItem('wh-hello', '1');
       if (b.dataset.hi === 'fs') { openModal('helpSettingsModal'); setView = 'device'; spokenView = null; renderSettings(); applyLang(); return; }
-      if (b.dataset.hi === 'no') return;
+      if (b.dataset.hi === 'no') { if (inSafariOnly && !sessionStorage.getItem('wh-fs')) showFS(); return; }
       greeted = true;
       const was = inputPreference; inputPreference = 'voice';   // he reads it even if typing was chosen
       await readFirstPage();
+      if (inSafariOnly && !sessionStorage.getItem('wh-fs') && steps[currentIndex].mode === 'landing') showFS();
       inputPreference = was;
     });
     setTimeout(showHello, 400);
@@ -3854,6 +3858,36 @@
       if (b.dataset.s === 'listen') { toggleListening(); renderSide(); applyLang(); }
       if (b.dataset.s === 'chat' && !canText()) { e.preventDefault(); showToast(lang === 'fr' ? 'Textez Rama au 416-454-5597' : 'Text Rama at 416-454-5597'); }
     });
+
+    // ---------- iPhone / iPad in Safari: show how to make WellHeard full screen ----------
+    const inSafariOnly = IOS && !(navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
+    const fsSheet = document.createElement('div'); fsSheet.id = 'fsSheet';
+    fsSheet.className = 'hidden absolute inset-0 z-50 bg-[#1E2634]/40 flex items-end';
+    document.getElementById('appContainer').appendChild(fsSheet);
+    const SHARE_SVG = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
+    const ADD_SVG = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
+    function showFS() {
+      const step = (n, icon, text) => `<div class="flex items-center gap-3 bg-white border border-[#D6CFC0] rounded-2xl p-3">
+          <span class="w-9 h-9 rounded-full bg-[#1E2634] text-white font-extrabold flex items-center justify-center shrink-0">${n}</span>
+          <span class="w-11 h-11 rounded-xl bg-[#F0EBE1] text-[#1E4627] flex items-center justify-center shrink-0 text-2xl">${icon}</span>
+          <span class="text-[16px] font-extrabold text-[#1E2634] leading-snug">${text}</span></div>`;
+      fsSheet.innerHTML = `<div class="w-full bg-[#FAF7F0] rounded-t-[32px] p-5 flex flex-col gap-3 border-t-2 border-[#1E2634]">
+          <h2 class="text-xl font-extrabold text-[#1E2634]">${L2('Make WellHeard full screen', 'Mettre WellHeard en plein écran')}</h2>
+          <p class="text-[15px] font-bold text-[#425268] leading-snug">${L2('Bigger, with no Safari bars. You do this once; then open WellHeard from its icon.', 'Plus grand, sans les barres de Safari. Une seule fois ; ensuite ouvrez WellHeard avec son icône.')}</p>
+          ${step(1, '⋯', L2('At the bottom of Safari, tap ⋯ (or ≡) beside the web address.', 'En bas de Safari, touchez ⋯ (ou ≡) à côté de l’adresse.'))}
+          ${step(2, SHARE_SVG, L2('Tap Share.', 'Touchez Partager.'))}
+          ${step(3, ADD_SVG, L2('Tap Add to Home Screen, then Add.', 'Touchez Sur l’écran d’accueil, puis Ajouter.'))}
+          ${step(4, '<img src="/prep/apple-touch-icon.png" alt="" class="w-9 h-9 rounded-lg">', L2('Close Safari and tap the new WellHeard icon.', 'Fermez Safari et touchez la nouvelle icône WellHeard.'))}
+          <p class="text-[13px] font-bold text-[#425268]">${L2('The icon starts fresh: answers typed here stay in Safari.', 'L’icône repart à zéro : les réponses écrites ici restent dans Safari.')}</p>
+          <button type="button" data-f="ok" class="tactile-btn w-full min-h-[56px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">${L2('OK, I’ll do it', 'D’accord')}</button>
+          <button type="button" data-f="later" class="tactile-btn w-full min-h-[48px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">${L2('Not now', 'Pas maintenant')}</button></div>`;
+      fsSheet.classList.remove('hidden'); applyLang();
+      say(L2('To make WellHeard full screen: at the bottom of Safari, tap the three dots beside the web address. Tap Share. Tap Add to Home Screen, then Add. Then open WellHeard from its new icon.', 'Pour le plein écran : en bas de Safari, touchez les trois points à côté de l’adresse. Touchez Partager, puis Sur l’écran d’accueil, puis Ajouter. Ensuite, ouvrez WellHeard avec sa nouvelle icône.'));
+    }
+    fsSheet.addEventListener('click', (e) => { if (e.target.closest('[data-f]') || e.target === fsSheet) { fsSheet.classList.add('hidden'); hush(true); sessionStorage.setItem('wh-fs', '1'); } });
+    const fsPick = document.getElementById('fsPick');
+    if (inSafariOnly) { fsPick.classList.remove('hidden'); fsPick.classList.add('flex'); }
+    fsPick.addEventListener('click', () => { ensureCtx(); showFS(); });
 
     // tap Reid (top left) to pause or resume listening, on any screen
     (function () {
