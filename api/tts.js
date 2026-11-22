@@ -8,6 +8,7 @@
 // Needs AZURE_SPEECH_KEY (and optionally AZURE_SPEECH_REGION, default canadacentral).
 // No npm dependencies on purpose, same as the other functions.
 
+import { LANGS, MULTI } from './_langs.js';
 import { fromWellHeard, limited } from './_guard.js';
 
 // Liam HD (29 Oct 2026, Rama: "non-monotone, Canadian accent"): Azure's HD voice reads the mood of
@@ -22,6 +23,9 @@ const VOICES = {
   'fr-CA-SylvieNeural': 'fr-CA', 'fr-CA-ThierryNeural': 'fr-CA', 'fr-CA-AntoineNeural': 'fr-CA',
   'fr-FR-DeniseNeural': 'fr-FR', 'fr-FR-HenriNeural': 'fr-FR',
 };
+// every language's own voice, plus the multilingual voice as a fallback
+Object.values(LANGS).forEach(([, locale, v]) => { if (!VOICES[v]) VOICES[v] = locale; });
+VOICES[MULTI] = 'en-US';
 const MAX = 1500;
 
 const isHd = v => /:DragonHD/i.test(v);
@@ -55,6 +59,8 @@ export default async function handler(req, res) {
   try {
     let r = await synth(key, region, text, voice, slow).catch(() => null);
     if ((!r || !r.ok) && TWIN[voice]) { console.error('tts hd unavailable', r && r.status); r = await synth(key, region, text, TWIN[voice], slow); }
+    // a language's own voice isn't available in this region: the multilingual voice reads it instead
+    if ((!r || !r.ok) && VOICES[voice] && !/^en-/.test(VOICES[voice])) { console.error('tts voice unavailable', voice, r && r.status); r = await synth(key, region, text, MULTI, slow, VOICES[voice]).catch(() => null); }
     if (!r || !r.ok) { console.error('tts upstream', r && r.status); return res.status(502).json({ error: 'upstream' }); }
     const buf = Buffer.from(await r.arrayBuffer());
     res.setHeader('Content-Type', 'audio/mpeg');
@@ -65,11 +71,12 @@ export default async function handler(req, res) {
   }
 }
 
-function synth(key, region, text, voice, slow) {
+function synth(key, region, text, voice, slow, readAs) {
   // Standard voices read slightly slower than default, easier for older listeners. HD voices take
   // no speed or pitch changes: they find their own pace and tune.
-  const inner = isHd(voice) ? esc(text) : `<prosody rate="${slow ? '-22%' : '-8%'}">${esc(text)}</prosody>`;
-  const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${VOICES[voice]}">` +
+  let inner = isHd(voice) ? esc(text) : `<prosody rate="${slow ? '-22%' : '-8%'}">${esc(text)}</prosody>`;
+  if (readAs) inner = `<lang xml:lang="${readAs}">${inner}</lang>`;
+  const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${VOICES[voice]}">` +
     `<voice name="${voice}">${inner}</voice></speak>`;
   return fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
     method: 'POST',

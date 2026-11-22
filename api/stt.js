@@ -9,6 +9,7 @@
 // or the reply is logged here, only error status codes.
 // No npm dependencies on purpose, same as the other functions.
 
+import { LANGS } from './_langs.js';
 import { fromWellHeard, limited } from './_guard.js';
 
 const MAX_BYTES = 2_100_000; // about 65 seconds of 16 kHz mono 16-bit audio; Azure's limit is 60 s
@@ -34,7 +35,8 @@ export default async function handler(req, res) {
   if (!fromWellHeard(req)) return res.status(403).json({ error: 'origin' });
   if (limited(req, 'stt', 400)) return res.status(429).json({ error: 'busy' });
 
-  const lang = req.query && req.query.lang === 'fr' ? 'fr-CA' : 'en-CA';
+  const want = req.query && String(req.query.lang || '');
+  const lang = (LANGS[want] && LANGS[want][1]) || (/^[a-z]{2,3}-[A-Z]{2}$/.test(want) && Object.values(LANGS).some((l) => l[1] === want) ? want : 'en-CA');
   let audio;
   try { audio = await readBody(req); }
   catch (err) { return res.status(err.code === 413 ? 413 : 400).json({ error: 'body' }); }

@@ -9,6 +9,7 @@
 // No npm dependencies on purpose, same as api/contact.js.
 
 import { CLINICAL_GUIDE } from './_guide.js';
+import { LANGS } from './_langs.js';
 import { fromWellHeard, limited } from './_guard.js';
 
 const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages';
@@ -133,8 +134,8 @@ function parseQuestions(text) {
 }
 
 // ---- languages: the patient may speak French; the doctor's pages may be in English or French
-const LANG_NAME = { en: 'English', fr: 'Canadian French' };
-const pickLang = (v) => (v === 'fr' ? 'fr' : 'en');
+const LANG_NAME = Object.fromEntries(Object.entries(LANGS).map(([k, v]) => [k, v[0]]));
+const pickLang = (v) => (LANGS[v] ? v : 'en');
 
 const FIX = `You help correct voice typing for a patient preparing for a medical appointment.
 The patient may speak with a French accent, and Parkinson's disease can make speech soft, fast or slurred, so voice typing often mishears words.
@@ -280,6 +281,10 @@ const TRANSLATE = `You translate a patient's own notes for their doctor.
 Translate each item faithfully into the target language. Keep the patient's meaning, tone and first-person voice. Keep medication names, numbers and doses exactly as written. Do not add, explain, summarise or correct anything.
 If an item is already in the target language, return it unchanged. Return the items in the same order, one translation per item.`;
 
+const UI = `You translate the screens of WellHeard, an app that helps older patients (some with Parkinson's) and their families prepare for medical appointments in Ontario, Canada. "Reid" is the app's AI helper; keep the name Reid.
+Translate each item into the target language: plain, warm, short words an older person understands, the polite form of address. Keep the meaning exactly, including warnings and "not". Keep medicine names, numbers, symbols (› ✓ ★ ⚠ ▶ ↻ + ·), emoji and email addresses or phone numbers as they are. Questions stay questions.
+Return the items in the same order, one translation per item, no notes.`;
+
 const TRANSLATE_SCHEMA = {
   type: 'object',
   properties: { items: { type: 'array', items: { type: 'string' } } },
@@ -332,12 +337,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
   if (!fromWellHeard(req)) return res.status(403).json({ ok: false, error: 'Use this from WellHeard.' });
-  if (limited(req, 'suggest', 80)) return res.status(429).json({ ok: false, error: "That's a lot of requests in a short time. Wait a few minutes, then try again." });
+  const isUi = (() => { try { const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body; return !!(b && b.mode === 'ui'); } catch { return false; } })();
+  if (limited(req, isUi ? 'ui' : 'suggest', isUi ? 300 : 80)) return res.status(429).json({ ok: false, error: "That's a lot of requests in a short time. Wait a few minutes, then try again." });
 
   const body = typeof req.body === 'object' && req.body ? req.body : (() => {
     try { return JSON.parse(req.body || '{}'); } catch { return {}; }
   })();
-  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague'].includes(body.mode) ? body.mode : 'suggest';
+  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui'].includes(body.mode) ? body.mode : 'suggest';
   const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -346,6 +352,16 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ---- the app's own screens and Reid's words, in the patient's language
+    if (mode === 'ui') {
+      const items = Array.isArray(body.items) ? body.items.slice(0, 80).map((v) => clean(v, 1500)) : [];
+      if (!items.length || lang === 'en') return res.status(200).json({ ok: true, items });
+      const out = await askClaude(UI, `Target language: ${LANG_NAME[lang]}\n\nItems (JSON array):\n${JSON.stringify(items)}`, TRANSLATE_SCHEMA, 8000);
+      const got = Array.isArray(out.items) ? out.items.map((v) => clean(v, 1500)) : [];
+      if (got.length !== items.length) return res.status(502).json({ ok: false, error: 'The translation came back incomplete.' });
+      return res.status(200).json({ ok: true, items: got });
+    }
+
     // ---- translate the patient's own words for the doctor's pages
     if (mode === 'translate') {
       const items = Array.isArray(body.items) ? body.items.slice(0, 80).map((v) => clean(v, LIMITS.story)) : [];
