@@ -142,12 +142,12 @@
     .ts-1 #hearSheet p { font-size: 17px !important; } .ts-2 #hearSheet p { font-size: 19px !important; }
   </style>
 </head>
-<body class="min-h-screen w-full flex flex-col items-center justify-center sm:py-3">
+<body class="min-h-screen w-full flex flex-col items-center justify-center overflow-hidden">
 
   <!-- Centered 420x820 Zero-Scroll Mobile Device Frame -->
   <main
     id="appContainer"
-    class="w-full max-w-[420px] h-[100dvh] sm:h-[820px] sm:max-h-[93vh] bg-[#FAF7F0] sm:rounded-[36px] sm:shadow-2xl sm:border-[3px] border-[#1E2634] overflow-hidden flex flex-col justify-between relative px-5 pt-4 pb-4"
+    class="w-full max-w-[420px] h-[100dvh] bg-[#FAF7F0] sm:rounded-[36px] sm:shadow-2xl sm:border-[3px] border-[#1E2634] overflow-hidden flex flex-col justify-between relative px-5 pt-4 pb-4"
     aria-label="WellHeard Appointment Companion"
   >
 
@@ -2440,7 +2440,7 @@
       'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
       'Private: everything stays on this device.': 'Privé : tout reste sur cet appareil.',
-      'Help / Settings': 'Aide / Réglages', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'Use WellHeard full screen ›': 'Utiliser WellHeard en plein écran ›', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Vous pouvez me parler ou toucher l'écran. Je prépare une page claire pour votre médecin et je suggère des questions avec Claude, d'Anthropic. Votre nom n'est jamais envoyé.", 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
+      'Help / Settings': 'Aide / Réglages', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'Please turn your phone upright.': 'Veuillez tenir votre téléphone à la verticale.', 'WellHeard is easier to read this way.': 'WellHeard est plus facile à lire ainsi.', 'Use WellHeard full screen ›': 'Utiliser WellHeard en plein écran ›', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Vous pouvez me parler ou toucher l'écran. Je prépare une page claire pour votre médecin et je suggère des questions avec Claude, d'Anthropic. Votre nom n'est jamais envoyé.", 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
       '1. Prepare': '1. Préparer', '2. At Visit': '2. Au rendez-vous', '3. After': '3. Après',
       'What is your name?': 'Comment vous appelez-vous ?', 'Optional — only shown on your doctor summary.': 'Facultatif — seulement sur le résumé pour le médecin.',
       'Helping someone else': "J'aide quelqu'un", 'Skip for now': 'Passer pour l’instant',
@@ -3739,6 +3739,37 @@
         say(isMT() ? t : t, lang === 'fr'); return;
       }
       say(screenText(), isMT() || lang === 'fr'); }
+
+    // ---------- fit any screen: phone, iPad, computer ----------
+    // The app is designed as one 420 × 820 page. Phones use their whole screen (slightly smaller on short
+    // phones so nothing is cut off). iPads and computers show the same page, made bigger to fill the
+    // screen, so everything (text and buttons) grows together and nothing needs scrolling.
+    const turn = document.createElement('div'); turn.id = 'turnPhone';
+    turn.className = 'hidden fixed inset-0 z-[100] bg-[#FAF7F0] flex flex-col items-center justify-center gap-3 p-6 text-center';
+    turn.innerHTML = '<div class="text-5xl" aria-hidden="true">📱↻</div><p class="text-xl font-extrabold text-[#1E2634]">Please turn your phone upright.</p><p class="text-base font-bold text-[#425268]">WellHeard is easier to read this way.</p>';
+    document.body.appendChild(turn);
+    function sizeApp() {
+      const main = document.getElementById('appContainer'), vw = window.innerWidth, vh = window.innerHeight;
+      const phoneSideways = vh < 500 && vw > vh && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+      turn.classList.toggle('hidden', !phoneSideways); if (phoneSideways) applyLang(turn);
+      let z = 1, w, h;
+      if (vw < 500) {                       // phone, upright: the whole screen
+        z = vh < 740 ? Math.max(0.82, vh / 740) : 1;
+        w = vw / z; h = vh / z;
+        main.style.borderRadius = '0'; main.style.borderWidth = '0';
+      } else {                              // iPad or computer: the page, as big as fits
+        z = Math.min(1.7, (vw * 0.96) / 420, (vh * 0.96) / 820);
+        w = 420; h = 820;
+        main.style.borderRadius = ''; main.style.borderWidth = '';
+      }
+      main.style.zoom = z; main.style.width = w + 'px'; main.style.maxWidth = 'none'; main.style.height = h + 'px';
+      if (LISTMODES[steps[currentIndex].mode]) renderList();
+      if (steps[currentIndex].mode === 'visitQuestions') renderVisitQuestionsChecklist();
+    }
+    let sizeT = null;
+    window.addEventListener('resize', () => { clearTimeout(sizeT); sizeT = setTimeout(sizeApp, 120); });
+    window.addEventListener('orientationchange', () => setTimeout(sizeApp, 300));
+    sizeApp();
 
     // tap Reid (top left) to pause or resume listening, on any screen
     (function () {
