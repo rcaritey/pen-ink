@@ -596,6 +596,19 @@ dialog.picker::backdrop { background: rgba(30,38,52,.72); }
 .pk-days .tile { min-height: 48px; padding: 0; font-size: 1.1rem; border-radius: 12px; }
 .pk-days .tile.today { outline: 3px solid #3B5E42; outline-offset: -3px; }
 .pk-days .tile[aria-pressed="true"]::before { content: ""; }
+/* Phone-sized frame on bigger screens, like the prototype: one 440px column with a rounded navy border,
+   the bottom bar sitting inside it. On a phone nothing changes: the phone is the frame. */
+@media (min-width: 520px) {
+  html { background: #EAE5DC; }
+  body { max-width: 440px; margin: 2vh auto; min-height: 96vh; border: 3px solid var(--ink); border-radius: 36px; overflow: clip;
+    box-shadow: 0 20px 60px rgba(30,38,52,.18); box-sizing: border-box; }
+  .appbar, .wrap, footer.foot { max-width: none; }
+  .vdock, body.voice-mode .vb-panel { left: 50%; right: auto; width: 434px; transform: translateX(-50%); bottom: calc(2vh + 3px); border-radius: 0 0 33px 33px; }
+  .vdock .vbar, .vmore { max-width: none; }
+  dialog.picker { width: 420px; }
+}
+@media (min-width: 520px) and (prefers-color-scheme: dark) { html:not([data-theme="light"]) { background: #0F0C0A; } }
+@media (min-width: 520px) { :root[data-theme="dark"] { background: #0F0C0A; } }
 /* Reid's quick question card */
 .vague { background: #FEF6E7; border: 2px solid #D97706; border-radius: 18px; padding: 12px 14px; margin-top: 14px; color: #1E2634; }
 .vague .vg-ask { margin: 0 0 4px; font-size: 1.1rem; }
