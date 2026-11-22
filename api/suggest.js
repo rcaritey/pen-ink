@@ -8,6 +8,7 @@
 // - Only error status codes are logged, never request content.
 // No npm dependencies on purpose, same as api/contact.js.
 
+import { removePersonalDetails } from './_pii.js';
 import { CLINICAL_GUIDE } from './_guide.js';
 import { LANGS } from './_langs.js';
 import { fromWellHeard, limited } from './_guard.js';
@@ -304,7 +305,7 @@ async function askClaude(system, user, schema, maxTokens) {
       model: MODEL,
       max_tokens: maxTokens,
       inference_geo: 'us',
-      system,
+      system: system + '\n\nPrivacy tags: [name] stands for the patient and tags like [P1] stand for other people or contact details. Copy these tags exactly as written wherever you refer to them; never guess, expand or translate them.',
       messages: [{ role: 'user', content: user }],
       output_config: { format: { type: 'json_schema', schema } },
     }),
@@ -343,6 +344,13 @@ export default async function handler(req, res) {
   const body = typeof req.body === 'object' && req.body ? req.body : (() => {
     try { return JSON.parse(req.body || '{}'); } catch { return {}; }
   })();
+  if (body.mode !== 'ui') {
+    const scrubbed = await removePersonalDetails(body, body.lang);
+    Object.keys(body).forEach((k) => { delete body[k]; });
+    Object.assign(body, scrubbed.body);
+    const send = res.json.bind(res);
+    res.json = (obj) => { try { return send(JSON.parse(scrubbed.restore(JSON.stringify(obj), true))); } catch (e) { return send(obj); } };
+  }
   const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui'].includes(body.mode) ? body.mode : 'suggest';
   const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 

@@ -3339,7 +3339,7 @@
             T('Anyone who can open this device can see them, so lock it with a passcode. “Erase my answers” deletes everything.', 'Toute personne qui peut ouvrir cet appareil peut les voir : verrouillez-le avec un code. « Effacer mes réponses » supprime tout.')]))}
           ${card(T('Sent to help you, only if you agree', 'Envoyé pour vous aider, seulement si vous acceptez'), ul([
             T('Your voice goes to Microsoft Azure in Canada (Toronto) to become words; Reid’s voice is made there too. Microsoft doesn’t keep the sound or the words.', 'Votre voix va à Microsoft Azure au Canada (Toronto) pour devenir des mots; la voix de Reid y est créée. Microsoft ne garde ni le son ni les mots.'),
-            T('Your answers (concerns, health, medicines, questions) and the words of the visit recording go to Claude, an AI made by Anthropic, in the United States, to suggest questions, write the recap and translate. The app never sends your name or the appointment date, but a name said during the visit is in the words. Anthropic deletes it within 30 days and never uses it to train AI models.', 'Vos réponses (raisons, santé, médicaments, questions) et les mots de l’enregistrement vont à Claude, une IA d’Anthropic, aux États-Unis, pour suggérer des questions, écrire le résumé et traduire. L’app n’envoie jamais votre nom ni la date, mais un nom dit pendant la visite est dans les mots. Anthropic le supprime en 30 jours et ne s’en sert pas pour entraîner son IA.'),
+            T('Your answers (concerns, health, medicines, questions) and the words of the visit recording go to Claude, an AI made by Anthropic, in the United States, to suggest questions, write the recap and translate. The app removes your name before sending, even when it is said aloud, and never sends the appointment date. Other names said during the visit are in the words. Anthropic deletes it within 30 days and never uses it to train AI models.', 'Vos réponses (raisons, santé, médicaments, questions) et les mots de l’enregistrement vont à Claude, une IA d’Anthropic, aux États-Unis, pour suggérer des questions, écrire le résumé et traduire. L’app retire votre nom avant l’envoi, même dit à voix haute, et n’envoie jamais la date. Les autres noms dits pendant la visite sont dans les mots. Anthropic le supprime en 30 jours et ne s’en sert pas pour entraîner son IA.'),
             T('On the way, they pass through WellHeard’s own server in Montréal, which doesn’t save them. Your internet address is held in memory for up to 10 minutes to stop misuse.', 'En chemin, ils passent par le serveur de WellHeard à Montréal, qui ne les garde pas. Votre adresse internet est gardée en mémoire jusqu’à 10 minutes pour empêcher les abus.')]))}
           ${card(T('Security', 'Sécurité'), ul([
             T('Everything sent is encrypted on the way (HTTPS).', 'Tout ce qui est envoyé est chiffré en chemin (HTTPS).'),
@@ -4160,8 +4160,36 @@
       const url = String(u), agreed = consent && consent.choice === 'yes';
       if (/^\/api\/(suggest|stt)/.test(url) && !agreed) return Promise.reject(new Error('Sharing is off'));
       if (/^\/api\/tts/.test(url) && consent && consent.choice === 'no') return Promise.reject(new Error('Sharing is off'));
+      if (/^\/api\/suggest/.test(url) && o && typeof o.body === 'string') return sendWithoutName(u, o);
       return realFetch(u, o);
     };
+    // The person's own name never leaves the phone: it becomes [name] in
+    // everything sent to Claude (even when said aloud in a recording) and is
+    // put back in the reply here on the phone.
+    function nameParts() {
+      let full = '';
+      try { full = String((steps.find((x) => x.id === 'name') || {}).answer || '').trim(); } catch (e) { /* no name yet */ }
+      if (!full) return [];
+      const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const words = full.split(/[\s,]+/).filter((w) => w.replace(/[^\p{L}]/gu, '').length >= 2);
+      return [full].concat(words).filter((w, i, a) => a.indexOf(w) === i).sort((a, b) => b.length - a.length)
+        .map((w) => new RegExp(`(?<![\\p{L}])${esc(w)}(?![\\p{L}])`, 'giu'));
+    }
+    function scrubName(v, res) {
+      if (typeof v === 'string') { let t = v; res.forEach((re) => { t = t.replace(re, '[name]'); }); return t; }
+      if (Array.isArray(v)) return v.map((x) => scrubName(x, res));
+      if (v && typeof v === 'object') { const out = {}; Object.keys(v).forEach((k) => { out[k] = scrubName(v[k], res); }); return out; }
+      return v;
+    }
+    async function sendWithoutName(u, o) {
+      const res = nameParts();
+      let b; try { b = JSON.parse(o.body); } catch (e) { return realFetch(u, o); }
+      if (!res.length || b.mode === 'ui') return realFetch(u, o);
+      const r = await realFetch(u, Object.assign({}, o, { body: JSON.stringify(scrubName(b, res)) }));
+      const first = String(steps.find((x) => x.id === 'name').answer).trim().split(/\s+/)[0];
+      const txt = (await r.text()).replace(/\[name\]/gi, first.replace(/["\\]/g, ''));
+      return new Response(txt, { status: r.status, statusText: r.statusText, headers: r.headers });
+    }
     function setConsent(choice) {
       consent = { choice, at: new Date().toISOString() };
       if (choice === 'no') { hush(); stopRec(); setInputMode('tap'); readAloud = false; }
@@ -4180,7 +4208,7 @@
           <button type="button" ${linkAttr} class="text-left text-[15px] font-extrabold text-[#3B5E42] underline underline-offset-4 min-h-[36px]">${L2('Read the full details ›', 'Lire tous les détails ›')}</button>
           ${tick(L2('Kept on your phone.', 'Gardé sur votre téléphone.'), L2('Your answers and visit recordings are saved only on this device. No account.', 'Vos réponses et enregistrements restent sur cet appareil. Aucun compte.'))}
           ${tick(L2('Voice to words, in Canada.', 'La voix en mots, au Canada.'), L2('Microsoft turns your voice into words in Toronto and doesn’t keep it.', 'Microsoft transforme votre voix en mots à Toronto et ne la garde pas.'))}
-          ${tick(L2('Help from Claude, in the United States.', 'L’aide de Claude, aux États-Unis.'), L2('Your answers go to Anthropic anonymously: never your name or anything that identifies you. Used only for questions, recaps and translations. Deleted within 30 days, and never used to train AI models.', 'Vos réponses vont à Anthropic de façon anonyme : jamais votre nom ni rien qui vous identifie. Seulement pour les questions, résumés et traductions. Supprimées en 30 jours, et jamais utilisées pour entraîner des modèles d’IA.'))}
+          ${tick(L2('Help from Claude, in the United States.', 'L’aide de Claude, aux États-Unis.'), L2('Your answers go to Anthropic anonymously: your name is removed before anything is sent, even when said aloud. Used only for questions, recaps and translations. Deleted within 30 days, and never used to train AI models.', 'Vos réponses vont à Anthropic de façon anonyme : votre nom est retiré avant tout envoi, même dit à voix haute. Seulement pour les questions, résumés et traductions. Supprimées en 30 jours, et jamais utilisées pour entraîner des modèles d’IA.'))}
           ${tick(L2('No ads, no tracking.', 'Pas de publicité, pas de pistage.'), L2('Nothing is sold. Everything is encrypted on the way.', 'Rien n’est vendu. Tout est chiffré en chemin.'))}
           ${tick(L2('You’re in control.', 'Vous décidez.'), L2('Change your mind or erase everything any time, in Help.', 'Changez d’avis ou effacez tout à tout moment, dans Aide.'))}
         </div>`;
