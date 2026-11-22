@@ -3802,7 +3802,9 @@
       turn.classList.toggle('hidden', !phoneSideways); if (phoneSideways) applyLang(turn);
       let z = 1, w, h;
       if (vw < 500) {                       // phone, upright: the whole screen
-        z = vh < 740 ? Math.max(0.82, vh / 740) : 1;
+        // full size on every normal phone (Safari's bars make the screen look short; that's fine).
+        // Only a very short screen gets slightly smaller text.
+        z = vh < 560 ? Math.max(0.85, vh / 560) : 1;
         w = vw / z; h = vh / z;
         main.style.borderRadius = '0'; main.style.borderWidth = '0'; main.classList.remove('wide');
       } else {                              // iPad or computer: the page, as big as fits
