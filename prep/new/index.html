@@ -404,6 +404,13 @@
           >
             Full screen
           </button>
+          <button
+            type="button"
+            onclick="printPages('doctor')"
+            class="tactile-btn min-h-[46px] px-3.5 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xs shrink-0 hover:bg-[#E6DFD0]"
+          >
+            Print
+          </button>
         </div>
 
         <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-4 flex flex-col gap-2.5 shrink-0">
@@ -430,74 +437,21 @@
           </div>
         </div>
 
-        <div class="w-full min-h-[60px] px-4 py-3 rounded-[18px] bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E2634] font-extrabold text-base flex items-center gap-3 shrink-0">
-          <span class="w-9 h-9 rounded-full bg-[#3B5E42] text-white flex items-center justify-center shrink-0"><span class="w-3 h-3 rounded-full bg-white"></span></span>
-          <span class="text-[#1E4627] leading-snug">Ask the doctor first, then record with your phone's voice recorder.</span>
-        </div>
-      </div>
-
-      <!-- =========================================================
-           MODE C: STEP 8 — AT VISIT 2/2: WORKFLOW-GROUNDED QUESTIONS
-           ========================================================= -->
-      <div id="screenVisitQuestions" class="hidden w-full h-full flex flex-col justify-between min-h-0">
-        <div class="w-full flex items-start justify-between gap-2 shrink-0">
-          <div class="min-w-0">
-            <h1 class="text-[1.38rem] leading-tight font-extrabold text-[#1E2634] tracking-tight">
-              Questions to ask your doctor
-            </h1>
-            <div class="flex items-center gap-1.5 mt-1 flex-wrap">
-              <span id="workflowSourceBadge" class="px-2 py-0.5 rounded-md bg-[#E5EFE7] text-[#1E4627] font-extrabold text-[11px]">
-                Suggested by Claude
-              </span>
-              <span class="text-[11px] text-[#425268] font-bold">· Not medical advice</span>
-            </div>
-          </div>
-          <span id="questionsDoneCounter" class="px-2.5 py-1 rounded-full bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xs shrink-0">
-            0/3 done
+        <button
+          id="recordVisitBtn"
+          type="button"
+          onclick="toggleVisitRecording()"
+          aria-pressed="false"
+          class="tactile-btn w-full min-h-[60px] px-4 rounded-[18px] bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E2634] font-extrabold text-base flex items-center justify-between shrink-0"
+        >
+          <span class="flex items-center gap-3 min-w-0">
+            <span id="recordCircle" class="w-9 h-9 rounded-full bg-[#3B5E42] text-white flex items-center justify-center shrink-0">
+              <span class="w-3 h-3 rounded-full bg-white"></span>
+            </span>
+            <span id="recordBtnLabel" class="text-[#1E4627] truncate">Record Visit</span>
           </span>
-        </div>
-
-        <div id="visitQuestionsContainer" class="w-full flex flex-col gap-[10px] shrink-0">
-          <!-- Populated dynamically from clinical workflow pathways -->
-        </div>
-
-        <div class="w-full flex items-stretch shrink-0">
-          <button
-            id="revealAddQuestionBtn"
-            type="button"
-            onclick="revealCustomQuestionBox()"
-            class="tactile-btn flex-1 min-h-[50px] px-3 rounded-[16px] bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-1.5 hover:bg-[#E6DFD0]"
-          >
-            <span>+ Add your own</span>
-          </button>
-
-          <div class="w-[12px] shrink-0 dead-zone" aria-hidden="true"></div>
-
-          <button
-            id="refreshWorkflowBtn"
-            type="button"
-            onclick="cycleWorkflowQuestions()"
-            class="tactile-btn min-h-[50px] px-3.5 rounded-[16px] bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-sm flex items-center justify-center gap-1.5 shrink-0 hover:bg-[#D7E7DA]"
-          >
-            <span>↻ More ideas</span>
-          </button>
-
-          <div id="inlineAddQuestionBox" class="hidden w-full bg-white border-2 border-[#1E2634] rounded-[18px] p-2.5 flex items-center gap-2">
-            <input
-              id="inlineQuestionInput"
-              type="text"
-              placeholder="Type or speak your question..."
-              class="flex-1 min-w-0 bg-transparent text-[#1E2634] font-bold text-base focus:outline-none"
-            />
-            <button
-              type="button"
-              onclick="saveInlineQuestion()"
-              class="tactile-btn min-h-[44px] px-4 rounded-xl bg-[#1E2634] text-white font-extrabold text-sm shrink-0"
-            >
-              Add
-            </button>
-          </div>
-        </div>
+          <span id="recordTimer" class="font-mono text-sm font-extrabold text-[#425268] shrink-0">0:00</span>
+        </button>
       </div>
 
       <!-- =========================================================
@@ -925,6 +879,21 @@
 
   </main>
 
+  <div id="printArea" aria-hidden="true"></div>
+  <style>
+    #printArea { display: none; }
+    @media print {
+      body > *:not(#printArea) { display: none !important; }
+      #printArea { display: block !important; font-family: "Atkinson Hyperlegible", Arial, sans-serif; color: #111; }
+      .pg { page-break-after: always; font-size: 12pt; line-height: 1.45; }
+      .pg:last-child { page-break-after: auto; }
+      .pg h1 { font-size: 18pt; margin: 0 0 2pt; } .pg .meta { color: #444; margin: 0 0 10pt; }
+      .pg h2 { font-size: 10pt; text-transform: uppercase; letter-spacing: .06em; color: #444; border-bottom: 1px solid #999; margin: 12pt 0 4pt; padding-bottom: 2pt; }
+      .pg ul, .pg ol { margin: 0; padding-left: 18pt; } .pg li { margin: 2pt 0; }
+      .pg .ans { border-bottom: 1px solid #bbb; height: 22pt; } .pg .foot { font-size: 9pt; color: #555; margin-top: 14pt; }
+      .pg .say { font-size: 13pt; font-weight: 700; }
+    }
+  </style>
   <script>
     // Complete 12-Step Sequential Flow (Step 0 Landing + Steps 1–11)
     const steps = [
@@ -1123,6 +1092,7 @@
       }
     ];
 
+    const SID = (id) => steps.find((x) => x.id === id) || {};
     let currentIndex = 0;
     let inputPreference = 'voice'; // 'voice' | 'tap'
     let isListening = true;
@@ -1201,8 +1171,8 @@
     let visitQuestions = JSON.parse(JSON.stringify(clinicalWorkflowSets.foot.batches[0]));
 
     function detectClinicalWorkflowKey() {
-      const who = (steps[2].answer || '').toLowerCase();
-      const concern = (steps[6].answer || '').toLowerCase();
+      const who = (SID('who').answer || '').toLowerCase();
+      const concern = (SID('concerns').answer || '').toLowerCase();
       const combined = `${who} ${concern}`;
 
       if (
@@ -1235,7 +1205,7 @@
     }
 
     function syncWorkflowQuestionsIfNeeded() {
-      const signature = `${steps[2].answer || ''}|${steps[6].answer || ''}`;
+      const signature = `${SID('who').answer || ''}|${SID('concerns').answer || ''}`;
       if (signature !== lastWorkflowSignature) {
         lastWorkflowSignature = signature;
         activeWorkflowKey = detectClinicalWorkflowKey();
@@ -1365,7 +1335,8 @@
       progressHeader.classList.toggle('hidden', isLanding);
 
       if (!isLanding) {
-        document.getElementById('stepSubtitle').textContent = step.subtitle;
+        const inPhase = steps.filter((x) => x.phaseIndex === step.phaseIndex), pos = inPhase.indexOf(step) + 1;
+        document.getElementById('stepSubtitle').textContent = `${['1. Prepare', '2. At Visit', '3. After'][step.phaseIndex]} · Step ${pos} of ${inPhase.length}`;
         document.getElementById('stepTopicTag').textContent = step.topic;
 
         [0, 1, 2].forEach((idx) => {
@@ -1373,17 +1344,7 @@
           lbl.className = idx === step.phaseIndex ? 'text-[#1E2634]' : 'text-[#425268]';
         });
 
-        const phaseWidths = [0, 0, 0];
-        if (currentIndex >= 1 && currentIndex <= 6) {
-          phaseWidths[0] = Math.round((currentIndex / 6) * 100);
-        } else if (currentIndex <= 8) {
-          phaseWidths[0] = 100;
-          phaseWidths[1] = Math.round(((currentIndex - 6) / 2) * 100);
-        } else {
-          phaseWidths[0] = 100;
-          phaseWidths[1] = 100;
-          phaseWidths[2] = Math.round(((currentIndex - 8) / 3) * 100);
-        }
+        const phaseWidths = [0, 1, 2].map((ph) => ph < step.phaseIndex ? 100 : ph > step.phaseIndex ? 0 : Math.round(pos / inPhase.length * 100));
 
         document.getElementById('phaseBar0').style.width = `${phaseWidths[0]}%`;
         document.getElementById('phaseBar1').style.width = `${phaseWidths[1]}%`;
@@ -1445,16 +1406,16 @@
 
       // 4. Populate Step 7 (Summary for the doctor)
       if (step.mode === 'doctorSummary') {
-        const patientName = (steps[1].answer || '').trim();
+        const patientName = (SID('name').answer || '').trim();
         document.getElementById('summaryPatientLine').textContent = patientName
           ? `Patient: ${patientName}`
           : 'Patient Visit Summary';
-        document.getElementById('sumWho').textContent = steps[2].answer || 'Clinic visit';
-        const dayStr = steps[3].answer || 'Scheduled day';
-        const timeStr = steps[4].answer || 'Scheduled time';
+        document.getElementById('sumWho').textContent = SID('who').answer || 'Clinic visit';
+        const dayStr = SID('day').answer || 'Scheduled day';
+        const timeStr = SID('time').answer || 'Scheduled time';
         document.getElementById('sumWhen').textContent = `${dayStr} · ${timeStr}`;
-        document.getElementById('sumWhere').textContent = steps[5].answer || 'Clinic / Office';
-        document.getElementById('sumConcerns').textContent = steps[6].answer || 'General check-in';
+        document.getElementById('sumWhere').textContent = SID('where').answer || 'Clinic / Office';
+        document.getElementById('sumConcerns').textContent = SID('concerns').answer || 'General check-in';
       }
 
       // 5. Populate Step 8 (Workflow-Grounded Questions Checklist)
@@ -1470,10 +1431,10 @@
 
       // 7. Populate Step 11 (Share & Finish Recap)
       if (step.mode === 'shareFinish') {
-        const who = steps[2].answer || 'Doctor visit';
-        const day = steps[3].answer || 'Today';
+        const who = SID('who').answer || 'Doctor visit';
+        const day = SID('day').answer || 'Today';
         document.getElementById('finalVisitLine').textContent = `${who} · ${day}`;
-        document.getElementById('finalRecapLine').textContent = steps[9].answer || 'Visit completed';
+        document.getElementById('finalRecapLine').textContent = SID('recap').answer || 'Visit completed';
         document.getElementById('finalTasksLine').textContent = getCompiledTasksText();
       }
 
@@ -1744,7 +1705,7 @@
       const formatted = formatPickedTimeString();
       closeModal('quickTimeModal');
       setCompanionState('captured');
-      const step = steps[4]; // Time step
+      const step = SID('time'); // Time step
       step.customActive = true;
       step.answer = formatted;
       renderCurrentStep();
@@ -1995,7 +1956,7 @@
         return;
       }
 
-      const step = steps[3]; // Day step
+      const step = SID('day'); // Day step
       step.customActive = true;
       step.answer = formatted;
       renderCurrentStep();
@@ -2103,16 +2064,16 @@
     }
 
     function openFullDoctorCard() {
-      const patientName = (steps[1].answer || '').trim();
+      const patientName = (SID('name').answer || '').trim();
       document.getElementById('fullDocTitle').textContent = patientName
         ? `Summary for the doctor · ${patientName}`
         : 'Summary for the doctor';
-      document.getElementById('modalDocWho').textContent = steps[2].answer || 'Clinic visit';
-      const dayStr = steps[3].answer || 'Scheduled day';
-      const timeStr = steps[4].answer || 'Scheduled time';
+      document.getElementById('modalDocWho').textContent = SID('who').answer || 'Clinic visit';
+      const dayStr = SID('day').answer || 'Scheduled day';
+      const timeStr = SID('time').answer || 'Scheduled time';
       document.getElementById('modalDocWhen').textContent = `${dayStr} · ${timeStr}`;
-      document.getElementById('modalDocWhere').textContent = steps[5].answer || 'Clinic / Office';
-      document.getElementById('modalDocConcerns').textContent = steps[6].answer || 'General check-in';
+      document.getElementById('modalDocWhere').textContent = SID('where').answer || 'Clinic / Office';
+      document.getElementById('modalDocConcerns').textContent = SID('concerns').answer || 'General check-in';
       openModal('fullDoctorModal');
     }
 
@@ -2348,39 +2309,122 @@
 
 
     // =====================================================================
-    // WellHeard wiring (not in the prototype): saving on this device, Reid's
-    // voice (Azure, Canada Central), listening (Azure, Canada Central), and
-    // Claude's suggested questions. Same server functions as /prep.
+    // WellHeard: the full app's features inside Gemini's layout.
+    // Server functions are the same as /prep: /api/tts and /api/stt (Azure,
+    // Canada Central) and /api/suggest (Claude). Everything else stays on
+    // this device.
     // =====================================================================
     const STORE = 'wellheard-new-v1';
+    let lang = 'en', slowVoice = false, readAloud = true, transcript = '', recapDone = false, recapContact = '';
+    let aiPool = [], aiAt = 0, aiSig = '', vagueOk = {}, ownQs = [];
+    visitQuestions = [];   // filled by Claude from the whole picture (the prototype's fixed lists are not used)
+
+    // ---------- the extra steps from the full app, in Gemini's one-question style ----------
+    const EXTRA = [
+      { id: 'story', topic: 'In your own words', question: 'Tell me about it in your own words.', helperText: "What's happening, when it started, what worries you. Take your time.",
+        presets: [], big: true, customActive: true, defaultPlaceholder: 'Say or type it in your own words...', customPlaceholder: 'Say or type it in your own words...' },
+      { id: 'conditions', topic: 'Health', question: 'Do you have other health conditions?', helperText: 'Tap all that apply, or say them.',
+        presets: ["Parkinson's", 'Heart condition', 'Diabetes', 'Another condition'], customOptionLabel: 'Another condition', multi: true,
+        defaultPlaceholder: 'Tap above, or say your conditions...', customPlaceholder: 'Say or type the condition...' },
+      { id: 'meds', topic: 'Medicines', question: 'What medicines do you take?', helperText: 'Say one at a time, with the dose if you know it, then pause. Include vitamins.',
+        presets: ['None'], lines: true, big: true, defaultPlaceholder: 'One medicine per line...', customPlaceholder: 'One medicine per line...' },
+      { id: 'allergies', topic: 'Allergies', question: "Any allergies, or medicines you can't take?",
+        presets: ['None known', 'Penicillin', 'Sulfa drugs', 'Another allergy'], customOptionLabel: 'Another allergy', multi: true,
+        defaultPlaceholder: 'Tap above, or say them...', customPlaceholder: 'Say or type the allergy...' }
+    ].map((e) => Object.assign({ phaseIndex: 0, mode: 'voice', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next' }, e));
+    steps.splice(steps.findIndex((x) => x.id === 'concerns') + 1, 0, ...EXTRA);
+    // Prototype step names, plain
+    SID('concerns').question = 'What is the appointment for?';
+    SID('concerns').topic = 'Reason';
+
+    // ---------- French ----------
+    const FR = {
+      'Get ready for your appointment': 'Préparez votre rendez-vous', 'How it works': 'Comment ça marche',
+      'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
+      '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
+      'Private: everything stays on this device.': 'Privé : tout reste sur cet appareil.',
+      'Help / Settings': 'Aide / Réglages', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
+      '1. Prepare': '1. Préparer', '2. At Visit': '2. Au rendez-vous', '3. After': '3. Après',
+      'What is your name?': 'Comment vous appelez-vous ?', 'Optional — only shown on your doctor summary.': 'Facultatif — seulement sur le résumé pour le médecin.',
+      'Helping someone else': "J'aide quelqu'un", 'Skip for now': 'Passer pour l’instant',
+      'Who are you seeing?': 'Qui allez-vous voir ?', 'Family doctor': 'Médecin de famille', 'Neurologist': 'Neurologue', 'Foot clinic': 'Clinique du pied', 'Another specialist': 'Autre spécialiste',
+      'Which day?': 'Quel jour ?', 'Today': "Aujourd'hui", 'Tomorrow': 'Demain', 'Next week': 'La semaine prochaine', 'Pick another date': 'Choisir une date',
+      'What time of day?': 'À quel moment ?', 'Morning': 'Matin', 'Afternoon': 'Après-midi', 'Evening': 'Soir', 'Pick exact time': "Choisir l'heure",
+      'Where is the visit?': 'Où est le rendez-vous ?', 'Clinic / Office': 'Clinique / bureau', 'Hospital': 'Hôpital', 'Phone / Video call': 'Appel / vidéo', 'Another location': 'Autre endroit',
+      'What is the appointment for?': 'Pour quoi est le rendez-vous ?', 'New or worse symptom': 'Symptôme nouveau ou pire', 'Medication side effects': 'Effets secondaires',
+      'Test results / Follow-up': 'Résultats / suivi', 'Describe another concern': 'Décrire autre chose',
+      'Tell me about it in your own words.': 'Racontez-moi avec vos propres mots.', "What's happening, when it started, what worries you. Take your time.": "Ce qui se passe, depuis quand, ce qui vous inquiète. Prenez votre temps.",
+      'Do you have other health conditions?': "Avez-vous d'autres problèmes de santé ?", 'Tap all that apply, or say them.': "Touchez tout ce qui s'applique, ou dites-le.",
+      "Parkinson's": 'Parkinson', 'Heart condition': 'Problème cardiaque', 'Diabetes': 'Diabète', 'Another condition': 'Autre problème',
+      'What medicines do you take?': 'Quels médicaments prenez-vous ?', 'Say one at a time, with the dose if you know it, then pause. Include vitamins.': 'Dites-les un à la fois, avec la dose si vous la savez, puis faites une pause. Incluez les vitamines.',
+      'None': 'Aucun', "Any allergies, or medicines you can't take?": 'Des allergies, ou des médicaments à éviter ?', 'None known': 'Aucune connue', 'Penicillin': 'Pénicilline', 'Sulfa drugs': 'Sulfamides', 'Another allergy': 'Autre allergie',
+      'Your answer': 'Votre réponse', 'YOUR ANSWER': 'VOTRE RÉPONSE', '↶ Undo': '↶ Annuler', 'Keep as is': 'Garder tel quel',
+      'Listening — tap to pause': "J'écoute — touchez pour mettre en pause", 'Paused — tap to speak': 'En pause — touchez pour parler',
+      'Summary for the doctor': 'Résumé pour le médecin', 'Full screen': 'Plein écran', 'Print': 'Imprimer', 'Patient Visit Summary': 'Résumé de la visite',
+      'Seeing': 'Avec', 'When': 'Quand', 'Where': 'Où', 'Main concern': 'Raison principale', 'Record Visit': 'Enregistrer la visite', 'Resume Recording': "Reprendre l'enregistrement", 'Recording — tap to pause': 'Enregistrement — touchez pour arrêter',
+      'Questions to ask your doctor': 'Questions pour votre médecin', 'Suggested by Claude': 'Suggérées par Claude', '· Not medical advice': '· Pas un avis médical',
+      '+ Add your own': '+ Ajouter la vôtre', '↻ More ideas': "↻ D'autres idées", 'Add': 'Ajouter',
+      'What did the doctor say?': "Qu'a dit le médecin ?", 'Keep current plan': 'Garder le même plan', 'Adjusted medication': 'Médicament changé', 'Ordered tests / Referral': 'Tests / référence', 'Add other notes': "Ajouter d'autres notes",
+      'What happens next?': 'Et ensuite ?', 'Tap any tasks to remember after today.': "Touchez ce qu'il faut faire après aujourd'hui.", 'Book blood work or tests': 'Prendre rendez-vous pour une prise de sang ou des tests', 'Pick up prescription': 'Aller chercher la prescription', 'Schedule next visit': 'Prendre le prochain rendez-vous',
+      'Next appointment or note': 'Prochain rendez-vous ou note', '+ Pick date': '+ Choisir une date', 'Clear': 'Effacer',
+      'Your visit recap': 'Le résumé de votre visite', 'Saved safely on this device.': 'Gardé sur cet appareil.', 'Appointment': 'Rendez-vous', 'What the doctor said': "Ce qu'a dit le médecin", 'Next steps': 'Prochaines étapes',
+      'Send to family': 'Envoyer à la famille', 'Print / Save PDF': 'Imprimer / PDF', 'Start a new visit': 'Nouvelle visite',
+      'Pick another date': 'Choisir une date', 'Cancel': 'Annuler', 'Exact date not booked yet': 'Date pas encore fixée', 'Done — Use this date ✓': 'Terminé — utiliser cette date ✓',
+      'Hour': 'Heure', 'Minutes': 'Minutes', 'Done — Use this time ✓': 'Terminé — utiliser cette heure ✓',
+      'Help & Settings': 'Aide et réglages', 'Done': 'Terminé', 'Hand your phone to the doctor to read.': 'Donnez votre téléphone au médecin.',
+      'Reid is listening': 'Reid écoute', 'Reid got it': 'Reid a compris', 'Reid has a quick question': 'Reid a une petite question', 'Reid is paused': 'Reid est en pause', 'Tap / Type mode': 'Mode toucher / écrire'
+    };
+    const tr = (t) => (lang === 'fr' && FR[t]) || t;
+    function applyLang() {
+      document.documentElement.lang = lang === 'fr' ? 'fr' : 'en';
+      const roots = [document.getElementById('appContainer')];
+      roots.forEach((root) => {
+        const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let n; while ((n = w.nextNode())) {
+          const raw = n._en !== undefined && n.nodeValue === n._fr ? n._en : n.nodeValue, key = raw.trim();
+          if (!key) continue;
+          if (lang === 'fr' && FR[key]) { n._en = raw; n._fr = raw.replace(key, FR[key]); n.nodeValue = n._fr; }
+          else if (n._en !== undefined && n.nodeValue === n._fr) { n.nodeValue = n._en; n._en = n._fr = undefined; }
+        }
+        root.querySelectorAll('textarea[placeholder], input[placeholder]').forEach((el) => {
+          if (el._enPh === undefined) el._enPh = el.placeholder;
+          el.placeholder = lang === 'fr' ? (FR[el._enPh] || el._enPh) : el._enPh;
+        });
+      });
+    }
+
+    // ---------- saving on this device ----------
     function saveAll() {
       try {
         localStorage.setItem(STORE, JSON.stringify({
-          currentIndex, inputPreference,
-          answers: steps.map((s) => s.answer || ''), custom: steps.map((s) => !!s.customActive),
-          visitQuestions, nextStepTasks, task: (document.getElementById('customTaskInput') || {}).value || '',
-          aiPool, aiAt
+          currentIndex, inputPreference, lang, slowVoice, readAloud, transcript, recapDone, recapContact,
+          answers: Object.fromEntries(steps.filter((s) => 'answer' in s).map((s) => [s.id, s.answer || ''])),
+          custom: Object.fromEntries(steps.filter((s) => 'customActive' in s).map((s) => [s.id, !!s.customActive])),
+          visitQuestions, nextStepTasks, task: document.getElementById('customTaskInput').value || '', aiPool, aiAt, ownQs, vagueOk
         }));
-      } catch (e) { /* private mode or storage full: carry on without saving */ }
+      } catch (e) { /* private mode or full: carry on without saving */ }
     }
     function loadAll() {
       try {
         const d = JSON.parse(localStorage.getItem(STORE) || 'null'); if (!d) return;
-        (d.answers || []).forEach((a, i) => { if (steps[i] && 'answer' in steps[i]) steps[i].answer = String(a || ''); });
-        (d.custom || []).forEach((c, i) => { if (steps[i] && 'customActive' in steps[i]) steps[i].customActive = !!c; });
+        Object.entries(d.answers || {}).forEach(([id, a]) => { const st = steps.find((x) => x.id === id); if (st) st.answer = String(a || ''); });
+        Object.entries(d.custom || {}).forEach(([id, c]) => { const st = steps.find((x) => x.id === id); if (st) st.customActive = !!c; });
         if (Array.isArray(d.visitQuestions) && d.visitQuestions.length) visitQuestions = d.visitQuestions;
         if (Array.isArray(d.nextStepTasks)) nextStepTasks = d.nextStepTasks;
-        if (Array.isArray(d.aiPool)) { aiPool = d.aiPool; aiAt = d.aiAt || 0; }
+        aiPool = Array.isArray(d.aiPool) ? d.aiPool : []; aiAt = d.aiAt || 0; ownQs = Array.isArray(d.ownQs) ? d.ownQs : [];
+        vagueOk = d.vagueOk || {}; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || '';
+        lang = d.lang === 'fr' ? 'fr' : 'en'; slowVoice = !!d.slowVoice; readAloud = d.readAloud !== false;
         document.getElementById('customTaskInput').value = d.task || '';
         if (d.inputPreference === 'tap') setInputMode('tap');
         if (Number.isInteger(d.currentIndex) && d.currentIndex > 0 && d.currentIndex < steps.length) currentIndex = d.currentIndex;
-        lastWorkflowSignature = `${steps[2].answer || ''}|${steps[6].answer || ''}`;
+        lastWorkflowSignature = `${SID('who').answer || ''}|${SID('concerns').answer || ''}`;
+        if (aiPool.length) aiSig = lastWorkflowSignature;
       } catch (e) { /* bad saved data: start fresh */ }
     }
     setInterval(saveAll, 2000);
     document.addEventListener('visibilitychange', saveAll);
 
-    // ---------- listening, processed in Canada (copied from /prep) ----------
+    // ---------- listening, processed in Canada (same recognizer as /prep) ----------
   class CanadaRec {
     constructor() {
       this.lang = "en-CA"; this.continuous = true; this.interimResults = false;
@@ -2553,11 +2597,11 @@
     static session(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (err) { console.warn(err); } }
   }
 
-  CanadaRec.hearing = () => {}; CanadaRec.talkOver = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false; CanadaRec.quick = false; CanadaRec.everHeard = false;
-  CanadaRec.talkingNow = () => speaking;
+    CanadaRec.hearing = () => {}; CanadaRec.talkOver = () => {}; CanadaRec.writing = () => {}; CanadaRec.level = () => {}; CanadaRec.dead = () => {}; CanadaRec.deadNow = false; CanadaRec.quick = false; CanadaRec.everHeard = false;
+    CanadaRec.talkingNow = () => speaking;
 
-    let rec = null, speaking = false, audioEl = null, sharedCtx = null;
-    // iPhones only let sound and the microphone start from a tap: switch the sound system on during one
+    let rec = null, speaking = false, audioEl = null, sharedCtx = null, recRec = null;
+    // iPhones only start sound and the microphone from a tap: switch the sound system on during one
     function ensureCtx() {
       try {
         const AC = window.AudioContext || window.webkitAudioContext;
@@ -2565,42 +2609,49 @@
         if (sharedCtx && sharedCtx.state !== 'running') sharedCtx.resume();
       } catch (e) { console.warn('Sound could not start', e); }
     }
+    const QWORD = /^(what|what's|why|how|who|which|where|when|can you|could you|do i|should i|is it|does|qu'est|que veut|pourquoi|comment|est-ce que|dois-je)\b/;
+    function heard(t) {
+      const step = steps[currentIndex]; if (!step || step.mode !== 'voice') return;
+      const low = t.toLowerCase().replace(/[.!,]/g, '').trim();
+      if (/^(next|next please|done|i'm done|carry on|continue|suivant|c'est tout|continuer)$/.test(low)) { goNext(); return; }
+      if (/^(back|go back|retour|revenir)$/.test(low)) { goBack(); return; }
+      if (/^(erase|undo|erase that|delete that|efface|efface ça|annuler)$/.test(low)) { undoLastWord(); return; }
+      if (/^(repeat|repeat that|say that again|répète|répétez)$/.test(low)) { speakStep(); return; }
+      if (/^(stop|pause|wait|hold on|arrête|attends|attendez)$/.test(low)) { if (isListening) toggleListening(); return; }
+      if (/^(help|help me|aide|aidez-moi)$/.test(low)) { askReid(lang === 'fr' ? 'Que dois-je faire sur cet écran ?' : 'What should I do on this screen?'); return; }
+      if ((/\?\s*$/.test(t) || QWORD.test(low)) && low.split(' ').length <= 25 && !step.big) { askReid(t); return; }
+      const input = document.getElementById('answerInput');
+      const before = input.value.trim();
+      input.value = before ? before + (step.lines ? '\n' : ' ') + t : t;
+      step.customActive = true;
+      handleTextChange(); setCompanionState('captured'); saveAll();
+    }
     function startRec() {
-      if (inputPreference !== 'voice' || !isListening || speaking) return;
-      if (!rec) {
-        rec = new CanadaRec(); rec.lang = 'en-CA';
-        rec.onresult = (e) => {
-          const r = e.results[e.results.length - 1]; const t = (r && r[0] && r[0].transcript || '').trim(); if (!t) return;
-          const step = steps[currentIndex]; if (!step || step.mode !== 'voice') return;
-          const low = t.toLowerCase().replace(/[.!?,]/g, '').trim();
-          if (/^(next|next please|done|i'm done|carry on|continue)$/.test(low)) { goNext(); return; }
-          if (/^(back|go back)$/.test(low)) { goBack(); return; }
-          if (/^(erase|undo|erase that)$/.test(low)) { undoLastWord(); return; }
-          if (/^(repeat|repeat that|say that again)$/.test(low)) { speakStep(); return; }
-          const input = document.getElementById('answerInput');
-          const before = step.customActive ? input.value.trim() : '';
-          input.value = before ? before + ' ' + t : t;
-          handleTextChange(); setCompanionState('captured'); saveAll();
-        };
-        rec.onend = () => { rec = null; if (isListening && !speaking && inputPreference === 'voice' && steps[currentIndex].mode === 'voice') setTimeout(startRec, 300); };
-        rec.onerror = (e) => { console.warn('Listening problem', e && e.error); if (e && (e.error === 'not-allowed' || e.error === 'needs-tap')) { isListening = false; syncVoiceBarVisuals(); setCompanionState('paused'); showToast('Microphone is off. Tap the bar to try again.'); } };
-      }
+      if (inputPreference !== 'voice' || !isListening || speaking || recRec) return;
+      if (steps[currentIndex].mode !== 'voice') return;
+      if (rec) return;
+      rec = new CanadaRec(); rec.lang = lang === 'fr' ? 'fr-CA' : 'en-CA';
+      rec.onresult = (e) => { const r = e.results[e.results.length - 1]; const t = (r && r[0] && r[0].transcript || '').trim(); if (t) heard(t); };
+      rec.onend = () => { rec = null; if (isListening && !speaking && !recRec) setTimeout(startRec, 300); };
+      rec.onerror = (e) => {
+        console.warn('Listening problem', e && e.error);
+        if (e && (e.error === 'not-allowed' || e.error === 'needs-tap')) { isListening = false; syncVoiceBarVisuals(); setCompanionState('paused'); showToast(tr('Microphone is off. Tap the green bar to try again.')); }
+      };
       try { rec.start(); } catch (e) { console.warn('Could not start listening', e); }
     }
-    function stopRec() { if (rec) { try { rec.abort ? rec.abort() : rec.stop(); } catch (e) { /* already stopped */ } rec = null; } }
-    // the prototype's bar now really starts and stops listening
+    function stopRec() { if (rec) { const r = rec; rec = null; r.onend = null; try { r.abort ? r.abort() : r.stop(); } catch (e) { /* already stopped */ } } }
     toggleListening = function () {
       ensureCtx(); isListening = !isListening; syncVoiceBarVisuals(); setCompanionState(isListening ? 'listening' : 'paused');
       if (isListening) startRec(); else stopRec();
     };
 
-    // ---------- Reid reads each question out loud (Azure neural voice, Canada Central) ----------
-    async function speakStep() {
-      const step = steps[currentIndex];
-      if (inputPreference !== 'voice' || !step || step.mode !== 'voice' || !step.question) return;
+    // ---------- Reid speaks (Azure neural voices, Canada Central) ----------
+    async function say(text) {
+      if (!text || inputPreference !== 'voice' || !readAloud) return;
       stopRec(); speaking = true;
       try {
-        const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: step.question + (step.helperText ? ' ' + step.helperText : '') }) });
+        const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, slow: slowVoice, voice: lang === 'fr' ? 'fr-CA-SylvieNeural' : undefined }) });
         if (r.ok) {
           const url = URL.createObjectURL(await r.blob());
           if (audioEl) audioEl.pause();
@@ -2610,67 +2661,291 @@
         }
       } catch (e) { console.warn('Reid could not speak', e); }
       speaking = false;
-      if (steps[currentIndex] === step && isListening) startRec();
+      if (isListening) startRec();
     }
-
-    // ---------- Claude's suggested questions (step 8), 3 at a time ----------
-    let aiPool = [], aiAt = 0, aiSig = '';
-    async function fetchClaudeQuestions() {
-      const sig = `${steps[2].answer}|${steps[6].answer}`;
-      if (aiSig === sig && aiPool.length) return;
-      aiSig = sig;
-      const badge = document.getElementById('workflowSourceBadge'); if (badge) badge.textContent = 'Reid is thinking…';
+    function speakStep() {
+      const step = steps[currentIndex]; if (!step || step.mode !== 'voice' || !step.question) return;
+      say(tr(step.question) + (step.helperText ? ' ' + tr(step.helperText) : ''));
+    }
+    // Questions said to Reid ("what does that mean?") get a short answer from Claude
+    async function askReid(q) {
+      const step = steps[currentIndex];
+      setCompanionState('asking');
       try {
         const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ lang: 'en', seeing: steps[2].answer || '', purpose: steps[6].answer || '', story: '', meds: [], tell: [], ask: [], asked: [] }) });
+          body: JSON.stringify({ mode: 'help', lang, question: tr(step.question || step.topic || ''), text: q }) });
+        const d = await r.json().catch(() => ({}));
+        const a = (r.ok && d.ok && d.answer) || (lang === 'fr' ? "Dites votre réponse, puis dites suivant. Pour revenir, dites retour." : 'Say your answer, then say next. To go back, say back.');
+        showToast(a); await say(a);
+      } catch (e) { console.warn('Help unavailable', e); }
+      setCompanionState(isListening ? 'listening' : 'paused');
+    }
+
+    // ---------- multi-choice steps (conditions, allergies) and long answers ----------
+    const SEL = 'tactile-btn w-full min-h-[54px] px-3 py-2 rounded-[16px] font-extrabold text-[16.5px] flex items-center justify-center text-center leading-tight bg-[#1E2634] text-white border-2 border-[#1E2634] shadow-2xs';
+    const protoSelect = selectPreset;
+    selectPreset = function (preset) {
+      const step = steps[currentIndex];
+      if (step.multi && preset !== step.customOptionLabel) {
+        const parts = (step.answer || '').split(/,\s*/).map((x) => x.trim()).filter(Boolean), none = /^none/i;
+        const i = parts.findIndex((x) => x.toLowerCase() === preset.toLowerCase());
+        const next = i > -1 ? parts.filter((_, k) => k !== i) : none.test(preset) ? [preset] : parts.filter((x) => !none.test(x)).concat(preset);
+        step.answer = next.join(', '); step.customActive = false; step.clarificationDismissed = true;
+        document.getElementById('answerInput').value = step.answer; setCompanionState('captured'); renderCurrentStep(); return;
+      }
+      protoSelect(preset);
+    };
+    isAnswerUnclear = function () { return false; };   // Reid checks with Claude when Next is tapped instead
+
+    // ---------- Reid's quick question for vague answers (Claude), on Next ----------
+    const VAGUE_STEPS = { who: 1, where: 1, concerns: 1 };
+    async function vagueCheck(step) {
+      const v = (step.answer || '').trim();
+      if (!VAGUE_STEPS[step.id] || !v || v.split(/\s+/).length > 4 || vagueOk[step.id] === v) return false;
+      if (step.presets.some((p) => p.toLowerCase() === v.toLowerCase())) return false;
+      vagueOk[step.id] = v;
+      let d = null;
+      try {
+        const ctl = new AbortController(); setTimeout(() => ctl.abort(), 6000);
+        const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: ctl.signal,
+          body: JSON.stringify({ mode: 'vague', lang, question: tr(step.question), text: v }) });
+        d = r.ok ? await r.json() : null;
+      } catch (e) { /* slow or offline: carry on */ }
+      if (!d || !d.unclear) return false;
+      step.clarifyQuestion = 'Reid: ' + d.ask;
+      step.clarifyChoices = d.options.map((o) => ({ label: o, value: o }));
+      const card = document.getElementById('samClarifyCard');
+      document.getElementById('samClarifyPrompt').textContent = step.clarifyQuestion;
+      document.getElementById('samClarifyOptions').innerHTML = step.clarifyChoices.map((c) =>
+        `<button type="button" onclick="applyClarification(this.dataset.v)" data-v="${escapeHtml(c.value)}" class="tactile-btn w-full min-h-[46px] px-3 rounded-[14px] bg-[#1E2634] text-white font-extrabold text-sm flex items-center justify-center text-center shadow-2xs">${escapeHtml(c.label)}</button>`).join('');
+      card.classList.remove('hidden'); setCompanionState('asking'); say(d.ask);
+      return true;
+    }
+
+    // ---------- Claude's suggested questions, from the whole picture, 3 at a time ----------
+    function picture() {
+      const lines = (t) => String(t || '').split(/\n|,\s*/).map((x) => x.trim()).filter((x) => x && !/^none/i.test(x));
+      return { lang, seeing: SID('who').answer || '', purpose: SID('concerns').answer || '', story: SID('story').answer || '',
+        conditions: lines(SID('conditions').answer).join(', '), meds: lines(SID('meds').answer), allergies: lines(SID('allergies').answer).join(', '),
+        team: '', changes: '', tell: [], ask: ownQs, asked: [] };
+    }
+    async function fetchClaudeQuestions(force) {
+      const p = picture(), sig = JSON.stringify(p);
+      if (!force && aiSig === sig && aiPool.length) return;
+      aiSig = sig;
+      const badge = document.getElementById('workflowSourceBadge'); if (badge) badge.textContent = lang === 'fr' ? 'Reid réfléchit…' : 'Reid is thinking…';
+      try {
+        const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(p) });
         const d = await r.json().catch(() => ({}));
         if (r.ok && d.ok && Array.isArray(d.questions) && d.questions.length) {
           aiPool = d.questions.map((q) => q.q).filter(Boolean); aiAt = 0;
-          visitQuestions = aiPool.slice(0, 3).map((t) => ({ text: t, done: false }));
-          if (badge) badge.textContent = 'Suggested by Claude';
-        } else if (badge) badge.textContent = 'Common questions';
-      } catch (e) { console.warn('Suggestions unavailable', e); if (badge) badge.textContent = 'Common questions'; }
-      if (steps[currentIndex].mode === 'visitQuestions') renderVisitQuestionsChecklist();
+          visitQuestions = ownQs.map((t) => ({ text: t, done: false })).concat(aiPool.slice(0, 3).map((t) => ({ text: t, done: false }))).slice(0, Math.max(3, ownQs.length));
+        }
+      } catch (e) { console.warn('Suggestions unavailable', e); }
+      if (badge) badge.textContent = tr('Suggested by Claude');
+      if (steps[currentIndex].mode === 'visitQuestions') { renderVisitQuestionsChecklist(); applyLang(); }
       saveAll();
     }
-    const protoCycle = cycleWorkflowQuestions;
     cycleWorkflowQuestions = function () {
-      if (aiPool.length > 3) {
-        aiAt = (aiAt + 3) % aiPool.length;
-        visitQuestions = aiPool.slice(aiAt, aiAt + 3).map((t) => ({ text: t, done: false }));
-        renderVisitQuestionsChecklist(); showToast('More questions'); saveAll(); return;
+      if (aiPool.length > 3) aiAt = (aiAt + 3) % aiPool.length;
+      const keep = visitQuestions.filter((q) => q.done || ownQs.includes(q.text));
+      visitQuestions = keep.concat(aiPool.slice(aiAt, aiAt + 3).filter((t) => !keep.some((k) => k.text === t)).map((t) => ({ text: t, done: false })));
+      renderVisitQuestionsChecklist(); applyLang(); saveAll();
+    };
+    const protoSaveQ = saveInlineQuestion;
+    saveInlineQuestion = function () {
+      const v = document.getElementById('inlineQuestionInput').value.trim();
+      if (v) { ownQs.push(v); visitQuestions.unshift({ text: v, done: false }); document.getElementById('inlineQuestionInput').value = ''; }
+      protoSaveQ(); saveAll();
+    };
+    // the prototype's fixed question sets are only a fallback now
+    syncWorkflowQuestionsIfNeeded = function () {};
+
+    // ---------- recording the visit (Azure, Canada Central): words only, kept on this device ----------
+    const protoRecord = toggleVisitRecording;
+    toggleVisitRecording = function () {
+      ensureCtx();
+      protoRecord();
+      if (isRecording) {
+        stopRec();
+        const go = () => {
+          recRec = new CanadaRec(); recRec.lang = lang === 'fr' ? 'fr-CA' : 'en-CA';
+          recRec.onresult = (e) => { const r = e.results[e.results.length - 1]; const t = (r && r[0] && r[0].transcript || '').trim(); if (t) { transcript += (transcript ? '\n' : '') + t; saveAll(); } };
+          recRec.onend = () => { recRec = null; if (isRecording) setTimeout(go, 200); };
+          recRec.onerror = (e) => console.warn('Recording problem', e && e.error);
+          try { recRec.start(); } catch (e) { console.warn('Could not record', e); }
+        };
+        go(); recapDone = false;
+      } else if (recRec) {
+        const r = recRec; recRec = null; r.onend = null; try { r.stop(); } catch (e) { /* stopped */ }
+        showToast(lang === 'fr' ? 'Enregistré. Reid en fera des notes après la visite.' : 'Saved. Reid will turn it into notes after the visit.');
       }
-      protoCycle();
     };
 
-    // ---------- Send to family: the phone's own share sheet ----------
+    // ---------- after the visit: Reid fills in the notes from the recording ----------
+    async function recapFromRecording() {
+      if (recapDone || transcript.length < 40) return;
+      recapDone = true; showToast(lang === 'fr' ? 'Reid prépare vos notes…' : 'Reid is writing your notes…');
+      try {
+        const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ mode: 'recap', lang, transcript, questions: visitQuestions.map((q) => q.text), purpose: SID('concerns').answer || '', seeing: SID('who').answer || '' }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.ok) { recapDone = false; return; }
+        const rc = SID('recap');
+        rc.answer = String(d.said || '').trim(); rc.customActive = true;
+        (d.todo || []).forEach((t) => { if (!nextStepTasks.some((x) => x.text === t)) nextStepTasks.push({ text: t, selected: true }); });
+        const next = [d.nextWith, d.nextDate, d.nextTime, d.nextWhen].filter(Boolean).join(', ');
+        if (next) document.getElementById('customTaskInput').value = (lang === 'fr' ? 'Prochain rendez-vous : ' : 'Next appointment: ') + next;
+        recapContact = d.contact || '';
+        renderCurrentStep(); showToast(lang === 'fr' ? 'Reid a rempli ceci à partir de l’enregistrement. Vérifiez et corrigez.' : 'Reid filled this in from the recording. Check it and change anything.');
+      } catch (e) { recapDone = false; console.warn('Recap unavailable', e); }
+      saveAll();
+    }
+
+    // ---------- printed pages: for the doctor, for you, and the recap ----------
+    const esc = (t) => escapeHtml(String(t || ''));
+    const items = (t) => String(t || '').split(/\n|,\s*/).map((x) => x.trim()).filter(Boolean);
+    function meta() { return [SID('who').answer, SID('where').answer, SID('day').answer, SID('time').answer].filter(Boolean).map(esc).join(' · '); }
+    function allQs() { return visitQuestions.map((q) => q.text).filter(Boolean); }
+    function doctorPage() {
+      const name = SID('name').answer, fr = lang === 'fr';
+      const sec = (h, body) => body ? `<h2>${h}</h2>${body}` : '';
+      const list = (arr) => arr.length ? `<ul>${arr.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+      return `<div class="pg"><h1>${fr ? 'Résumé du patient' : 'Patient summary'}${name ? ' · ' + esc(name) : ''}</h1><p class="meta">${meta()}</p>
+        ${sec(fr ? 'Raison de la visite' : 'Reason for visit', SID('concerns').answer ? `<p>${esc(SID('concerns').answer)}</p>` : '')}
+        ${sec(fr ? 'Avec ses propres mots' : 'In their own words', SID('story').answer ? `<p>${esc(SID('story').answer).replace(/\n/g, '<br>')}</p>` : '')}
+        ${sec(fr ? 'Problèmes de santé' : 'Health conditions', list(items(SID('conditions').answer)))}
+        ${sec(fr ? 'Médicaments' : 'Medications', list(items(SID('meds').answer)) || (fr ? '<p>Aucun indiqué.</p>' : '<p>None listed.</p>'))}
+        ${sec(fr ? 'Allergies et précautions' : 'Allergies and cautions', list(items(SID('allergies').answer)))}
+        ${sec(fr ? 'Questions du patient' : "Patient's questions", allQs().length ? `<ol>${allQs().map((q) => `<li>${esc(q)}<div class="ans"></div></li>`).join('')}</ol>` : '')}
+        <h2>${fr ? 'Comment ce résumé a été préparé' : 'How this summary was prepared'}</h2>
+        <p class="foot">${fr ? "Le patient a répondu avant la visite, avec ses propres mots. Un assistant IA (Claude, d'Anthropic) a suggéré des questions seulement. Il n'a pas posé de diagnostic. Réponses non vérifiées. Pas un dossier médical." : "The patient answered questions before the visit, in their own words. An AI assistant (Claude, by Anthropic) suggested questions only. It did not diagnose. Answers are as reported by the patient and have not been verified. Not a medical record."} pen-ink.ca/prep</p></div>`;
+    }
+    function patientPage() {
+      const fr = lang === 'fr', name = SID('name').answer, qs = allQs();
+      const mention = items(SID('story').answer.replace(/([.!?])\s+/g, '$1\n')).slice(0, 5);
+      return `<div class="pg"><h1>${fr ? 'Ma page' : 'My page'}${name ? ' · ' + esc(name) : ''}</h1><p class="meta">${meta()}</p>
+        <h2>${fr ? 'Pour commencer' : 'Start with'}</h2><p class="say">${fr ? "« J'ai quelques questions. Est-ce que je peux commencer ? »" : '"I have some questions I\'d like to go through. May I start?"'}</p>
+        <p>${fr ? 'Donnez le résumé au médecin. Puis demandez : « Est-ce que je peux enregistrer ce rendez-vous sur mon téléphone ? »' : 'Hand the doctor your summary. Then ask: "Is it okay if I record this appointment on my phone?"'}</p>
+        ${mention.length ? `<h2>${fr ? 'À mentionner' : 'Make sure I mention'}</h2><ul>${mention.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+        ${qs.length ? `<h2>${fr ? 'Mes questions' : 'My questions'}</h2><ol>${qs.map((q) => `<li>${esc(q)}</li>`).join('')}</ol>` : ''}
+        <h2>${fr ? 'Avant de partir, demandez' : 'Before you leave, ask'}</h2><p>${fr ? '« Si j’ai des questions avant le prochain rendez-vous, qui dois-je contacter, et comment ? »' : '"If I have questions before my next appointment, who should I contact, and how?"'}</p>
+        <p>${fr ? 'Qui et comment' : 'Who and how'}: ______________________ &nbsp; ${fr ? 'Prochain rendez-vous' : 'Next appointment'}: ______________</p>
+        <h2>${fr ? 'Mes notes' : 'My notes: what the doctor says'}</h2><div class="ans"></div><div class="ans"></div><div class="ans"></div></div>`;
+    }
+    function recapPage() {
+      const fr = lang === 'fr', said = items(SID('recap').answer.replace(/([.!?])\s+/g, '$1\n'));
+      const todo = nextStepTasks.filter((t) => t.selected).map((t) => t.text), extra = document.getElementById('customTaskInput').value.trim();
+      return `<div class="pg"><h1>${fr ? 'Résumé du rendez-vous' : 'Appointment recap'}</h1><p class="meta">${meta()}</p>
+        <h2>${fr ? 'Ce qu’a dit le médecin' : 'What the doctor said'}</h2>${said.length ? `<ul>${said.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p>—</p>'}
+        <h2>${fr ? 'Prochaines étapes' : 'Next steps'}</h2><ul>${todo.concat(extra ? [extra] : []).map((x) => `<li>${esc(x)}</li>`).join('') || '<li>—</li>'}</ul>
+        ${recapContact ? `<h2>${fr ? 'Questions d’ici là' : 'Questions before then'}</h2><p>${esc(recapContact)}</p>` : ''}</div>`;
+    }
+    function printPages(which) {
+      document.getElementById('printArea').innerHTML = which === 'recap' ? recapPage() : doctorPage() + patientPage();
+      setTimeout(() => window.print(), 50);
+    }
+    openFullDoctorCard = function () {
+      const box = document.querySelector('#fullDoctorModal .space-y-3');
+      box.innerHTML = `<div style="font-size:1.1rem;line-height:1.5">${doctorPage().replace(/<h2>/g, '<h2 style="font-weight:800;margin:14px 0 4px;text-transform:uppercase;font-size:.85rem;letter-spacing:.06em;color:#425268">').replace('<h1>', '<h1 style="font-size:1.5rem;font-weight:800">')}</div>`;
+      box.style.overflowY = 'auto'; box.style.maxHeight = '80vh';
+      openModal('fullDoctorModal');
+    };
     function shareRecap() {
-      const text = ['Visit recap', document.getElementById('finalVisitLine').textContent,
-        'What the doctor said: ' + document.getElementById('finalRecapLine').textContent,
-        'Next steps: ' + document.getElementById('finalTasksLine').textContent].join('\n');
-      if (navigator.share) navigator.share({ title: 'Visit recap', text }).catch(() => {});
+      const tmp = document.createElement('div'); tmp.innerHTML = recapPage();
+      const text = tmp.innerText.replace(/\n{3,}/g, '\n\n').trim();
+      if (navigator.share) navigator.share({ title: lang === 'fr' ? 'Résumé du rendez-vous' : 'Visit recap', text }).catch(() => {});
       else location.href = 'mailto:?subject=' + encodeURIComponent('Visit recap') + '&body=' + encodeURIComponent(text);
     }
 
-    // ---------- tie it into the prototype's own render ----------
+    // ---------- Help & Settings ----------
+    const B = 'tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2';
+    const BON = 'tactile-btn flex-1 min-h-[52px] rounded-xl bg-[#1E2634] text-white font-extrabold text-base';
+    const BOFF = 'tactile-btn flex-1 min-h-[52px] rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base';
+    function renderSettings() {
+      const fr = lang === 'fr', panel = document.querySelector('#helpSettingsModal > div');
+      const pair = (k, a, b, on) => `<div class="flex items-stretch"><button type="button" data-set="${k}" data-v="1" class="${on ? BON : BOFF}">${on ? '✓ ' : ''}${a}</button><div class="w-[14px] shrink-0"></div><button type="button" data-set="${k}" data-v="0" class="${!on ? BON : BOFF}">${!on ? '✓ ' : ''}${b}</button></div>`;
+      const card = (h, inner, sub) => `<div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5 space-y-2"><p class="font-extrabold text-base text-[#1E2634]">${h}</p>${sub ? `<p class="text-xs text-[#425268]">${sub}</p>` : ''}${inner}</div>`;
+      panel.innerHTML = `<div class="flex items-center justify-between"><h2 id="settingsTitle" class="text-xl font-extrabold text-[#1E2634]">${fr ? 'Aide et réglages' : 'Help & Settings'}</h2>
+          <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm">${fr ? 'Terminé' : 'Done'}</button></div>
+        <div class="flex flex-col gap-3.5 overflow-y-auto" style="max-height:72vh">
+        ${steps[currentIndex].mode !== 'landing' ? `<button type="button" data-act="explain" class="${B}">${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
+        ${card(fr ? 'Ce que vous pouvez dire' : 'What you can say', `<p class="text-sm text-[#1E2634] leading-snug">${fr ? '« Suivant » · « Retour » · « Efface » · « Répète » · « Pause » · « Aide », ou posez une question.' : '"Next" · "Back" · "Erase" · "Repeat" · "Pause" · "Help", or ask Reid a question.'}</p>`)}
+        ${card(fr ? 'Langue' : 'Language', pair('lang', 'English', 'Français', lang === 'en'))}
+        ${card(fr ? 'Reid lit les questions à voix haute' : 'Reid reads questions aloud', pair('read', fr ? 'Oui' : 'On', fr ? 'Non' : 'Off', readAloud))}
+        ${card(fr ? 'Vitesse de la voix' : 'Voice speed', pair('slow', fr ? 'Normale' : 'Normal', fr ? 'Plus lente' : 'Slower', !slowVoice))}
+        ${card(fr ? 'Vos renseignements' : 'Your information', '', fr ? "Tout reste sur cet appareil. La voix et l'écoute de Reid passent par Microsoft Azure au Canada et rien n'est gardé. Les suggestions viennent de Claude (Anthropic) ; votre nom n'est jamais envoyé. L'enregistrement garde seulement les mots, ici." : "Everything stays on this device. Reid's voice and listening go through Microsoft Azure in Canada, and nothing is kept there. Suggestions come from Claude (Anthropic); your name is never sent. Recording keeps only the words, here.")}
+        <button type="button" data-act="backup" class="${B}">${fr ? 'Sauvegarder (pour un autre appareil)' : 'Save a backup (for another device)'}</button>
+        <label class="${B} cursor-pointer">${fr ? 'Ouvrir une sauvegarde' : 'Open a backup'}<input type="file" accept=".json,application/json" data-act="open" class="hidden"></label>
+        <button type="button" data-act="erase" class="${B}">${fr ? '↺ Effacer mes réponses' : '↺ Erase my answers'}</button>
+        <p class="text-xs text-center text-[#425268]">${fr ? 'Besoin d’aide ? hello@pen-ink.ca' : 'Need help? hello@pen-ink.ca'} · Pen &amp; Ink</p></div>`;
+      panel.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
+        const on = b.dataset.v === '1';
+        if (b.dataset.set === 'lang') { lang = on ? 'en' : 'fr'; stopRec(); }
+        if (b.dataset.set === 'read') readAloud = on;
+        if (b.dataset.set === 'slow') slowVoice = !on;
+        saveAll(); renderSettings(); renderCurrentStep();
+      }));
+      const act = (k) => panel.querySelector(`[data-act="${k}"]`);
+      if (act('explain')) act('explain').addEventListener('click', () => { closeModal('helpSettingsModal'); askReid(fr ? 'Expliquez simplement ce que je dois faire sur cet écran.' : 'Explain simply what I should do on this screen.'); });
+      act('backup').addEventListener('click', () => {
+        saveAll(); const blob = new Blob([localStorage.getItem(STORE) || '{}'], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'wellheard-backup.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      });
+      act('open').addEventListener('change', async (e) => {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        try { const txt = await f.text(); JSON.parse(txt); localStorage.setItem(STORE, txt); location.reload(); } catch (err) { showToast(fr ? 'Ce fichier ne peut pas être ouvert.' : "That file can't be opened."); }
+      });
+      act('erase').addEventListener('click', () => {
+        if (!confirm(fr ? 'Effacer toutes vos réponses de cet appareil ?' : 'Erase all your answers from this device?')) return;
+        transcript = ''; recapDone = false; aiPool = []; ownQs = []; vagueOk = {}; resetAllFromSettings();
+      });
+    }
+    const protoOpen = openModal;
+    openModal = function (id) { if (id === 'helpSettingsModal') { renderSettings(); if (isListening) { stopRec(); } } protoOpen(id); applyLang(); };
+
+    // ---------- tie everything into the prototype's own flow ----------
     const protoRender = renderCurrentStep;
     renderCurrentStep = function () {
       protoRender();
       const step = steps[currentIndex];
-      if (step.mode === 'visitQuestions' && (steps[2].answer || steps[6].answer)) fetchClaudeQuestions();
+      if (step.mode === 'voice') {
+        const input = document.getElementById('answerInput'); input.rows = step.big ? 5 : 2;
+        if (step.multi) {
+          const chosen = (step.answer || '').split(/,\s*/).map((x) => x.trim().toLowerCase());
+          document.querySelectorAll('#quickChipsGrid button').forEach((b) => {
+            const label = b.textContent.replace(/^✓\s*/, '').trim();
+            if (chosen.includes(label.toLowerCase())) { b.className = SEL; b.textContent = '✓ ' + label; b.setAttribute('aria-pressed', 'true'); }
+          });
+        }
+      }
+      if (step.mode === 'visitQuestions' && (SID('who').answer || SID('concerns').answer)) fetchClaudeQuestions();
+      if (step.id === 'recap') recapFromRecording();
       if (step.mode !== 'voice') stopRec();
-      saveAll();
+      // the Next button just says Next, so it is never cut off
+      const nl = document.getElementById('nextNavLabel');
+      if (step.mode !== 'landing' && currentIndex < steps.length - 1) nl.textContent = 'Next';
+      document.querySelectorAll('[onclick="window.print()"]').forEach((b) => b.setAttribute('onclick', "printPages('recap')"));
+      applyLang(); saveAll();
     };
     const protoNext = goNext, protoBack = goBack;
-    goNext = function () {
+    let nexting = false;
+    goNext = async function () {
       ensureCtx();
-      const was = currentIndex; protoNext();
-      if (currentIndex !== was) {
-        if (was === 0 && inputPreference === 'voice') { isListening = true; syncVoiceBarVisuals(); setCompanionState('listening'); }
-        speakStep();
-      }
+      if (nexting) return; nexting = true;
+      try {
+        const step = steps[currentIndex];
+        if (step.mode === 'voice') { saveCurrentStepState(); if (await vagueCheck(step)) return; }
+        const was = currentIndex; protoNext();
+        if (currentIndex !== was) {
+          if (was === 0 && inputPreference === 'voice') { isListening = true; syncVoiceBarVisuals(); setCompanionState('listening'); }
+          if (currentIndex === 1 && was === 0) say(lang === 'fr' ? "Bonjour, je suis Reid, l'assistant IA de WellHeard. Une question à la fois, à votre rythme." : "Hi, I'm Reid, WellHeard's AI helper. One question at a time, at your pace.").then(speakStep); else speakStep();
+        }
+      } finally { nexting = false; }
     };
-    goBack = function () { protoBack(); speakStep(); };
+    goBack = function () { stopRec(); protoBack(); speakStep(); };
+    const protoSetCompanion = setCompanionState;
+    setCompanionState = function (st) { protoSetCompanion(st); applyLang(); };
     isListening = false;
 
     // Initial render
