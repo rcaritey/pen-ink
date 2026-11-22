@@ -2877,11 +2877,16 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   // ---------- Help / Settings: one button at the top; the menu holds help, steps, settings and the old footer links ----------
   function openHS() {
     const fr = S.lang === "fr", list = $("hs-list"); list.innerHTML = "";
+    if (isVoice() && Voice.active() && !Voice.held()) { Voice.pause(); updateBar(); }   // Reid waits while the menu is open
     const add = (label, fn, primary) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn " + (primary ? "primary" : "secondary"); b.textContent = label;
       b.addEventListener("click", () => { $("hs-menu").close(); fn(); }); list.appendChild(b); };
     if (S.step >= 0) add(fr ? "Expliquer quoi faire ici" : "Explain what to do here", openHelp, true);
     add(fr ? "Voir toutes les étapes" : "See all steps", () => openJourney("map"));
     add(fr ? "Réglages (voix, attente, langue)" : "Settings (voice, wait time, language)", () => openJourney("settings"));
+    if (isVoice() && Voice.active()) {
+      if ($("vb-again")) add(fr ? "Recommencer cette question" : "Start this question again", () => $("vb-again").click());
+      if ($("vb-settings")) add(fr ? "Réglages de la voix" : "Voice settings", () => $("vb-settings").click());
+    }
     document.querySelectorAll("footer.foot button").forEach(fb => { if (!fb.hidden && fb.textContent.trim()) add(fb.textContent.trim(), () => fb.click()); });
     $("hs-menu").showModal();
   }
