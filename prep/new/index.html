@@ -161,10 +161,21 @@
         </div>
       </div>
 
+      <div class="flex items-stretch shrink-0">
+      <a
+        id="chatBtn"
+        href="sms:+14164545597"
+        class="tactile-btn min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-sm flex items-center gap-1.5 shrink-0"
+        aria-label="Chat: text Rama for help"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Chat</span>
+      </a>
+      <div class="w-[10px] shrink-0" aria-hidden="true"></div>
       <button
         type="button"
         onclick="openModal('helpSettingsModal')"
-        class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center gap-2 shrink-0 hover:bg-[#E6DFD0]"
+        class="tactile-btn min-h-[52px] px-3 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center gap-2 shrink-0 hover:bg-[#E6DFD0]"
         aria-label="Help and Settings"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -173,6 +184,7 @@
         </svg>
         <span>Help / Settings</span>
       </button>
+      </div>
     </header>
 
     <!-- 2. NON-CLICKABLE 3-PHASE PROGRESS HEADER (Steps 1–11) -->
@@ -2420,7 +2432,7 @@
       'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
       'Private: everything stays on this device.': 'Privé : tout reste sur cet appareil.',
-      'Help / Settings': 'Aide / Réglages', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
+      'Help / Settings': 'Aide / Réglages', 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
       '1. Prepare': '1. Préparer', '2. At Visit': '2. Au rendez-vous', '3. After': '3. Après',
       'What is your name?': 'Comment vous appelez-vous ?', 'Optional — only shown on your doctor summary.': 'Facultatif — seulement sur le résumé pour le médecin.',
       'Helping someone else': "J'aide quelqu'un", 'Skip for now': 'Passer pour l’instant',
@@ -2971,6 +2983,7 @@
       pages: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
       privacy: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
       device: '<rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>',
+      chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
       erase: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>'
     };
     const ico = (k, dark) => `<span class="w-9 h-9 rounded-xl ${dark ? 'bg-white/15 text-white' : 'bg-white border border-[#D6CFC0] text-[#3B5E42]'} flex items-center justify-center shrink-0" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ''}</svg></span>`;
@@ -3011,7 +3024,8 @@
           ${row('privacy', T('Your privacy', 'Vos renseignements'))}
           ${row('device', T('Another phone or computer', 'Un autre appareil'))}
           <button type="button" data-act="erase" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2">${ico('erase')}${T('Erase my answers', 'Effacer mes réponses')}</button>
-          <p class="text-xs text-center text-[#425268]">${T('Need help?', 'Besoin d’aide ?')} hello@pen-ink.ca · Pen &amp; Ink</p></div>`;
+          <a href="${chatHref()}" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3">${ico('chat')}<span>${T('Chat: text Rama for help', 'Clavarder : textez Rama')}</span></a>
+          <p class="text-xs text-center text-[#425268]">416-454-5597 · hello@pen-ink.ca</p></div>`;
       } else if (setView === 'say') {
         const li = (a, b) => `<li class="flex justify-between gap-3 py-1.5 border-b border-[#D6CFC0]"><b class="text-[#1E2634]">${a}</b><span class="text-[#425268] text-right">${b}</span></li>`;
         body = head(T('What you can say', 'Ce que vous pouvez dire'), 1) + card(T('Say any of these, any time', 'Dites-les à tout moment'), `<ul class="text-sm">
@@ -3392,6 +3406,18 @@
     // starting over clears the questions too
     const qReset = resetAllFromSettings;
     resetAllFromSettings = function (x) { aiTags = {}; qPicked = []; qPrio = []; detailQs = []; ownQs = []; prioWarned = false; spliceDetail(); qReset(x); visitQuestions = []; };
+
+    // Chat: opens the phone's Messages app with a text to Rama, saying only which screen they're on
+    function chatHref() {
+      const st = steps[currentIndex], fr = lang === 'fr';
+      const where = st.mode === 'landing' ? (fr ? "l'accueil" : 'the start screen') : `${tr(st.topic)} (${fr ? 'étape' : 'step'} ${currentIndex})`;
+      const body = fr ? `Bonjour Rama, j'ai besoin d'aide avec WellHeard. Je suis à : ${where}. ` : `Hi Rama, I need help with WellHeard. I'm on: ${where}. `;
+      return 'sms:+14164545597?&body=' + encodeURIComponent(body);
+    }
+    document.getElementById('chatBtn').addEventListener('click', (e) => {
+      e.currentTarget.href = chatHref();
+      if (!/iPhone|iPad|Android|Mac/i.test(navigator.userAgent)) { e.preventDefault(); showToast(lang === 'fr' ? 'Textez Rama au 416-454-5597' : 'Text Rama at 416-454-5597'); }
+    });
 
     // tap Reid (top left) to pause or resume listening, on any screen
     (function () {

@@ -121,9 +121,21 @@ Injuries and accidents
 
 F. FIT THE DOCTOR BEING SEEN
 - Specialist: focus on that specialty's area, plus anything from the background that could affect it.
-- Family doctor: the main concern first, then any area from B, C or D that seems relevant.
-- Foot care or skin clinic: the skin, nails and feet area, plus any background condition that can affect the feet, skin or nerves (for example diabetes, circulation problems or Parkinson's).
+- Family doctor: the main concern first, then any area from B, C or D that seems relevant. Also: referrals, coordinating between specialists, test results that came back elsewhere, medication review, and who to call between visits.
 - Follow-up visit: what has changed since last time, and whether the last treatment helped.
+- Emergency department or urgent care: what brought them in and when it started, what has been done so far, what results came back, whether they can go home safely, warning signs that mean come back, who follows up and when, and what to tell the family doctor. Apply section G first.
+- Neurologist (Parkinson's, tremor, stroke, seizures, memory): medication timing and wearing off, falls and freezing, the non-motor check in D, swallowing and speech, driving, therapy referrals (physio, occupational, speech), what to expect as things progress.
+- Cardiologist: test results (ECG, echo, stress test, Holter), blood pressure and heart-rate targets, blood thinners and bleeding, safe activity level, symptoms that mean call or go to emergency.
+- Oncologist or cancer clinic: stage and what the results mean, goals of treatment, schedule and side effects, who to call after hours, fever rules during treatment, support services, what happens after treatment.
+- Urologist: bladder or prostate symptoms, procedure preparation (for example a cystoscopy: what happens, numbing, driving after, blood in urine afterwards, results), infection signs, medicines that affect the bladder.
+- Surgeon (before or after surgery): why surgery and the alternatives, risks for this person given their conditions, which medicines to stop or keep beforehand, recovery time, help needed at home, wound care, follow-up.
+- Respirologist: breathing tests, inhaler choice and technique, oxygen, flare-up plan, vaccines.
+- Endocrinologist (diabetes, thyroid): targets and results, dose changes, lows, the feet and eyes, other checks that are due.
+- Gastroenterologist: bowel changes, bleeding, scopes and their preparation, diet changes, medicines that affect the gut.
+- Geriatrician or memory clinic: memory and thinking, falls, mood, medicines that add up (several medicines together), help at home, driving, planning ahead.
+- Physiotherapist, occupational or speech therapist: goals, home exercises, safety at home, equipment, swallowing or voice, how progress is measured.
+- Pharmacist: timing, interactions, side effects, missed doses, cost and coverage.
+- Foot care or skin clinic: the skin, nails and feet area, plus any background condition that can affect the feet, skin or nerves (for example diabetes, circulation problems or Parkinson's).
 
 G. SAFETY (this overrides the "questions only" rule)
 - If something described could be an emergency happening now or recently (chest pain or pressure, signs of stroke such as a drooping face, weak arm or slurred speech, severe trouble breathing, heavy bleeding, a head injury on a blood thinner, fainting with chest pain), make the first question: "Is this happening now? If so, call 911 instead of waiting for this appointment."
