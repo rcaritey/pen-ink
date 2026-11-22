@@ -10,15 +10,18 @@
 <link rel="icon" href="/prep/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/prep/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="WellHeard">
-<meta name="theme-color" content="#F8F2E7">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Nunito:wght@600..900&display=swap">
+<meta name="theme-color" content="#FAF7F0">
+<link rel="preload" href="/prep/fonts/atkinson-hyperlegible-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+/* fonts are served from our own site: no request to Google with the visitor's address */
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 400; font-display: swap; src: url(/prep/fonts/atkinson-hyperlegible-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 700; font-display: swap; src: url(/prep/fonts/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: italic; font-weight: 400; font-display: swap; src: url(/prep/fonts/atkinson-hyperlegible-latin-400-italic.woff2) format("woff2"); }
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 200 1000; font-display: swap; src: url(/prep/fonts/nunito-latin-wght-normal.woff2) format("woff2"); }
 /* Layout: one calm column, one screen per step, a fixed Back / Next pair; the result is a letter-size sheet that prints on one page */
 :root {
-  --bg: #F8F2E7; --surface: #FFFBF4; --ink: #2B2019; --muted: #5E4C40;
-  --line: #D9CDB8; --accent: #1B3A5C; --accent-ink: #FFFFFF; --accent-soft: #E2E9F1; --brand-navy: #1B3A5C; --brand-sage: #6A9672;
+  --bg: #FAF7F0; --surface: #FFFDF8; --ink: #1E2634; --muted: #425268;
+  --line: #D6CFC0; --stone: #F0EBE1; --go: #B84A27; --go-lip: #7C2D12; --go-ink: #FFFFFF; --accent: #1E2634; --accent-ink: #FFFFFF; --accent-soft: #E2E9F1; --brand-navy: #1B3A5C; --brand-sage: #6A9672;
   --star: #8A5A00; --star-soft: #F6E4C0; --danger: #A12C2C; --ok: #2E6B3A;
   --shadow-tint: 27,58,92;
   --land: #F1E8D8; --bank: #E3D7C3; --tree: #DFE8DC; --river: #E6EDE4; --river-deep: #76A07E; --glint: #FFFBF4;
@@ -542,12 +545,65 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   .sheet { border: none; padding: 0; max-width: none; }
 }
 @media (prefers-reduced-motion: reduce) { .btn, .bar > div { transition: none; } }
+
+/* ===== Phase 1 (21 Nov): prototype look and tremor-safe controls ===== */
+:root { --stone: #F0EBE1; --go: #B84A27; --go-lip: #7C2D12; --go-ink: #FFFFFF; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --stone: #2E2620; --go: #C8582F; --go-lip: #6B260F; } }
+:root[data-theme="dark"] { --stone: #2E2620; --go: #C8582F; --go-lip: #6B260F; }
+/* the forward button: a terracotta pill with a lip and an arrow badge, so it never looks like an answer choice */
+#next, .vdock .vbar #vb-done, .vdock .vbar #vb-talk { background: var(--go); color: var(--go-ink); border: 2px solid var(--go-lip); border-radius: 999px;
+  box-shadow: 0 4px 0 var(--go-lip); display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 14px; }
+#next:hover, .vdock .vbar #vb-done:hover, .vdock .vbar #vb-talk:hover { filter: brightness(.94); transform: none; }
+#next:active, .vdock .vbar #vb-done:active, .vdock .vbar #vb-talk:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--go-lip); }
+#next::after, .vdock .vbar #vb-done::after { content: "\2192"; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,.2); font-size: 1.3rem; line-height: 1; flex: none; }
+#next { min-height: 60px; padding: 8px 10px 8px 26px; }
+.vdock { border-top: 1px solid #DDD6C7; }
+/* dead zones: a hand that shakes or taps twice lands on nothing, not on the wrong button */
+.vdock .vbar { gap: 16px; }
+.vdock .vbar .vb-main { margin-bottom: 4px; }
+.actions { gap: 18px; }
+.choices { gap: 14px; }
+.vmore { gap: 14px; }
+/* secondary buttons on stone, like the prototype */
+.btn.secondary { background: var(--stone); }
+/* answer choices: stone when not chosen, navy with a tick when chosen (never colour alone) */
+.choice { background: var(--stone); border-radius: 16px; min-height: 56px; }
+.choice:has(input:checked) { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.choice:has(input:checked) b::before { content: "\2713  "; }
+.choice:has(input:checked) .help, .choice:has(input:checked) span { color: var(--bg); }
+/* Reid: the AI helper. Lives next to the logo; a small thought bubble says what he's doing. */
+.reid { display: none; align-items: center; gap: 10px; min-width: 0; }
+body.in-steps.voice-mode .reid { display: inline-flex; }
+.reid-face { position: relative; width: 44px; height: 44px; border-radius: 50%; background: var(--ink); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.reid-face svg { width: 28px; height: 28px; }
+.reid-dot { position: absolute; right: -2px; bottom: -2px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--bg); background: var(--muted); }
+.reid[data-st="listening"] .reid-dot, .reid[data-st="hearing"] .reid-dot { background: #3B5E42; }
+.reid[data-st="writing"] .reid-dot { background: var(--go); }
+.reid[data-st="confirm"] .reid-dot, .reid[data-st="stuck"] .reid-dot { background: #D97706; }
+.reid[data-st="listening"] .reid-face { animation: reidPulse 2.2s ease-in-out infinite; }
+.reid[data-st="confirm"] .reid-face, .reid[data-st="stuck"] .reid-face { animation: reidAsk 1.8s ease-in-out infinite; }
+.reid.nod .reid-face { animation: reidNod .55s cubic-bezier(.22,1,.36,1); }
+@keyframes reidPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(59,94,66,.45); } 50% { box-shadow: 0 0 0 7px rgba(59,94,66,0); } }
+@keyframes reidAsk { 0%,100% { box-shadow: 0 0 0 0 rgba(217,119,6,.45); } 50% { box-shadow: 0 0 0 7px rgba(217,119,6,0); } }
+@keyframes reidNod { 0% { transform: none; } 30% { transform: translateY(3px) scale(1.06); } 65% { transform: translateY(-1px) scale(1.02); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .reid .reid-face { animation: none !important; } }
+.reid-think { position: relative; background: var(--surface); border: 2px solid var(--line); border-radius: 16px; padding: 6px 12px; font-size: 1rem; font-weight: 700; line-height: 1.25; color: var(--ink); max-width: 15em; }
+.reid-think::before { content: ""; position: absolute; left: -9px; bottom: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--surface); border: 2px solid var(--line); }
+.reid-think::after { content: ""; position: absolute; left: -16px; bottom: 0; width: 5px; height: 5px; border-radius: 50%; background: var(--surface); border: 2px solid var(--line); }
+.reid-think small { display: block; font-size: .85rem; font-weight: 700; color: var(--muted); }
+.reid-think:empty { display: none; }
+body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
 </style>
 </head>
 <body>
 
 <header class="appbar">
   <span class="brand"><span class="visually-hidden">WellHeard</span><span class="mark"><svg viewBox="0 0 70 56" aria-hidden="true"><path d="M42 12 a18 16 0 1 1 6 30.5 L56 51 L41 44 a18 16 0 0 1 1 -32 Z" fill="#76A07E"/><path d="M26 4 a22 18 0 1 1 -4 35.7 L8 49 L13.5 35 A22 18 0 0 1 26 4 Z" fill="#1B3A5C" stroke="var(--bg)" stroke-width="3" paint-order="stroke"/><path d="M16.5 22 L23.5 29 L35.5 15.5" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span aria-hidden="true"><span class="w1">Well</span><span class="w2">Heard</span></span></span>
+  <span class="reid" id="reid" data-st="off">
+    <span class="reid-face" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><path d="M14 3.5C7.65 3.5 2.5 7.95 2.5 13.45C2.5 16.12 3.72 18.54 5.72 20.32L4.3 24.1L8.75 22.45C10.35 23 12.12 23.3 14 23.3C20.35 23.3 25.5 18.85 25.5 13.45C25.5 7.95 20.35 3.5 14 3.5Z" fill="#FAF7F0"/><circle cx="10.4" cy="12.2" r="1.45" fill="#1E2634"/><circle cx="17.6" cy="12.2" r="1.45" fill="#1E2634"/><path d="M10.4 15.8C11.4 17.1 13.1 17.6 14.6 17.3C15.9 17 17 16.2 17.8 15.1" stroke="#3B5E42" stroke-width="2.3" stroke-linecap="round"/></svg><span class="reid-dot"></span></span>
+    <span class="reid-think" id="reid-think" aria-hidden="true"></span>
+  </span>
   <span class="right">
     <span class="saved" id="saved" role="status" aria-live="polite"></span>
     <button type="button" class="jr-open" id="jr-open" aria-haspopup="dialog">
@@ -635,6 +691,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
           <label class="choice" for="vw-30"><input type="radio" name="vwait" id="vw-30" value="30000"><span><b>30 seconds</b></span></label>
           <label class="choice" for="vw-60"><input type="radio" name="vwait" id="vw-60" value="60000"><span><b>1 minute</b></span></label>
           <label class="choice" for="vw-0"><input type="radio" name="vwait" id="vw-0" value="0"><span><b>Never</b></span></label>
+          <p class="help">WellHeard learns as you go: if you answer quickly a few times in a row, it waits a little less (never under 10 seconds). If you need the time, it stops shortening.</p>
         </div>
       </fieldset>
       <fieldset class="plain"><legend class="q-legend">Interrupt by talking</legend>
@@ -1400,7 +1457,8 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     b.time = toTime24(b.time);
     b.mode = x.mode === "voice" || x.mode === "type" ? x.mode : "";
     b.voiceName = str(x.voiceName);
-    b.waitMs = [0, 15000, 30000, 60000].includes(x.waitMs) ? x.waitMs : 15000;
+    b.waitMs = x.waitMs === 0 ? 0 : Number.isInteger(x.waitMs) && x.waitMs >= 10000 && x.waitMs <= 60000 ? x.waitMs : 15000;
+    b.quickRuns = Number.isInteger(x.quickRuns) ? Math.max(0, Math.min(5, x.quickRuns)) : 0;
     b.slowVoice = !!x.slowVoice;
     b.readBack = !!x.readBack;
     b.barge = typeof x.barge === "boolean" ? x.barge : null;
@@ -2096,8 +2154,10 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       await speak(answer || say("help"));
       if (active && !held && g === gen) startRec();
     }
+    let waitFrom = 0;   // when the person was handed the turn, to learn how much time they need
     function armSilence() {
       clearTimeout(silenceT);
+      if (!waitFrom && !turnWords.length && !prompted) waitFrom = Date.now();
       if (prompted || !target || held || confirming || talking) return;
       const ms = S.waitMs === 0 ? 0 : (S.waitMs || 15000);
       if (!ms) return;
@@ -2105,6 +2165,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
         if (!active || held) return;
         if (CanadaRec.deadNow || CanadaRec.quietSince) return;   // the muted-microphone steps handle this
         prompted = true; if (!bargeOn()) pauseRec(); view("speaking");
+        S.quickRuns = 0; waitFrom = 0; save();   // they needed the full wait: stop shortening it
         const g = gen; checking = true; await speak(say("silence"));
         if (active && !held && g === gen) startRec();
       }, ms);
@@ -2359,6 +2420,13 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       const norm = x => x.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
       const nt = norm(t);
       if (nt.split(" ").length >= 2 && norm(target.value).endsWith(nt)) { log("skipped repeat: " + t); return; }
+      if (!turnWords.length && waitFrom && S.waitMs) {
+        // answered within a third of the wait, three times in a row: wait 5 seconds less next time (never under 10)
+        const took = Date.now() - waitFrom; waitFrom = 0;
+        if (took < S.waitMs / 3) { S.quickRuns = (S.quickRuns || 0) + 1; if (S.quickRuns >= 3 && S.waitMs > 10000) { S.waitMs = Math.max(10000, S.waitMs - 5000); S.quickRuns = 0; } }
+        else S.quickRuns = 0;
+        save();
+      }
       target._hist = target._hist || []; target._hist.push(target.value); if (target._hist.length > 30) target._hist.shift();
       added = true; turnWords.push(t);
       let v = target.value;
@@ -2385,7 +2453,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
       view = opts.keepView ? v0 : (st, heard) => { v0(st, heard); if (api.onState) api.onState(st); };
       active = true; target = el; onCarry = carry; prompted = !text;
       listNext = opts.listNext || null; yesNo = opts.yesNo || null; choose = opts.choose || null; inPlace = !!opts.inPlace;
-      readback = opts.readback === "fix" ? "fix" : !!opts.readback; turnWords = []; turnStartVal = el ? el.value : ""; held = false; confirming = false; checking = false;
+      readback = opts.readback === "fix" ? "fix" : !!opts.readback; waitFrom = 0; turnWords = []; turnStartVal = el ? el.value : ""; held = false; confirming = false; checking = false;
       if (!opts.keepView || opts.q) lastQ = opts.q || text;
       const g = gen;
       if (text) { view("speaking"); const sp = speak(text); if (bargeOn()) startRec(); await sp; }
@@ -2739,6 +2807,24 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   $("mic-help-type").addEventListener("click", () => { $("mic-help").hidden = true; $("vb-stop").click(); });
   CanadaRec.level = v => { const m = $("mic-meter"); if (m) { m.style.setProperty("--lvl", v.toFixed(2)); m.classList.toggle("on", v > 0); } };
   CanadaRec.writing = d => { micWriting = Math.max(0, micWriting + d); if (lastSt === "listening") guideView("listening"); };
+  // Reid, the AI helper: a short thought for each state. Plain, kind, never pretending to be a person.
+  const REID = {
+    en: { listening: "I'm listening. Take your time.", hearing: "I'm hearing you\u2026", writing: "Got it. Writing that down.", speaking: "",
+          paused: "Paused. I'll wait for you.", typing: "Type away. Tap Next when it looks right.", confirm: "Just checking I got that right.",
+          stuck: "Having trouble? Tap Help.", off: "" },
+    fr: { listening: "Je vous \u00e9coute. Prenez votre temps.", hearing: "Je vous entends\u2026", writing: "Compris. Je l'\u00e9cris.", speaking: "",
+          paused: "En pause. Je vous attends.", typing: "\u00c9crivez. Touchez Suivant quand c'est bon.", confirm: "Je v\u00e9rifie que j'ai bien compris.",
+          stuck: "Un souci ? Touchez Aide.", off: "" }
+  };
+  let reidLast = "";
+  function reidThink(st) {
+    const r = $("reid"); if (!r) return;
+    const t = (REID[S.lang === "fr" ? "fr" : "en"][st] ?? "");
+    r.dataset.st = st;
+    if (st === "writing" && reidLast !== "writing") { r.classList.remove("nod"); void r.offsetWidth; r.classList.add("nod"); }
+    reidLast = st;
+    $("reid-think").innerHTML = t ? `<small>Reid \u00b7 ${S.lang === "fr" ? "assistant IA" : "AI helper"}</small>${esc(t)}` : "";
+  }
   const guideView = (st, heard) => {
     const L = VSTAT[S.lang === "fr" ? "fr" : "en"];
     lastSt = st;
@@ -2748,6 +2834,7 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
     if (typingNow && (st === "paused" || st === "off")) shown = "typing";
     $("guide").dataset.st = shown === "hearing" || shown === "writing" ? "listening" : shown === "stuck" ? "paused" : shown;
     $("guide-state").textContent = L[shown] || VOICE_MSG[shown] || L.off;
+    reidThink(shown);
     lastHeard = heard || "";
     showAnswer();
     updateBar();
@@ -3033,11 +3120,11 @@ dialog.jr::backdrop { background: rgba(10,20,28,.55); }
   $("vb-stop").addEventListener("click", () => { closeMore(); Voice.stop(); $("change-mode").click(); });
   $("vb-settings").addEventListener("click", () => {
     closeMore(); const open = $("vb-panel").hidden; $("vb-panel").hidden = !open; $("vb-settings").setAttribute("aria-expanded", String(open));
-    $("vw-" + (S.waitMs / 1000 === 60 ? 60 : S.waitMs / 1000)).checked = true; $(S.slowVoice ? "vs-s" : "vs-n").checked = true;
+    $(S.waitMs === 0 ? "vw-0" : S.waitMs <= 15000 ? "vw-15" : S.waitMs <= 30000 ? "vw-30" : "vw-60").checked = true; $(S.slowVoice ? "vs-s" : "vs-n").checked = true;
     $(Voice.bargeOn() ? "vi-on" : "vi-off").checked = true; $(S.readBack ? "vr-on" : "vr-off").checked = true;
   });
   document.querySelectorAll('input[name="vbarge"]').forEach(r => r.addEventListener("change", () => { S.barge = r.value === "on"; save(); }));
-  document.querySelectorAll('input[name="vwait"]').forEach(r => r.addEventListener("change", () => { S.waitMs = Number(r.value); save(); }));
+  document.querySelectorAll('input[name="vwait"]').forEach(r => r.addEventListener("change", () => { S.waitMs = Number(r.value); S.quickRuns = 0; save(); }));
   document.querySelectorAll('input[name="vread"]').forEach(r => r.addEventListener("change", () => { S.readBack = r.value === "on"; save(); }));
   document.querySelectorAll('input[name="vspeed"]').forEach(r => r.addEventListener("change", () => { S.slowVoice = r.value === "s"; save(); }));
   function onEnter(id) {
