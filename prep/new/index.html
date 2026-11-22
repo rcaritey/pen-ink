@@ -3228,6 +3228,7 @@
         <h2>${fr ? 'Pour commencer' : 'Start with'}</h2><p class="say">${fr ? "« J'ai quelques questions. Est-ce que je peux commencer ? »" : '"I have some questions I\'d like to go through. May I start?"'}</p>
         <p>${fr ? 'Donnez le résumé au médecin. Puis demandez : « Est-ce que je peux enregistrer ce rendez-vous sur mon téléphone ? »' : 'Hand the doctor your summary. Then ask: "Is it okay if I record this appointment on my phone?"'}</p>
         ${mention.length ? `<h2>${fr ? 'À mentionner' : 'Make sure I mention'}</h2><ul>${mention.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+        ${chartPrint()}
         ${qs.length ? `<h2>${fr ? 'Mes questions' : 'My questions'}</h2><ol>${qs.map((q) => `<li>${star(q)}${esc(q)}</li>`).join('')}</ol>` : ''}
         <h2>${fr ? 'Avant de partir, demandez' : 'Before you leave, ask'}</h2><p>${fr ? '« Si j’ai des questions avant le prochain rendez-vous, qui dois-je contacter, et comment ? »' : '"If I have questions before my next appointment, who should I contact, and how?"'}</p>
         <p>${fr ? 'Qui et comment' : 'Who and how'}: ______________________ &nbsp; ${fr ? 'Prochain rendez-vous' : 'Next appointment'}: ______________</p>
@@ -3239,7 +3240,8 @@
       return `<div class="pg"><h1>${fr ? 'Résumé du rendez-vous' : 'Appointment recap'}</h1><p class="meta">${meta()}</p>
         <h2>${fr ? 'Ce qu’a dit le médecin' : 'What the doctor said'}</h2>${said.length ? `<ul>${said.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p>—</p>'}
         <h2>${fr ? 'Prochaines étapes' : 'Next steps'}</h2><ul>${todo.concat(extra ? [extra] : []).map((x) => `<li>${esc(x)}</li>`).join('') || '<li>—</li>'}</ul>
-        ${recapContact ? `<h2>${fr ? 'Questions d’ici là' : 'Questions before then'}</h2><p>${esc(recapContact)}</p>` : ''}</div>`;
+        ${recapContact ? `<h2>${fr ? 'Questions d’ici là' : 'Questions before then'}</h2><p>${esc(recapContact)}</p>` : ''}
+        ${medsList.length ? chartPrint().replace('</h2>', (fr ? ' (avant cette visite)' : ' (before this visit)') + '</h2>').replace('<p class="foot">', `<p class="foot">${fr ? 'Les changements faits pendant la visite ne sont pas inclus. ' : 'Changes made at this visit are not included. '}`) : ''}</div>`;
     }
     let ENC = {};
     try { ENC = JSON.parse(localStorage.getItem('wellheard-en') || '{}'); } catch (e) { ENC = {}; }
@@ -3811,7 +3813,7 @@
       ideas: () => curIdea() ? L2('Would you like to ask the doctor: ', 'Voulez-vous demander au médecin : ') + stop(curIdea()) + L2(' Say yes, no, or most important.', ' Dites oui, non, ou très important.') : L2('That’s all my suggestions. Would you like me to suggest more?', 'C’est tout. Voulez-vous que j’en suggère d’autres ?'),
       priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Say the number of the most important one.', ' Dites le numéro de la plus importante.') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       review: () => L2('Does everything look right?', 'Est-ce que tout est correct ?'),
-      meds: () => document.getElementById('listTitle').textContent && steps[currentIndex].mode === 'meds' ? (medDraft.sugg.length ? L2('Did you mean ', 'Vouliez-vous dire ') + medDraft.sugg[0].name + '?' : document.getElementById('listTitle').textContent) : '',
+      meds: () => document.getElementById('listTitle').textContent && steps[currentIndex].mode === 'meds' ? (medDraft.stage === 'chart' ? L2('Here is your medicine chart. Tap a box to add or remove a pill, to match your labels. Then tap Next.', 'Voici votre tableau de médicaments. Touchez une case pour ajouter ou retirer une pilule, selon vos étiquettes. Puis touchez Suivant.') : medDraft.sugg.length ? L2('Did you mean ', 'Vouliez-vous dire ') + medDraft.sugg[0].name + '?' : document.getElementById('listTitle').textContent) : '',
       consent: () => L2("Before we begin, a quick word about your privacy. Everything you tell me stays on your phone. To help you, I send your voice to Microsoft, here in Canada, to turn it into words. And I send your answers to Claude, in the United States, anonymously, never with your name, so I can suggest good questions. They are never used to train AI models. Is that alright with you? You can tap I agree, or No thanks.", "Avant de commencer, un mot sur votre vie privée. Tout ce que vous me dites reste sur votre téléphone. Pour vous aider, j'envoie votre voix à Microsoft, ici au Canada, pour la transformer en mots. Et j'envoie vos réponses à Claude, aux États-Unis, de façon anonyme, jamais avec votre nom, pour vous suggérer de bonnes questions. Elles ne servent jamais à entraîner des modèles d'IA. Est-ce que ça vous convient ? Touchez J'accepte, ou Non merci."),
       setup: () => L2('Before we start, would you like to change the language or the text size?', 'Avant de commencer, voulez-vous changer la langue ou la taille du texte ?'),
       doctorSummary: () => L2('Would you like to print the summary for your doctor?', 'Voulez-vous imprimer le résumé pour votre médecin ?'),
@@ -4101,6 +4103,20 @@
     const FREQS = [['Once a day', /\b(once a day|one time a day|daily|every day|once daily)\b/i], ['Twice a day', /\b(twice a day|two times a day|2 times a day|morning and night)\b/i],
       ['3 times a day', /\b(three times a day|3 times a day)\b/i], ['4 times a day', /\b(four times a day|4 times a day)\b/i], ['Only when needed', /\b(when needed|as needed|if needed|when i need)\b/i], ['Once a week', /\b(once a week|weekly|every week)\b/i]];
     let medsList = [], medDraft = { stage: 'name', name: '', dose: '', freq: '', heard: '', sugg: [] };
+    // ---------- the medicine chart: pictures and numbers read the same in every language ----------
+    const SLOTS = [['am', '☀️', 'Morning', 'Matin'], ['noon', '🌤️', 'Noon', 'Midi'], ['pm', '🌙', 'Evening', 'Soir'], ['bed', '🛏️', 'Bedtime', 'Coucher']];
+    const DEFAULT_SLOTS = { 'Once a day': ['am'], 'Twice a day': ['am', 'pm'], '3 times a day': ['am', 'noon', 'pm'], '4 times a day': ['am', 'noon', 'pm', 'bed'] };
+    const slotsOf = (m) => (Array.isArray(m.times) ? m.times : DEFAULT_SLOTS[m.freq] || []);
+    const doseOf = (m) => (m.dose && !/^(not with me|not sure)$/i.test(m.dose) ? m.dose : '');
+    const freqNote = (m, fr) => (m.freq === 'Only when needed' ? (fr ? 'au besoin' : 'as needed') : m.freq === 'Once a week' ? (fr ? '1 fois par semaine' : 'once a week') : '');
+    function chartPrint() {
+      if (!medsList.length) return '';
+      const fr = lang === 'fr', unsure = medsList.some((m) => !m.timesSet);
+      const th = 'style="border:1px solid #999;padding:4pt 6pt;font-size:10pt;text-align:center"', td = 'style="border:1px solid #999;padding:4pt 6pt;text-align:center;font-size:12pt"';
+      return `<h2>${fr ? 'Mes médicaments' : 'My medicine chart'}</h2><table style="border-collapse:collapse;width:100%"><tr><th ${th} style="border:1px solid #999;padding:4pt 6pt;text-align:left;font-size:10pt">${fr ? 'Médicament' : 'Medicine'}</th>${SLOTS.map(([, e, en, f]) => `<th ${th}>${e}<br>${fr ? f : en}</th>`).join('')}</tr>
+        ${medsList.map((m) => { const on = slotsOf(m), note = freqNote(m, fr); return `<tr><td style="border:1px solid #999;padding:4pt 6pt;text-align:left"><b data-notr>${esc(m.name)}</b>${doseOf(m) ? '<br><span data-notr>' + esc(doseOf(m)) + '</span>' : ''}${note ? '<br><i>' + note + '</i>' : ''}</td>${SLOTS.map(([k]) => `<td ${td}>${on.includes(k) ? '💊' : ''}</td>`).join('')}</tr>`; }).join('')}</table>
+        <p class="foot">${unsure ? (fr ? 'Certaines heures sont estimées. ' : 'Some times are a guess. ') : ''}${fr ? 'Vérifiez avec vos étiquettes et votre pharmacien.' : 'Check against your labels and with your pharmacist.'}</p>`;
+    }
     const fmtMed = (m) => [m.name, m.dose && !/^(not with me|not sure)$/i.test(m.dose) ? m.dose : '', m.freq && m.freq !== 'Not sure' ? m.freq.toLowerCase() : ''].filter(Boolean).join(' · ');
     function syncMeds() {
       const st = SID('meds'); st.answer = medsList.length ? medsList.map(fmtMed).join('\n') : (st.none ? 'None' : ''); st.customActive = !!st.answer; saveAll();
@@ -4136,9 +4152,14 @@
       if (medDraft.stage === 'dose') { const p = medParse(t); medDraft.dose = p.dose || t; if (p.freq) medDraft.freq = p.freq; medAdvance(); return; }
       if (medDraft.stage === 'freq') { const p = medParse(t); medDraft.freq = p.freq || t; medAdvance(); }
     }
+    function medChart() {   // after the last medicine, show the chart once so the times can be checked
+      if (!medsList.length || medDraft.stage === 'chart') return false;
+      medDraft.stage = 'chart'; renderList(); applyLang(); speakStep(); return true;
+    }
     function medNext() {   // Next button / "next": true if it was handled on this page
       const inp = document.getElementById('medInput'); if (inp && inp.value.trim()) { const v = inp.value; inp.value = ''; medTake(v); return true; }
-      if (medDraft.stage === 'more') return false;
+      if (medDraft.stage === 'more') return medChart();
+      if (medDraft.stage === 'chart') { medsList.forEach((m) => { if (!Array.isArray(m.times)) m.times = slotsOf(m); m.timesSet = true; }); medDraft.stage = 'more'; syncMeds(); return false; }
       if (medDraft.stage === 'name' && !medDraft.name) return false;   // nothing typed: move on
       if (medDraft.stage === 'name') { medAdvance(); return true; }
       if (medDraft.stage === 'dose') { medDraft.dose = 'Not sure'; medAdvance(); return true; }
@@ -4153,7 +4174,11 @@
       }
       if (medDraft.stage === 'more') {
         if (yes || /^(another|one more|add another|yes another)$/.test(low)) { medDraft.stage = 'name'; renderList(); applyLang(); speakStep(); return true; }
-        if (no || /^(that's all|that's it|no more|nothing else|c'est tout)$/.test(low)) { goNext(); return true; }
+        if (no || /^(that's all|that's it|no more|nothing else|c'est tout)$/.test(low)) { if (!medChart()) goNext(); return true; }
+      }
+      if (medDraft.stage === 'chart') {
+        if (yes || /^(that's right|looks right|that's correct|correct|c'est bon|c'est ça)$/.test(low)) { goNext(); return true; }
+        return false;
       }
       if (medDraft.stage === 'name' && !medsList.length && /^(none|no medicines|i don't take any|nothing)$/.test(low)) { SID('meds').none = true; syncMeds(); goNext(); return true; }
       if (medDraft.stage === 'dose' && /(don't have (it|that|them) with me|not with me|don't know|not sure|i don't know)/.test(low)) { medDraft.dose = /with me/.test(low) ? 'Not with me' : 'Not sure'; medAdvance(); return true; }
@@ -4166,10 +4191,10 @@
       const OFF = 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]', ON = 'bg-[#1E2634] text-white';
       const title = { name: n ? L2('What’s the next medicine?', 'Quel est le prochain médicament ?') : L2('What medicines do you take?', 'Quels médicaments prenez-vous ?'),
         dose: L2('How much ', 'Quelle dose de ') + d.name + '?', freq: L2('How often do you take ', 'À quelle fréquence prenez-vous ') + d.name + '?',
-        more: L2('Any other medicines or vitamins?', 'D’autres médicaments ou vitamines ?') }[d.stage];
+        more: L2('Any other medicines or vitamins?', 'D’autres médicaments ou vitamines ?'), chart: L2('When do you take each one?', 'Quand prenez-vous chacun ?') }[d.stage];
       $('listTitle').textContent = title;
       $('listHelp').textContent = d.stage === 'more' && SID('meds').fromLast ? L2('These are from your last visit. Remove any you stopped with ✕.', 'Ceux-ci viennent de votre dernière visite. Retirez avec ✕ ceux que vous avez arrêtés.') : { name: L2('One at a time. Say or type the name. Vitamins count too.', 'Un à la fois. Dites ou écrivez le nom. Les vitamines comptent.'),
-        _: 0, dose: L2('For example: 100 mg, or 1 pill.', 'Par exemple : 100 mg, ou 1 comprimé.'), freq: L2('Tap one, or say it.', 'Touchez, ou dites-le.'), more: L2('Say yes or no.', 'Dites oui ou non.') }[d.stage];
+        _: 0, dose: L2('For example: 100 mg, or 1 pill.', 'Par exemple : 100 mg, ou 1 comprimé.'), freq: L2('Tap one, or say it.', 'Touchez, ou dites-le.'), more: L2('Say yes or no.', 'Dites oui ou non.'), chart: L2('Tap a box to add or remove 💊, to match your labels. Then tap Next.', 'Touchez une case pour ajouter ou retirer 💊, selon vos étiquettes. Puis touchez Suivant.') }[d.stage];
       $('listCounter').textContent = L2(`${n} added`, `${n} ajouté(s)`);
       let html = '';
       if (d.stage === 'name' || d.stage === 'dose') {
@@ -4188,6 +4213,15 @@
       } else if (d.stage === 'more') {
         html += `<div class="flex items-stretch"><button type="button" data-med="another" class="${CH} flex-1 bg-[#3B5E42] text-white">+ ${L2('Yes, add another', 'Oui, un autre')}</button><div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-med="done" class="${CH} flex-1 ${OFF}">${L2('No, that’s all', 'Non, c’est tout')}</button></div>`;
       }
+      if (d.stage === 'chart') {
+        const cell = 'tactile-btn w-full h-[48px] rounded-xl text-[22px] flex items-center justify-center';
+        html += `<div class="w-full" data-notr><div class="grid gap-[6px] items-end mb-[6px]" style="grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr))"><span></span>${SLOTS.map(([, e, en, f]) => `<span class="text-center text-[12px] font-extrabold text-[#425268] leading-tight"><span class="block text-[20px]" aria-hidden="true">${e}</span>${esc(lang === 'fr' ? f : tr(en))}</span>`).join('')}</div>
+          ${medsList.map((m, i) => { const on = slotsOf(m), note = freqNote(m, lang === 'fr'); return `<div class="grid gap-[6px] items-center mb-[6px]" style="grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr))">
+            <span class="min-w-0"><span class="block font-extrabold text-[15px] text-[#1E2634] leading-tight truncate">${esc(m.name)}</span><span class="block text-[12px] font-bold text-[#425268] truncate">${esc([doseOf(m), note].filter(Boolean).join(' · '))}</span></span>
+            ${SLOTS.map(([k, , en, f]) => `<button type="button" data-med="slot" data-i="${i}" data-k="${k}" aria-pressed="${on.includes(k)}" aria-label="${esc(m.name)}, ${esc(lang === 'fr' ? f : tr(en))}" class="${cell} ${on.includes(k) ? 'bg-[#E5EFE7] border-2 border-[#3B5E42]' : 'bg-white border border-dashed border-[#B8AE9C]'}">${on.includes(k) ? '💊' : ''}</button>`).join('')}</div>`; }).join('')}</div>`;
+        items.innerHTML = html; foot.innerHTML = ''; items.style.overflowY = 'auto'; return;
+      }
+      items.style.overflowY = '';
       if (n) {
         html += `<div id="medStack" class="flex flex-col gap-[8px] mt-1" data-notr>${medsList.map((m, i) => `<div class="w-full bg-white border border-[#D6CFC0] rounded-2xl pl-3 pr-1 py-1 flex items-center gap-2 min-h-[52px]">
             <span class="w-7 h-7 rounded-full bg-[#3B5E42] text-white text-xs font-extrabold flex items-center justify-center shrink-0">💊</span>
@@ -4210,7 +4244,8 @@
       if (k === 'dose') { medDraft.dose = b.dataset.v; medAdvance(); }
       if (k === 'freq') { medDraft.freq = b.dataset.v; medAdvance(); }
       if (k === 'another') { medDraft.stage = 'name'; renderList(); applyLang(); speakStep(); }
-      if (k === 'done') goNext();
+      if (k === 'done') { if (!medChart()) goNext(); }
+      if (k === 'slot') { const m = medsList[Number(b.dataset.i)], on = slotsOf(m).slice(), j = on.indexOf(b.dataset.k); if (j > -1) on.splice(j, 1); else on.push(b.dataset.k); m.times = SLOTS.map(([x]) => x).filter((x) => on.includes(x)); m.timesSet = true; syncMeds(); renderList(); applyLang(); }
       if (k === 'del') { medsList.splice(Number(b.dataset.i), 1); syncMeds(); renderList(); applyLang(); }
     });
     // the step itself becomes this staged screen
