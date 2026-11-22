@@ -609,6 +609,49 @@ dialog.picker::backdrop { background: rgba(30,38,52,.72); }
 }
 @media (min-width: 520px) and (prefers-color-scheme: dark) { html:not([data-theme="light"]) { background: #0F0C0A; } }
 @media (min-width: 520px) { :root[data-theme="dark"] { background: #0F0C0A; } }
+/* ===== Layout like the prototype (22 Nov) ===== */
+/* header in one row: Reid's face, the name with Reid's line under it, Help / Settings on the right */
+.hs-btn { display: none; align-items: center; gap: 8px; min-height: 52px; padding: 8px 14px; border-radius: 16px; font-size: 1rem; white-space: nowrap; }
+body.in-steps .hs-btn { display: inline-flex; }
+body.in-steps.voice-mode .hs-btn { display: none; }   /* while talking, Help lives in the bottom bar */
+body.in-steps #jr-open, body.in-steps #top-help, body.in-steps #top-settings { display: none; }
+body.in-steps #saved { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+body.in-steps .appbar { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "face brand btn" "face cap btn"; column-gap: 12px; row-gap: 0; align-items: center; }
+body.in-steps .appbar .reid { display: contents; }
+body.in-steps .appbar .reid-face { grid-area: face; width: 52px; height: 52px; }
+body.in-steps .appbar .brand { grid-area: brand; align-self: end; }
+body.in-steps .appbar .brand .mark { display: none; }
+body.in-steps .appbar .brand > span[aria-hidden] { display: inline !important; }
+body.in-steps .appbar .reid-think { grid-area: cap; align-self: start; display: block !important; background: none; border: 0; padding: 0; max-width: none; font-size: .95rem; color: #3B5E42; }
+body.in-steps .appbar .reid-think::before, body.in-steps .appbar .reid-think::after { display: none; }
+body.in-steps .appbar .reid-think small { display: none; }
+body.in-steps .appbar .reid-think:empty::before { content: "Reid \00b7 AI helper"; display: inline; position: static; width: auto; height: auto; border: 0; background: none; }
+body.in-steps .appbar .right { grid-area: btn; }
+/* progress: three slim bars with tappable labels */
+nav.road { display: block; margin-bottom: 4px; }
+.ph-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.ph { font: inherit; background: none; border: 0; padding: 4px 0; cursor: pointer; text-align: left; color: var(--muted); min-height: 48px; display: flex; flex-direction: column; gap: 6px; }
+.ph.on { color: var(--ink); }
+.ph-l { font-weight: 700; font-size: 1rem; line-height: 1.15; }
+.ph-bar { display: block; height: 10px; border-radius: 999px; background: #E2DBD0; overflow: hidden; }
+.ph-bar span { display: block; height: 100%; background: #3B5E42; border-radius: 999px; }
+.ph-sub { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 2px 0 6px; font-weight: 700; color: #3B5E42; }
+.ph-topic { font-size: .9rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: right; }
+/* the step card fills the frame; Back and Next stay pinned at the bottom, with a hairline above */
+body.in-steps footer.foot { display: none; }
+#actions { position: sticky; bottom: 0; z-index: 5; background: var(--bg); border-top: 1px solid #DDD6C7; margin-top: 14px; padding: 12px 0 calc(12px + env(safe-area-inset-bottom)); }
+#actions #back { min-height: 60px; border-radius: 18px; background: var(--stone); }
+#actions #next { flex: 1; justify-content: space-between; }
+#actions .spacer { flex: 0 0 18px; }
+.hs-list { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.hs-list .btn { width: 100%; min-height: 56px; text-align: left; }
+@media (min-width: 520px) {
+  body { height: 96vh; min-height: 0; display: flex; flex-direction: column; }
+  body > .appbar { flex: none; width: 100%; box-sizing: border-box; }
+  body > main.wrap { flex: 1; min-height: 0; overflow-y: auto; width: 100%; box-sizing: border-box; padding-bottom: 0; }
+  body.voice-mode { padding-bottom: 0; }
+  body.voice-mode > main.wrap { padding-bottom: 200px; }
+}
 /* Reid's quick question card */
 .vague { background: #FEF6E7; border: 2px solid #D97706; border-radius: 18px; padding: 12px 14px; margin-top: 14px; color: #1E2634; }
 .vague .vg-ask { margin: 0 0 4px; font-size: 1.1rem; }
@@ -649,6 +692,10 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   </span>
   <span class="right">
     <span class="saved" id="saved" role="status" aria-live="polite"></span>
+    <button type="button" class="btn secondary hs-btn" id="hs-btn" aria-haspopup="dialog" aria-controls="hs-menu">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Help / Settings</span>
+    </button>
     <button type="button" class="jr-open" id="jr-open" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6 L5 8 L8 4"/><path d="M11 6 H21"/><path d="M3 13 L5 15 L8 11"/><path d="M11 13 H21"/><circle cx="5.5" cy="20" r="1.8"/><path d="M11 20 H21"/></svg>
       <span class="lbl-long">WellHeard map</span><span class="lbl-short">Map</span>
@@ -878,6 +925,10 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     </div>
   </section>
 
+  <dialog class="picker hs-menu" id="hs-menu" aria-labelledby="hs-title">
+    <div class="pk-head"><h3 id="hs-title">Help and settings</h3><button type="button" class="btn secondary" data-close>Done</button></div>
+    <div class="hs-list" id="hs-list"></div>
+  </dialog>
   <section class="screen" id="s-where" hidden>
     <h2>Where is it?</h2>
     <p class="muted">Optional. Tap Skip if you'd rather not say.</p>
@@ -2694,7 +2745,8 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   function pageEmpty(el) { return [...el.querySelectorAll("input[type=text], input[type=date], input[type=time], select.time-pick, textarea")].every(f => !f.value.trim()); }
   function nextLabel() {
     const s = STEPS[S.step]; if (!s) return;
-    $("next").textContent = s.next || (s.skip && pageEmpty(screens[s.id]) ? "Skip" : "Next");
+    const nxt = STEPS[step + 1], fr0 = S.lang === "fr";
+    $("next").textContent = s.next || (s.skip && pageEmpty(screens[s.id]) ? (fr0 ? "Passer" : "Skip") : nxt ? (fr0 ? "Suivant : " : "Next: ") + nxt.name : (fr0 ? "Suivant" : "Next"));
   }
   document.querySelector("main").addEventListener("input", () => nextLabel());
   function renderHere(s) {
@@ -2712,10 +2764,22 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     const fr = S.lang === "fr";
     const item = (r, i) => `<li class="${i === cur ? "here" : i < cur ? "done" : ""}"><button type="button" data-road="${i}" ${i === cur ? 'aria-current="step"' : ""}>
       <span class="rn" aria-hidden="true">${i < cur ? "\u2713" : i + 1}</span><span class="rl">${esc(fr ? r.fr : r.t)}</span>${i < cur ? '<span class="visually-hidden"> (done)</span>' : ""}</button></li>`;
-    const roadSec = (ph, from, to) => `<section class="road-sec ${ph}${cur >= from && cur < to ? " on" : ""}" style="--c:${SECTIONS[ph].c}" aria-label="${esc(SECTIONS[ph].name)}">
+    const roadSecOld = (ph, from, to) => `<section class="road-sec ${ph}${cur >= from && cur < to ? " on" : ""}" style="--c:${SECTIONS[ph].c}" aria-label="${esc(SECTIONS[ph].name)}">
       <span class="road-k">${esc(fr ? { prep: "Avant la visite", room: "Pendant", after: "Après" }[ph] : { prep: "Before your visit", room: "At your visit", after: "After" }[ph])}</span>
       <ol>${ROAD.slice(from, to).map((r, i) => item(r, from + i)).join("")}</ol></section>`;
-    $("road").innerHTML = roadSec("prep", 0, 4) + roadSec("room", 4, 5) + roadSec("after", 5, 6);
+    // three phases, like the prototype: label (tap to go there), slim bar, then "Step x of y · TOPIC"
+    if (cur < 0) return;
+    const PH = [["prep", 0, 4, fr ? "1. Préparer" : "1. Prepare"], ["room", 4, 5, fr ? "2. Au rendez-vous" : "2. At visit"], ["after", 5, 6, fr ? "3. Après" : "3. After"]];
+    const ph = PH.findIndex(p => cur >= p[1] && cur < p[2]);
+    const fill = i => {
+      if (i < ph) return 100; if (i > ph) return 0;
+      const ids = STEPS.map((x, k) => k).filter(k => STEPS[k].sec === PH[i][0]);
+      const pos = ids.indexOf(S.step); return Math.max(8, Math.round((pos + 1) / ids.length * 100));
+    };
+    const inPh = cur - PH[ph][1] + 1, nPh = PH[ph][2] - PH[ph][1], topic = fr ? ROAD[cur].fr : ROAD[cur].t;
+    $("road").innerHTML = `<div class="ph-row">${PH.map((p, i) => `<button type="button" class="ph${i === ph ? " on" : ""}" data-road="${p[1]}" ${i === ph ? 'aria-current="step"' : ""}>
+        <span class="ph-l">${esc(p[3])}</span><span class="ph-bar" aria-hidden="true"><span style="width:${fill(i)}%"></span></span></button>`).join("")}</div>
+      <p class="ph-sub"><span>${esc(PH[ph][3])} \u00b7 ${fr ? "Étape" : "Step"} ${inPh} ${fr ? "sur" : "of"} ${nPh}</span><span class="ph-topic">${esc(topic)}</span></p>`;
     $("road-msg").hidden = true;
   }
   // The roadmap: 6 plain steps, each one or more stops on the full map. Tap one to go there.
@@ -2753,6 +2817,19 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     if (S.reviewBack && id !== "review") { S.reviewBack = false; save(); show(stepIndex("review")); return; }
     show(S.step + 1);
   });
+  // ---------- Help / Settings: one button at the top; the menu holds help, steps, settings and the old footer links ----------
+  function openHS() {
+    const fr = S.lang === "fr", list = $("hs-list"); list.innerHTML = "";
+    const add = (label, fn, primary) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn " + (primary ? "primary" : "secondary"); b.textContent = label;
+      b.addEventListener("click", () => { $("hs-menu").close(); fn(); }); list.appendChild(b); };
+    if (S.step >= 0) add(fr ? "Expliquer quoi faire ici" : "Explain what to do here", openHelp, true);
+    add(fr ? "Voir toutes les étapes" : "See all steps", () => openJourney("map"));
+    add(fr ? "Réglages (voix, attente, langue)" : "Settings (voice, wait time, language)", () => openJourney("settings"));
+    document.querySelectorAll("footer.foot button").forEach(fb => { if (!fb.hidden && fb.textContent.trim()) add(fb.textContent.trim(), () => fb.click()); });
+    $("hs-menu").showModal();
+  }
+  $("hs-btn").addEventListener("click", openHS);
+
   // ---------- Reid's quick question: a short answer that could mean several things gets two one-tap fixes ----------
   const VAGUE_FIELDS = { appt: ["purpose", "g_appt"], who: ["seeing", "g_who"], where: ["where", "g_where"] };
   async function vagueCheck(id) {
