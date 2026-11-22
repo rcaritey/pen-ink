@@ -3797,8 +3797,11 @@
         w = vw / z; h = vh / z;
         main.style.borderRadius = '0'; main.style.borderWidth = '0';
       } else {                              // iPad or computer: the page, as big as fits
-        z = Math.min(1.7, (vw * 0.96) / 420, (vh * 0.96) / 820);
-        w = 420; h = 820;
+        // upright iPad: the page scaled up. Sideways iPad or computer: the screen is short, so the page
+        // keeps its height and uses the extra width (up to 760) instead of leaving empty sides.
+        const wide = vw > vh;
+        z = Math.min(1.7, (vh * 0.96) / 820, wide ? 9 : (vw * 0.96) / 420);
+        w = wide ? Math.round(Math.min(760, Math.max(420, (vw * 0.96) / z))) : 420; h = 820;
         main.style.borderRadius = ''; main.style.borderWidth = '';
       }
       main.style.zoom = z; main.style.width = w + 'px'; main.style.maxWidth = 'none'; main.style.height = h + 'px';
