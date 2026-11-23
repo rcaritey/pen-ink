@@ -4064,6 +4064,7 @@
         z = vh < 560 ? Math.max(0.85, vh / 560) : 1;
         w = vw / z; h = vh / z;
         main.style.borderRadius = '0'; main.style.borderWidth = '0'; main.classList.remove('wide');
+        main.style.boxShadow = ''; document.body.style.backgroundColor = '';
       } else {                              // iPad or computer: the page, as big as fits
         // Computer or sideways iPad: a wide layout. Reid, Help and the progress sit in a column on the left,
         // the question gets the rest. Less stacked up, so the whole page can be bigger.
@@ -4072,7 +4073,9 @@
         main.classList.toggle('wide', wide);
         if (wide) { z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000); w = 1000; h = 640; }
         else { z = Math.min(1.7, (vh * 0.96) / 820, (vw * 0.96) / 420); w = 420; h = 820; }
-        main.style.borderRadius = ''; main.style.borderWidth = '';
+        // computer or sideways iPad: no phone-style frame, the page simply fills the screen (Rama, 23 Nov)
+        main.style.borderRadius = wide ? '0' : ''; main.style.borderWidth = wide ? '0' : ''; main.style.boxShadow = wide ? 'none' : '';
+        document.body.style.backgroundColor = wide ? '#FAF7F0' : '';
       }
       // Text size: everything grows together; the page keeps the same place on the screen
       const ts = [1, 1.18, 1.36][textSize] || 1; z *= ts; w /= ts; h /= ts;
