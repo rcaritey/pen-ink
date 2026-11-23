@@ -167,6 +167,7 @@
   <style>
     #appContainer.narrow > header .whitespace-nowrap { font-size: 1.1rem !important; }
     #appContainer.tiny #brandText { display: none; }
+    #appContainer.narrow #stepTopicTag { display: none; }   /* the question title already says it */
     #appContainer.narrow > header .truncate { overflow: visible; text-overflow: clip; }
     #appContainer.narrow > header button { padding-left: 6px; padding-right: 6px; }
     .wide > header .text-\[1\.25rem\] { font-size: 1.6rem; }
@@ -3660,6 +3661,29 @@
       const gen = ideas ? `<button type="button" data-foot="gen" ${aiBusy ? 'disabled' : ''} class="${B_FOOT} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] ${aiBusy ? 'opacity-60' : ''}">${aiBusy ? L2('Thinking…', 'Un instant…') : L2('✨ Reid: more', '✨ Reid : plus')}</button>` : '';
       return `<button type="button" data-foot="add" class="${B_FOOT} bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634]">+ ${addLabel}</button>${more ? gap + more : ''}${gen ? gap + gen : ''}`;
     }
+    // Large text on a phone: the suggestion card shrinks step by step until Yes / Most important / No all fit
+    function fitIdeas(items) {
+      const over = () => items.scrollHeight > items.clientHeight + 1;
+      if (!items.clientHeight || !over()) return;
+      const q = items.querySelector('.text-\\[21px\\]'), card = items.firstElementChild, tag = card && card.querySelector('span');
+      const steps2 = [
+        () => { if (q) q.style.fontSize = '18px'; },
+        () => { const h = document.getElementById('listHelp'); if (h && curIdea()) { const pool = ideaPool(), done = pool.filter((x) => qPicked.includes(x) || qSkipped.includes(x)).length; h.textContent = L2(`${done + 1} of ${pool.length}`, `${done + 1} sur ${pool.length}`); } },
+        () => { items.querySelectorAll('[data-idea]').forEach((b) => { b.style.minHeight = '50px'; }); if (card) card.style.padding = '12px'; },
+        () => { if (tag) tag.style.display = 'none'; },
+        () => { document.getElementById('listTitle').textContent = L2('Ask the doctor this?', 'Le demander au médecin ?'); },
+        () => {   // Yes, Most important and No side by side
+          const yes = items.querySelector('[data-idea="yes"]'), row = items.querySelector('[data-idea="star"]') && items.querySelector('[data-idea="star"]').parentElement;
+          if (!yes || !row) return;
+          yes.textContent = '✓ ' + L2('Yes', 'Oui'); yes.classList.remove('w-full'); yes.classList.add('flex-1');
+          row.querySelector('[data-idea="star"]').textContent = '★ ' + L2('Top', 'Clé'); row.querySelector('[data-idea="no"]').textContent = L2('No', 'Non');
+          const sp = document.createElement('div'); sp.className = 'w-[12px] shrink-0'; row.prepend(sp); row.prepend(yes);
+        },
+        () => { if (q) q.style.fontSize = '16px'; }
+      ];
+      for (const f of steps2) { f(); if (!over()) return; }
+      items.classList.add('overflow-y-auto');   // last resort: it scrolls, nothing is cut off
+    }
     function renderList() {
       const step = steps[currentIndex], $ = (id) => document.getElementById(id);
       const items = $('listItems'), foot = $('listFoot');
@@ -3695,6 +3719,7 @@
         }
         const gap = '<div class="w-[10px] shrink-0" aria-hidden="true"></div>';
         foot.innerHTML = qAdding ? footHtml(1, '') : `${ideaHist.length ? `<button type="button" data-idea="undo" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">‹ ${L2('Previous', 'Précédente')}</button>${gap}` : ''}<button type="button" data-foot="add" class="${B_FOOT} bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634]">+ ${L2('Your own', 'La vôtre')}</button>${gap}<button type="button" data-foot="gen" ${aiBusy ? 'disabled' : ''} class="${B_FOOT} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] ${aiBusy ? 'opacity-60' : ''}">${aiBusy ? L2('Thinking…', 'Un instant…') : L2('✨ Reid: more', '✨ Reid : plus')}</button>`;
+        fitIdeas(items);
       } else if (step.mode === 'priority') {
         const all = chosen(), pg = pageOf(all); qShown = pg.items;
         $('listTitle').textContent = L2('Which questions matter most?', 'Quelles questions comptent le plus ?');
