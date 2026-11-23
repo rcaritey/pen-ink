@@ -109,25 +109,25 @@
     /* Next arrow: bold drawn arrow in a soft circle */
     .arrow-badge { width: 40px; height: 40px; background: rgba(255,255,255,.25); }
     /* the pages beside the questions */
-    .live-pages { display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; padding: 20px 22px 16px; background: #FAF7F0; color: #1E2634;
-      border: 1px solid #DDD6C7; border-radius: 28px; box-shadow: 0 12px 40px rgba(30,38,52,.12); flex: none; }
+    .live-pages { display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; padding: 18px 8px 14px 28px; background: #FAF7F0; color: #1E2634;
+      border-left: 1px solid #DDD6C7; flex: none; }
     .live-pages[hidden] { display: none; }
     .lp-head { display: flex; align-items: center; gap: 12px; }
-    .lp-head h2 { margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
-    .lp-head p { margin: 2px 0 0; font-weight: 800; color: #3B5E42; font-size: 1rem; }
+    .lp-head h2 { margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: -.02em; }
+    .lp-head p { margin: 2px 0 0; font-weight: 800; color: #3B5E42; font-size: .9rem; }
     .lp-dot { margin-left: auto; width: 14px; height: 14px; border-radius: 50%; background: #C9C1B2; flex: none; transition: background .4s; }
     .lp-dot.on { background: #3B5E42; }
     .lp-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
-    .lp-tabs button { font: inherit; font-weight: 800; font-size: 1rem; min-height: 48px; padding: 6px 18px; border-radius: 14px; cursor: pointer; background: #F0EBE1; color: #1E2634; border: 1px solid #D6CFC0; }
+    .lp-tabs button { font: inherit; font-weight: 800; font-size: .95rem; min-height: 44px; padding: 6px 18px; border-radius: 14px; cursor: pointer; background: #F0EBE1; color: #1E2634; border: 1px solid #D6CFC0; }
     .lp-tabs button:hover { border-color: #1E2634; }
     .lp-tabs button[aria-selected="true"] { background: #1E2634; color: #fff; border-color: #1E2634; }
     .lp-tabs button[aria-selected="true"]::before { content: "\2713  "; }
     .lp-tabs button[hidden] { display: none; }
     .lp-tabs button:focus-visible, .lp-paper:focus-visible { outline: 3px solid #D97706; outline-offset: 2px; }
-    .lp-paper { flex: 1; min-height: 0; overflow-y: auto; background: #F0EBE1; border-radius: 20px; padding: 18px; }
+    .lp-paper { flex: 1; min-height: 0; overflow-y: auto; background: #F0EBE1; border-radius: 16px; padding: 16px; }
     .lp-sheet { background: #fff; color: #111A22; border-radius: 4px; padding: 30px 32px; aspect-ratio: 8.5 / 11; max-width: 8.5in; margin: 0 auto;
-      box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(30,38,52,.10); font-size: 15px; line-height: 1.5; }
-    .lp-sheet h1 { font-size: 1.35rem; font-weight: 800; margin: 0 0 2px; }
+      box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(30,38,52,.10); font-size: 13px; line-height: 1.5; }
+    .lp-sheet h1 { font-size: 1.3rem; font-weight: 800; margin: 0 0 2px; }
     .lp-sheet .meta { color: #3B4A57; margin: 0 0 8px; }
     .lp-sheet h2 { font-size: .82rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #3B4A57; border-bottom: 2px solid #111A22; margin: 14px 0 6px; padding-bottom: 3px; }
     .lp-sheet ul, .lp-sheet ol { margin: 0; padding-left: 1.4em; } .lp-sheet ul { list-style: disc; } .lp-sheet ol { list-style: decimal; } .lp-sheet li { margin: 3px 0; }
@@ -137,7 +137,7 @@
     .lp-sec { border-radius: 6px; }
     .lp-sec.lp-new { animation: lpFlash 2.6s ease-out 1; }
     @keyframes lpFlash { 0%, 35% { background: #E5EFE7; box-shadow: 0 0 0 8px #E5EFE7; } 100% { background: transparent; box-shadow: 0 0 0 8px transparent; } }
-    .lp-foot { margin: 0; font-size: .95rem; color: #425268; font-weight: 700; }
+    .lp-foot { margin: 0; font-size: .85rem; color: #425268; font-weight: 700; }
     @media (prefers-reduced-motion: reduce) { .lp-sec.lp-new { animation: none; background: #E5EFE7; } }
     /* Message Rama chooser */
     .side-gap { margin-top: 10px; }
@@ -4234,12 +4234,14 @@
         const landscape = vw >= 900 && vw > vh * 1.1, livePg = landscape && steps[currentIndex].mode !== 'landing', wide = landscape && !livePg;
         main.classList.toggle('wide', wide); main.classList.toggle('with-pages', livePg);
         if (wide) { z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000); w = 1000; h = 640; }
-        else if (livePg) { z = Math.min(1.5, (vh * 0.94) / 820, (vw * 0.42) / 420); w = 420; h = 820; }
+        // the phone page's full height (every step is designed to fit it), a little wider than a phone
+        else if (livePg) { z = Math.min(1.5, (vh * 0.96) / 820, (vw * 0.46) / 480); w = 480; h = 820; }
         else { z = Math.min(1.7, (vh * 0.96) / 820, (vw * 0.96) / 420); w = 420; h = 820; }
         // computer or sideways iPad: no phone-style frame (Rama, 23 Nov). With the pages beside it, a soft card.
-        main.style.borderRadius = wide ? '0' : livePg ? '28px' : ''; main.style.borderWidth = wide ? '0' : livePg ? '1px' : '';
-        main.style.borderColor = livePg ? '#DDD6C7' : ''; main.style.boxShadow = wide ? 'none' : livePg ? '0 12px 40px rgba(30,38,52,.12)' : '';
-        document.body.style.backgroundColor = wide ? '#FAF7F0' : '';
+        // borderless: one paper-coloured screen, a hairline between the questions and the pages (Rama, 23 Nov)
+        main.style.borderRadius = wide || livePg ? '0' : ''; main.style.borderWidth = wide || livePg ? '0' : '';
+        main.style.borderColor = ''; main.style.boxShadow = wide || livePg ? 'none' : '';
+        document.body.style.backgroundColor = wide || livePg ? '#FAF7F0' : '';
       }
       // Text size: everything grows together; the page keeps the same place on the screen
       const ts = [1, 1.18, 1.36][textSize] || 1; z *= ts; w /= ts; h /= ts;
@@ -4265,10 +4267,10 @@
       }
       // the pages panel sits beside the app, as tall as it
       const lp = document.getElementById('livePages'), showLp = main.classList.contains('with-pages');
-      document.body.style.flexDirection = showLp ? 'row' : ''; document.body.style.gap = showLp ? '28px' : '';
+      document.body.style.flexDirection = showLp ? 'row' : ''; document.body.style.gap = showLp ? '0' : '';
       if (lp) {
         lp.hidden = !showLp;
-        if (showLp) { const mw = w * z, mh = h * z; lp.style.height = mh + 'px'; lp.style.width = Math.max(360, Math.min(900, vw - mw - 28 * 3)) + 'px'; }
+        if (showLp) { const mw = w * z, mh = h * z; lp.style.height = mh + 'px'; lp.style.width = Math.max(360, Math.min(900, vw - mw - 48)) + 'px'; }
       }
       if (LISTMODES[steps[currentIndex].mode]) renderList();
       if (steps[currentIndex].mode === 'visitQuestions') renderVisitQuestionsChecklist();
