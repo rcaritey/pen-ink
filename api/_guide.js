@@ -22,6 +22,10 @@
 // Condition and setting lists:
 // - Parkinson's: Parkinson Canada visit worksheets (https://www.parkinson.ca) and the Parkinson's Foundation
 //   pre-appointment worksheet and "Key Questions for Your Doctor's Visit" (https://www.parkinson.org).
+// - Canadian Guideline for Parkinson Disease, 2nd edition (Grimes et al., CMAJ 2019;191:E989), sponsored by Parkinson Canada:
+//   communication, non-motor features, medication timing, referrals, palliative care. https://www.cmaj.ca/content/191/36/e989
+// - UBC Movement Disorders Clinic, "Preparing for your visit" (2021): rank questions, note changes since the last visit,
+//   track symptoms over the 1-2 weeks before. https://www.parkinsons.ubc.ca
 // - Cancer: Canadian Cancer Society, "Questions to ask" by topic (diagnosis, staging, treatment, side effects,
 //   supportive care, clinical trials). https://cancer.ca
 // - Heart and stroke: Heart & Stroke Foundation of Canada, "Be a partner in your health care".
@@ -109,6 +113,8 @@ Parkinson's disease
 - Pain or unusual sensations (burning, aching, numbness, cramping, or toes or feet curling or twisting), and whether they change with medication timing or time of day. Relevant to any visit about pain, feet or sleep, not only neurology.
 - A short non-motor check, in plain words, on areas people often don't raise: sleep and vivid dreams, constipation, bladder, mood and worry, motivation, memory, seeing things, dizziness on standing, sense of smell, pain, swallowing, voice, sweating.
 - For a neurologist visit, a brief non-motor check is usually worth including. For other visits, include only the parts linked to the concern.
+- Changes since the last visit: falls, injuries, hospital or emergency visits, new conditions or new doctors.
+- Topics the Canadian guideline asks clinicians to cover, raised only when they fit: acting out dreams or restless legs; daytime sleepiness, especially if they drive; urges that are hard to control (gambling, shopping, eating) when on a dopamine agonist; whether protein at meals affects how well levodopa works; keeping doses on time during an illness, surgery or a hospital stay; referrals to physiotherapy, occupational therapy, speech therapy or a dietitian; and, when the person or family raises the future, planning ahead and support available.
 
 E. SYMPTOM MODULES: use when this is the concern
 
