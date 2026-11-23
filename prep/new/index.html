@@ -3817,7 +3817,7 @@
       ideas: () => curIdea() ? L2('Would you like to ask the doctor: ', 'Voulez-vous demander au médecin : ') + stop(curIdea()) + L2(' Say yes, no, or most important.', ' Dites oui, non, ou très important.') : L2('That’s all my suggestions. Would you like me to suggest more?', 'C’est tout. Voulez-vous que j’en suggère d’autres ?'),
       priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Say the number of the most important one.', ' Dites le numéro de la plus importante.') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       review: () => L2('Does everything look right?', 'Est-ce que tout est correct ?'),
-      meds: () => document.getElementById('listTitle').textContent && steps[currentIndex].mode === 'meds' ? (medDraft.stage === 'chart' ? L2('Here is your medicine chart. Tap a box to add or remove a pill, to match your labels. Then tap Next.', 'Voici votre tableau de médicaments. Touchez une case pour ajouter ou retirer une pilule, selon vos étiquettes. Puis touchez Suivant.') : medDraft.sugg.length ? L2('Did you mean ', 'Vouliez-vous dire ') + medDraft.sugg[0].name + '?' : document.getElementById('listTitle').textContent) : '',
+      meds: () => document.getElementById('listTitle').textContent && steps[currentIndex].mode === 'meds' ? (medDraft.stage === 'list' ? L2('Here are your medicines. Tap one to change it, or add another. Say next when you’re done.', 'Voici vos médicaments. Touchez-en un pour le modifier, ou ajoutez-en un. Dites suivant quand vous avez fini.') : medDraft.sugg.length ? L2('Did you mean ', 'Vouliez-vous dire ') + medDraft.sugg[0].name + '?' : document.getElementById('listTitle').textContent) : '',
       consent: () => L2("Before we begin, a quick word about your privacy. Everything you tell me stays on your phone. To help you, I send your voice to Microsoft, here in Canada, to turn it into words. And I send your answers to Claude, in the United States, anonymously, never with your name, so I can suggest good questions. They are never used to train AI models. Is that alright with you? You can tap I agree, or No thanks.", "Avant de commencer, un mot sur votre vie privée. Tout ce que vous me dites reste sur votre téléphone. Pour vous aider, j'envoie votre voix à Microsoft, ici au Canada, pour la transformer en mots. Et j'envoie vos réponses à Claude, aux États-Unis, de façon anonyme, jamais avec votre nom, pour vous suggérer de bonnes questions. Elles ne servent jamais à entraîner des modèles d'IA. Est-ce que ça vous convient ? Touchez J'accepte, ou Non merci."),
       setup: () => L2('Before we start, would you like to change the language or the text size?', 'Avant de commencer, voulez-vous changer la langue ou la taille du texte ?'),
       doctorSummary: () => L2('Would you like to print the summary for your doctor?', 'Voulez-vous imprimer le résumé pour votre médecin ?'),
@@ -3861,7 +3861,7 @@
 
     // starting over clears the questions too
     const qReset = resetAllFromSettings;
-    resetAllFromSettings = function (x) { steps.forEach((st) => { st.fromLast = false; }); medsList = []; medDraft = { stage: 'name', name: '', dose: '', freq: '', heard: '', sugg: [] }; aiTags = {}; qSkipped = []; ideaHist = []; recapSrc = {}; clipDB.clear(); qPicked = []; qPrio = []; detailQs = []; ownQs = []; prioWarned = false; spliceDetail(); qReset(x); visitQuestions = []; };
+    resetAllFromSettings = function (x) { steps.forEach((st) => { st.fromLast = false; }); medsList = []; medDraft = blankMed(); aiTags = {}; qSkipped = []; ideaHist = []; recapSrc = {}; clipDB.clear(); qPicked = []; qPrio = []; detailQs = []; ownQs = []; prioWarned = false; spliceDetail(); qReset(x); visitQuestions = []; };
 
     // Chat: opens the phone's Messages app with a text to Rama, saying only which screen they're on
     function chatHref() {
@@ -4087,11 +4087,12 @@
 
 
     // =====================================================================
-    // Medicines, one at a time: the name, then how much, then how often,
-    // then "any other?". Each one stacks as a card. Reid knows medicine names
-    // and asks "Did you mean …?" when he mishears one.
+    // Medicines, one at a time: the name (picked from a list as you type, so
+    // it's spelt right), its strength (amount + unit), then each time of day
+    // with how many. Then the list, where each one can be changed or removed.
+    // Reid knows medicine names and asks "Did you mean …?" when he mishears one.
     // =====================================================================
-    const MED_VOCAB = ('levodopa,carbidopa,Sinemet,Sinemet CR,Stalevo,Duodopa,Rytary,entacapone,Comtan,opicapone,Ongentys,rasagiline,Azilect,selegiline,safinamide,Onstryv,pramipexole,Mirapex,ropinirole,Requip,rotigotine,Neupro,amantadine,apomorphine,Kynmobi,trihexyphenidyl,domperidone,rivastigmine,Exelon,donepezil,Aricept,galantamine,memantine,quetiapine,Seroquel,clozapine,pimavanserin,midodrine,fludrocortisone,droxidopa,polyethylene glycol,RestoraLAX,Lax-A-Day,senna,sennosides,docusate,Colace,lactulose,bisacodyl,melatonin,mirabegron,Myrbetriq,oxybutynin,solifenacin,Vesicare,tamsulosin,Flomax,finasteride,Proscar,dutasteride,Avodart,atorvastatin,Lipitor,rosuvastatin,Crestor,simvastatin,pravastatin,ezetimibe,Ezetrol,metformin,Glucophage,gliclazide,Diamicron,sitagliptin,Januvia,linagliptin,Trajenta,empagliflozin,Jardiance,dapagliflozin,Forxiga,semaglutide,Ozempic,Rybelsus,dulaglutide,Trulicity,insulin,Lantus,Humalog,NovoRapid,levothyroxine,Synthroid,Eltroxin,amlodipine,Norvasc,ramipril,Altace,perindopril,Coversyl,lisinopril,enalapril,candesartan,Atacand,losartan,Cozaar,valsartan,Diovan,irbesartan,Avapro,telmisartan,Micardis,hydrochlorothiazide,chlorthalidone,indapamide,furosemide,Lasix,spironolactone,metoprolol,bisoprolol,atenolol,carvedilol,propranolol,diltiazem,verapamil,digoxin,warfarin,Coumadin,apixaban,Eliquis,rivaroxaban,Xarelto,dabigatran,Pradaxa,edoxaban,Lixiana,clopidogrel,Plavix,ticagrelor,Brilinta,aspirin,ASA,acetaminophen,Tylenol,ibuprofen,Advil,Motrin,naproxen,Aleve,celecoxib,Celebrex,diclofenac,Voltaren,tramadol,Tramacet,hydromorphone,Dilaudid,oxycodone,Percocet,morphine,codeine,Tylenol 3,gabapentin,Neurontin,pregabalin,Lyrica,duloxetine,Cymbalta,sertraline,Zoloft,citalopram,Celexa,escitalopram,Cipralex,fluoxetine,Prozac,paroxetine,Paxil,venlafaxine,Effexor,desvenlafaxine,Pristiq,mirtazapine,Remeron,trazodone,bupropion,Wellbutrin,amitriptyline,nortriptyline,lorazepam,Ativan,clonazepam,Rivotril,alprazolam,Xanax,diazepam,zopiclone,Imovane,omeprazole,Losec,pantoprazole,Pantoloc,Tecta,esomeprazole,Nexium,rabeprazole,Pariet,lansoprazole,famotidine,Pepcid,prednisone,alendronate,Fosamax,risedronate,Actonel,denosumab,Prolia,calcium,vitamin D,vitamin D3,vitamin B12,vitamin C,folic acid,iron,ferrous sulfate,magnesium,potassium,zinc,multivitamin,omega 3,fish oil,allopurinol,colchicine,salbutamol,Ventolin,tiotropium,Spiriva,fluticasone,Flovent,Advair,budesonide,Symbicort,Breo,Trelegy,montelukast,Singulair,cetirizine,Reactine,loratadine,Claritin,latanoprost,Xalatan,timolol,tamoxifen,letrozole,Femara,anastrozole,Arimidex,methotrexate,hydroxychloroquine,Plaquenil,nitroglycerin,isosorbide,sildenafil,Viagra,tadalafil,Cialis,baclofen,cyclobenzaprine,sumatriptan,topiramate,levetiracetam,Keppra,lamotrigine,Lamictal,phenytoin,Dilantin,carbamazepine,Tegretol,valproic acid,Epival,lithium,haloperidol,risperidone,Risperdal,olanzapine,Zyprexa,aripiprazole,Abilify,eye drops,nasal spray,inhaler,patch,cream').split(',');
+    const MED_VOCAB = ('levodopa,carbidopa,carbidopa/levodopa,carbidopa/levodopa CR,levodopa CR,Sinemet,Sinemet CR,Stalevo,Duodopa,Rytary,entacapone,Comtan,opicapone,Ongentys,rasagiline,Azilect,selegiline,safinamide,Onstryv,pramipexole,Mirapex,ropinirole,Requip,rotigotine,Neupro,amantadine,apomorphine,Kynmobi,trihexyphenidyl,domperidone,rivastigmine,Exelon,donepezil,Aricept,galantamine,memantine,quetiapine,Seroquel,clozapine,pimavanserin,midodrine,fludrocortisone,droxidopa,polyethylene glycol,RestoraLAX,Lax-A-Day,senna,sennosides,docusate,Colace,lactulose,bisacodyl,melatonin,mirabegron,Myrbetriq,oxybutynin,solifenacin,Vesicare,tamsulosin,Flomax,finasteride,Proscar,dutasteride,Avodart,atorvastatin,Lipitor,rosuvastatin,Crestor,simvastatin,pravastatin,ezetimibe,Ezetrol,metformin,Glucophage,gliclazide,Diamicron,sitagliptin,Januvia,linagliptin,Trajenta,empagliflozin,Jardiance,dapagliflozin,Forxiga,semaglutide,Ozempic,Rybelsus,dulaglutide,Trulicity,insulin,Lantus,Humalog,NovoRapid,levothyroxine,Synthroid,Eltroxin,amlodipine,Norvasc,ramipril,Altace,perindopril,Coversyl,lisinopril,enalapril,candesartan,Atacand,losartan,Cozaar,valsartan,Diovan,irbesartan,Avapro,telmisartan,Micardis,hydrochlorothiazide,chlorthalidone,indapamide,furosemide,Lasix,spironolactone,metoprolol,bisoprolol,atenolol,carvedilol,propranolol,diltiazem,verapamil,digoxin,warfarin,Coumadin,apixaban,Eliquis,rivaroxaban,Xarelto,dabigatran,Pradaxa,edoxaban,Lixiana,clopidogrel,Plavix,ticagrelor,Brilinta,aspirin,ASA,acetaminophen,Tylenol,ibuprofen,Advil,Motrin,naproxen,Aleve,celecoxib,Celebrex,diclofenac,Voltaren,tramadol,Tramacet,hydromorphone,Dilaudid,oxycodone,Percocet,morphine,codeine,Tylenol 3,gabapentin,Neurontin,pregabalin,Lyrica,duloxetine,Cymbalta,sertraline,Zoloft,citalopram,Celexa,escitalopram,Cipralex,fluoxetine,Prozac,paroxetine,Paxil,venlafaxine,Effexor,desvenlafaxine,Pristiq,mirtazapine,Remeron,trazodone,bupropion,Wellbutrin,amitriptyline,nortriptyline,lorazepam,Ativan,clonazepam,Rivotril,alprazolam,Xanax,diazepam,zopiclone,Imovane,omeprazole,Losec,pantoprazole,Pantoloc,Tecta,esomeprazole,Nexium,rabeprazole,Pariet,lansoprazole,famotidine,Pepcid,prednisone,alendronate,Fosamax,risedronate,Actonel,denosumab,Prolia,calcium,vitamin D,vitamin D3,vitamin B12,vitamin C,folic acid,iron,ferrous sulfate,magnesium,potassium,zinc,multivitamin,omega 3,fish oil,allopurinol,colchicine,salbutamol,Ventolin,tiotropium,Spiriva,fluticasone,Flovent,Advair,budesonide,Symbicort,Breo,Trelegy,montelukast,Singulair,cetirizine,Reactine,loratadine,Claritin,latanoprost,Xalatan,timolol,tamoxifen,letrozole,Femara,anastrozole,Arimidex,methotrexate,hydroxychloroquine,Plaquenil,nitroglycerin,isosorbide,sildenafil,Viagra,tadalafil,Cialis,baclofen,cyclobenzaprine,sumatriptan,topiramate,levetiracetam,Keppra,lamotrigine,Lamictal,phenytoin,Dilantin,carbamazepine,Tegretol,valproic acid,Epival,lithium,haloperidol,risperidone,Risperdal,olanzapine,Zyprexa,aripiprazole,Abilify,eye drops,nasal spray,inhaler,patch,cream').split(',');
     const MED_LC = MED_VOCAB.map((m) => m.toLowerCase());
     function lev(a, b) {
       const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
@@ -4114,176 +4115,247 @@
     const DOSE_RE = /(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?\s*(?:mg|milligrams?|mcg|micrograms?|ml|millilit(?:er|re)s?|units?|grams?|g|%|puffs?|pills?|tablets?|capsules?|drops?|patch(?:es)?|sprays?)\b(?:\s*(?:pill|tablet|capsule)s?)?)/i;
     const FREQS = [['Once a day', /\b(once a day|one time a day|daily|every day|once daily)\b/i], ['Twice a day', /\b(twice a day|two times a day|2 times a day|morning and night)\b/i],
       ['3 times a day', /\b(three times a day|3 times a day)\b/i], ['4 times a day', /\b(four times a day|4 times a day)\b/i], ['Only when needed', /\b(when needed|as needed|if needed|when i need)\b/i], ['Once a week', /\b(once a week|weekly|every week)\b/i]];
-    let medsList = [], medDraft = { stage: 'name', name: '', dose: '', freq: '', heard: '', sugg: [] };
-    // ---------- the medicine chart: pictures and numbers read the same in every language ----------
-    const SLOTS = [['am', '☀️', 'Morning', 'Matin'], ['noon', '🌤️', 'Noon', 'Midi'], ['pm', '🌙', 'Evening', 'Soir'], ['bed', '🛏️', 'Bedtime', 'Coucher']];
-    const DEFAULT_SLOTS = { 'Once a day': ['am'], 'Twice a day': ['am', 'pm'], '3 times a day': ['am', 'noon', 'pm'], '4 times a day': ['am', 'noon', 'pm', 'bed'] };
-    const slotsOf = (m) => (Array.isArray(m.times) ? m.times : DEFAULT_SLOTS[m.freq] || []);
-    const doseOf = (m) => (m.dose && !/^(not with me|not sure)$/i.test(m.dose) ? m.dose : '');
-    const freqNote = (m, fr) => (m.freq === 'Only when needed' ? (fr ? 'au besoin' : 'as needed') : m.freq === 'Once a week' ? (fr ? '1 fois par semaine' : 'once a week') : '');
-    // rows for the chart; after the visit, the doctor's changes are applied and flagged
-    function chartRows(after) {
-      const rows = medsList.map((m) => ({ name: m.name, dose: doseOf(m), note: m.freq, on: slotsOf(m), flag: '', guess: !m.timesSet }));
-      if (after) medChanges.forEach((c) => {
-        const key = c.name.toLowerCase().split(/\s+/)[0];
-        let r = rows.find((x) => x.name.toLowerCase().includes(key) || key.includes(x.name.toLowerCase().split(/\s+/)[0]));
-        if (c.change === 'start' || !r) { rows.push({ name: c.name, dose: c.dose, note: c.howOften, on: c.times || [], flag: 'new', guess: !(c.times || []).length }); return; }
-        if (c.change === 'stop') { r.flag = 'stop'; r.on = []; return; }
-        r.flag = 'change'; if (c.dose) r.dose = c.dose; if ((c.times || []).length) { r.on = c.times; r.guess = false; } if (c.howOften) r.note = c.howOften;
-      });
-      return rows;
-    }
+    const blankMed = () => ({ stage: 'name', edit: -1, name: '', amount: '', unit: 'mg', doseNote: '', doses: [], prn: false, food: '', heard: '', sugg: [], add: { n: 1, h: 0, m: 0, ap: 'am' } });
+    let medsList = [], medDraft = blankMed();
+    // ---------- one medicine = name, strength (amount + unit), and its own times of day ----------
+    const FOOD = { with: ['With food', 'Avec de la nourriture'], empty: ['On an empty stomach', 'À jeun'], before: ['30 min before eating', '30 min avant de manger'] };
+    const UNITS = ['mg', 'mcg', 'g', 'mL', 'units', '%', 'drops', 'puffs'];
+    const COUNTS = [0.5, 1, 1.5, 2, 3, 4];
+    const SLOTS = [['am', '☀️', 'Morning', 'Matin'], ['noon', '🌤️', 'Midday', 'Midi'], ['pm', '🌙', 'Evening', 'Soir'], ['bed', '🛏️', 'Bedtime', 'Coucher']];
+    const SLOT_TIME = { am: '08:00', noon: '12:00', pm: '18:00', bed: '22:00' };
+    const slotOfT = (t) => { const h = Number(t.split(':')[0]); return h >= 5 && h < 11 ? 'am' : h >= 11 && h < 17 ? 'noon' : h >= 17 && h < 21 ? 'pm' : 'bed'; };
+    const iconOfT = (t) => SLOTS.find((s) => s[0] === slotOfT(t))[1];
+    const fmtT = (t, fr) => { const [h, m] = t.split(':').map(Number); if (fr) return `${h} h ${String(m).padStart(2, '0')}`; return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
+    const fmtN = (n) => (n === 0.5 ? '½' : n === 1.5 ? '1½' : n === 2.5 ? '2½' : String(n));
+    const countWord = (m, n, fr) => { const u = (m.unit || '').toLowerCase();
+      if (u === 'drops') return fr ? (n > 1 ? 'gouttes' : 'goutte') : (n > 1 ? 'drops' : 'drop'); if (u === 'puffs') return fr ? (n > 1 ? 'inhalations' : 'inhalation') : (n > 1 ? 'puffs' : 'puff');
+      if (u === 'ml') return 'mL'; return fr ? (n > 1 ? 'comprimés' : 'comprimé') : (n > 1 ? 'pills' : 'pill'); };
+    const doseOf = (m) => (m.amount ? `${m.amount} ${m.unit}` : m.dose && !/^(not with me|not sure)$/i.test(m.dose) ? m.dose : '');
+    const sortDoses = (a) => a.slice().sort((x, y) => x.t.localeCompare(y.t));
+    const schedText = (m, fr) => { const d = sortDoses(m.doses || []).map((x) => `${fmtN(x.n)} ${fr ? 'à' : 'at'} ${fmtT(x.t, fr)}`);
+      if (m.prn) d.push(fr ? 'au besoin' : 'when needed');
+      if (m.food) d.push(FOOD[m.food][fr ? 1 : 0].toLowerCase()); if (!d.length && m.freq && m.freq !== 'Not sure') d.push(tr(m.freq).toLowerCase()); return d.join(', '); };
+    // ---------- the medicine chart: a timeline by time of day; pictures and numbers read the same in every language ----------
     function chartPrint(opt) {
       opt = opt || {};
       if (!medsList.length && !(opt.after && medChanges.length)) return '';
-      const fr = lang === 'fr', rows = chartRows(opt.after), unsure = rows.some((r) => r.guess && r.flag !== 'stop');
-      const note = (n) => (n === 'Only when needed' ? (fr ? 'au besoin' : 'as needed') : n === 'Once a week' ? (fr ? '1 fois par semaine' : 'once a week') : /^(once a day|twice a day|3 times a day|4 times a day|not sure)$/i.test(n || '') ? '' : n || '');
-      const FL = { new: fr ? '⚠ Nouveau : à vérifier' : '⚠ New: check this', change: fr ? '⚠ Changé : à vérifier' : '⚠ Changed: check this', stop: fr ? '⚠ Arrêter : à vérifier' : '⚠ Stop: check this' };
-      const b = 'border:1px solid #999;padding:4pt 6pt', th = `style="${b};font-size:10pt;text-align:center"`, td = `style="${b};text-align:center;font-size:12pt"`;
-      const title = opt.title || (fr ? 'Mes médicaments' : 'My medicine chart');
-      return `<h2>${title}</h2><table style="border-collapse:collapse;width:100%"><tr><th style="${b};text-align:left;font-size:10pt">${fr ? 'Médicament' : 'Medicine'}</th>${SLOTS.map(([, e, en, f]) => `<th ${th}>${e}<br>${fr ? f : en}</th>`).join('')}</tr>
-        ${rows.map((r) => `<tr><td style="${b};text-align:left"><b data-notr style="${r.flag === 'stop' ? 'text-decoration:line-through' : ''}">${esc(r.name)}</b>${r.dose ? '<br><span data-notr>' + esc(r.dose) + '</span>' : ''}${note(r.note) ? '<br><i>' + esc(note(r.note)) + '</i>' : ''}${r.flag ? `<br><b style="color:#B45309">${FL[r.flag]}</b>` : ''}</td>${SLOTS.map(([k]) => `<td ${td}>${r.on.includes(k) ? '💊' : ''}</td>`).join('')}</tr>`).join('')}</table>
-        <p class="foot">${opt.after && medChanges.length ? (fr ? 'Les lignes ⚠ viennent de l’enregistrement et peuvent être mal entendues. Vérifiez avec votre médecin ou votre pharmacien avant de changer quoi que ce soit. ' : 'Lines marked ⚠ come from the recording and may be misheard. Check with your doctor or pharmacist before changing how you take anything. ') : ''}${opt.after && !medChanges.length && recapDone ? (fr ? 'Aucun changement de médicament entendu dans l’enregistrement. ' : 'No medicine changes were heard in the recording. ') : ''}${unsure ? (fr ? 'Certaines heures sont estimées. ' : 'Some times are a guess. ') : ''}${opt.doc ? (fr ? 'Heures indiquées par le patient.' : 'Times as given by the patient.') : fr ? 'Vérifiez avec vos étiquettes et votre pharmacien.' : 'Check against your labels and with your pharmacist.'}</p>`;
+      const fr = lang === 'fr', title = opt.title || (fr ? 'Mes médicaments' : 'My medicine chart');
+      const stopped = (m) => opt.after && medChanges.some((c) => c.change === 'stop' && sameMed(c.name, m.name));
+      const byT = {};
+      medsList.forEach((m) => (m.doses || []).forEach((x) => { (byT[x.t] = byT[x.t] || []).push({ m, n: x.n }); }));
+      const b = 'border:1px solid #999;padding:4pt 6pt';
+      const line = (m, n) => `<span style="${stopped(m) ? 'text-decoration:line-through' : ''}"><b data-notr>${esc(m.name)}</b>${doseOf(m) ? ' <span data-notr>' + esc(doseOf(m)) + '</span>' : ''}</span> &nbsp;<b>× ${fmtN(n)}</b> ${countWord(m, n, fr)}${m.food ? ' <i>(' + FOOD[m.food][fr ? 1 : 0].toLowerCase() + ')</i>' : ''}${stopped(m) ? ` <b style="color:#B45309">${fr ? '⚠ Arrêter : à vérifier' : '⚠ Stop: check this'}</b>` : ''}`;
+      const times = Object.keys(byT).sort();
+      let html = `<h2>${title}</h2>`;
+      if (times.length) html += `<table style="border-collapse:collapse;width:100%">${times.map((t) => `<tr><td style="${b};width:1%;white-space:nowrap;font-size:12pt"><span aria-hidden="true">${iconOfT(t)}</span> <b>${fmtT(t, fr)}</b></td><td style="${b}">${byT[t].map((e) => line(e.m, e.n)).join('<br>')}</td></tr>`).join('')}</table>`;
+      const prn = medsList.filter((m) => m.prn), loose = medsList.filter((m) => !(m.doses || []).length && !m.prn);
+      if (prn.length) html += `<p><b>${fr ? 'Au besoin :' : 'When needed:'}</b> ${prn.map((m) => `<span data-notr>${esc(m.name)}</span>${doseOf(m) ? ' ' + esc(doseOf(m)) : ''}`).join(', ')}</p>`;
+      if (loose.length) html += `<p><b>${fr ? 'Heures non indiquées :' : 'Times not given:'}</b> ${loose.map((m) => `<span data-notr>${esc(m.name)}</span>${doseOf(m) ? ' ' + esc(doseOf(m)) : ''}${m.freq && m.freq !== 'Not sure' ? ' (' + esc(tr(m.freq).toLowerCase()) + ')' : ''}`).join(', ')}</p>`;
+      if (opt.after) {
+        const ch = medChanges.filter((c) => c.change !== 'stop');
+        if (ch.length) html += `<p><b style="color:#B45309">${fr ? '⚠ Changements entendus à cette visite : à vérifier' : '⚠ Changes heard at this visit: check these'}</b></p><ul>${ch.map((c) => `<li><b>${c.change === 'start' ? (fr ? 'Nouveau' : 'New') : (fr ? 'Changé' : 'Changed')}:</b> <span data-notr>${esc(c.name)}</span>${c.dose ? ' ' + esc(c.dose) : ''}${c.howOften ? ', ' + esc(c.howOften) : ''}${(c.times || []).length ? ' (' + c.times.map((s) => { const x = SLOTS.find((y) => y[0] === s); return x[1] + ' ' + (fr ? x[3] : x[2]).toLowerCase(); }).join(', ') + ')' : ''}</li>`).join('')}</ul>`;
+      }
+      html += `<p class="foot">${opt.after && medChanges.length ? (fr ? 'Les lignes ⚠ viennent de l’enregistrement et peuvent être mal entendues. Vérifiez avec votre médecin ou votre pharmacien avant de changer quoi que ce soit. ' : 'Lines marked ⚠ come from the recording and may be misheard. Check with your doctor or pharmacist before changing how you take anything. ') : ''}${opt.after && !medChanges.length && recapDone ? (fr ? 'Aucun changement de médicament entendu dans l’enregistrement. ' : 'No medicine changes were heard in the recording. ') : ''}${opt.doc ? (fr ? 'Horaire indiqué par le patient.' : 'Schedule as given by the patient.') : fr ? 'Vérifiez avec vos étiquettes et votre pharmacien.' : 'Check against your labels and with your pharmacist.'}</p>`;
+      return html;
     }
-    const fmtMed = (m) => [m.name, m.dose && !/^(not with me|not sure)$/i.test(m.dose) ? m.dose : '', m.freq && m.freq !== 'Not sure' ? m.freq.toLowerCase() : ''].filter(Boolean).join(' · ');
+    const sameMed = (a, b) => { const k = (x) => lc(x).split(/\s+/)[0]; return lc(a).includes(k(b)) || lc(b).includes(k(a)); };
+    const fmtMed = (m) => [m.name, doseOf(m), schedText(m, false)].filter(Boolean).join(' · ');
     function syncMeds() {
       const st = SID('meds'); st.answer = medsList.length ? medsList.map(fmtMed).join('\n') : (st.none ? 'None' : ''); st.customActive = !!st.answer; saveAll();
     }
-    function medParse(t) {   // "50 milligrams of Sinemet three times a day" -> its parts
-      let rest = ' ' + t + ' ', dose = '', freq = '';
+    // ---------- names: suggestions while typing, so the spelling is right ----------
+    function medSuggest(q) {
+      const h = lc(q).trim(); if (h.length < 2) return [];
+      const seen = new Set(), out = [], push = (i) => { if (!seen.has(i)) { seen.add(i); out.push(MED_VOCAB[i]); } };
+      MED_LC.forEach((m, i) => { if (m.startsWith(h)) push(i); });
+      MED_LC.forEach((m, i) => { if (m.split(/[\s-]+/).some((w) => w.startsWith(h))) push(i); });
+      if (h.length >= 3) { MED_LC.forEach((m, i) => { if (m.includes(h)) push(i); }); medMatches(h).forEach((x) => push(MED_LC.indexOf(lc(x.name)))); }
+      return out.slice(0, 6);
+    }
+    function medParse(t) {   // "50 milligrams of Sinemet" -> its parts
+      let rest = ' ' + t + ' ', dose = '';
       const d = DOSE_RE.exec(rest); if (d) { dose = d[1].replace(/milligrams?/i, 'mg').replace(/micrograms?/i, 'mcg').trim(); rest = rest.replace(d[1], ' '); }
-      for (const [lab, re] of FREQS) if (re.test(rest)) { freq = lab; rest = rest.replace(re, ' '); break; }
       const name = rest.replace(/\b(i take|i'm taking|i am taking|i also take|and|of|the|a|an|my|called|it's|it is|pill|tablet)\b/gi, ' ').replace(/[.,]/g, ' ').replace(/\s+/g, ' ').trim();
-      return { name, dose, freq };
+      return { name, dose };
+    }
+    function splitDose(s) {   // "100/25 mg" -> amount 100/25, unit mg
+      const m = /^\s*(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+(?:[.,]\d+)?)?)\s*([a-zA-Z%]+)?/.exec(s || ''); if (!m) return null;
+      let u = (m[2] || '').toLowerCase(); u = { milligram: 'mg', milligrams: 'mg', microgram: 'mcg', micrograms: 'mcg', ml: 'mL', unit: 'units', drop: 'drops', puff: 'puffs', gram: 'g', grams: 'g' }[u] || u;
+      return { amount: m[1].replace(/\s+/g, ''), unit: UNITS.map(lc).includes(lc(u)) ? UNITS.find((x) => lc(x) === lc(u)) : '' };
     }
     function medSetName(raw) {
       medDraft.heard = raw; const m = medMatches(raw);
       if (m.length && m[0].score === 1) { medDraft.name = m[0].name; medDraft.sugg = []; }
       else { medDraft.name = raw.replace(/^./, (c) => c.toUpperCase()); medDraft.sugg = m.filter((x) => lc(x.name) !== lc(raw)); }
+      medDraft.name = medDraft.name.replace(/^./, (c) => c.toUpperCase());
     }
-    function medAdvance() {   // to the next part that's still missing
-      if (!medDraft.name) medDraft.stage = 'name';
-      else if (!medDraft.dose) medDraft.stage = 'dose';
-      else if (!medDraft.freq) medDraft.stage = 'freq';
-      else { medsList.push({ name: medDraft.name, dose: medDraft.dose, freq: medDraft.freq }); SID('meds').none = false; medDraft = { stage: 'more', name: '', dose: '', freq: '', heard: '', sugg: [] }; }
-      syncMeds(); renderList(); applyLang(); speakStep();
+    function medGo(stage) { medDraft.stage = stage; renderList(); applyLang(); speakStep(); }
+    function medSave() {
+      const d = medDraft, m = { name: d.name, amount: d.amount, unit: d.amount ? d.unit : '', doseNote: d.doseNote, dose: d.amount ? `${d.amount} ${d.unit}` : d.doseNote, doses: sortDoses(d.doses), prn: d.prn, food: d.food };
+      if (d.edit > -1) medsList[d.edit] = m; else medsList.push(m);
+      SID('meds').none = false; SID('meds').fromLast = false; medDraft = blankMed(); medDraft.stage = 'list'; syncMeds(); medGo('list');
+    }
+    function medEdit(i) { const m = medsList[i]; const sd = splitDose(m.dose || '') || {};
+      medDraft = Object.assign(blankMed(), { edit: i, name: m.name, amount: m.amount || sd.amount || '', unit: m.unit || sd.unit || 'mg', doseNote: m.doseNote || (/^(not with me|not sure)$/i.test(m.dose || '') ? m.dose : ''), doses: (m.doses || []).slice(), prn: !!m.prn, food: m.food || '' });
+      if (!medDraft.doses.length && Array.isArray(m.times)) medDraft.doses = m.times.map((s) => ({ t: SLOT_TIME[s], n: 1 }));
+      medGo('name'); }
+    function addPending() {   // the time being built in the schedule step
+      const a = medDraft.add; if (!a.h) return false;
+      const h24 = (a.h % 12) + (a.ap === 'pm' ? 12 : 0), t = `${String(h24).padStart(2, '0')}:${String(a.m).padStart(2, '0')}`;
+      medDraft.doses = medDraft.doses.filter((x) => x.t !== t).concat({ t, n: a.n }); medDraft.add = { n: 1, h: 0, m: 0, ap: a.ap }; return true;
+    }
+    // "2 pills at 6:30, 1 at 11 and 2 at 3 pm" -> times
+    const NUMW = { one: 1, two: 2, three: 3, four: 4, half: 0.5, 'a half': 0.5, 'one and a half': 1.5, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, demi: 0.5 };
+    function parseTimes(t) {
+      const out = [], re = /(\d+(?:\.5)?|½|one and a half|a half|half|one|two|three|four|une?|deux|trois|quatre|demi)?\s*(?:pills?|tablets?|capsules?|comprimés?|puffs?|drops?)?\s*(?:at|à|@)\s*(\d{1,2})(?:[:h ]\s*(\d{2}))?\s*(a\.?m\.?|p\.?m\.?|in the morning|in the afternoon|in the evening|at night|du matin|du soir|de l'après-midi)?/gi;
+      let m; while ((m = re.exec(t))) {
+        let n = m[1] ? (m[1] === '½' ? 0.5 : NUMW[lc(m[1])] || Number(m[1])) : 1; let h = Number(m[2]); const mi = Number(m[3] || 0); const ap = lc(m[4] || '');
+        if (h > 23 || mi > 59) continue;
+        if (/p|afternoon|evening|night|soir|après/.test(ap) && h < 12) h += 12; else if (/a|morning|matin/.test(ap) && h === 12) h = 0;
+        else if (!ap && h >= 1 && h <= 4) h += 12;   // "at 3" for pills almost always means the afternoon
+        out.push({ t: `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`, n: n || 1 });
+      }
+      return out;
     }
     function medTake(text) {   // whatever was said or typed, for the stage we're on
       const t = text.trim(); if (!t) return;
-      if (medDraft.stage === 'name' || medDraft.stage === 'more') {
+      const d = medDraft;
+      if (d.stage === 'name' || d.stage === 'list') {
         const p = medParse(t); if (!p.name && !p.dose) return;
-        medDraft = { stage: 'name', name: '', dose: p.dose, freq: p.freq, heard: '', sugg: [] };
-        if (p.name) medSetName(p.name);
+        if (d.stage === 'list') { medDraft = blankMed(); }
+        if (p.dose) { const sd = splitDose(p.dose); if (sd && sd.unit) { medDraft.amount = sd.amount; medDraft.unit = sd.unit; } }
+        const ts = parseTimes(t); if (ts.length) medDraft.doses = ts;
+        const nm0 = p.name.replace(/\s(at|à|@)\s.*$/i, '').replace(/\b\d.*$/, '').trim(); if (nm0) medSetName(nm0); else if (!medDraft.name) return;
         if (medDraft.sugg.length) { medDraft.stage = 'name'; renderList(); applyLang(); say(L2('Did you mean ', 'Vouliez-vous dire ') + medDraft.sugg[0].name + '?', lang === 'fr'); return; }
-        medAdvance(); return;
+        medGo(medDraft.amount ? 'sched' : 'dose'); return;
       }
-      if (medDraft.stage === 'dose') { const p = medParse(t); medDraft.dose = p.dose || t; if (p.freq) medDraft.freq = p.freq; medAdvance(); return; }
-      if (medDraft.stage === 'freq') { const p = medParse(t); medDraft.freq = p.freq || t; medAdvance(); }
-    }
-    function medChart() {   // after the last medicine, show the chart once so the times can be checked
-      if (!medsList.length || medDraft.stage === 'chart') return false;
-      medDraft.stage = 'chart'; renderList(); applyLang(); speakStep(); return true;
+      if (d.stage === 'dose') { const sd = splitDose(medParse(t).dose || t); if (sd) { d.amount = sd.amount; if (sd.unit) d.unit = sd.unit; } else d.doseNote = t; const ts = parseTimes(t); if (ts.length) d.doses = ts; medGo('sched'); return; }
+      if (d.stage === 'sched') { const ts = parseTimes(t); if (/when needed|as needed|au besoin/i.test(t)) d.prn = true;
+        if (ts.length) { ts.forEach((x) => { d.doses = d.doses.filter((y) => y.t !== x.t).concat(x); }); d.doses = sortDoses(d.doses); renderList(); applyLang(); say(L2('Added. Any other time? Or say done.', 'Ajouté. Une autre heure ? Ou dites terminé.')); } }
     }
     function medNext() {   // Next button / "next": true if it was handled on this page
-      const inp = document.getElementById('medInput'); if (inp && inp.value.trim()) { const v = inp.value; inp.value = ''; medTake(v); return true; }
-      if (medDraft.stage === 'more') return medChart();
-      if (medDraft.stage === 'chart') { medsList.forEach((m) => { if (!Array.isArray(m.times)) m.times = slotsOf(m); m.timesSet = true; }); medDraft.stage = 'more'; syncMeds(); return false; }
-      if (medDraft.stage === 'name' && !medDraft.name) return false;   // nothing typed: move on
-      if (medDraft.stage === 'name') { medAdvance(); return true; }
-      if (medDraft.stage === 'dose') { medDraft.dose = 'Not sure'; medAdvance(); return true; }
-      if (medDraft.stage === 'freq') { medDraft.freq = 'Not sure'; medAdvance(); return true; }
+      const inp = document.getElementById('medInput'), d = medDraft;
+      if (d.stage === 'list') return false;
+      if (d.stage === 'name') { if (inp && inp.value.trim()) { medSetName(inp.value.trim()); if (medDraft.sugg.length) { renderList(); applyLang(); return true; } medGo('dose'); return true; }
+        if (d.name) { medGo('dose'); return true; } if (medsList.length) { medDraft = blankMed(); medGo('list'); return true; } return false; }
+      if (d.stage === 'dose') { const a = document.getElementById('medAmount'); if (a && a.value.trim()) d.amount = a.value.trim().replace(/\s+/g, ''); if (!d.amount && !d.doseNote) d.doseNote = 'Not sure'; medGo('sched'); return true; }
+      if (d.stage === 'sched') { addPending(); medSave(); return true; }
       return false;
     }
     function medHeard(t, low) {
-      const yes = /^(yes|yeah|yep|correct|that's right|right|oui|sí|si|sim)$/.test(low), no = /^(no|nope|non|não)$/.test(low);
-      if (medDraft.sugg.length && medDraft.stage === 'name') {
-        if (yes) { medDraft.name = medDraft.sugg[0].name; medDraft.sugg = []; medAdvance(); return true; }
-        if (no) { medDraft.sugg = []; medAdvance(); return true; }
+      const yes = /^(yes|yeah|yep|correct|that's right|right|oui|sí|si|sim)$/.test(low), no = /^(no|nope|non|não)$/.test(low), d = medDraft;
+      if (d.sugg.length && d.stage === 'name') {
+        if (yes) { d.name = d.sugg[0].name; d.sugg = []; medGo('dose'); return true; }
+        if (no) { d.sugg = []; medGo('dose'); return true; }
       }
-      if (medDraft.stage === 'more') {
-        if (yes || /^(another|one more|add another|yes another)$/.test(low)) { medDraft.stage = 'name'; renderList(); applyLang(); speakStep(); return true; }
-        if (no || /^(that's all|that's it|no more|nothing else|c'est tout)$/.test(low)) { if (!medChart()) goNext(); return true; }
+      if (d.stage === 'list') {
+        if (yes || /^(another|one more|add another|add one|add a medicine)$/.test(low)) { medDraft = blankMed(); medGo('name'); return true; }
+        if (no || /^(that's all|that's it|no more|nothing else|c'est tout)$/.test(low)) { goNext(); return true; }
       }
-      if (medDraft.stage === 'chart') {
-        if (yes || /^(that's right|looks right|that's correct|correct|c'est bon|c'est ça)$/.test(low)) { goNext(); return true; }
-        return false;
-      }
-      if (medDraft.stage === 'name' && !medsList.length && /^(none|no medicines|i don't take any|nothing)$/.test(low)) { SID('meds').none = true; syncMeds(); goNext(); return true; }
-      if (medDraft.stage === 'dose' && /(don't have (it|that|them) with me|not with me|don't know|not sure|i don't know)/.test(low)) { medDraft.dose = /with me/.test(low) ? 'Not with me' : 'Not sure'; medAdvance(); return true; }
+      if (d.stage === 'name' && !medsList.length && /^(none|no medicines|i don't take any|nothing)$/.test(low)) { SID('meds').none = true; syncMeds(); goNext(); return true; }
+      if (d.stage === 'dose' && /(don't have (it|that|them) with me|not with me|don't know|not sure|i don't know)/.test(low)) { d.doseNote = /with me/.test(low) ? 'Not with me' : 'Not sure'; d.amount = ''; medGo('sched'); return true; }
+      if (d.stage === 'sched' && /^(done|that's all|that's it|finished|save|c'est tout|terminé)$/.test(low)) { addPending(); medSave(); return true; }
       if (cmdOf(low) || /^(next|back|go back|repeat|help|stop|pause|wait|undo|erase)\b/.test(low)) return false;
       medTake(t); return true;
     }
     function renderMeds(items, foot) {
-      const $ = (id) => document.getElementById(id), d = medDraft, n = medsList.length;
-      const CH = 'tactile-btn min-h-[52px] px-3 rounded-2xl font-extrabold text-[16px] flex items-center justify-center text-center';
-      const OFF = 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]', ON = 'bg-[#1E2634] text-white';
-      const title = { name: n ? L2('What’s the next medicine?', 'Quel est le prochain médicament ?') : L2('What medicines do you take?', 'Quels médicaments prenez-vous ?'),
-        dose: L2('How much ', 'Quelle dose de ') + d.name + '?', freq: L2('How often do you take ', 'À quelle fréquence prenez-vous ') + d.name + '?',
-        more: L2('Any other medicines or vitamins?', 'D’autres médicaments ou vitamines ?'), chart: L2('When do you take each one?', 'Quand prenez-vous chacun ?') }[d.stage];
-      $('listTitle').textContent = title;
-      $('listHelp').textContent = d.stage === 'more' && SID('meds').fromLast ? L2('These are from your last visit. Remove any you stopped with ✕.', 'Ceux-ci viennent de votre dernière visite. Retirez avec ✕ ceux que vous avez arrêtés.') : { name: L2('One at a time. Say or type the name. Vitamins count too.', 'Un à la fois. Dites ou écrivez le nom. Les vitamines comptent.'),
-        _: 0, dose: L2('For example: 100 mg, or 1 pill.', 'Par exemple : 100 mg, ou 1 comprimé.'), freq: L2('Tap one, or say it.', 'Touchez, ou dites-le.'), more: L2('Say yes or no.', 'Dites oui ou non.'), chart: L2('Tap a box to add or remove 💊, to match your labels. Then tap Next.', 'Touchez une case pour ajouter ou retirer 💊, selon vos étiquettes. Puis touchez Suivant.') }[d.stage];
+      const $ = (id) => document.getElementById(id), d = medDraft, n = medsList.length, fr = lang === 'fr';
+      if (d.stage === 'chart' || d.stage === 'more') d.stage = n ? 'list' : 'name';
+      if (d.stage === 'list' && !n) d.stage = 'name';
+      const CH = 'tactile-btn min-h-[48px] px-2 rounded-2xl font-extrabold text-[16px] flex items-center justify-center text-center';
+      const OFF = 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]', ON = 'bg-[#1E2634] text-white', GO = 'bg-[#3B5E42] text-white';
+      const nm = `<span data-notr>${esc(d.name)}</span>`;
+      $('listTitle').innerHTML = { list: L2('Your medicines', 'Vos médicaments'), name: d.edit > -1 ? L2('Medicine name', 'Nom du médicament') : n ? L2('Add a medicine', 'Ajouter un médicament') : L2('What medicines do you take?', 'Quels médicaments prenez-vous ?'),
+        dose: L2('How strong is each pill of ', 'Quelle est la force de ') + nm + '?', sched: L2('When do you take ', 'Quand prenez-vous ') + nm + '?' }[d.stage];
+      $('listHelp').textContent = { list: SID('meds').fromLast ? L2('From your last visit. Tap one to change it, or ✕ to remove it.', 'De votre dernière visite. Touchez-en un pour le modifier, ou ✕ pour le retirer.') : L2('Tap one to change it. Add vitamins too.', 'Touchez-en un pour le modifier. Ajoutez aussi les vitamines.'),
+        name: L2('Start typing and pick it from the list, or say it.', 'Commencez à écrire et choisissez dans la liste, ou dites-le.'),
+        dose: L2('It’s on the label, for example 100/25 mg. Type the number, then tap the unit.', 'C’est sur l’étiquette, par exemple 100/25 mg. Écrivez le nombre, puis touchez l’unité.'),
+        sched: L2('Add each time, then tap Next.', 'Ajoutez chaque heure, puis Suivant.') }[d.stage];
       $('listCounter').textContent = L2(`${n} added`, `${n} ajouté(s)`);
       let html = '';
-      if (d.stage === 'name' || d.stage === 'dose') {
+      items.style.overflowY = 'auto';
+      if (d.stage === 'list') {
+        html += `<div class="flex flex-col gap-[8px]">${medsList.map((m, i) => `<div class="w-full bg-white border border-[#D6CFC0] rounded-2xl flex items-stretch min-h-[60px]">
+            <button type="button" data-med="edit" data-i="${i}" class="tactile-btn flex-1 min-w-0 text-left pl-3 pr-1 py-2 flex items-center gap-2.5" aria-label="${L2('Change', 'Modifier')} ${esc(m.name)}">
+              <span class="w-8 h-8 rounded-full bg-[#E5EFE7] flex items-center justify-center shrink-0 text-[16px]" aria-hidden="true">💊</span>
+              <span class="min-w-0"><span class="block font-extrabold text-[16px] text-[#1E2634] leading-tight" data-notr>${esc(m.name)}${doseOf(m) ? ' <span class="font-bold text-[#425268]">' + esc(doseOf(m)) + '</span>' : ''}</span>
+              <span class="block text-[13px] font-bold text-[#425268] leading-snug">${esc(schedText(m, fr) || L2('times not given', 'heures non indiquées'))}</span></span>
+              <span class="ml-auto text-[#425268] font-extrabold pr-1" aria-hidden="true">✎</span></button>
+            <button type="button" data-med="del" data-i="${i}" aria-label="${L2('Remove', 'Retirer')} ${esc(m.name)}" class="tactile-btn w-[52px] shrink-0 rounded-r-2xl border-l border-[#E6DFD0] text-[#B84A27] font-extrabold text-xl">✕</button></div>`).join('')}</div>
+          <button type="button" data-med="another" class="${CH} ${GO} w-full mt-1">+ ${L2('Add a medicine', 'Ajouter un médicament')}</button>`;
+      }
+      if (d.stage === 'name') {
         html += `<div class="w-full bg-white border-2 border-[#1E2634] rounded-[18px] p-2 flex items-center gap-2">
-          <input id="medInput" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" value="${esc(d.stage === 'name' ? d.name : '')}" placeholder="${esc(d.stage === 'name' ? L2('Medicine name…', 'Nom du médicament…') : L2('How much…', 'Quelle dose…'))}" class="flex-1 min-w-0 bg-transparent text-[#1E2634] font-extrabold text-[18px] focus:outline-none px-2 min-h-[44px]"></div>`;
+          <input id="medInput" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" value="${esc(d.name)}" placeholder="${esc(L2('Medicine name…', 'Nom du médicament…'))}" class="flex-1 min-w-0 bg-transparent text-[#1E2634] font-extrabold text-[18px] focus:outline-none px-2 min-h-[44px]"></div>
+          <div id="medSugg" class="flex flex-col gap-[6px]" data-notr></div>`;
+        if (d.sugg.length) html += `<p class="text-[13px] font-extrabold text-[#B45309]">${L2('Reid heard', 'Reid a entendu')} “${esc(d.heard)}”. ${L2('Did you mean:', 'Vouliez-vous dire :')}</p>
+          <div class="grid grid-cols-2 gap-[8px]" data-notr>${d.sugg.map((x) => `<button type="button" data-med="pick" data-v="${esc(x.name)}" class="${CH} bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]">${esc(x.name)}</button>`).join('')}<button type="button" data-med="keep" class="${CH} ${OFF}">${L2('Keep', 'Garder')} “${esc(d.heard)}”</button></div>`;
+        else if (!n && d.edit < 0) html += `<button type="button" data-med="none" class="${CH} ${OFF} w-full">${L2('I don’t take any', 'Je n’en prends pas')}</button>`;
       }
-      if (d.stage === 'name' && d.sugg.length) {
-        html += `<p class="text-[13px] font-extrabold text-[#B45309]">${L2('Reid heard', 'Reid a entendu')} “${esc(d.heard)}”. ${L2('Did you mean:', 'Vouliez-vous dire :')}</p>
-          <div class="grid grid-cols-2 gap-[10px]" data-notr>${d.sugg.map((x) => `<button type="button" data-med="pick" data-v="${esc(x.name)}" class="${CH} bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]">${esc(x.name)}</button>`).join('')}<button type="button" data-med="keep" class="${CH} ${OFF}">${L2('Keep', 'Garder')} “${esc(d.heard)}”</button></div>`;
-      } else if (d.stage === 'name' && !n) {
-        html += `<button type="button" data-med="none" class="${CH} ${OFF} w-full">${L2('I don’t take any', 'Je n’en prends pas')}</button>`;
-      } else if (d.stage === 'dose') {
-        html += `<div class="grid grid-cols-2 gap-[10px]"><button type="button" data-med="dose" data-v="Not with me" class="${CH} ${OFF}">${L2('Not with me', 'Pas avec moi')}</button><button type="button" data-med="dose" data-v="Not sure" class="${CH} ${OFF}">${L2('Not sure', 'Pas sûr')}</button></div>`;
-      } else if (d.stage === 'freq') {
-        html += `<div class="grid grid-cols-2 gap-[10px]">${FREQS.map(([f]) => f).concat('Not sure').map((f) => `<button type="button" data-med="freq" data-v="${f}" class="${CH} ${OFF}">${esc(tr(f))}</button>`).join('')}</div>`;
-      } else if (d.stage === 'more') {
-        html += `<div class="flex items-stretch"><button type="button" data-med="another" class="${CH} flex-1 bg-[#3B5E42] text-white">+ ${L2('Yes, add another', 'Oui, un autre')}</button><div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-med="done" class="${CH} flex-1 ${OFF}">${L2('No, that’s all', 'Non, c’est tout')}</button></div>`;
+      if (d.stage === 'dose') {
+        html += `<div class="flex items-stretch gap-[8px]"><div class="flex-1 bg-white border-2 border-[#1E2634] rounded-[18px] px-3 flex items-center">
+            <input id="medAmount" type="text" inputmode="decimal" autocomplete="off" value="${esc(d.amount)}" placeholder="100/25" class="w-full bg-transparent text-[#1E2634] font-extrabold text-[22px] focus:outline-none min-h-[52px]" data-notr></div>
+            <div class="flex items-center px-3 rounded-[18px] bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-[20px] min-w-[72px] justify-center" data-notr>${esc(d.unit)}</div></div>
+          <div class="grid grid-cols-4 gap-[8px]" data-notr>${UNITS.map((u) => `<button type="button" data-med="unit" data-v="${u}" class="${CH} ${u === d.unit ? ON : OFF}">${u}</button>`).join('')}</div>
+          <div class="grid grid-cols-2 gap-[8px]"><button type="button" data-med="dnote" data-v="Not with me" class="${CH} ${OFF}">${L2('Not with me', 'Pas avec moi')}</button><button type="button" data-med="dnote" data-v="Not sure" class="${CH} ${OFF}">${L2('Not sure', 'Pas sûr')}</button></div>`;
       }
-      if (d.stage === 'chart') {
-        const cell = 'tactile-btn w-full h-[48px] rounded-xl text-[22px] flex items-center justify-center';
-        html += `<div class="w-full" data-notr><div class="grid gap-[6px] items-end mb-[6px]" style="grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr))"><span></span>${SLOTS.map(([, e, en, f]) => `<span class="text-center text-[12px] font-extrabold text-[#425268] leading-tight"><span class="block text-[20px]" aria-hidden="true">${e}</span>${esc(lang === 'fr' ? f : tr(en))}</span>`).join('')}</div>
-          ${medsList.map((m, i) => { const on = slotsOf(m), note = freqNote(m, lang === 'fr'); return `<div class="grid gap-[6px] items-center mb-[6px]" style="grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr))">
-            <span class="min-w-0"><span class="block font-extrabold text-[15px] text-[#1E2634] leading-tight truncate">${esc(m.name)}</span><span class="block text-[12px] font-bold text-[#425268] truncate">${esc([doseOf(m), note].filter(Boolean).join(' · '))}</span></span>
-            ${SLOTS.map(([k, , en, f]) => `<button type="button" data-med="slot" data-i="${i}" data-k="${k}" aria-pressed="${on.includes(k)}" aria-label="${esc(m.name)}, ${esc(lang === 'fr' ? f : tr(en))}" class="${cell} ${on.includes(k) ? 'bg-[#E5EFE7] border-2 border-[#3B5E42]' : 'bg-white border border-dashed border-[#B8AE9C]'}">${on.includes(k) ? '💊' : ''}</button>`).join('')}</div>`; }).join('')}</div>`;
-        items.innerHTML = html; foot.innerHTML = ''; items.style.overflowY = 'auto'; return;
+      if (d.stage === 'sched') {
+        const a = d.add, cw = (k) => countWord(d, k, fr);
+        html += d.doses.length ? `<div class="grid grid-cols-2 gap-[6px]">${sortDoses(d.doses).map((x) => `<div class="bg-white border-2 border-[#3B5E42] rounded-xl pl-2 flex items-center gap-1 min-h-[44px]"><span class="text-[15px]" aria-hidden="true">${iconOfT(x.t)}</span><span class="flex-1 font-extrabold text-[15px] text-[#1E2634] leading-tight">${fmtT(x.t, fr)} <span class="text-[#3B5E42]">×${fmtN(x.n)}</span></span><button type="button" data-med="tdel" data-t="${x.t}" aria-label="${L2('Remove', 'Retirer')} ${fmtT(x.t, fr)}" class="tactile-btn w-[40px] h-[44px] text-[#B84A27] font-extrabold text-lg">✕</button></div>`).join('')}</div>` : '';
+        html += `<div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-2 flex flex-col gap-[6px]">
+          <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5">${L2('How many', 'Combien')}</p>
+          <div class="grid grid-cols-6 gap-[6px]">${COUNTS.map((c) => `<button type="button" data-med="cnt" data-v="${c}" class="${CH} !px-0 !min-h-[42px] ${a.n === c ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${fmtN(c)}</button>`).join('')}</div>
+          <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5">${L2('Time', 'Heure')}</p>
+          <div class="grid grid-cols-6 gap-[6px]">${[...Array(12)].map((_, i) => i + 1).map((h) => `<button type="button" data-med="hr" data-v="${h}" class="${CH} !px-0 !min-h-[42px] ${a.h === h ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${h}</button>`).join('')}</div>
+          <div class="grid grid-cols-6 gap-[6px]">${[0, 15, 30, 45].map((mi) => `<button type="button" data-med="mi" data-v="${mi}" class="${CH} !px-0 !min-h-[42px] ${a.m === mi ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">:${String(mi).padStart(2, '0')}</button>`).join('')}${['am', 'pm'].map((p) => `<button type="button" data-med="ap" data-v="${p}" class="${CH} !px-0 !min-h-[42px] ${a.ap === p ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${p.toUpperCase()}</button>`).join('')}</div>
+          <button type="button" data-med="tadd" class="${CH} ${a.h ? GO : 'bg-[#D6CFC0] text-[#425268]'} w-full" ${a.h ? '' : 'aria-disabled="true"'}>+ ${a.h ? `${L2('Add', 'Ajouter')} ${fmtN(a.n)} ${cw(a.n)} ${L2('at', 'à')} ${fmtT(`${String((a.h % 12) + (a.ap === 'pm' ? 12 : 0)).padStart(2, '0')}:${String(a.m).padStart(2, '0')}`, fr)}` : L2('Pick a time first', 'Choisissez d’abord une heure')}</button></div>`;
+        html += `<button type="button" data-med="prn" aria-pressed="${d.prn}" class="${CH} w-full ${d.prn ? ON : OFF}">${d.prn ? '✓ ' : ''}${L2('Also when needed', 'Aussi au besoin')}</button>
+          <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5 mt-1">${L2('With meals? (if the label says)', 'Avec les repas ? (si l’étiquette le dit)')}</p>
+          <div class="grid grid-cols-3 gap-[6px]">${Object.keys(FOOD).map((f) => `<button type="button" data-med="food" data-v="${f}" aria-pressed="${d.food === f}" class="${CH} !min-h-[48px] !text-[14px] leading-tight ${d.food === f ? ON : OFF}">${d.food === f ? '✓ ' : ''}${FOOD[f][fr ? 1 : 0]}</button>`).join('')}</div>`;
       }
-      items.style.overflowY = '';
-      if (n) {
-        html += `<div id="medStack" class="flex flex-col gap-[8px] mt-1" data-notr>${medsList.map((m, i) => `<div class="w-full bg-white border border-[#D6CFC0] rounded-2xl pl-3 pr-1 py-1 flex items-center gap-2 min-h-[52px]">
-            <span class="w-7 h-7 rounded-full bg-[#3B5E42] text-white text-xs font-extrabold flex items-center justify-center shrink-0">💊</span>
-            <span class="flex-1 min-w-0"><span class="block font-extrabold text-[16px] text-[#1E2634] leading-tight truncate">${esc(m.name)}</span><span class="block text-[13px] font-bold text-[#425268] truncate">${esc([m.dose, m.freq].filter((x) => x && x !== 'Not sure').map((x) => tr(x)).join(' · ') || L2('dose and timing not given', 'dose et horaire non donnés'))}</span></span>
-            <button type="button" data-med="del" data-i="${i}" aria-label="${L2('Remove', 'Retirer')} ${esc(m.name)}" class="tactile-btn w-[48px] h-[48px] rounded-xl text-[#B84A27] font-extrabold text-xl shrink-0">✕</button></div>`).reverse().join('')}</div>`;
+      const keep = d.stage === 'sched' ? items.scrollTop : 0;
+      items.innerHTML = html; foot.innerHTML = ''; items.scrollTop = keep;
+      const inp = $('medInput');
+      if (inp) {
+        const box = $('medSugg');
+        const show = () => { const s = medSuggest(inp.value); box.innerHTML = s.map((x) => `<button type="button" data-med="pick" data-v="${esc(x)}" class="tactile-btn min-h-[48px] px-4 rounded-2xl font-extrabold text-[17px] flex items-center text-left bg-white border border-[#D6CFC0] text-[#1E2634] w-full">${esc(x.replace(/^./, (c) => c.toUpperCase()))}</button>`).join(''); };
+        inp.addEventListener('input', show); show();
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); medNext(); } });
       }
-      items.innerHTML = html; foot.innerHTML = '';
-      // show the newest medicines first; older ones fold into "+ N more" if the screen is full
-      const stack = document.getElementById('medStack');
-      if (stack && items.clientHeight) { let hidden = 0; while (stack.children.length > 1 && items.scrollHeight > items.clientHeight + 1) { stack.lastElementChild.remove(); hidden++; }
-        if (hidden) { const more = document.createElement('p'); more.className = 'text-[13px] font-extrabold text-[#425268] px-1'; more.textContent = L2(`+ ${hidden} more on your pages`, `+ ${hidden} autres sur vos pages`); stack.appendChild(more); if (items.scrollHeight > items.clientHeight + 1 && stack.children.length > 2) stack.children[stack.children.length - 2].remove(); } }
-      const inp = document.getElementById('medInput');
-      if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); const v = inp.value; inp.value = ''; medTake(v); } });
+      const am = $('medAmount'); if (am) { am.addEventListener('input', () => { medDraft.amount = am.value.trim().replace(/\s+/g, ''); medDraft.doseNote = ''; }); am.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); medNext(); } }); }
     }
     document.getElementById('listItems').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-med]'); if (!b) return; const k = b.dataset.med;
-      if (k === 'pick') { medDraft.name = b.dataset.v; medDraft.sugg = []; medAdvance(); }
-      if (k === 'keep') { medDraft.sugg = []; medAdvance(); }
+      const b = e.target.closest('[data-med]'); if (!b) return; const k = b.dataset.med, d = medDraft, v = b.dataset.v;
+      const redraw = () => { renderList(); applyLang(); };
+      if (k === 'pick') { d.name = v.replace(/^./, (c) => c.toUpperCase()); d.sugg = []; medGo('dose'); }
+      if (k === 'keep') { d.sugg = []; medGo('dose'); }
       if (k === 'none') { SID('meds').none = true; medsList = []; syncMeds(); goNext(); }
-      if (k === 'dose') { medDraft.dose = b.dataset.v; medAdvance(); }
-      if (k === 'freq') { medDraft.freq = b.dataset.v; medAdvance(); }
-      if (k === 'another') { medDraft.stage = 'name'; renderList(); applyLang(); speakStep(); }
-      if (k === 'done') { if (!medChart()) goNext(); }
-      if (k === 'slot') { const m = medsList[Number(b.dataset.i)], on = slotsOf(m).slice(), j = on.indexOf(b.dataset.k); if (j > -1) on.splice(j, 1); else on.push(b.dataset.k); m.times = SLOTS.map(([x]) => x).filter((x) => on.includes(x)); m.timesSet = true; syncMeds(); renderList(); applyLang(); }
-      if (k === 'del') { medsList.splice(Number(b.dataset.i), 1); syncMeds(); renderList(); applyLang(); }
+      if (k === 'unit') { const a = document.getElementById('medAmount'); if (a) d.amount = a.value.trim().replace(/\s+/g, ''); d.unit = v; redraw(); }
+      if (k === 'dnote') { d.doseNote = v; d.amount = ''; medGo('sched'); }
+      if (k === 'cnt') { d.add.n = Number(v); redraw(); }
+      if (k === 'hr') { d.add.h = Number(v); if (d.add.h >= 1 && d.add.h <= 4 && !d.add.apSet) d.add.ap = 'pm'; if (d.add.h >= 5 && d.add.h <= 11 && !d.add.apSet) d.add.ap = 'am'; if (d.add.h === 12 && !d.add.apSet) d.add.ap = 'pm'; redraw(); }
+      if (k === 'mi') { d.add.m = Number(v); redraw(); }
+      if (k === 'ap') { d.add.ap = v; d.add.apSet = true; redraw(); }
+      if (k === 'tadd') { if (addPending()) { redraw(); say(L2('Added. Add another time, or tap Next.', 'Ajouté. Ajoutez une autre heure, ou touchez Suivant.')); } }
+      if (k === 'tdel') { d.doses = d.doses.filter((x) => x.t !== b.dataset.t); redraw(); }
+      if (k === 'prn') { d.prn = !d.prn; redraw(); }
+      if (k === 'food') { d.food = d.food === v ? '' : v; redraw(); }
+      if (k === 'save') { addPending(); medSave(); }
+      if (k === 'another') { medDraft = blankMed(); medGo('name'); }
+      if (k === 'edit') medEdit(Number(b.dataset.i));
+      if (k === 'del') { const m = medsList[Number(b.dataset.i)]; if (!confirmDel(m)) return; medsList.splice(Number(b.dataset.i), 1); syncMeds(); if (!medsList.length) medDraft = blankMed(); redraw(); }
     });
+    function confirmDel(m) { try { return window.confirm(L2(`Remove ${m.name}?`, `Retirer ${m.name} ?`)); } catch (e) { return true; } }
     // the step itself becomes this staged screen
     SID('meds').mode = 'meds'; LISTMODES.meds = 1;
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null');
-      if (d0 && Array.isArray(d0.medsList)) medsList = d0.medsList.filter((m) => m && m.name);
-      else if (d0 && d0.answers && d0.answers.meds) medsList = qLines(d0.answers.meds).map((x) => ({ name: x, dose: '', freq: '' }));
-      if (medsList.length) medDraft.stage = 'more';
+      if (d0 && Array.isArray(d0.medsList)) medsList = d0.medsList.filter((m) => m && m.name).map((m) => {   // older lists: carry over what's there
+        if (!m.doses && Array.isArray(m.times)) m.doses = m.times.map((s) => ({ t: SLOT_TIME[s], n: 1 }));
+        if (!m.amount && m.dose) { const sd = splitDose(m.dose); if (sd) { m.amount = sd.amount; m.unit = sd.unit || ''; } }
+        if (!m.doses) m.doses = []; if (m.freq === 'Only when needed') m.prn = true; return m; });
+      else if (d0 && d0.answers && d0.answers.meds) medsList = qLines(d0.answers.meds).map((x) => ({ name: x, dose: '', doses: [] }));
+      if (medsList.length) medDraft.stage = 'list';
     } catch (e) { /* start fresh */ }
-
 
     // =====================================================================
     // Consent: nothing personal leaves the device until the person agrees.
@@ -4373,7 +4445,7 @@
       const keptMeds = medsList.slice(), keptConsent = consent;
       resetAllFromSettings(true);
       KEEP.forEach((id) => { const st = SID(id); if (kept[id]) { st.answer = kept[id]; st.customActive = true; st.fromLast = true; } });
-      medsList = keptMeds; medDraft = { stage: medsList.length ? 'more' : 'name', name: '', dose: '', freq: '', heard: '', sugg: [] }; if (medsList.length) SID('meds').fromLast = true; syncMeds();
+      medsList = keptMeds; medDraft = blankMed(); medDraft.stage = medsList.length ? 'list' : 'name'; if (medsList.length) SID('meds').fromLast = true; syncMeds();
       consent = keptConsent; transcript = ''; recapDone = false; medChanges = []; currentIndex = 0; saveAll(); renderCurrentStep();
     }
 
