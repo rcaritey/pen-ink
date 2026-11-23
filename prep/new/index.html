@@ -100,6 +100,19 @@
     .companion-asking .reid-dots { opacity: 1; }
     .companion-asking .reid-pupil { transform: translate(.8px, -1.6px); }
     .companion-asking .reid-face { transform: rotate(-8deg); transition: transform .3s; }
+    /* privacy page: the "scroll down" pill stays at the bottom of the text until the buttons come into view */
+    .cs-hint { position: sticky; bottom: 0; z-index: 10; margin-top: -4px; display: flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: 48px; padding: 0 16px; border-radius: 999px; background: #1E2634; color: #fff; font-weight: 800; font-size: 15px;
+      box-shadow: 0 8px 20px rgba(30,38,52,.25); pointer-events: none; }
+    .cs-hint.hidden { display: none; }
+    #nextNavBtn.next-off { opacity: .5; }
+    /* Next arrow: bold drawn arrow in a soft circle */
+    .arrow-badge { width: 40px; height: 40px; background: rgba(255,255,255,.25); }
+    @keyframes csBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+    .cs-bob { display: inline-block; animation: csBob 1.4s ease-in-out infinite; }
+    @keyframes csFlash { 0%, 100% { background: #1E2634; } 30%, 70% { background: #B84A27; } }
+    .cs-flash { animation: csFlash 1.2s ease-in-out 1; }
+    @media (prefers-reduced-motion: reduce) { .cs-bob, .cs-flash { animation: none; } }
     @media (prefers-reduced-motion: reduce) { .reid-eyes, .reid-talk .reid-beak, .companion-listening .reid-waves { animation: none; } }
     .companion-listening {
       animation: companionPulse 2.2s ease-in-out infinite;
@@ -678,7 +691,7 @@
         onclick="goBack()"
         class="hidden tactile-btn min-h-[56px] px-4 rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-center gap-1.5 shrink-0 hover:bg-[#E6DFD0]"
       >
-        <span>← Back</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg><span>Back</span>
       </button>
 
       <div id="navBuffer" class="hidden w-[18px] shrink-0 dead-zone" aria-hidden="true"></div>
@@ -690,7 +703,7 @@
         class="tactile-btn primary-capsule-btn flex-1 min-h-[56px] pl-5 pr-3 font-extrabold text-[17px] flex items-center justify-between gap-2 min-w-0"
       >
         <span id="nextNavLabel" class="truncate">Get started</span>
-        <span id="nextArrowBadge" class="w-9 h-9 rounded-full bg-white/20 text-white font-extrabold text-lg flex items-center justify-center shrink-0">→</span>
+        <span id="nextArrowBadge" class="arrow-badge rounded-full text-white flex items-center justify-center shrink-0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></span>
       </button>
     </footer>
 
@@ -1567,7 +1580,8 @@
       navBuffer.classList.toggle('hidden', currentIndex === 0);
 
       document.getElementById('nextNavLabel').textContent = step.nextLabel;
-      document.getElementById('nextArrowBadge').textContent = currentIndex === steps.length - 1 ? '↺' : '→';
+      // bold drawn arrows (23 Nov): the thin text arrows looked dated
+      document.getElementById('nextArrowBadge').innerHTML = currentIndex === steps.length - 1 ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>' : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
     }
 
     function renderPresetButtons(step) {
@@ -4554,9 +4568,24 @@
       $('listHelp').textContent = L2('Please read, then choose below.', 'Lisez, puis choisissez plus bas.');
       $('listCounter').classList.add('hidden');
       items.innerHTML = `${privacySummary('data-cs="more"')}
+        <div id="csHint" class="cs-hint${consent || consentSeen ? ' hidden' : ''}" aria-hidden="true"><span>${L2('Scroll down to read, then choose', 'Défilez pour lire, puis choisissez')}</span><span class="cs-bob text-lg">↓</span></div>
         <button type="button" data-cs="yes" class="tactile-btn w-full min-h-[58px] rounded-[18px] ${ok ? 'bg-[#3B5E42]' : 'bg-[#1E2634]'} text-white font-extrabold text-lg">${ok ? '✓ ' : ''}${L2('I agree', 'J’accepte')}</button>
         <button type="button" data-cs="no" class="tactile-btn w-full min-h-[54px] rounded-[18px] ${no ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-[15px]">${no ? '✓ ' : ''}${L2('No thanks: I’ll type, nothing is sent', 'Non merci : j’écris, rien n’est envoyé')}</button>`;
       items.classList.add('overflow-y-auto'); foot.innerHTML = '';
+      // Next only works once they've scrolled down to the I agree / No thanks buttons (Rama, 23 Nov)
+      items.onscroll = consentCheckSeen; requestAnimationFrame(consentCheckSeen); dimNext(steps[currentIndex]);
+    }
+    var consentSeen = false;
+    function consentCheckSeen() {
+      if (steps[currentIndex].mode !== 'consent') return;
+      const items = document.getElementById('listItems'), y = items.querySelector('[data-cs="yes"]'); if (!y) return;
+      const r = y.getBoundingClientRect(), c = items.getBoundingClientRect();
+      if (r.top < c.bottom - 8) { consentSeen = true; const h = document.getElementById('csHint'); if (h) h.classList.add('hidden'); }
+    }
+    // the Next button looks switched off on the privacy page until they choose
+    function dimNext(step) {
+      const nb = document.getElementById('nextNavBtn'), off = step && step.mode === 'consent' && !consent;
+      nb.classList.toggle('next-off', !!off); nb.setAttribute('aria-disabled', off ? 'true' : 'false');
     }
     document.getElementById('listItems').addEventListener('click', (e) => {
       const b = e.target.closest('[data-cs]'); if (!b) return; ensureCtx();
@@ -4827,7 +4856,7 @@
       if (LISTMODES[step.mode]) renderList();
       if (step.mode === 'ideas' || step.id === 'ask') { fetchClaudeQuestions(); refillIdeas(); }   // start early so they're ready when the suggestions screen opens
       if (step.id === 'recap') recapFromRecording();
-      placeHearBtn(step); placePicker(step); if (typeof renderSide === 'function') renderSide();
+      placeHearBtn(step); placePicker(step); if (typeof renderSide === 'function') renderSide(); dimNext(step);
       if (step.mode === 'landing') stopRec();
       // the Next button just says Next, so it is never cut off
       const nl = document.getElementById('nextNavLabel');
@@ -4846,7 +4875,16 @@
       try {
         const step = steps[currentIndex];
         if (step.mode === 'voice') { saveCurrentStepState(); if (await vagueCheck(step)) return; }
-        if (step.mode === 'consent' && !consent) { const m = L2('Please tap I agree, or No thanks.', 'Touchez J’accepte, ou Non merci.'); showToast(m); say(m); return; }
+        if (step.mode === 'consent' && !consent) {
+          consentCheckSeen();
+          const m = consentSeen ? L2('Please tap I agree, or No thanks.', 'Touchez J’accepte, ou Non merci.')
+            : L2('Please scroll down and read about your privacy first. Then tap I agree, or No thanks.', 'Faites d’abord défiler pour lire sur votre vie privée. Puis touchez J’accepte, ou Non merci.');
+          showToast(m); say(m);
+          const items = document.getElementById('listItems'), h = document.getElementById('csHint');
+          if (!consentSeen) { items.scrollBy({ top: 140, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); if (h) { h.classList.remove('cs-flash'); void h.offsetWidth; h.classList.add('cs-flash'); } }
+          else { const y = items.querySelector('[data-cs="yes"]'); if (y) y.focus(); }
+          return;
+        }
         if (step.mode === 'meds' && medNext()) return;
         if (step.id === 'detail') await detailNext(step);
         if (step.mode === 'priority' && chosen().length && !qPrio.length && !prioWarned) {
