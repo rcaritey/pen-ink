@@ -2527,7 +2527,7 @@
     const PACKS = {}, packWait = {};
     function loadPack(c) {
       if (PACKS[c]) return Promise.resolve(PACKS[c]);
-      if (!packWait[c]) packWait[c] = fetch('i18n/' + c + '.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
+      if (!packWait[c]) packWait[c] = fetch(c + '.json', { cache: 'no-cache' }).then((r) => (r.ok ? r : fetch('i18n/' + c + '.json', { cache: 'no-cache' }))).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
         .then((d) => { PACKS[c] = (d && d.strings) || {}; if (c === lang) { Object.assign(uic(), PACKS[c]); } return PACKS[c]; });
       return packWait[c];
     }
