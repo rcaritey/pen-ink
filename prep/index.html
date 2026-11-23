@@ -764,6 +764,62 @@ dialog.doc-full .sheet { font-size: 1.15rem; }
 .reid-think small { display: block; font-size: .85rem; font-weight: 700; color: var(--muted); }
 .reid-think:empty { display: none; }
 body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
+/* ===== Tablets and computers (23 Nov) =====
+   Phones: unchanged. Tablets held upright: one wider column instead of a phone-sized one.
+   Tablets on their side and computers: the questions on the left, and on the right the pages
+   themselves, filling in as the person answers. The pages screens use the full width instead. */
+/* fixes seen on every screen size: Reid's line sat in a narrow column of its own and ran into the name
+   (".reid" was forced to inline-flex, so the header grid never saw the face and the line), and the three
+   progress bars were drawn zero pixels wide */
+body .appbar .reid { display: contents !important; }
+.ph { align-items: stretch; }
+.ph-bar { width: 100%; }
+.live { display: none; }
+@media (min-width: 520px) {
+  /* the column is never wider than 600px now, so medicines use the roomy phone layout: name on its own line */
+  .med { grid-template-columns: 1fr 1fr; } .med .field:first-child { grid-column: 1 / -1; }
+  body { max-width: min(600px, 94vw); }
+  .vdock, body.voice-mode .vb-panel { width: calc(min(600px, 94vw) - 6px); }
+}
+@media (min-width: 960px) {
+  :root { --app-w: clamp(460px, 38vw, 540px); --pane-gap: 24px;
+    --live-w: min(calc(100vw - var(--app-w) - var(--pane-gap) - 56px), 880px);
+    --pane-left: max(24px, calc((100vw - var(--app-w) - var(--pane-gap) - var(--live-w)) / 2)); }
+  body.has-live { max-width: var(--app-w); margin: 2vh 0 2vh var(--pane-left); }
+  body.has-live .vdock, body.has-live.voice-mode .vb-panel { left: calc(var(--pane-left) + 3px); width: calc(var(--app-w) - 6px); transform: none; }
+  body.wide-page { max-width: min(940px, 94vw); }
+  body.wide-page .vdock, body.wide-page.voice-mode .vb-panel { width: calc(min(940px, 94vw) - 6px); }
+  body.has-live .live:not([hidden]) { display: flex; }
+  .live { position: fixed; top: 2vh; height: 96vh; left: calc(var(--pane-left) + var(--app-w) + var(--pane-gap)); width: var(--live-w);
+    flex-direction: column; gap: 12px; padding: 18px 20px 14px; box-sizing: border-box; background: var(--bg); color: var(--ink);
+    border: 3px solid var(--ink); border-radius: 36px; box-shadow: 0 20px 60px rgba(30,38,52,.18); z-index: 30; }
+}
+.live-head { display: flex; align-items: center; gap: 12px; }
+.live-head h2 { margin: 0; font-family: var(--body); font-size: 1.5rem; letter-spacing: -.02em; }
+.live-sub { margin: 2px 0 0; font-weight: 700; color: #3B5E42; font-size: 1rem; }
+.live-dot { flex: none; margin-left: auto; width: 14px; height: 14px; border-radius: 50%; background: #C9C1B2; transition: background .4s; }
+.live-dot.on { background: #3B5E42; box-shadow: 0 0 0 0 rgba(59,94,66,.45); animation: reidPulse 1.6s ease-out 1; }
+.live-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
+.live-tabs button { font: inherit; font-weight: 700; font-size: 1rem; min-height: 48px; padding: 6px 16px; border-radius: 14px; cursor: pointer;
+  background: var(--stone); color: var(--ink); border: 2px solid var(--line); }
+.live-tabs button:hover { border-color: var(--ink); }
+.live-tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.live-tabs button[aria-selected="true"]::before { content: "\2713  "; }
+.live-tabs button[hidden] { display: none; }
+.live-paper { flex: 1; min-height: 0; overflow-y: auto; background: var(--stone); border-radius: 20px; padding: 18px; }
+.live-paper:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.live .sheet { font-size: 15px; padding: 28px 30px; max-width: 8.5in; aspect-ratio: 8.5 / 11; border: 0; border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(30,38,52,.10); }
+.live .sheet h2 { font-size: 1.3rem; }
+.live .sheet section { border-radius: 6px; }
+.live .sheet section.lv-new { animation: lvFlash 2.6s ease-out 1; }
+@keyframes lvFlash { 0%, 35% { background: #E5EFE7; box-shadow: 0 0 0 8px #E5EFE7; } 100% { background: transparent; box-shadow: 0 0 0 8px transparent; } }
+.live-foot { margin: 0; font-size: .95rem; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) {
+  .live .sheet section.lv-new { animation: none; background: #E5EFE7; box-shadow: 0 0 0 8px #E5EFE7; }
+  .live-dot.on { animation: none; }
+}
+@media print { .live { display: none !important; } }
 </style>
 </head>
 <body>
@@ -1528,6 +1584,27 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   </nav>
 </main>
 
+<!-- Tablets on their side and computers: the pages, filling in beside the questions -->
+<aside class="live no-print" id="live" aria-labelledby="live-h" hidden>
+  <div class="live-head" data-notr>
+    <div>
+      <h2 id="live-h">Your pages</h2>
+      <p class="live-sub" id="live-sub">They fill in as you answer.</p>
+    </div>
+    <span class="live-dot" id="live-dot" aria-hidden="true"></span>
+  </div>
+  <div class="live-tabs" role="tablist" aria-labelledby="live-h" data-notr>
+    <button type="button" role="tab" id="lt-r" aria-selected="false" aria-controls="live-paper" hidden>Recap</button>
+    <button type="button" role="tab" id="lt-d" aria-selected="true" aria-controls="live-paper">For the doctor</button>
+    <button type="button" role="tab" id="lt-p" aria-selected="false" aria-controls="live-paper">My page</button>
+    <button type="button" role="tab" id="lt-c" aria-selected="false" aria-controls="live-paper">For caregivers</button>
+  </div>
+  <div class="live-paper" id="live-paper" role="tabpanel" tabindex="0" aria-labelledby="live-h">
+    <div class="sheet" id="live-sheet"></div>
+  </div>
+  <p class="live-foot" id="live-foot" data-notr>A preview. You'll check everything before you print or send.</p>
+</aside>
+
 <footer class="foot">
   <span>Made by <a href="https://www.pen-ink.ca/">Pen &amp; Ink</a></span>
   <button type="button" class="btn link" data-open-how>How this works</button>
@@ -1789,6 +1866,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     el.textContent = state === "ok" ? "Saved on this device" : state === "warn" ? "Not saved. Download a copy before you close this page." : state === "saving" ? "Saving…" : "";
   }
   function save() {
+    if (typeof liveSoon === "function") liveSoon();
     clearTimeout(saveTimer);
     setSaved("saving");
     saveTimer = setTimeout(() => {
@@ -2819,6 +2897,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     return step;
   }
   function show(step) {
+    liveSoon(true);
     if (Rec && Rec.on && STEPS[step] && STEPS[step].sec !== "room") recStop();
     step = skipSame(step);
     // arriving at "What matters most?" from the steps before: start with nothing ticked except the questions
@@ -2849,8 +2928,8 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   function pageEmpty(el) { return [...el.querySelectorAll("input[type=text], input[type=date], input[type=time], select.time-pick, textarea")].every(f => !f.value.trim()); }
   function nextLabel() {
     const s = STEPS[S.step]; if (!s) return;
-    const nxt = STEPS[step + 1], fr0 = S.lang === "fr";
-    $("next").textContent = s.next || (s.skip && pageEmpty(screens[s.id]) ? (fr0 ? "Passer" : "Skip") : (fr0 ? "Suivant" : "Next")); void nxt;
+    const fr0 = S.lang === "fr";
+    $("next").textContent = s.next || (s.skip && pageEmpty(screens[s.id]) ? (fr0 ? "Passer" : "Skip") : (fr0 ? "Suivant" : "Next"));
   }
   document.querySelector("main").addEventListener("input", () => nextLabel());
   function renderHere(s) {
@@ -4616,9 +4695,9 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
       return false;
     } finally { tidyBusy = false; }
   }
-  function buildSheets() {
-    setTimeout(() => loadPdfLib().catch(() => {}), 500);   // ready before a Print tap, so the share menu still opens
-    tidyMeds();
+  // live = the side preview on wide screens: never tidies the medicines list while someone is still typing in it
+  function buildSheets(live) {
+    if (!live) { setTimeout(() => loadPdfLib().catch(() => {}), 500); tidyMeds(); }   // PDF tool ready before a Print tap, so the share menu still opens
     const D = x => S.lang === "fr" ? tr(x, S.docLang) : tidyT(x), P = x => S.lang === "fr" ? tr(x, S.lang) : tidyT(x);
     const B = x => S.lang === "fr" ? tr(x, S.lang) : tidyB(x);
     const both = x => { const d = D(x), p = P(x); return d === p ? esc(d) : `${esc(d)}<span class="tr-line">${esc(p)}</span>`; };
@@ -4734,6 +4813,79 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
     buildSheets(); sendPdf(sheets, pdfName("pages"), !$("s-sheets").hidden ? "sheet-status" : "mic-msg");
   }
   $("print-all").addEventListener("click", printAll);
+
+  // ---------- the pages beside the questions (tablets on their side, computers) ----------
+  // Rebuilt a moment after every saved change. Sections that changed glow green for a moment,
+  // and the preview scrolls to the first one, so people see their answer land on the page.
+  // (var, not let: save() can run before this part of the script has been reached)
+  var liveTimer = null, liveTab = "d", liveSec = "", livePrev = {}, liveMq = null;
+  function liveSoon(now) { clearTimeout(liveTimer); liveTimer = setTimeout(liveRefresh, now ? 0 : 250); }
+  const LIVE_SRC = { r: "sheet-r", d: "sheet-d", p: "sheet-p", c: "sheet-c" };
+  const LIVE_FULL = ["sheets", "share"];   // these steps already show the whole page
+  function liveParts(html) {
+    const t = document.createElement("template"); t.innerHTML = html;
+    const out = {};
+    t.content.querySelectorAll("section").forEach((sec, i) => { const h = sec.querySelector("h3"); out[(h ? h.textContent : "") + "|" + i] = sec.textContent.replace(/\s+/g, " ").trim(); });
+    return out;
+  }
+  function liveLabels() {
+    const fr = S.lang === "fr";
+    $("live-h").textContent = fr ? "Vos pages" : "Your pages";
+    $("live-sub").textContent = fr ? "Elles se remplissent pendant que vous répondez." : "They fill in as you answer.";
+    $("lt-r").textContent = fr ? "Résumé" : "Recap";
+    $("lt-d").textContent = fr ? "Pour le médecin" : "For the doctor";
+    $("lt-p").textContent = fr ? "Ma page" : "My page";
+    $("lt-c").textContent = fr ? "Pour les aidants" : "For caregivers";
+    $("live-foot").textContent = fr ? "Un aperçu. Vous vérifierez tout avant d'imprimer ou d'envoyer." : "A preview. You'll check everything before you print or send.";
+  }
+  function liveRefresh() {
+    if (!liveMq) { liveMq = matchMedia("(min-width: 960px)"); liveMq.addEventListener("change", liveSoon); }
+    const st = STEPS[S.step], inSteps = document.body.classList.contains("in-steps") && !!st;
+    const full = inSteps && LIVE_FULL.includes(st.id), want = liveMq.matches && inSteps && !full;
+    document.body.classList.toggle("has-live", want);
+    document.body.classList.toggle("wide-page", liveMq.matches && full);
+    $("live").hidden = !want;
+    if (!want) return;
+    // after the visit the recap leads; before it, the doctor's page
+    if (st.sec !== liveSec) { liveTab = st.sec === "after" ? "r" : (liveTab === "r" ? "d" : liveTab); liveSec = st.sec; }
+    $("lt-r").hidden = st.sec !== "after";
+    liveLabels();
+    ["r", "d", "p", "c"].forEach(k => { const b = $("lt-" + k); b.setAttribute("aria-selected", k === liveTab); b.tabIndex = k === liveTab ? 0 : -1; });
+    try { if (liveTab === "r") { if (!recapEditing) buildRecap(); } else buildSheets(true); }
+    catch (err) { console.warn("Page preview", err); return; }
+    const html = $(LIVE_SRC[liveTab]).innerHTML, el = $("live-sheet");
+    const now = liveParts(html), was = livePrev[liveTab];
+    livePrev[liveTab] = now;
+    if (el.dataset.tab === liveTab && el.dataset.src === html) return;
+    const same = el.dataset.tab === liveTab;
+    el.dataset.tab = liveTab; el.dataset.src = html;
+    if (liveTab === "d") el.setAttribute("data-doc", ""); else el.removeAttribute("data-doc");
+    el.innerHTML = html;
+    if (!same || !was) return;
+    // which sections changed since the last look at this page
+    const secs = [...el.querySelectorAll("section")];
+    const changed = secs.filter((sec, i) => { const h = sec.querySelector("h3"), k = (h ? h.textContent : "") + "|" + i; return k in now && was[k] !== now[k]; });
+    if (!changed.length) return;
+    changed.forEach(sec => sec.classList.add("lv-new"));
+    setTimeout(() => changed.forEach(sec => sec.classList.remove("lv-new")), 2700);
+    const paper = $("live-paper"), r = changed[0].getBoundingClientRect(), pr = paper.getBoundingClientRect();
+    if (r.top < pr.top + 20 || r.bottom > pr.bottom - 20) {
+      const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      paper.scrollTo({ top: paper.scrollTop + r.top - pr.top - 40, behavior: calm ? "auto" : "smooth" });
+    }
+    const dot = $("live-dot"); dot.classList.remove("on"); void dot.offsetWidth; dot.classList.add("on");
+    setTimeout(() => dot.classList.remove("on"), 1700);
+  }
+  const liveTabs = ["r", "d", "p", "c"];
+  liveTabs.forEach(k => {
+    $("lt-" + k).addEventListener("click", () => { liveTab = k; $("live-paper").scrollTop = 0; liveRefresh(); });
+    $("lt-" + k).addEventListener("keydown", e => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      const shown = liveTabs.filter(x => !$("lt-" + x).hidden), i = shown.indexOf(k);
+      const n = shown[(i + (e.key === "ArrowRight" ? 1 : shown.length - 1)) % shown.length];
+      liveTab = n; $("live-paper").scrollTop = 0; liveRefresh(); $("lt-" + n).focus();
+    });
+  });
   $("foot-pages").addEventListener("click", () => {
     if (!S.purpose.trim()) { $("mic-msg").textContent = "Your pages are made at the end of Appointment prep. Answer the first few questions to get them."; return; }
     printAll();
@@ -6053,7 +6205,7 @@ body.in-steps.voice-mode .appbar .brand > span[aria-hidden] { display: none; }
   }
   let uiBusy = false;
   const uiSkip = el => !el || el.closest("script, style, svg, textarea, [contenteditable], [data-notr]") || el.closest("[lang]") !== document.documentElement;
-  const uiWant = el => (el.closest("#sheet-d") ? S.docLang : S.lang) === "fr";
+  const uiWant = el => (el.closest("#sheet-d, [data-doc]") ? S.docLang : S.lang) === "fr";
   function uiNode(n) {
     const el = n.parentElement; if (uiSkip(el)) return;
     if (n._fr !== undefined && n.nodeValue !== n._fr) { n._en = undefined; n._fr = undefined; }
