@@ -959,7 +959,7 @@
       aria-labelledby="fullDocTitle"
     >
       <div class="flex items-center justify-between">
-        <span class="text-xs font-extrabold uppercase tracking-wider text-[#3B5E42]">Doctor View · Large Print</span>
+        <span id="pageViewLabel" class="text-xs font-extrabold uppercase tracking-wider text-[#3B5E42]">Doctor View · Large Print</span>
         <button
           type="button"
           onclick="closeModal('fullDoctorModal')"
@@ -994,7 +994,7 @@
       </div>
 
       <p class="text-center text-sm font-extrabold text-[#425268]">
-        Hand your phone to the doctor to read.
+        <span id="pageViewFoot">Hand your phone to the doctor to read.</span>
       </p>
     </div>
 
@@ -2871,6 +2871,8 @@
       if (typeof recAskHeard === 'function' && recAskHeard(t.toLowerCase().replace(/[.!,。！，？、؟،]/g, '').trim())) return;
       const step = steps[currentIndex]; if (!step || step.mode === 'landing') return;
       const low = t.toLowerCase().replace(/[.!,。！，？、؟،]/g, '').trim();
+      if (step.mode === 'ready' && /\b(print|imprime[rz]?)\b/.test(low)) { printPages('doctor'); return; }
+      if (step.mode === 'ready' && /\b(send|share|envoie[rz]?)\b/.test(low)) { sendPages(); return; }
       if (step.mode === 'ideas' && curIdea() !== undefined) {
         if (/^(yes|yeah|yep|sure|ok|okay|add it|yes please|oui|ajoute|sí|si|sì|sim|da|tak|так|да|네|vâng|có|haan|ہاں|بله|نعم|是|好|係)$/.test(low)) { decideIdea('yes'); return; }
         if (/^(no|nope|skip|no thanks|pass|non|passer|não|nie|нет|ні|아니|không|nahin|نہیں|نه|لا|不|不要|唔要)$/.test(low)) { decideIdea('no'); return; }
@@ -3488,7 +3490,7 @@
     // then check everything.
     // =====================================================================
     var qPicked = [], qPrio = [], detailQs = [], qPage = 0, vPage = 0, qAdding = false, prioWarned = false, aiLoading = false, returnTo = null, lastListStep = '', qShown = [];
-    const QP = () => (isMT() ? 3 : 4), LISTMODES = { ideas: 1, priority: 1, review: 1 };
+    const QP = () => (isMT() ? 3 : 4), LISTMODES = { ideas: 1, priority: 1, review: 1, ready: 1 };
     const L2 = (en, f) => lang === 'fr' ? f : en;
     const lc = (t) => String(t || '').trim().toLowerCase();
     const NONE = /^(none( yet)?|no,? that'?s all|nothing|no|aucune?( pour l.instant)?|non,? c.est tout|rien)\.?$/i;
@@ -3549,7 +3551,8 @@
       { id: 'ideasmore', topic: 'Anything else', question: "Anything else you'd like to ask?", helperText: 'One question per line. If not, tap Next.',
         presets: ["No, that's all"], lines: true, big: true, defaultPlaceholder: 'One question per line...', customPlaceholder: 'One question per line...' },
       { id: 'priority', mode: 'priority', topic: 'What matters most', question: 'Which questions matter most?' },
-      { id: 'review', mode: 'review', topic: 'Check everything', question: 'Check everything' }
+      { id: 'review', mode: 'review', topic: 'Check everything', question: 'Check everything' },
+      { id: 'ready', mode: 'ready', topic: 'Your pages', question: 'Your pages are ready' }
     ].map((e) => Object.assign({ phaseIndex: 0, mode: 'voice', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] }, e));
     steps.splice(steps.findIndex((x) => x.id === 'allergies') + 1, 0, ...QSTEPS.filter((x) => x.id !== 'ideasmore'));
 
@@ -3684,6 +3687,60 @@
       for (const f of steps2) { f(); if (!over()) return; }
       items.classList.add('overflow-y-auto');   // last resort: it scrolls, nothing is cut off
     }
+    // ---------- end of preparing: the pages, ready to print, save or send, and every part can be changed ----------
+    function renderReady(items, foot) {
+      const $ = (id) => document.getElementById(id), fr = lang === 'fr';
+      $('listTitle').textContent = L2('Your pages are ready', 'Vos pages sont prêtes');
+      $('listHelp').textContent = L2('Bring them to your appointment, or show them on your phone. Tap ✎ to change anything.', 'Apportez-les au rendez-vous, ou montrez-les sur votre téléphone. Touchez ✎ pour changer quoi que ce soit.');
+      $('listCounter').classList.add('hidden');
+      const short = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+      const row = (id, label, val) => `<button type="button" data-jump="${id}" class="tactile-btn w-full min-h-[48px] px-3 py-1.5 rounded-xl bg-white border border-[#E6DFD0] flex items-center gap-2 text-left">
+          <span class="flex-1 min-w-0"><span class="block text-[11px] font-extrabold uppercase tracking-wide text-[#425268]">${esc(label)}</span><span class="block text-[14px] font-bold text-[#1E2634] truncate" data-notr>${esc(short(val, 60) || L2('Not given', 'Non indiqué'))}</span></span>
+          <span class="text-[#3B5E42] font-extrabold text-[15px] shrink-0">✎ ${L2('Change', 'Modifier')}</span></button>`;
+      const qs = chosen();
+      const card = (title, icon, view, rows) => `<div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-2.5 flex flex-col gap-[6px]">
+          <div class="flex items-center justify-between gap-2 px-1"><span class="font-extrabold text-[16px] text-[#1E2634]"><span aria-hidden="true">${icon}</span> ${title}</span>
+          <button type="button" data-ready="${view}" class="tactile-btn min-h-[40px] px-3 rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[13px]">${L2('See it', 'Voir')} ›</button></div>${rows}</div>`;
+      items.classList.add('overflow-y-auto');
+      items.innerHTML = `<div class="grid grid-cols-3 gap-[8px]">
+          <button type="button" data-ready="print" class="tactile-btn min-h-[64px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-[14px] flex flex-col items-center justify-center leading-tight"><span class="text-[20px]" aria-hidden="true">🖨</span>${L2('Print', 'Imprimer')}</button>
+          <button type="button" data-ready="pdf" class="tactile-btn min-h-[64px] rounded-2xl bg-[#3B5E42] text-white font-extrabold text-[14px] flex flex-col items-center justify-center leading-tight"><span class="text-[20px]" aria-hidden="true">📄</span>${L2('Save PDF', 'PDF')}</button>
+          <button type="button" data-ready="send" class="tactile-btn min-h-[64px] rounded-2xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-[14px] flex flex-col items-center justify-center leading-tight"><span class="text-[20px]" aria-hidden="true">✉️</span>${L2('Send', 'Envoyer')}</button></div>
+        ${card(L2("Doctor's page", 'Page du médecin'), '🩺', 'doc',
+          row('concerns', L2('Why I’m here', 'Pourquoi je viens'), SID('concerns').answer)
+          + row('meds', L2('Medicines', 'Médicaments'), medsList.length ? medsList.map((m) => m.name).join(', ') : SID('meds').answer)
+          + row('allergies', L2('Allergies', 'Allergies'), SID('allergies').answer)
+          + row('conditions', L2('Conditions', 'Problèmes de santé'), SID('conditions').answer))}
+        ${card(L2('My page', 'Ma page'), '📝', 'mine',
+          row('priority', L2('My questions', 'Mes questions'), qs.length ? `${qs.length} · ` + qs[0] : '')
+          + row('meds', L2('Medicine chart', 'Tableau des médicaments'), medsList.length ? L2(`${medsList.length} medicines, by time of day`, `${medsList.length} médicaments, par heure`) : '')
+          + row('day', L2('Appointment', 'Rendez-vous'), [SID('day').answer, SID('time').answer, SID('where').answer].filter(Boolean).join(' · ')))}`;
+      foot.innerHTML = '';
+    }
+    async function sendPages() {
+      const tmp = document.createElement('div'); tmp.innerHTML = doctorPage() + patientPage();
+      const text = tmp.innerText.replace(/\n{3,}/g, '\n\n').trim(), title = L2('My pages for the doctor', 'Mes pages pour le médecin');
+      if (navigator.share) navigator.share({ title, text }).catch(() => {});
+      else location.href = 'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(text);
+    }
+    function showPage(which) {
+      const box = document.querySelector('#fullDoctorModal .space-y-3');
+      const html = which === 'mine' ? patientPage() : doctorPage();
+      box.innerHTML = `<div style="font-size:1.05rem;line-height:1.5">${html.replace(/<h2>/g, '<h2 style="font-weight:800;margin:14px 0 4px;text-transform:uppercase;font-size:.85rem;letter-spacing:.06em;color:#425268">').replace('<h1>', '<h1 style="font-size:1.4rem;font-weight:800">')}</div>`;
+      box.style.overflowY = 'auto'; box.style.maxHeight = '80vh';
+      const lab = document.getElementById('pageViewLabel'), ft = document.getElementById('pageViewFoot');
+      if (lab) lab.textContent = which === 'mine' ? L2('My page · Large print', 'Ma page · Gros caractères') : 'Doctor View · Large Print';
+      if (ft) ft.style.visibility = which === 'mine' ? 'hidden' : '';
+      openModal('fullDoctorModal'); applyLang(box);
+    }
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-ready]'); if (!b) return;
+      const k = b.dataset.ready;
+      if (k === 'print') printPages('doctor');
+      if (k === 'pdf') { const m = L2('In the print window, choose Save as PDF (on iPhone: tap Share, then Save to Files).', 'Dans la fenêtre d’impression, choisissez Enregistrer en PDF (sur iPhone : Partager, puis Enregistrer dans Fichiers).'); showToast(m); say(m); setTimeout(() => printPages('doctor'), 1800); }
+      if (k === 'send') sendPages();
+      if (k === 'doc' || k === 'mine') showPage(k);
+    });
     function renderList() {
       const step = steps[currentIndex], $ = (id) => document.getElementById(id);
       const items = $('listItems'), foot = $('listFoot');
@@ -3691,13 +3748,14 @@
       document.getElementById('listItems').classList.remove('overflow-y-auto');
       if (step.mode === 'consent') { renderConsent(items, foot); return; }
       if (step.mode === 'setup') { renderSetup(items, foot); return; }
+      if (step.mode === 'ready') { renderReady(items, foot); return; }
       if (step.mode === 'meds') { renderMeds(items, foot); return; }
       if (step.mode === 'ideas') {
         const pool = ideaPool(), cur = curIdea(), done = pool.filter((q) => qPicked.includes(q) || qSkipped.includes(q)).length;
         qShown = cur ? [cur] : [];
         $('listTitle').textContent = cur ? L2('Would you like to ask the doctor this?', 'Voulez-vous poser cette question au médecin ?') : L2('That’s all my suggestions', 'C’est tout pour mes suggestions');
         $('listHelp').textContent = aiLoading && !cur ? L2('Reid is thinking of questions for your visit…', 'Reid réfléchit à des questions pour votre visite…')
-          : (cur ? L2(`Suggestion ${done + 1} of ${pool.length}. Say yes, no, or most important.`, `Suggestion ${done + 1} sur ${pool.length}. Dites oui, non, ou très important.`) : L2('Say yes for more, or no to go on.', 'Dites oui pour d’autres, ou non pour continuer.'))
+          : (cur ? L2(`Suggestion ${done + 1} of ${pool.length}. Say yes, no, or most important.`, `Suggestion ${done + 1} sur ${pool.length}. Dites oui, non, ou très important.`) + (aiLoading ? L2(' Reid is finding more…', ' Reid en cherche d’autres…') : '') : L2('Say yes for more, or no to go on.', 'Dites oui pour d’autres, ou non pour continuer.'))
             + (isMT() ? ' ⚠ Translated by computer: check with the doctor.' : '');
         $('listCounter').textContent = L2(`${qPicked.length} added`, `${qPicked.length} ajoutée(s)`);
         if (cur) {
@@ -3844,6 +3902,7 @@
       ideas: () => curIdea() ? L2('Would you like to ask the doctor: ', 'Voulez-vous demander au médecin : ') + stop(curIdea()) + L2(' Say yes, no, or most important.', ' Dites oui, non, ou très important.') : L2('That’s all my suggestions. Would you like me to suggest more?', 'C’est tout. Voulez-vous que j’en suggère d’autres ?'),
       priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Say the number of the most important one.', ' Dites le numéro de la plus importante.') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       review: () => L2('Does everything look right?', 'Est-ce que tout est correct ?'),
+      ready: () => L2('You’re ready. Your pages are ready to print, save or send. Tap Change to fix anything. Then tap Next.', 'Vous êtes prêt. Vos pages sont prêtes à imprimer, enregistrer ou envoyer. Touchez Modifier pour corriger. Puis Suivant.'),
       meds: () => document.getElementById('listTitle').textContent && steps[currentIndex].mode === 'meds' ? (medDraft.stage === 'list' ? L2('Here are your medicines. Tap one to change it, or add another. Say next when you’re done.', 'Voici vos médicaments. Touchez-en un pour le modifier, ou ajoutez-en un. Dites suivant quand vous avez fini.') : medDraft.sugg.length ? L2('Did you mean ', 'Vouliez-vous dire ') + medDraft.sugg[0].name + '?' : document.getElementById('listTitle').textContent) : '',
       consent: () => L2("Before we begin, a quick word about your privacy. Everything you tell me stays on your phone. To help you, I send your voice to Microsoft, here in Canada, to turn it into words. And I send your answers to Claude, in the United States, anonymously, never with your name, so I can suggest good questions. They are never used to train AI models. Is that alright with you? You can tap I agree, or No thanks.", "Avant de commencer, un mot sur votre vie privée. Tout ce que vous me dites reste sur votre téléphone. Pour vous aider, j'envoie votre voix à Microsoft, ici au Canada, pour la transformer en mots. Et j'envoie vos réponses à Claude, aux États-Unis, de façon anonyme, jamais avec votre nom, pour vous suggérer de bonnes questions. Elles ne servent jamais à entraîner des modèles d'IA. Est-ce que ça vous convient ? Touchez J'accepte, ou Non merci."),
       setup: () => L2('Before we start, would you like to change the language or the text size?', 'Avant de commencer, voulez-vous changer la langue ou la taille du texte ?'),
@@ -4733,9 +4792,9 @@
         }
       }
       document.getElementById('screenList').classList.toggle('hidden', !LISTMODES[step.mode]);
-      if (step.id !== lastListStep) { lastListStep = step.id; qPage = 0; vPage = 0; qAdding = false; }
+      if (step.id !== lastListStep) { lastListStep = step.id; qPage = 0; vPage = 0; qAdding = false; if (step.mode === 'meds' && medsList.length && !medDraft.name && medDraft.edit < 0) medDraft.stage = 'list'; }
       if (LISTMODES[step.mode]) renderList();
-      if (step.mode === 'ideas' && (SID('concerns').answer || SID('story').answer)) fetchClaudeQuestions();
+      if (step.mode === 'ideas' || step.id === 'ask') fetchClaudeQuestions();   // start early so they're ready when the suggestions screen opens
       if (step.id === 'recap') recapFromRecording();
       placeHearBtn(step); placePicker(step); if (typeof renderSide === 'function') renderSide();
       if (step.mode === 'landing') stopRec();
