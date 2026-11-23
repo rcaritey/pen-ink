@@ -3419,6 +3419,7 @@
           ${card(T('Security', 'Sécurité'), ul([
             T('Everything sent is encrypted on the way (HTTPS).', 'Tout ce qui est envoyé est chiffré en chemin (HTTPS).'),
             T('No ads, no tracking, nothing sold or shared with anyone else.', 'Pas de publicité, pas de pistage, rien n’est vendu ni partagé.'),
+            T('Never used to train AI models (LLMs). Not by Anthropic, not by Microsoft, not by WellHeard.', 'Jamais utilisé pour entraîner des modèles d’IA (LLM). Ni par Anthropic, ni par Microsoft, ni par WellHeard.'),
             T('WellHeard doesn’t add its own lock to what’s saved on this device; your device’s passcode protects it.', 'WellHeard n’ajoute pas son propre verrou à ce qui est gardé ici; le code de votre appareil le protège.')]))}
           ${card(T('Your choice', 'Votre choix'), `<p class="text-sm font-bold text-[#1E2634]">${consent ? (ok ? T('You agreed on ', 'Vous avez accepté le ') + said + '.' : T('You chose not to share (', 'Vous avez choisi de ne rien envoyer (') + said + T('). You type your answers; nothing leaves this device.', '). Vous écrivez vos réponses; rien ne quitte l’appareil.')) : T('You haven’t chosen yet.', 'Vous n’avez pas encore choisi.')}</p>
             <button type="button" data-act="consent-${ok ? 'no' : 'yes'}" class="${B}">${ok ? T('Stop sharing (type only)', 'Arrêter d’envoyer (écrire seulement)') : T('I agree to share as described', 'J’accepte comme décrit')}</button>`,
