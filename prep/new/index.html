@@ -166,6 +166,7 @@
   </style>
   <style>
     #appContainer.narrow > header .whitespace-nowrap { font-size: 1.1rem !important; }
+    #appContainer.tiny #brandText { display: none; }
     #appContainer.narrow > header .truncate { overflow: visible; text-overflow: clip; }
     #appContainer.narrow > header button { padding-left: 6px; padding-right: 6px; }
     .wide > header .text-\[1\.25rem\] { font-size: 1.6rem; }
@@ -210,7 +211,7 @@
           <span id="companionStatusDot" class="w-3 h-3 rounded-full bg-[#3B5E42] border-2 border-[#FAF7F0] absolute -bottom-0.5 -right-0.5"></span>
         </div>
 
-        <div class="min-w-0">
+        <div id="brandText" class="min-w-0">
           <span class="block text-[1.25rem] font-extrabold tracking-tight text-[#1E2634] leading-none whitespace-nowrap">
             Well<span class="text-[#3B5E42]">Heard</span>
           </span>
@@ -3983,6 +3984,7 @@
       const ts = [1, 1.18, 1.36][textSize] || 1; z *= ts; w /= ts; h /= ts;
       document.documentElement.classList.toggle('ts-1', textSize === 1); document.documentElement.classList.toggle('ts-2', textSize === 2);
       main.classList.toggle('narrow', w < 385);
+      main.classList.toggle('tiny', w < 330);   // extra-large text on a phone: the owl stands for WellHeard, Help and Settings keep their labels
       main.style.zoom = z; main.style.width = w + 'px'; main.style.maxWidth = 'none'; main.style.height = h + 'px';
       if (LISTMODES[steps[currentIndex].mode]) renderList();
       if (steps[currentIndex].mode === 'visitQuestions') renderVisitQuestionsChecklist();
