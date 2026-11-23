@@ -108,6 +108,37 @@
     #nextNavBtn.next-off { opacity: .5; }
     /* Next arrow: bold drawn arrow in a soft circle */
     .arrow-badge { width: 40px; height: 40px; background: rgba(255,255,255,.25); }
+    /* the pages beside the questions */
+    .live-pages { display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; padding: 20px 22px 16px; background: #FAF7F0; color: #1E2634;
+      border: 1px solid #DDD6C7; border-radius: 28px; box-shadow: 0 12px 40px rgba(30,38,52,.12); flex: none; }
+    .live-pages[hidden] { display: none; }
+    .lp-head { display: flex; align-items: center; gap: 12px; }
+    .lp-head h2 { margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
+    .lp-head p { margin: 2px 0 0; font-weight: 800; color: #3B5E42; font-size: 1rem; }
+    .lp-dot { margin-left: auto; width: 14px; height: 14px; border-radius: 50%; background: #C9C1B2; flex: none; transition: background .4s; }
+    .lp-dot.on { background: #3B5E42; }
+    .lp-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
+    .lp-tabs button { font: inherit; font-weight: 800; font-size: 1rem; min-height: 48px; padding: 6px 18px; border-radius: 14px; cursor: pointer; background: #F0EBE1; color: #1E2634; border: 1px solid #D6CFC0; }
+    .lp-tabs button:hover { border-color: #1E2634; }
+    .lp-tabs button[aria-selected="true"] { background: #1E2634; color: #fff; border-color: #1E2634; }
+    .lp-tabs button[aria-selected="true"]::before { content: "\2713  "; }
+    .lp-tabs button[hidden] { display: none; }
+    .lp-tabs button:focus-visible, .lp-paper:focus-visible { outline: 3px solid #D97706; outline-offset: 2px; }
+    .lp-paper { flex: 1; min-height: 0; overflow-y: auto; background: #F0EBE1; border-radius: 20px; padding: 18px; }
+    .lp-sheet { background: #fff; color: #111A22; border-radius: 4px; padding: 30px 32px; aspect-ratio: 8.5 / 11; max-width: 8.5in; margin: 0 auto;
+      box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(30,38,52,.10); font-size: 15px; line-height: 1.5; }
+    .lp-sheet h1 { font-size: 1.35rem; font-weight: 800; margin: 0 0 2px; }
+    .lp-sheet .meta { color: #3B4A57; margin: 0 0 8px; }
+    .lp-sheet h2 { font-size: .82rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #3B4A57; border-bottom: 2px solid #111A22; margin: 14px 0 6px; padding-bottom: 3px; }
+    .lp-sheet ul, .lp-sheet ol { margin: 0; padding-left: 1.4em; } .lp-sheet ul { list-style: disc; } .lp-sheet ol { list-style: decimal; } .lp-sheet li { margin: 3px 0; }
+    .lp-sheet .ans { border-bottom: 1.5px solid #8794A0; height: 26px; } .lp-sheet .foot { font-size: .8rem; color: #4A5866; margin-top: 12px; }
+    .lp-sheet .say { font-weight: 800; font-size: 1.05rem; border: 2px solid #111A22; border-radius: 8px; padding: 10px 14px; }
+    .lp-sheet table { border-collapse: collapse; width: 100%; font-size: .9rem; } .lp-sheet th, .lp-sheet td { border: 1px solid #C9D2DB; padding: 4px 6px; text-align: left; }
+    .lp-sec { border-radius: 6px; }
+    .lp-sec.lp-new { animation: lpFlash 2.6s ease-out 1; }
+    @keyframes lpFlash { 0%, 35% { background: #E5EFE7; box-shadow: 0 0 0 8px #E5EFE7; } 100% { background: transparent; box-shadow: 0 0 0 8px transparent; } }
+    .lp-foot { margin: 0; font-size: .95rem; color: #425268; font-weight: 700; }
+    @media (prefers-reduced-motion: reduce) { .lp-sec.lp-new { animation: none; background: #E5EFE7; } }
     /* Message Rama chooser */
     .side-gap { margin-top: 10px; }
     .chat-pick { display: none; position: absolute; inset: 0; z-index: 60; background: rgba(30,38,52,.45); align-items: center; justify-content: center; padding: 16px; }
@@ -2617,6 +2648,7 @@
 
     // ---------- saving on this device ----------
     function saveAll() {
+      if (typeof lpSoon === 'function') lpSoon();
       try {
         localStorage.setItem(STORE, JSON.stringify({
           currentIndex, inputPreference, lang, slowVoice, readAloud, voiceName, textSize, transcript, recapDone, recapContact, medChanges,
@@ -3775,6 +3807,58 @@
       if (navigator.share) navigator.share({ title, text }).catch(() => {});
       else location.href = 'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(text);
     }
+    // ---------- the pages beside the questions (computers and sideways iPads) ----------
+    // Rebuilt a moment after every change. Parts that changed glow green and scroll into view,
+    // so people watch their answers land on the page.
+    const lpEl = document.createElement('aside'); lpEl.id = 'livePages'; lpEl.className = 'live-pages'; lpEl.hidden = true; lpEl.setAttribute('aria-labelledby', 'lpH');
+    lpEl.innerHTML = `<div class="lp-head"><div><h2 id="lpH"></h2><p id="lpSub"></p></div><span class="lp-dot" id="lpDot" aria-hidden="true"></span></div>
+      <div class="lp-tabs" role="tablist" aria-labelledby="lpH">
+        <button type="button" role="tab" data-lp="recap" hidden></button><button type="button" role="tab" data-lp="doc"></button><button type="button" role="tab" data-lp="mine"></button></div>
+      <div class="lp-paper" id="lpPaper" role="tabpanel" tabindex="0" aria-labelledby="lpH"><div class="lp-sheet" id="lpSheet"></div></div>
+      <p class="lp-foot" id="lpFoot"></p>`;
+    document.body.insertBefore(lpEl, document.getElementById('printArea'));
+    let lpTab = 'doc', lpPhase = -1, lpPrev = {}, lpSrc = '', lpShown = '';
+    function lpSoon(now) { clearTimeout(window.__lpT); window.__lpT = setTimeout(lpRefresh, now ? 0 : 300); }
+    function lpChunks(html) {   // the page, split at each heading, so each part can glow on its own
+      let inner = html.trim(); const open = '<div class="pg">';
+      if (inner.startsWith(open) && inner.endsWith('</div>')) inner = inner.slice(open.length, -6);
+      const parts = inner.split('<h2>');
+      return { head: parts[0], secs: parts.slice(1).map((p) => '<h2>' + p) };
+    }
+    const lpText = (h) => { const t = document.createElement('template'); t.innerHTML = h; return t.content.textContent.replace(/\s+/g, ' ').trim(); };
+    function lpRefresh() {
+      if (lpEl.hidden) return;
+      const st = steps[currentIndex], ph = st.phaseIndex || 0, $q = (k) => lpEl.querySelector(`[data-lp="${k}"]`);
+      if (ph !== lpPhase) { lpTab = ph === 2 ? 'recap' : (lpTab === 'recap' ? 'doc' : lpTab); lpPhase = ph; }
+      document.getElementById('lpH').textContent = L2('Your pages', 'Vos pages');
+      document.getElementById('lpSub').textContent = L2('They fill in as you answer.', 'Elles se remplissent pendant que vous répondez.');
+      document.getElementById('lpFoot').textContent = L2('A preview. You can print, save or send them at the end.', 'Un aperçu. Vous pourrez les imprimer, les enregistrer ou les envoyer à la fin.');
+      $q('recap').textContent = L2('Recap', 'Résumé'); $q('doc').textContent = L2('For the doctor', 'Pour le médecin'); $q('mine').textContent = L2('My page', 'Ma page');
+      $q('recap').hidden = ph !== 2;
+      ['recap', 'doc', 'mine'].forEach((k) => { $q(k).setAttribute('aria-selected', k === lpTab); $q(k).tabIndex = k === lpTab ? 0 : -1; });
+      let html; try { html = lpTab === 'recap' ? recapPage() : lpTab === 'mine' ? patientPage() : doctorPage(); } catch (e) { console.warn('Page preview', e); return; }
+      if (html === lpSrc && lpShown === lpTab) return;
+      const { head, secs } = lpChunks(html), now = {}, was = lpShown === lpTab ? lpPrev : null;
+      secs.forEach((sx, i) => { now[i] = lpText(sx); });
+      const sheet = document.getElementById('lpSheet');
+      sheet.innerHTML = `<div class="pg">${head}${secs.map((sx, i) => `<div class="lp-sec${was && was[i] !== now[i] ? ' lp-new' : ''}">${sx}</div>`).join('')}</div>`;
+      if (lpTab === 'doc') sheet.setAttribute('data-notr', ''); else sheet.removeAttribute('data-notr');
+      lpSrc = html; lpShown = lpTab; lpPrev = now;
+      if (isMT()) applyLang(lpEl);
+      const fresh = sheet.querySelectorAll('.lp-new');
+      if (!fresh.length) return;
+      setTimeout(() => fresh.forEach((x) => x.classList.remove('lp-new')), 2700);
+      const paper = document.getElementById('lpPaper'), r = fresh[0].getBoundingClientRect(), pr = paper.getBoundingClientRect();
+      if (r.top < pr.top + 20 || r.bottom > pr.bottom - 20) paper.scrollTo({ top: paper.scrollTop + r.top - pr.top - 40, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      const dot = document.getElementById('lpDot'); dot.classList.remove('on'); void dot.offsetWidth; dot.classList.add('on');
+    }
+    lpEl.addEventListener('click', (e) => { const b = e.target.closest('[data-lp]'); if (!b) return; lpTab = b.dataset.lp; document.getElementById('lpPaper').scrollTop = 0; lpRefresh(); });
+    lpEl.addEventListener('keydown', (e) => {
+      const b = e.target.closest('[data-lp]'); if (!b || (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft')) return;
+      const shown = ['recap', 'doc', 'mine'].filter((k) => !lpEl.querySelector(`[data-lp="${k}"]`).hidden), i = shown.indexOf(b.dataset.lp);
+      lpTab = shown[(i + (e.key === 'ArrowRight' ? 1 : shown.length - 1)) % shown.length]; lpRefresh(); lpEl.querySelector(`[data-lp="${lpTab}"]`).focus();
+    });
+    document.addEventListener('input', () => lpSoon());
     function showPage(which) {
       const box = document.querySelector('#fullDoctorModal .space-y-3');
       const html = which === 'mine' ? patientPage() : doctorPage();
@@ -4145,12 +4229,16 @@
         // Computer or sideways iPad: a wide layout. Reid, Help and the progress sit in a column on the left,
         // the question gets the rest. Less stacked up, so the whole page can be bigger.
         // Upright iPad: the phone page, scaled up.
-        const wide = vw >= 900 && vw > vh * 1.1;
-        main.classList.toggle('wide', wide);
+        // Past the welcome page on a computer or sideways iPad: the questions on the left and the pages
+        // filling in on the right, like the first desktop version (Rama, 23 Nov).
+        const landscape = vw >= 900 && vw > vh * 1.1, livePg = landscape && steps[currentIndex].mode !== 'landing', wide = landscape && !livePg;
+        main.classList.toggle('wide', wide); main.classList.toggle('with-pages', livePg);
         if (wide) { z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000); w = 1000; h = 640; }
+        else if (livePg) { z = Math.min(1.5, (vh * 0.94) / 820, (vw * 0.42) / 420); w = 420; h = 820; }
         else { z = Math.min(1.7, (vh * 0.96) / 820, (vw * 0.96) / 420); w = 420; h = 820; }
-        // computer or sideways iPad: no phone-style frame, the page simply fills the screen (Rama, 23 Nov)
-        main.style.borderRadius = wide ? '0' : ''; main.style.borderWidth = wide ? '0' : ''; main.style.boxShadow = wide ? 'none' : '';
+        // computer or sideways iPad: no phone-style frame (Rama, 23 Nov). With the pages beside it, a soft card.
+        main.style.borderRadius = wide ? '0' : livePg ? '28px' : ''; main.style.borderWidth = wide ? '0' : livePg ? '1px' : '';
+        main.style.borderColor = livePg ? '#DDD6C7' : ''; main.style.boxShadow = wide ? 'none' : livePg ? '0 12px 40px rgba(30,38,52,.12)' : '';
         document.body.style.backgroundColor = wide ? '#FAF7F0' : '';
       }
       // Text size: everything grows together; the page keeps the same place on the screen
@@ -4169,15 +4257,23 @@
         if (sec) { sec.style.height = '0px'; sec.style.overflow = 'hidden'; }
         let need = main.offsetHeight + 8;
         // room for every "Reid can" button a question page can show, so the size doesn't jump between pages
-        const btns = side ? side.querySelectorAll('[data-s]') : [], most = inputPreference === 'voice' ? 4 : 3;
+        const btns = side ? side.querySelectorAll('[data-s]') : [], most = inputPreference === 'voice' ? 3 : 2;
         if (btns.length && btns.length < most) need += (most - btns.length) * (btns[0].offsetHeight + 10);
         if (sec) { sec.style.height = sh; sec.style.overflow = so; }
         if (need > h) { const r = need / h; z /= r; w *= r; h = need; }
         main.style.zoom = z; main.style.width = w + 'px'; main.style.height = h + 'px';
       }
+      // the pages panel sits beside the app, as tall as it
+      const lp = document.getElementById('livePages'), showLp = main.classList.contains('with-pages');
+      document.body.style.flexDirection = showLp ? 'row' : ''; document.body.style.gap = showLp ? '28px' : '';
+      if (lp) {
+        lp.hidden = !showLp;
+        if (showLp) { const mw = w * z, mh = h * z; lp.style.height = mh + 'px'; lp.style.width = Math.max(360, Math.min(900, vw - mw - 28 * 3)) + 'px'; }
+      }
       if (LISTMODES[steps[currentIndex].mode]) renderList();
       if (steps[currentIndex].mode === 'visitQuestions') renderVisitQuestionsChecklist();
       fitLanding();
+      if (typeof lpSoon === 'function') lpSoon(true);
     }
     // the first page: on a short screen, Reid's card folds to one sentence, then the small label goes
     function fitLanding() {
