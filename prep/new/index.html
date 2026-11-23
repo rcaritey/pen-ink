@@ -152,7 +152,7 @@
     #appContainer.wide > section { grid-column: 2; grid-row: 1 / span 3; }
     #appContainer.wide > footer { grid-column: 2; grid-row: 4; }
     #appContainer.wide #reidHello { right: auto; width: 330px; top: 84px; }
-    #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 3; align-self: end; }
+    #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 3 / span 2; align-self: end; }
     /* bigger text on the wide layout: there's room across */
     .wide #screenLanding h1 { font-size: 2rem !important; } .wide #landingIntro, .wide #landingHook, .wide #screenLanding li { font-size: 18px !important; } .wide #landingWelcome { font-size: 14px !important; }
     .wide #screenLanding [aria-label="How WellHeard works"] p { font-size: 16px !important; }
@@ -4083,6 +4083,22 @@
       main.classList.toggle('narrow', w < 385);
       main.classList.toggle('tiny', w < 330);   // extra-large text on a phone: the owl stands for WellHeard, Help and Settings keep their labels
       main.style.zoom = z; main.style.width = w + 'px'; main.style.maxWidth = 'none'; main.style.height = h + 'px';
+      // Wide layout: make sure the left column (Reid, Help, progress, "Reid can") and the bottom bar fit.
+      // Measure them at normal size; if they need more room than the page has, the whole page gets a
+      // little smaller (and wider, so it still fills the screen) instead of cutting things off (23 Nov).
+      if (main.classList.contains('wide')) {
+        const sec = main.querySelector(':scope > section'), side = document.getElementById('sideReid');
+        main.style.zoom = '1'; main.style.height = 'auto';
+        const sh = sec ? sec.style.height : '', so = sec ? sec.style.overflow : '';
+        if (sec) { sec.style.height = '0px'; sec.style.overflow = 'hidden'; }
+        let need = main.offsetHeight + 8;
+        // room for every "Reid can" button a question page can show, so the size doesn't jump between pages
+        const btns = side ? side.querySelectorAll('[data-s]') : [], most = inputPreference === 'voice' ? 4 : 3;
+        if (btns.length && btns.length < most) need += (most - btns.length) * (btns[0].offsetHeight + 10);
+        if (sec) { sec.style.height = sh; sec.style.overflow = so; }
+        if (need > h) { const r = need / h; z /= r; w *= r; h = need; }
+        main.style.zoom = z; main.style.width = w + 'px'; main.style.height = h + 'px';
+      }
       if (LISTMODES[steps[currentIndex].mode]) renderList();
       if (steps[currentIndex].mode === 'visitQuestions') renderVisitQuestionsChecklist();
       fitLanding();
@@ -4111,6 +4127,8 @@
         ${onStep ? `<button type="button" data-s="explain" class="${SB}">${ico('explain')}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
         ${voice && onStep ? `<button type="button" data-s="listen" class="${SB}">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter' : 'Start listening')}</button>` : ''}
         <a href="${chatHref()}" data-s="chat" class="${SB} bg-[#E5EFE7] border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Textez Rama' : 'Chat: text Rama'}</a>`;
+      // the list's length changes the room the left column needs: re-fit the page (after this draw)
+      clearTimeout(window.__whFitT); window.__whFitT = setTimeout(() => { if (typeof sizeApp === 'function') sizeApp(); }, 0);
     }
     side.addEventListener('click', (e) => {
       const b = e.target.closest('[data-s]'); if (!b) return; ensureCtx();
