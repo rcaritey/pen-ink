@@ -165,9 +165,10 @@
     .wide #screenDoctorSummary p, .wide #screenNextSteps p, .wide #screenShareFinish p { font-size: 16px !important; }
   </style>
   <style>
-    #appContainer.narrow > header .text-2xl { font-size: 1.3rem !important; }
+    #appContainer.narrow > header .whitespace-nowrap { font-size: 1.1rem !important; }
     #appContainer.narrow > header .truncate { overflow: visible; text-overflow: clip; }
-    #appContainer.narrow > header button { padding-left: 10px; padding-right: 10px; }
+    #appContainer.narrow > header button { padding-left: 6px; padding-right: 6px; }
+    .wide > header .text-\[1\.25rem\] { font-size: 1.6rem; }
   </style>
   <style id="textSizes">
     /* Large / Extra large make the whole page bigger; if a page then runs long, it can scroll */
@@ -184,8 +185,8 @@
   >
 
     <!-- 1. PERSISTENT TOP HEADER WITH STATE-REACTIVE COMPANION EMBLEM -->
-    <header class="w-full flex items-center justify-between gap-3 shrink-0">
-      <div class="flex items-center gap-3 min-w-0">
+    <header class="w-full flex items-center justify-between gap-2 shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
         <!-- State-Reactive WellHeard Companion Badge -->
         <div
           id="companionEmblem"
@@ -210,7 +211,7 @@
         </div>
 
         <div class="min-w-0">
-          <span class="block text-2xl font-extrabold tracking-tight text-[#1E2634] leading-none truncate">
+          <span class="block text-[1.25rem] font-extrabold tracking-tight text-[#1E2634] leading-none whitespace-nowrap">
             Well<span class="text-[#3B5E42]">Heard</span>
           </span>
           <span id="companionStateCaption" class="block text-[11px] font-bold text-[#3B5E42] mt-0.5 truncate">
@@ -219,18 +220,20 @@
         </div>
       </div>
 
-      <button
-        type="button"
-        onclick="openModal('helpSettingsModal')"
-        class="tactile-btn min-h-[52px] px-3 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center gap-2 shrink-0 hover:bg-[#E6DFD0]"
-        aria-label="Help and Settings"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="3"></circle>
+      <div class="flex items-stretch gap-[8px] shrink-0">
+        <button type="button" onclick="openPanel('help')" aria-label="Help"
+          class="tactile-btn min-h-[52px] min-w-[54px] px-1.5 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[12px] flex flex-col items-center justify-center gap-0.5 shrink-0 hover:bg-[#E6DFD0]">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <span>Help</span>
+        </button>
+        <button type="button" onclick="openPanel('settings')" aria-label="Settings"
+          class="tactile-btn min-h-[52px] min-w-[54px] px-1.5 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[12px] flex flex-col items-center justify-center gap-0.5 shrink-0 hover:bg-[#E6DFD0]">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
-        <span id="hsLabel">Help / Settings</span>
-      </button>
+          <span>Settings</span>
+        </button>
+      </div>
     </header>
 
     <!-- 2. NON-CLICKABLE 3-PHASE PROGRESS HEADER (Steps 1–11) -->
@@ -3261,7 +3264,10 @@
     const B = 'tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2';
     const BON = 'tactile-btn flex-1 min-h-[52px] rounded-xl bg-[#1E2634] text-white font-extrabold text-base';
     const BOFF = 'tactile-btn flex-1 min-h-[52px] rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base';
-    let setView = 'menu', voiceName = '', spokenView = null, textSize = 1;
+    let setView = 'menu', voiceName = '', spokenView = null, textSize = 1, menuKind = 'help';
+    // which menu each page belongs to, so Back always returns to the right one
+    const VIEW_HOME = { say: 'help', steps: 'help', translate: 'help', voice: 'settings', lang: 'settings', textsize: 'settings', answermode: 'settings', pages: 'settings', device: 'settings' };
+    function openPanel(kind) { menuKind = kind; openModal('helpSettingsModal'); }
     function applyTextSize() { const h = document.documentElement; h.classList.remove('ts-1', 'ts-2'); if (textSize) h.classList.add('ts-' + textSize); if (typeof sizeApp === 'function') sizeApp(); }
     const ICONS = {
       explain: '<path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/>',
@@ -3273,7 +3279,10 @@
       privacy: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
       device: '<rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>',
       chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-      translate: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+      lang: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+      textsize: '<polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>',
+      answermode: '<path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v2"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>',
+      translate: '<path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/>',
       erase: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>'
     };
     const ico = (k, dark) => `<span class="w-9 h-9 rounded-xl ${dark ? 'bg-white/15 text-white' : 'bg-white border border-[#D6CFC0] text-[#3B5E42]'} flex items-center justify-center shrink-0" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ''}</svg></span>`;
@@ -3301,23 +3310,37 @@
       const card = (h, inner, sub) => `<div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5 space-y-2"><p class="font-extrabold text-base text-[#1E2634]">${h}</p>${sub ? `<p class="text-sm text-[#425268] leading-snug">${sub}</p>` : ''}${inner}</div>`;
       // one row of the main menu: big, icon-free, label on the left, current setting and › on the right
       const row = (k, label, val) => `<button type="button" data-go="${k}" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-between gap-2 text-left"><span class="flex items-center gap-3">${ico(k)}<span>${label}</span></span><span class="text-sm text-[#425268] font-bold shrink-0">${val || ''} ›</span></button>`;
-      const head = (title, back) => `<div class="flex items-center justify-between gap-2">${back ? `<button type="button" data-go="${typeof back === 'string' ? back : 'menu'}" class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">‹ ${T('Back', 'Retour')}</button>` : ''}<h2 id="settingsTitle" class="text-xl font-extrabold text-[#1E2634] flex-1 ${back ? 'text-center' : ''}">${title}</h2>
+      const head = (title, back) => `<div class="sticky -top-5 -mx-5 -mt-5 px-5 pt-5 pb-2 bg-[#FAF7F0] z-10 flex items-center justify-between gap-2">${back ? `<button type="button" data-go="${typeof back === 'string' ? back : 'menu'}" class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">‹ ${T('Back', 'Retour')}</button>` : ''}<h2 id="settingsTitle" class="text-xl font-extrabold text-[#1E2634] flex-1 ${back ? 'text-center' : ''}">${title}</h2>
           <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm">${T('Done', 'Terminé')}</button></div>`;
       const onStep = steps[currentIndex].mode !== 'landing';
+      if (setView === 'answer') setView = 'lang';
+      if (VIEW_HOME[setView]) menuKind = VIEW_HOME[setView];
+      const group = (t) => `<p class="text-[12px] font-extrabold uppercase tracking-wider text-[#425268] mt-2 -mb-0.5">${t}</p>`;
       let body = '';
-      if (setView === 'menu') {
-        body = head(T('Help & Settings', 'Aide et réglages')) + `<div class="flex flex-col gap-[10px]">
-          ${onStep ? `<button type="button" data-act="explain" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#1E2634] text-white font-extrabold text-base flex items-center justify-center gap-3">${ico('explain', 1)}${T('Explain this screen', 'Expliquer cet écran')}</button>` : ''}
-          ${row('say', T('What you can say', 'Ce que vous pouvez dire'))}
+      if (setView === 'menu' && menuKind === 'settings') {
+        body = head(T('Settings', 'Réglages')) + `<div class="flex flex-col gap-[10px]">
+          ${group(T('Reading', 'Lecture'))}
+          ${row('lang', T('Language', 'Langue'), `<span data-notr>${esc(langName(lang))}</span>`)}
+          ${row('textsize', T('Text size', 'Taille du texte'), [T('Normal', 'Normal'), T('Large', 'Grand'), T('Extra large', 'Très grand')][textSize])}
+          ${group(T('Reid', 'Reid'))}
           ${row('voice', T("Reid's voice", 'La voix de Reid'), (readAloud ? T('On', 'Oui') : T('Off', 'Non')) + ' · ' + (slowVoice ? T('Slower', 'Lente') : T('Normal', 'Normale')))}
-          ${row('answer', T('Language, text size & answering', 'Langue, texte et réponses'), langName(lang) + ' · ' + (inputPreference === 'voice' ? T('Talking', 'Parler') : T('Typing', 'Écrire')))}
-          ${onStep ? row('steps', T('See all steps', 'Voir toutes les étapes')) : ''}
+          ${row('answermode', T('How you answer', 'Comment vous répondez'), inputPreference === 'voice' ? T('Talk + tap', 'Parler + toucher') : T('Tap + type', 'Toucher + écrire'))}
+          ${group(T('Your pages and phone', 'Vos pages et votre téléphone'))}
           ${row('pages', T('Print or share my pages', 'Imprimer ou partager'))}
-          ${row('privacy', T('Your privacy', 'Vos renseignements'))}
-          ${row('translate', T('When words come out wrong', 'Quand les mots sont mal compris'))}
           ${row('device', T('Full screen & other devices', 'Plein écran et autres appareils'))}
-          <button type="button" data-act="erase" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2">${ico('erase')}${T('Erase my answers', 'Effacer mes réponses')}</button>
-          <a href="${chatHref()}" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3">${ico('chat')}<span>${T('Chat: text Rama for help', 'Clavarder : textez Rama')}</span></a>
+          ${row('privacy', T('Sharing with Reid’s helpers', 'Partage avec les services de Reid'), consent && consent.choice === 'yes' ? T('On', 'Oui') : T('Off', 'Non'))}
+          <button type="button" data-act="erase" class="tactile-btn w-full min-h-[52px] px-4 mt-2 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2">${ico('erase')}${T('Erase my answers', 'Effacer mes réponses')}</button></div>`;
+      } else if (setView === 'menu') {
+        body = head(T('Help', 'Aide')) + `<div class="flex flex-col gap-[10px]">
+          ${onStep ? `<button type="button" data-act="explain" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#1E2634] text-white font-extrabold text-base flex items-center justify-center gap-3">${ico('explain', 1)}${T('Explain this screen', 'Expliquer cet écran')}</button>` : ''}
+          ${group(T('Using WellHeard', 'Utiliser WellHeard'))}
+          ${row('say', T('What you can say', 'Ce que vous pouvez dire'))}
+          ${onStep ? row('steps', T('See all steps', 'Voir toutes les étapes')) : ''}
+          ${row('translate', T('When words come out wrong', 'Quand les mots sont mal compris'))}
+          ${group(T('Your information', 'Vos renseignements'))}
+          ${row('privacy', T('How your information stays private', 'Comment vos renseignements restent privés'))}
+          ${group(T('Talk to a person', 'Parler à une personne'))}
+          <a href="${chatHref()}" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3">${ico('chat')}<span>${T('Text Rama for help', 'Textez Rama pour de l’aide')}</span></a>
           <p class="text-xs text-center text-[#425268]">416-454-5597 · hello@pen-ink.ca</p></div>`;
       } else if (setView === 'say') {
         const li = (a, b) => `<li class="flex justify-between gap-3 py-1.5 border-b border-[#D6CFC0]"><b class="text-[#1E2634]">${a}</b><span class="text-[#425268] text-right">${b}</span></li>`;
@@ -3335,10 +3358,15 @@
           ${card(T('Speed', 'Vitesse'), pair('slow', T('Normal', 'Normale'), T('Slower', 'Plus lente'), !slowVoice))}
           ${isMT() ? '' : card(T('Voice', 'Voix'), pair('voicename', fr ? 'Sylvie' : 'Liam', fr ? 'Antoine' : 'Clara', !voiceName))}
           ${card(T('Hear it', 'Écouter'), `<button type="button" data-act="test" class="${B}">▶ ${T('Play a sample', 'Écouter un exemple')}</button>`)}</div>`;
-      } else if (setView === 'answer') {
-        body = head(T('Language & text', 'Langue et texte'), 1) + `<div class="flex flex-col gap-[12px]">
-          ${card(T('Language', 'Langue'), `<div class="grid grid-cols-3 gap-[8px]" data-notr>${LANG_LIST.map(([c, nm]) => `<button type="button" data-lang="${c}" class="tactile-btn min-h-[44px] px-1 rounded-xl ${c === lang ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-[13px] leading-tight">${c === lang ? '✓ ' : ''}${nm}</button>`).join('')}</div>`)}${isMT() ? `<div class="bg-[#FDF3E1] border-2 border-[#D97706] rounded-2xl p-3 text-[13px] font-bold text-[#7A4A06] leading-snug">${MT_WARN()}</div>` : ''}
+      } else if (setView === 'lang') {
+        body = head(T('Language', 'Langue'), 1) + `<div class="flex flex-col gap-[12px]">
+          ${card(T('Language', 'Langue'), `<div class="grid grid-cols-3 gap-[8px]" data-notr>${LANG_LIST.map(([c, nm]) => `<button type="button" data-lang="${c}" class="tactile-btn min-h-[44px] px-1 rounded-xl ${c === lang ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-[13px] leading-tight">${c === lang ? '✓ ' : ''}${nm}</button>`).join('')}</div>`)}${isMT() ? `<div class="bg-[#FDF3E1] border-2 border-[#D97706] rounded-2xl p-3 text-[13px] font-bold text-[#7A4A06] leading-snug">${MT_WARN()}</div>` : ''}</div>`;
+      } else if (setView === 'textsize') {
+        body = head(T('Text size', 'Taille du texte'), 1) + `<div class="flex flex-col gap-[12px]">
           ${card(T('Text size', 'Taille du texte'), `<div class="flex items-stretch gap-[10px]">${[[0, 'A', T('Normal', 'Normal')], [1, 'A', T('Large', 'Grand')], [2, 'A', T('Extra large', 'Très grand')]].map(([v, a, lab]) => `<button type="button" data-ts="${v}" class="tactile-btn flex-1 min-h-[60px] rounded-2xl ${textSize === v ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} font-extrabold flex flex-col items-center justify-center leading-none"><span style="font-size:${16 + v * 6}px">${a}</span><span class="text-[11px] mt-1">${lab}</span></button>`).join('')}</div>`)}
+          <p class="text-sm text-[#425268] leading-snug">${T('Everything on the screen grows together.', 'Tout l’écran grandit ensemble.')}</p></div>`;
+      } else if (setView === 'answermode') {
+        body = head(T('How you answer', 'Comment vous répondez'), 1) + `<div class="flex flex-col gap-[12px]">
           ${card(T('How you answer', 'Comment vous répondez'), pair('mode', T('Talking + tapping', 'Parler + toucher'), T('Tapping + typing', 'Toucher + écrire'), inputPreference === 'voice'))}</div>`;
       } else if (setView === 'steps') {
         const names = ['1. Prepare', '2. At Visit', '3. After'], namesFr = ['1. Préparer', '2. Au rendez-vous', '3. Après'];
@@ -3953,7 +3981,6 @@
       // Text size: everything grows together; the page keeps the same place on the screen
       const ts = [1, 1.18, 1.36][textSize] || 1; z *= ts; w /= ts; h /= ts;
       document.documentElement.classList.toggle('ts-1', textSize === 1); document.documentElement.classList.toggle('ts-2', textSize === 2);
-      const hs = document.getElementById('hsLabel'); if (hs) { hs.textContent = w < 385 ? 'Help' : 'Help / Settings'; }
       main.classList.toggle('narrow', w < 385);
       main.style.zoom = z; main.style.width = w + 'px'; main.style.maxWidth = 'none'; main.style.height = h + 'px';
       if (LISTMODES[steps[currentIndex].mode]) renderList();
@@ -4049,14 +4076,14 @@
     document.getElementById('listItems').addEventListener('click', (e) => {
       const b = e.target.closest('[data-su]'); if (!b) return; ensureCtx();
       const k = b.dataset.su, on = b.dataset.v === '1';
-      if (k === 'lang') { openModal('helpSettingsModal'); setView = 'answer'; spokenView = null; renderSettings(); applyLang(); return; }
+      if (k === 'lang') { openModal('helpSettingsModal'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
       if (k === 'fs') { showFS(); return; }
       if (k === 'ts') { textSize = Number(b.dataset.v); applyTextSize(); }
       if (k === 'mode') { setInputMode(on ? 'voice' : 'tap'); if (!on) stopRec(); }
       if (k === 'read') { readAloud = on; if (!on) hush(); }
       saveAll(); renderList(); applyLang();
     });
-    document.getElementById('privacyLink').addEventListener('click', () => { ensureCtx(); openModal('helpSettingsModal'); setView = 'privacy'; spokenView = null; renderSettings(); applyLang(); });
+    document.getElementById('privacyLink').addEventListener('click', () => { ensureCtx(); menuKind = 'help'; openModal('helpSettingsModal'); setView = 'privacy'; spokenView = null; renderSettings(); applyLang(); });
 
 
     // =====================================================================
@@ -4498,7 +4525,7 @@
       if (isMT()) { closeModal('helpSettingsModal'); showMTNotice(); }
       if (isListening) setTimeout(startRec, 300);
     }
-    document.getElementById('langPick').addEventListener('click', () => { ensureCtx(); openModal('helpSettingsModal'); setView = 'answer'; spokenView = null; renderSettings(); applyLang(); });
+    document.getElementById('langPick').addEventListener('click', () => { ensureCtx(); openModal('helpSettingsModal'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); });
     // a question shown in the doctor's language with the patient's language under it
     function qText(q, cls) {
       return isMT() ? `<span class="block qtxt ${cls}" data-notr>${esc(q)}</span><span class="block text-[13px] font-bold text-[#3B5E42] leading-snug">${esc(q)}</span>` : `<span class="block qtxt ${cls}">${esc(q)}</span>`;
