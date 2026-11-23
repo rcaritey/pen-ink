@@ -108,6 +108,20 @@
     #nextNavBtn.next-off { opacity: .5; }
     /* Next arrow: bold drawn arrow in a soft circle */
     .arrow-badge { width: 40px; height: 40px; background: rgba(255,255,255,.25); }
+    /* Message Rama chooser */
+    .side-gap { margin-top: 10px; }
+    .chat-pick { display: none; position: absolute; inset: 0; z-index: 60; background: rgba(30,38,52,.45); align-items: center; justify-content: center; padding: 16px; }
+    .chat-pick.open { display: flex; }
+    .cp-card { width: 100%; max-width: 380px; background: #FAF7F0; border: 2px solid #1E2634; border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 50px rgba(30,38,52,.3); }
+    .cp-title { font-size: 1.35rem; font-weight: 800; color: #1E2634; margin: 0; }
+    .cp-sub { font-size: 15px; color: #425268; margin: 0 0 2px; line-height: 1.35; }
+    .cp-btn { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 8px 14px; border-radius: 18px; background: #E5EFE7; border: 1px solid rgba(59,94,66,.4); color: #1E4627; text-decoration: none; font-size: 17px; }
+    .cp-btn:hover { background: #D7E7DA; }
+    .cp-btn:focus-visible, .cp-close:focus-visible { outline: 3px solid #D97706; outline-offset: 2px; }
+    .cp-btn span { display: flex; flex-direction: column; line-height: 1.2; }
+    .cp-btn b { font-weight: 800; } .cp-btn small { font-size: 13px; font-weight: 700; color: #425268; }
+    .cp-num { text-align: center; font-size: 14px; font-weight: 700; color: #425268; margin: 2px 0 0; }
+    .cp-close { min-height: 52px; border-radius: 18px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer; }
     @keyframes csBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
     .cs-bob { display: inline-block; animation: csBob 1.4s ease-in-out infinite; }
     @keyframes csFlash { 0%, 100% { background: #1E2634; } 30%, 70% { background: #B84A27; } }
@@ -3358,7 +3372,7 @@
           ${group(T('Your information', 'Vos renseignements'))}
           ${row('privacy', T('How your information stays private', 'Comment vos renseignements restent privés'))}
           ${group(T('Talk to a person', 'Parler à une personne'))}
-          <a href="${chatHref()}" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3">${ico('chat')}<span>${T('Text Rama for help', 'Textez Rama pour de l’aide')}</span></a>
+          <button type="button" data-chat class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3 text-left">${ico('chat')}<span>${T('Message Rama for help', 'Écrire à Rama pour de l’aide')}</span></button>
           <p class="text-xs text-center text-[#425268]">416-454-5597 · hello@pen-ink.ca</p></div>`;
       } else if (setView === 'say') {
         const li = (a, b) => `<li class="flex justify-between gap-3 py-1.5 border-b border-[#D6CFC0]"><b class="text-[#1E2634]">${a}</b><span class="text-[#425268] text-right">${b}</span></li>`;
@@ -3981,6 +3995,31 @@
       return 'sms:+14164545597?&body=' + encodeURIComponent(body);
     }
     const canText = () => /iPhone|iPad|Android|Mac/i.test(navigator.userAgent);
+    // "Message Rama": pick text message, WhatsApp or Signal (23 Nov). Text message only where the device can send one.
+    function openChatPicker() {
+      const fr = lang === 'fr', body = decodeURIComponent(chatHref().split('&body=')[1] || '');
+      let el = document.getElementById('chatPick');
+      if (!el) {
+        el = document.createElement('div'); el.id = 'chatPick'; el.className = 'chat-pick';
+        document.getElementById('appContainer').appendChild(el);
+        el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-cp="close"]')) closeChatPicker(); else if (e.target.closest('a')) setTimeout(closeChatPicker, 300); });
+        el.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeChatPicker(); });
+      }
+      const btn = (href, label, note, ext) => `<a class="cp-btn" href="${href}"${ext ? ' target="_blank" rel="noopener"' : ''}>${ico('chat')}<span><b>${label}</b>${note ? `<small>${note}</small>` : ''}</span></a>`;
+      el.innerHTML = `<div class="cp-card" role="dialog" aria-modal="true" aria-labelledby="cpTitle" data-notr>
+          <p id="cpTitle" class="cp-title">${fr ? 'Écrire à Rama' : 'Message Rama'}</p>
+          <p class="cp-sub">${fr ? 'Rama a créé WellHeard. Choisissez comment lui écrire.' : 'Rama made WellHeard. Choose how to send your message.'}</p>
+          ${canText() ? btn(chatHref(), fr ? 'Message texte' : 'Text message', '', false) : ''}
+          ${btn('https://wa.me/14164545597?text=' + encodeURIComponent(body), 'WhatsApp', '', true)}
+          ${btn('https://signal.me/#p/+14164545597', 'Signal', fr ? 'Tapez votre message dans Signal' : 'Type your message in Signal', true)}
+          <p class="cp-num">${fr ? 'Ou appelez ou textez le' : 'Or call or text'} 416-454-5597</p>
+          <button type="button" class="cp-close" data-cp="close">${fr ? 'Fermer' : 'Close'}</button>
+        </div>`;
+      el.hidden = false; el.classList.add('open');
+      const first = el.querySelector('.cp-btn'); if (first) first.focus();
+    }
+    function closeChatPicker() { const el = document.getElementById('chatPick'); if (el) el.classList.remove('open'); }
+    document.addEventListener('click', (e) => { const c = e.target.closest('[data-chat]'); if (!c) return; e.preventDefault(); e.stopPropagation(); ensureCtx(); const rm = document.getElementById('reidMenu'); if (rm) rm.classList.add('hidden'); openChatPicker(); }, true);
 
     // ---------- first page: Reid says hello in a speech bubble and offers to read the page ----------
     // Phones only allow sound after a tap, so Reid can't speak the moment the page opens.
@@ -4140,7 +4179,8 @@
         <button type="button" data-s="read" class="${SB}">${ico('pages')}${fr ? 'Lire l’écran' : 'Read this screen'}</button>
         ${onStep ? `<button type="button" data-s="explain" class="${SB}">${ico('explain')}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
         ${voice && onStep ? `<button type="button" data-s="listen" class="${SB}">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter' : 'Start listening')}</button>` : ''}
-        <a href="${chatHref()}" data-s="chat" class="${SB} bg-[#E5EFE7] border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Textez Rama' : 'Chat: text Rama'}</a>`;
+        <p class="text-xs font-extrabold uppercase tracking-wider text-[#3B5E42] px-1 side-gap">${fr ? 'Besoin d’une personne ?' : 'Need a person?'}</p>
+        <button type="button" data-chat class="${SB} bg-[#E5EFE7] border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Message Rama'}</button>`;
       // the list's length changes the room the left column needs: re-fit the page (after this draw)
       clearTimeout(window.__whFitT); window.__whFitT = setTimeout(() => { if (typeof sizeApp === 'function') sizeApp(); }, 0);
     }
@@ -4149,7 +4189,6 @@
       if (b.dataset.s === 'read') readScreen();
       if (b.dataset.s === 'explain') explainStep();
       if (b.dataset.s === 'listen') { toggleListening(); renderSide(); applyLang(); }
-      if (b.dataset.s === 'chat' && !canText()) { e.preventDefault(); showToast(lang === 'fr' ? 'Textez Rama au 416-454-5597' : 'Text Rama at 416-454-5597'); }
     });
 
     // ---------- iPhone / iPad in Safari: show how to make WellHeard full screen ----------
@@ -4622,7 +4661,8 @@
           <button type="button" data-r="read" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('pages')}${fr ? 'Lire ce qui est à l’écran' : 'Read what’s on this screen'}</button>
           ${onStep ? `<button type="button" data-r="repeat" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('voice')}${fr ? 'Répéter la question' : 'Repeat the question'}</button>` : ''}
           ${voice && onStep ? `<button type="button" data-r="listen" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter de nouveau' : 'Start listening')}</button>` : ''}
-          <a href="${chatHref()}" data-r="chat" class="${MB} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Clavarder : textez Rama' : 'Chat: text Rama for help'}</a>
+          <p class="text-sm font-extrabold text-[#3B5E42] px-1 side-gap">${fr ? 'Besoin d’une personne ?' : 'Need a person?'}</p>
+          <button type="button" data-chat class="${MB} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Message Rama'}</button>
           <button type="button" data-r="close" class="${MB} bg-white border border-[#D6CFC0] text-[#1E2634] justify-center">${fr ? 'Fermer' : 'Close'}</button>`;
         menu.classList.remove('hidden');
       };
@@ -4630,7 +4670,6 @@
       wrap.addEventListener('click', (e) => { e.stopPropagation(); ensureCtx(); if (menu.classList.contains('hidden')) open(); else close(); });
       menu.addEventListener('click', (e) => {
         e.stopPropagation(); const b = e.target.closest('[data-r]'); if (!b) return; close();
-        if (b.dataset.r === 'chat' && !canText()) { e.preventDefault(); showToast(lang === 'fr' ? 'Textez Rama au 416-454-5597' : 'Text Rama at 416-454-5597'); }
         if (b.dataset.r === 'explain') explainStep();
         if (b.dataset.r === 'repeat') speakStep();
         if (b.dataset.r === 'read') readScreen();
