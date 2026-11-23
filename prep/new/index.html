@@ -3598,22 +3598,22 @@
 
     var aiTags = {}, aiBusy = false;
     async function askClaudeQs(focus, asked) {
-      const body = Object.assign(picture(), { asked: asked.slice(-30) }); if (focus) body.focus = focus;
+      const body = Object.assign(picture(), { asked: asked.slice(-80) }); if (focus) body.focus = focus;
       const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const d = await r.json().catch(() => ({}));
       return r.ok && d.ok && Array.isArray(d.questions) ? d.questions.map((q) => q && q.q).filter(Boolean) : [];
     }
-    fetchClaudeQuestions = async function (more) {
+    fetchClaudeQuestions = async function (more, quiet, tries) {
       if (aiBusy) return;
       const p = picture(), sig = JSON.stringify(Object.assign({}, p, { ask: [] }));
       if (!more && aiSig === sig && aiPool.length) return;
       if (!more && aiSig !== sig) { aiPool = []; aiTags = {}; }
       aiSig = sig; aiBusy = aiLoading = true;
       if (LISTMODES[steps[currentIndex].mode]) { renderList(); applyLang(); }
-      if (more) say(lang === 'fr' ? 'Un instant. Reid cherche d’autres questions.' : 'One moment. Reid is finding more questions.');
+      if (more && !quiet) say(lang === 'fr' ? 'Un instant. Reid cherche d’autres questions.' : 'One moment. Reid is finding more questions.');
       let added = [];
       try {
-        const asked = aiPool.concat(chosen());
+        const asked = dedupe(ideaPool().concat(aiPool, chosen()));   // everything already offered, skipped ones too
         const [c, dq] = await Promise.all([askClaudeQs('', asked).catch(() => []), p.seeing ? askClaudeQs('doctor', asked).catch(() => []) : Promise.resolve([])]);
         const fresh = [];
         for (let i = 0; i < Math.max(c.length, dq.length); i++) { if (c[i]) { fresh.push(c[i]); aiTags[c[i]] = 'c'; } if (dq[i]) { fresh.push(dq[i]); aiTags[dq[i]] = 'd'; } }
@@ -3622,6 +3622,9 @@
         aiPool = aiPool.concat(added);
       } catch (e) { console.warn('Suggestions unavailable', e); }
       aiBusy = aiLoading = false;
+      // nothing new came back (all repeats): try once more before saying there are no more
+      if (more && !added.length && !(tries > 0)) return fetchClaudeQuestions(true, quiet, 1);
+      if (quiet) { if (steps[currentIndex].mode === 'ideas') { const was = qShown[0]; renderList(); applyLang(); if (!was && curIdea()) say(L2('Here’s another. ', 'En voici une autre. ') + stop(curIdea())); } saveAll(); return; }
       if (LISTMODES[steps[currentIndex].mode]) {
         if (more && added.length) { const ix = ideaPool().indexOf(added[0]); if (ix > 0) { qStarts = [0, ix]; qPage = 1; } }
         renderList(); applyLang();
@@ -3753,7 +3756,7 @@
       if (step.mode === 'ideas') {
         const pool = ideaPool(), cur = curIdea(), done = pool.filter((q) => qPicked.includes(q) || qSkipped.includes(q)).length;
         qShown = cur ? [cur] : [];
-        $('listTitle').textContent = cur ? L2('Would you like to ask the doctor this?', 'Voulez-vous poser cette question au médecin ?') : L2('That’s all my suggestions', 'C’est tout pour mes suggestions');
+        $('listTitle').textContent = cur ? L2('Would you like to ask the doctor this?', 'Voulez-vous poser cette question au médecin ?') : aiBusy ? L2('Finding more questions…', 'Je cherche d’autres questions…') : L2('That’s all my suggestions', 'C’est tout pour mes suggestions');
         $('listHelp').textContent = aiLoading && !cur ? L2('Reid is thinking of questions for your visit…', 'Reid réfléchit à des questions pour votre visite…')
           : (cur ? L2(`Suggestion ${done + 1} of ${pool.length}. Say yes, no, or most important.`, `Suggestion ${done + 1} sur ${pool.length}. Dites oui, non, ou très important.`) + (aiLoading ? L2(' Reid is finding more…', ' Reid en cherche d’autres…') : '') : L2('Say yes for more, or no to go on.', 'Dites oui pour d’autres, ou non pour continuer.'))
             + (isMT() ? ' ⚠ Translated by computer: check with the doctor.' : '');
@@ -3816,6 +3819,11 @@
     }
     var qSkipped = [], ideaHist = [];
     function curIdea() { return ideaPool().find((q) => !qPicked.includes(q) && !qSkipped.includes(q)) || ''; }
+    // keep suggestions coming: when 3 or fewer are left, quietly ask Claude for more (up to about 60 in all)
+    function refillIdeas() {
+      const left = ideaPool().filter((q) => !qPicked.includes(q) && !qSkipped.includes(q)).length;
+      if (!aiBusy && left <= 3 && aiPool.length < 60) fetchClaudeQuestions(true, true);
+    }
     function decideIdea(act) {
       if (act === 'undo') {
         const last = ideaHist.pop(); if (!last) return;
@@ -3827,8 +3835,10 @@
         ideaHist.push(q);
         setCompanionState('captured');
       }
+      refillIdeas();
       renderList(); applyLang(); saveAll();
       const next = curIdea();
+      if (!next && aiBusy) { say(L2('One moment. Reid is finding more questions.', 'Un instant. Reid cherche d’autres questions.')); return; }
       say(next ? (act === 'undo' ? '' : act === 'no' ? '' : L2('Added. ', 'Ajoutée. ')) + stop(next) : L2('That’s all my suggestions. Would you like me to suggest more?', 'C’est tout. Voulez-vous que j’en suggère d’autres ?'));
     }
     document.getElementById('listItems').addEventListener('click', (e) => { const b = e.target.closest('[data-idea]'); if (b) decideIdea(b.dataset.idea); });
@@ -4794,7 +4804,7 @@
       document.getElementById('screenList').classList.toggle('hidden', !LISTMODES[step.mode]);
       if (step.id !== lastListStep) { lastListStep = step.id; qPage = 0; vPage = 0; qAdding = false; if (step.mode === 'meds' && medsList.length && !medDraft.name && medDraft.edit < 0) medDraft.stage = 'list'; }
       if (LISTMODES[step.mode]) renderList();
-      if (step.mode === 'ideas' || step.id === 'ask') fetchClaudeQuestions();   // start early so they're ready when the suggestions screen opens
+      if (step.mode === 'ideas' || step.id === 'ask') { fetchClaudeQuestions(); refillIdeas(); }   // start early so they're ready when the suggestions screen opens
       if (step.id === 'recap') recapFromRecording();
       placeHearBtn(step); placePicker(step); if (typeof renderSide === 'function') renderSide();
       if (step.mode === 'landing') stopRec();

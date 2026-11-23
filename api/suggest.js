@@ -67,9 +67,9 @@ function clean(value, max) {
   if (typeof value !== 'string') return '';
   return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim().slice(0, max);
 }
-function cleanList(value) {
+function cleanList(value, max = LIMITS.list) {
   if (!Array.isArray(value)) return [];
-  return value.slice(0, LIMITS.list).map((v) => clean(v, LIMITS.item)).filter(Boolean);
+  return value.slice(-max).map((v) => clean(v, LIMITS.item)).filter(Boolean);
 }
 
 function buildPrompt(p) {
@@ -483,7 +483,7 @@ export default async function handler(req, res) {
       meds: cleanList(body.meds),
       tell: cleanList(body.tell),
       ask: cleanList(body.ask),
-      asked: cleanList(body.asked),
+      asked: cleanList(body.asked, 80),   // everything already shown, so each new batch is different
       details: Array.isArray(body.details)
         ? body.details.slice(0, LIMITS.list).map((v) => clean(v, LIMITS.detail)).filter(Boolean)
         : [],
