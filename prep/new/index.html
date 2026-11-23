@@ -100,33 +100,6 @@
     .companion-asking .reid-dots { opacity: 1; }
     .companion-asking .reid-pupil { transform: translate(.8px, -1.6px); }
     .companion-asking .reid-face { transform: rotate(-8deg); transition: transform .3s; }
-    /* privacy page: the "scroll down" pill stays at the bottom of the text until the buttons come into view */
-    .cs-hint { position: sticky; bottom: 0; z-index: 10; margin-top: -4px; display: flex; align-items: center; justify-content: center; gap: 8px;
-      min-height: 48px; padding: 0 16px; border-radius: 999px; background: #1E2634; color: #fff; font-weight: 800; font-size: 15px;
-      box-shadow: 0 8px 20px rgba(30,38,52,.25); pointer-events: none; }
-    .cs-hint.hidden { display: none; }
-    #nextNavBtn.next-off { opacity: .5; }
-    /* Next arrow: bold drawn arrow in a soft circle */
-    .arrow-badge { width: 40px; height: 40px; background: rgba(255,255,255,.25); }
-    /* Message Rama chooser */
-    .side-gap { margin-top: 10px; }
-    .chat-pick { display: none; position: absolute; inset: 0; z-index: 60; background: rgba(30,38,52,.45); align-items: center; justify-content: center; padding: 16px; }
-    .chat-pick.open { display: flex; }
-    .cp-card { width: 100%; max-width: 380px; background: #FAF7F0; border: 2px solid #1E2634; border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 50px rgba(30,38,52,.3); }
-    .cp-title { font-size: 1.35rem; font-weight: 800; color: #1E2634; margin: 0; }
-    .cp-sub { font-size: 15px; color: #425268; margin: 0 0 2px; line-height: 1.35; }
-    .cp-btn { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 8px 14px; border-radius: 18px; background: #E5EFE7; border: 1px solid rgba(59,94,66,.4); color: #1E4627; text-decoration: none; font-size: 17px; }
-    .cp-btn:hover { background: #D7E7DA; }
-    .cp-btn:focus-visible, .cp-close:focus-visible { outline: 3px solid #D97706; outline-offset: 2px; }
-    .cp-btn span { display: flex; flex-direction: column; line-height: 1.2; }
-    .cp-btn b { font-weight: 800; } .cp-btn small { font-size: 13px; font-weight: 700; color: #425268; }
-    .cp-num { text-align: center; font-size: 14px; font-weight: 700; color: #425268; margin: 2px 0 0; }
-    .cp-close { min-height: 52px; border-radius: 18px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer; }
-    @keyframes csBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
-    .cs-bob { display: inline-block; animation: csBob 1.4s ease-in-out infinite; }
-    @keyframes csFlash { 0%, 100% { background: #1E2634; } 30%, 70% { background: #B84A27; } }
-    .cs-flash { animation: csFlash 1.2s ease-in-out 1; }
-    @media (prefers-reduced-motion: reduce) { .cs-bob, .cs-flash { animation: none; } }
     @media (prefers-reduced-motion: reduce) { .reid-eyes, .reid-talk .reid-beak, .companion-listening .reid-waves { animation: none; } }
     .companion-listening {
       animation: companionPulse 2.2s ease-in-out infinite;
@@ -179,7 +152,7 @@
     #appContainer.wide > section { grid-column: 2; grid-row: 1 / span 3; }
     #appContainer.wide > footer { grid-column: 2; grid-row: 4; }
     #appContainer.wide #reidHello { right: auto; width: 330px; top: 84px; }
-    #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 3 / span 2; align-self: end; }
+    #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 3; align-self: end; }
     /* bigger text on the wide layout: there's room across */
     .wide #screenLanding h1 { font-size: 2rem !important; } .wide #landingIntro, .wide #landingHook, .wide #screenLanding li { font-size: 18px !important; } .wide #landingWelcome { font-size: 14px !important; }
     .wide #screenLanding [aria-label="How WellHeard works"] p { font-size: 16px !important; }
@@ -240,7 +213,7 @@
         </div>
 
         <div id="brandText" class="min-w-0">
-          <span class="block text-[1.25rem] font-extrabold tracking-tight text-[#1E2634] leading-none whitespace-nowrap">
+          <span class="block text-[1.25rem] font-extrabold tracking-tight text-[#1E2634] leading-none whitespace-nowrap" data-notr>
             Well<span class="text-[#3B5E42]">Heard</span>
           </span>
           <span id="companionStateCaption" class="block text-[11px] font-bold text-[#3B5E42] mt-0.5 truncate">
@@ -312,7 +285,7 @@
 
         <div id="landingCard" class="w-full shrink-0 bg-[#FBF1E4] border border-[#EBD3B8] rounded-[20px] px-4 py-3.5">
           <p id="landingIntro" class="text-[15px] leading-snug text-[#1E2634] font-extrabold">Reid, your AI helper, will:</p>
-          <p id="landingShort" class="hidden text-[15px] leading-snug text-[#1E2634] font-medium"><strong class="font-extrabold">Reid</strong>, your AI helper, gets you ready, makes a clear page for your doctor, and writes down what the doctor said.</p>
+          <p id="landingShort" class="hidden text-[15px] leading-snug text-[#1E2634] font-medium">Reid, your AI helper, gets you ready, makes a clear page for your doctor, and writes down what the doctor said.</p>
           <ul id="landingList" class="mt-2.5 flex flex-col gap-2.5 text-[15px] leading-snug text-[#1E2634] font-medium">
             <li class="flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-white border border-[#EBD3B8] flex items-center justify-center text-[18px] shrink-0" aria-hidden="true">📝</span><span>Help you get ready, one question at a time</span></li>
             <li class="flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-white border border-[#EBD3B8] flex items-center justify-center text-[18px] shrink-0" aria-hidden="true">📄</span><span>Make a clear page for your doctor</span></li>
@@ -705,7 +678,7 @@
         onclick="goBack()"
         class="hidden tactile-btn min-h-[56px] px-4 rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-center gap-1.5 shrink-0 hover:bg-[#E6DFD0]"
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg><span>Back</span>
+        <span>← Back</span>
       </button>
 
       <div id="navBuffer" class="hidden w-[18px] shrink-0 dead-zone" aria-hidden="true"></div>
@@ -717,7 +690,7 @@
         class="tactile-btn primary-capsule-btn flex-1 min-h-[56px] pl-5 pr-3 font-extrabold text-[17px] flex items-center justify-between gap-2 min-w-0"
       >
         <span id="nextNavLabel" class="truncate">Get started</span>
-        <span id="nextArrowBadge" class="arrow-badge rounded-full text-white flex items-center justify-center shrink-0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></span>
+        <span id="nextArrowBadge" class="w-9 h-9 rounded-full bg-white/20 text-white font-extrabold text-lg flex items-center justify-center shrink-0">→</span>
       </button>
     </footer>
 
@@ -1594,8 +1567,7 @@
       navBuffer.classList.toggle('hidden', currentIndex === 0);
 
       document.getElementById('nextNavLabel').textContent = step.nextLabel;
-      // bold drawn arrows (23 Nov): the thin text arrows looked dated
-      document.getElementById('nextArrowBadge').innerHTML = currentIndex === steps.length - 1 ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>' : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
+      document.getElementById('nextArrowBadge').textContent = currentIndex === steps.length - 1 ? '↺' : '→';
     }
 
     function renderPresetButtons(step) {
@@ -2546,10 +2518,24 @@
     // translations made by Claude, kept on this phone per language so each sentence is translated once
     let UIC = {}, uicLang = '', pendingUI = new Set(), uiTimer = null, uiWaiters = [];
     function uic() {
-      if (uicLang !== lang) { uicLang = lang; try { UIC = JSON.parse(localStorage.getItem('wellheard-ui-' + lang) || '{}'); } catch (e) { UIC = {}; } }
+      if (uicLang !== lang) { uicLang = lang; try { UIC = JSON.parse(localStorage.getItem('wellheard-ui-' + lang) || '{}'); } catch (e) { UIC = {}; } if (PACKS[lang]) Object.assign(UIC, PACKS[lang]); }
       return UIC;
     }
     function saveUIC() { try { localStorage.setItem('wellheard-ui-' + lang, JSON.stringify(UIC)); } catch (e) { /* full */ } }
+    // checked translations of the app's own buttons and screens, one file per language (i18n/<code>.json).
+    // They always win over live translations; live translation only fills in anything new that isn't in the file yet.
+    const PACKS = {}, packWait = {};
+    function loadPack(c) {
+      if (PACKS[c]) return Promise.resolve(PACKS[c]);
+      if (!packWait[c]) packWait[c] = fetch('i18n/' + c + '.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
+        .then((d) => { PACKS[c] = (d && d.strings) || {}; if (c === lang) { Object.assign(uic(), PACKS[c]); } return PACKS[c]; });
+      return packWait[c];
+    }
+    // "1. Prepare · Step 4 of 18": translate the parts, keep the numbers
+    function stepLine(key, c) {
+      const m = /^(\d\. [^·]+?) · Step (\d+) of (\d+)$/.exec(key); if (!m || !c['Step {n} of {total}']) return '';
+      return (c[m[1]] || m[1]) + ' · ' + c['Step {n} of {total}'].replace('{n}', m[2]).replace('{total}', m[3]);
+    }
     async function fetchUI(list) {
       const want = lang, out = [];
       for (let i = 0; i < list.length; i += 60) {
@@ -2565,11 +2551,13 @@
     }
     // one sentence (for Reid's voice): from the cache, or translated now
     async function mt(text) {
+      if (isMT() && !PACKS[lang]) await loadPack(lang);
       const c = uic(); if (c[text]) return c[text];
       await fetchUI([text]); return uic()[text] || text;
     }
     const translatable = (t) => /[A-Za-zÀ-ÿ]{2}/.test(t);
     function applyLang(rootArg) {
+      if (isMT() && !PACKS[lang]) return loadPack(lang).then(() => applyLang(rootArg));
       if (typeof fitLanding === 'function') { setTimeout(fitLanding, 30); setTimeout(fitLanding, 1500); }
       document.documentElement.lang = lang;
       const main = document.getElementById('appContainer'); main.dir = RTL[lang] ? 'rtl' : 'ltr';
@@ -2581,7 +2569,7 @@
           if (n._en !== undefined && n.nodeValue !== n._t) { n._en = n._t = undefined; }   // the app changed this text since
           const raw = n._en !== undefined ? n._en : n.nodeValue, key = raw.trim();
           if (!key) continue;
-          const want = lang === 'fr' ? FR[key] : c ? c[key] : undefined;
+          const want = lang === 'fr' ? FR[key] : c ? (c[key] || stepLine(key, c) || undefined) : undefined;
           if (want) { n._en = raw; n._t = raw.replace(key, want); n.nodeValue = n._t; }
           else { if (n._en !== undefined) { n.nodeValue = n._en; n._en = n._t = undefined; } if (c && translatable(key)) missing.push(key); }
         }
@@ -2870,25 +2858,25 @@
     }
     const QWORD = /^(what|what's|why|how|who|which|where|when|can you|could you|do i|should i|is it|does|qu'est|que veut|pourquoi|comment|est-ce que|dois-je)\b/;
     const CMDS = {
-      zh: { next: '下一个|下一步|继续|好了', back: '返回|回去|上一个', repeat: '重复|再说一遍', help: '帮助|帮忙', stop: '暂停|停|等一下' },
-      yue: { next: '下一個|下一步|繼續|得啦', back: '返回|返去|上一個', repeat: '再講一次|重複', help: '幫手|幫助', stop: '暫停|停|等陣' },
-      es: { next: 'siguiente|continuar|listo', back: 'atrás|volver|regresar', repeat: 'repite|repetir|otra vez', help: 'ayuda', stop: 'pausa|para|espera' },
-      tl: { next: 'susunod|tuloy', back: 'bumalik|balik', repeat: 'ulitin|ulit', help: 'tulong', stop: 'sandali|hinto|tigil' },
-      ar: { next: 'التالي|استمر', back: 'رجوع|ارجع', repeat: 'كرر|أعد', help: 'مساعدة', stop: 'توقف|انتظر' },
-      it: { next: 'avanti|prossimo|continua', back: 'indietro', repeat: 'ripeti', help: 'aiuto', stop: 'pausa|aspetta' },
-      pt: { next: 'seguinte|próximo|continuar', back: 'voltar|atrás', repeat: 'repete|repetir', help: 'ajuda', stop: 'pausa|espera' },
-      ta: { next: 'அடுத்து|அடுத்தது', back: 'பின்னால்|திரும்ப', repeat: 'மீண்டும்', help: 'உதவி', stop: 'நிறுத்து' },
-      ur: { next: 'اگلا|آگے', back: 'پیچھے|واپس', repeat: 'دوبارہ', help: 'مدد', stop: 'رکو' },
-      fa: { next: 'بعدی|ادامه', back: 'برگرد|قبلی', repeat: 'تکرار', help: 'کمک', stop: 'صبر کن|توقف' },
-      ru: { next: 'дальше|далее|следующий', back: 'назад', repeat: 'повтори|повторите', help: 'помощь|помоги', stop: 'пауза|стоп|подожди' },
-      ko: { next: '다음', back: '뒤로|이전', repeat: '다시', help: '도움|도와줘', stop: '멈춰|잠깐' },
-      vi: { next: 'tiếp theo|tiếp', back: 'quay lại|trở lại', repeat: 'nhắc lại|lặp lại', help: 'giúp|trợ giúp', stop: 'dừng|chờ' },
-      hi: { next: 'अगला|आगे', back: 'पीछे|वापस', repeat: 'दोहराओ|फिर से', help: 'मदद', stop: 'रुको' },
-      pa: { next: 'ਅੱਗੇ|ਅਗਲਾ', back: 'ਪਿੱਛੇ|ਵਾਪਸ', repeat: 'ਦੁਬਾਰਾ', help: 'ਮਦਦ', stop: 'ਰੁਕੋ' },
-      gu: { next: 'આગળ|આગલું', back: 'પાછળ|પાછા', repeat: 'ફરીથી', help: 'મદદ', stop: 'રોકો' },
-      pl: { next: 'dalej|następne', back: 'wstecz|cofnij', repeat: 'powtórz', help: 'pomoc', stop: 'pauza|czekaj' },
-      uk: { next: 'далі|наступне', back: 'назад', repeat: 'повтори', help: 'допомога|допоможи', stop: 'пауза|стоп|зачекай' },
-      el: { next: 'επόμενο|συνέχεια', back: 'πίσω', repeat: 'επανάληψη|ξανά', help: 'βοήθεια', stop: 'παύση|περίμενε' }
+      zh: { next: '下一个|下一步|继续|好了', back: '返回|回去|上一个', repeat: '重复|再说一遍', help: '帮助|帮忙', stop: '暂停|停|等一下', erase: '删除|删掉|撤销', star: '最重要|很重要', yes: '是|好|是的|要', no: '不|不要|不用' },
+      yue: { next: '下一個|下一步|繼續|得啦', back: '返回|返去|上一個', repeat: '再講一次|重複', help: '幫手|幫助', stop: '暫停|停|等陣', erase: '刪除|刪咗佢|取消', star: '最重要|好重要', yes: '係|好|要|係呀', no: '唔要|唔使|唔好' },
+      es: { next: 'siguiente|continuar|listo', back: 'atrás|volver|regresar', repeat: 'repite|repetir|otra vez', help: 'ayuda', stop: 'pausa|para|espera', erase: 'borra|borrar|deshacer', star: 'lo más importante|más importante|muy importante', yes: 'sí|si|claro', no: 'no' },
+      tl: { next: 'susunod|tuloy', back: 'bumalik|balik', repeat: 'ulitin|ulit', help: 'tulong', stop: 'sandali|hinto|tigil', erase: 'burahin|bura', star: 'pinakamahalaga|napakahalaga', yes: 'oo|opo', no: 'hindi|ayaw' },
+      ar: { next: 'التالي|استمر', back: 'رجوع|ارجع', repeat: 'كرر|أعد', help: 'مساعدة', stop: 'توقف|انتظر', erase: 'امسح|احذف|تراجع', star: 'الأهم|مهم جدا', yes: 'نعم|أيوه|ايوه', no: 'لا' },
+      it: { next: 'avanti|prossimo|continua', back: 'indietro', repeat: 'ripeti', help: 'aiuto', stop: 'pausa|aspetta', erase: 'cancella|annulla', star: 'il più importante|più importante|molto importante', yes: 'sì|si|certo', no: 'no' },
+      pt: { next: 'seguinte|próximo|continuar', back: 'voltar|atrás', repeat: 'repete|repetir', help: 'ajuda', stop: 'pausa|espera', erase: 'apaga|apagar|anular', star: 'o mais importante|mais importante|muito importante', yes: 'sim|claro', no: 'não|nao' },
+      ta: { next: 'அடுத்து|அடுத்தது', back: 'பின்னால்|திரும்ப', repeat: 'மீண்டும்', help: 'உதவி', stop: 'நிறுத்து', erase: 'அழி|நீக்கு', star: 'மிக முக்கியம்|ரொம்ப முக்கியம்', yes: 'ஆம்|ஆமாம்|சரி', no: 'இல்லை|வேண்டாம்' },
+      ur: { next: 'اگلا|آگے', back: 'پیچھے|واپس', repeat: 'دوبارہ', help: 'مدد', stop: 'رکو', erase: 'مٹاؤ|ہٹاؤ', star: 'سب سے اہم|بہت اہم', yes: 'ہاں|جی ہاں|جی', no: 'نہیں|جی نہیں' },
+      fa: { next: 'بعدی|ادامه', back: 'بازگشت|برگرد|قبلی', repeat: 'تکرار', help: 'کمک', stop: 'صبر کن|توقف', erase: 'پاک کن|حذف کن', star: 'مهم‌ترین|مهمترین|خیلی مهم', yes: 'بله|آره', no: 'نه|خیر' },
+      ru: { next: 'дальше|далее|следующий', back: 'назад', repeat: 'повтори|повторите', help: 'помощь|помоги', stop: 'пауза|стоп|подожди', erase: 'сотри|удали|отмена', star: 'самое важное|очень важно', yes: 'да|конечно', no: 'нет' },
+      ko: { next: '다음', back: '뒤로|이전', repeat: '다시', help: '도움말|도움|도와줘', stop: '멈춰|잠깐', erase: '지워|지우기|취소', star: '가장 중요|제일 중요|아주 중요', yes: '네|예|응', no: '아니|아니요|아니오' },
+      vi: { next: 'tiếp theo|tiếp', back: 'quay lại|trở lại', repeat: 'nhắc lại|lặp lại', help: 'giúp|trợ giúp', stop: 'dừng|chờ', erase: 'xóa|xoá|hoàn tác', star: 'quan trọng nhất|rất quan trọng', yes: 'có|vâng|dạ|được', no: 'không' },
+      hi: { next: 'अगला|आगे', back: 'पीछे|वापस', repeat: 'दोहराओ|फिर से', help: 'मदद', stop: 'रुको', erase: 'मिटाओ|हटाओ', star: 'सबसे ज़रूरी|सबसे जरूरी|सबसे महत्वपूर्ण', yes: 'हाँ|हां|जी हाँ|हाँ जी', no: 'नहीं|ना' },
+      pa: { next: 'ਅੱਗੇ|ਅਗਲਾ', back: 'ਪਿੱਛੇ|ਵਾਪਸ', repeat: 'ਦੁਬਾਰਾ', help: 'ਮਦਦ', stop: 'ਰੁਕੋ', erase: 'ਮਿਟਾਓ|ਹਟਾਓ', star: 'ਸਭ ਤੋਂ ਜ਼ਰੂਰੀ|ਸਭ ਤੋਂ ਮਹੱਤਵਪੂਰਨ', yes: 'ਹਾਂ|ਹਾਂ ਜੀ', no: 'ਨਹੀਂ|ਨਾ' },
+      gu: { next: 'આગળ|આગલું', back: 'પાછળ|પાછા', repeat: 'ફરીથી', help: 'મદદ', stop: 'રોકો', erase: 'ભૂંસો|હટાવો', star: 'સૌથી મહત્વનું|સૌથી જરૂરી', yes: 'હા|હાં', no: 'ના|નહીં' },
+      pl: { next: 'dalej|następne', back: 'wstecz|cofnij', repeat: 'powtórz', help: 'pomoc', stop: 'pauza|czekaj', erase: 'usuń|skasuj|wymaż', star: 'najważniejsze|bardzo ważne', yes: 'tak', no: 'nie' },
+      uk: { next: 'далі|наступне', back: 'назад', repeat: 'повтори', help: 'допомога|допоможи', stop: 'пауза|стоп|зачекай', erase: 'зітри|видали|скасуй', star: 'найважливіше|дуже важливо', yes: 'так', no: 'ні' },
+      el: { next: 'επόμενο|συνέχεια', back: 'πίσω', repeat: 'επανάληψη|ξανά', help: 'βοήθεια', stop: 'παύση|περίμενε', erase: 'σβήσε|διάγραψε|αναίρεση', star: 'το πιο σημαντικό|πιο σημαντικό|πολύ σημαντικό', yes: 'ναι', no: 'όχι' }
     };
     function cmdOf(low) {
       const set = CMDS[lang]; if (!set) return '';
@@ -2902,6 +2890,10 @@
       if (step.mode === 'ready' && /\b(print|imprime[rz]?)\b/.test(low)) { printPages('doctor'); return; }
       if (step.mode === 'ready' && /\b(send|share|envoie[rz]?)\b/.test(low)) { sendPages(); return; }
       if (step.mode === 'ideas' && curIdea() !== undefined) {
+        const ic = cmdOf(low);
+        if (ic === 'yes') { decideIdea('yes'); return; }
+        if (ic === 'no') { decideIdea('no'); return; }
+        if (ic === 'star') { decideIdea('star'); return; }
         if (/^(yes|yeah|yep|sure|ok|okay|add it|yes please|oui|ajoute|sí|si|sì|sim|da|tak|так|да|네|vâng|có|haan|ہاں|بله|نعم|是|好|係)$/.test(low)) { decideIdea('yes'); return; }
         if (/^(no|nope|skip|no thanks|pass|non|passer|não|nie|нет|ні|아니|không|nahin|نہیں|نه|لا|不|不要|唔要)$/.test(low)) { decideIdea('no'); return; }
         if (/(most important|very important|important|très important|importante?|muy importante|molto importante)$/.test(low)) { decideIdea('star'); return; }
@@ -2915,6 +2907,7 @@
       if (/^(read (this|the) (screen|page)|read it|read everything|read (it|this) to me|lis(ez)? l'écran|lis(ez)?-moi tout)$/.test(low)) { readScreen(); return; }
       if (cmd === 'help') { explainStep(); return; }
       if (cmd === 'stop') { if (isListening) toggleListening(); return; }
+      if (cmd === 'erase') { undoLastWord(); return; }
       if (/^(next|next please|done|i'm done|carry on|continue|suivant|c'est tout|continuer)$/.test(low)) { goNext(); return; }
       if (/^(back|go back|retour|revenir)$/.test(low)) { goBack(); return; }
       if (/^(erase|undo|erase that|delete that|efface|efface ça|annuler)$/.test(low)) { undoLastWord(); return; }
@@ -3372,7 +3365,7 @@
           ${group(T('Your information', 'Vos renseignements'))}
           ${row('privacy', T('How your information stays private', 'Comment vos renseignements restent privés'))}
           ${group(T('Talk to a person', 'Parler à une personne'))}
-          <button type="button" data-chat class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3 text-left">${ico('chat')}<span>${T('Message Rama for help', 'Écrire à Rama pour de l’aide')}</span></button>
+          <a href="${chatHref()}" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3">${ico('chat')}<span>${T('Text Rama for help', 'Textez Rama pour de l’aide')}</span></a>
           <p class="text-xs text-center text-[#425268]">416-454-5597 · hello@pen-ink.ca</p></div>`;
       } else if (setView === 'say') {
         const li = (a, b) => `<li class="flex justify-between gap-3 py-1.5 border-b border-[#D6CFC0]"><b class="text-[#1E2634]">${a}</b><span class="text-[#425268] text-right">${b}</span></li>`;
@@ -3414,24 +3407,24 @@
       } else if (setView === 'translate') {
         const ul = (arr) => `<ul class="list-disc pl-5 space-y-1.5 text-[15px] text-[#1E2634] leading-snug">${arr.map((x) => `<li>${x}</li>`).join('')}</ul>`;
         body = head(T('When words come out wrong', 'Quand les mots sont mal compris'), 1) + `<div class="flex flex-col gap-[10px]">
-          <p class="bg-[#FDF3E1] border-2 border-[#D97706] rounded-2xl p-3.5 text-[15px] font-bold text-[#7A4A06] leading-snug">${T('Reid uses a computer to turn speech into words and to translate. Computers make mistakes. WellHeard helps you remember; it does not replace your doctor, your pharmacist or a professional interpreter.', 'Reid utilise un ordinateur pour transformer la parole en mots et pour traduire. Les ordinateurs se trompent. WellHeard vous aide à vous souvenir ; il ne remplace ni votre médecin, ni votre pharmacien, ni un interprète professionnel.')}</p>
+          <p class="bg-[#FDF3E1] border-2 border-[#D97706] rounded-2xl p-3.5 text-[15px] font-bold text-[#7A4A06] leading-snug">${T('Reid uses a computer to hear you and to translate. Computers make mistakes. WellHeard helps you remember. It does not replace your doctor, your pharmacist or a professional interpreter.', 'Reid utilise un ordinateur pour vous entendre et pour traduire. Les ordinateurs font des erreurs. WellHeard vous aide à vous souvenir. Il ne remplace ni votre médecin, ni votre pharmacien, ni un interprète professionnel.')}</p>
           ${card(T('Where mistakes happen most', 'Où les erreurs arrivent le plus'), ul([
-            T('<b>Medicine names</b> that sound alike', '<b>Noms de médicaments</b> qui se ressemblent'),
-            T('<b>Doses and numbers</b>: 15 and 50, 1 and 10', '<b>Doses et chiffres</b> : 15 et 50, 1 et 10'),
-            T('<b>Dates and times</b>', '<b>Dates et heures</b>'),
-            T('Small words that flip the meaning, like <b>"not"</b> or <b>"don’t"</b>', 'Petits mots qui changent le sens, comme <b>« pas »</b> ou <b>« ne… plus »</b>'),
-            T('Strong accents, quiet voices, people talking at once, and background noise', 'Accents forts, voix faibles, gens qui parlent en même temps, bruit de fond')]))}
+            T('Medicine names that sound alike', 'Les noms de médicaments qui se ressemblent'),
+            T('Doses and numbers, like 15 and 50', 'Les doses et les chiffres, comme 15 et 50'),
+            T('Dates and times', 'Les dates et les heures'),
+            T('Small words that change the meaning, like "not"', 'Les petits mots qui changent le sens, comme « pas »'),
+            T('Accents, quiet voices, people talking at once, and noise', 'Les accents, les voix faibles, plusieurs personnes qui parlent en même temps, et le bruit')]))}
           ${card(T('How WellHeard helps you catch them', 'Comment WellHeard vous aide à les repérer'), ul([
-            T('Your questions show the <b>English</b> and <b>your language</b> together, so the doctor reads the English and you read yours.', 'Vos questions s’affichent en <b>anglais</b> et dans <b>votre langue</b>, pour que le médecin lise l’anglais et vous la vôtre.'),
-            T('The page for your doctor is always in <b>English</b>.', 'La page pour votre médecin est toujours en <b>anglais</b>.'),
-            T('In your recap, tap <b>▶</b> beside a line to <b>hear the recording</b> of that moment.', 'Dans votre résumé, touchez <b>▶</b> à côté d’une ligne pour <b>réécouter</b> ce moment.'),
-            T('Lines with medicines, doses, dates or "not" are marked <b>⚠ Check this</b>.', 'Les lignes avec des médicaments, doses, dates ou « pas » sont marquées <b>⚠ À vérifier</b>.')]))}
+            T('Your questions are shown in English and in your language. The doctor reads the English.', 'Vos questions sont affichées en anglais et dans votre langue. Le médecin lit l’anglais.'),
+            T('The page for your doctor is always in English.', 'La page pour votre médecin est toujours en anglais.'),
+            T('In your recap, tap ▶ beside a line to hear that moment again.', 'Dans votre résumé, touchez ▶ à côté d’une ligne pour réentendre ce moment.'),
+            T('Lines with medicines, doses, dates or "not" are marked with ⚠.', 'Les lignes avec des médicaments, des doses, des dates ou « pas » sont marquées d’un ⚠.')]))}
           ${card(T('What to do', 'Quoi faire'), ul([
-            T('Before you leave, ask the doctor to <b>write down</b> any new medicine and dose.', 'Avant de partir, demandez au médecin d’<b>écrire</b> tout nouveau médicament et sa dose.'),
-            T('Check medicines and doses with your <b>pharmacist</b> when you pick them up.', 'Vérifiez médicaments et doses avec votre <b>pharmacien</b> quand vous les récupérez.'),
-            T('For a new diagnosis, surgery or treatment choice, ask for a <b>professional interpreter</b>. Many Ontario hospitals offer one for free, often by phone or video. Doctors’ offices may not, so ask when you book.', 'Pour un nouveau diagnostic, une opération ou un choix de traitement, demandez un <b>interprète professionnel</b>. Beaucoup d’hôpitaux de l’Ontario en offrent un gratuitement, souvent par téléphone ou vidéo. Les cabinets peut-être pas : demandez en prenant rendez-vous.'),
-            T('Family can help, but a professional interpreter is best for anything serious.', 'La famille peut aider, mais un interprète professionnel est préférable pour tout ce qui est sérieux.'),
-            T('If something in your recap looks wrong, <b>change it</b>. It’s your page.', 'Si quelque chose semble faux dans votre résumé, <b>corrigez-le</b>. C’est votre page.')]))}</div>`;
+            T('Before you leave, ask the doctor to write down any new medicine and its dose.', 'Avant de partir, demandez au médecin d’écrire tout nouveau médicament et sa dose.'),
+            T('Check medicines and doses with your pharmacist.', 'Vérifiez les médicaments et les doses avec votre pharmacien.'),
+            T('For a new diagnosis, surgery or treatment choice, ask for a professional interpreter. Many Ontario hospitals have one for free, by phone or video. Ask when you book.', 'Pour un nouveau diagnostic, une opération ou un choix de traitement, demandez un interprète professionnel. Beaucoup d’hôpitaux de l’Ontario en ont un gratuitement, par téléphone ou vidéo. Demandez-le en prenant rendez-vous.'),
+            T('Family can help, but for anything serious a professional interpreter is best.', 'La famille peut aider, mais pour tout ce qui est sérieux, un interprète professionnel est préférable.'),
+            T('If something in your recap looks wrong, change it. It’s your page.', 'Si quelque chose semble faux dans votre résumé, corrigez-le. C’est votre page.')]))}</div>`;
       } else if (setView === 'privacy') {
         const ok1 = consent && consent.choice === 'yes';
         body = head(T('Your privacy', 'Vos renseignements'), 1) + `<div class="flex flex-col gap-[10px]">${privacySummary('data-go="privacyFull"')}
@@ -3453,7 +3446,7 @@
             T('No ads, no tracking, nothing sold or shared with anyone else.', 'Pas de publicité, pas de pistage, rien n’est vendu ni partagé.'),
             T('Never used to train AI models (LLMs). Not by Anthropic, not by Microsoft, not by WellHeard.', 'Jamais utilisé pour entraîner des modèles d’IA (LLM). Ni par Anthropic, ni par Microsoft, ni par WellHeard.'),
             T('WellHeard doesn’t add its own lock to what’s saved on this device; your device’s passcode protects it.', 'WellHeard n’ajoute pas son propre verrou à ce qui est gardé ici; le code de votre appareil le protège.')]))}
-          ${card(T('Your choice', 'Votre choix'), `<p class="text-sm font-bold text-[#1E2634]">${consent ? (ok ? T('You agreed on ', 'Vous avez accepté le ') + said + '.' : T('You chose not to share (', 'Vous avez choisi de ne rien envoyer (') + said + T('). You type your answers; nothing leaves this device.', '). Vous écrivez vos réponses; rien ne quitte l’appareil.')) : T('You haven’t chosen yet.', 'Vous n’avez pas encore choisi.')}</p>
+          ${card(T('Your choice', 'Votre choix'), `<p class="text-sm font-bold text-[#1E2634]">${consent ? (ok ? T('You agreed on this date:', 'Vous avez accepté à cette date :') + ' <span data-notr>' + said + '</span>' : T('You chose not to share. You type your answers; nothing leaves this device. Date:', 'Vous avez choisi de ne rien envoyer. Vous écrivez vos réponses; rien ne quitte l’appareil. Date :') + ' <span data-notr>' + said + '</span>') : T('You haven’t chosen yet.', 'Vous n’avez pas encore choisi.')}</p>
             <button type="button" data-act="consent-${ok ? 'no' : 'yes'}" class="${B}">${ok ? T('Stop sharing (type only)', 'Arrêter d’envoyer (écrire seulement)') : T('I agree to share as described', 'J’accepte comme décrit')}</button>`,
             T('Reid never diagnoses or gives medical advice. Questions: hello@pen-ink.ca', 'Reid ne pose jamais de diagnostic. Questions : hello@pen-ink.ca'))}</div>`;
       } else if (setView === 'device') {
@@ -3785,13 +3778,15 @@
         const pool = ideaPool(), cur = curIdea(), done = pool.filter((q) => qPicked.includes(q) || qSkipped.includes(q)).length;
         qShown = cur ? [cur] : [];
         $('listTitle').textContent = cur ? L2('Would you like to ask the doctor this?', 'Voulez-vous poser cette question au médecin ?') : aiBusy ? L2('Finding more questions…', 'Je cherche d’autres questions…') : L2('That’s all my suggestions', 'C’est tout pour mes suggestions');
-        $('listHelp').textContent = aiLoading && !cur ? L2('Reid is thinking of questions for your visit…', 'Reid réfléchit à des questions pour votre visite…')
-          : (cur ? L2(`Suggestion ${done + 1} of ${pool.length}. Say yes, no, or most important.`, `Suggestion ${done + 1} sur ${pool.length}. Dites oui, non, ou très important.`) + (aiLoading ? L2(' Reid is finding more…', ' Reid en cherche d’autres…') : '') : L2('Say yes for more, or no to go on.', 'Dites oui pour d’autres, ou non pour continuer.'))
-            + (isMT() ? ' ⚠ Translated by computer: check with the doctor.' : '');
+        // built from separate pieces so each fixed sentence uses its checked translation and the numbers stay as they are
+        const helpBits = aiLoading && !cur ? [L2('Reid is thinking of questions for your visit…', 'Reid réfléchit à des questions pour votre visite…')]
+          : cur ? [L2('Say yes, no, or most important.', 'Dites oui, non, ou très important.')].concat(aiLoading ? [L2('Reid is finding more…', 'Reid en cherche d’autres…')] : []) : [L2('Say yes for more, or no to go on.', 'Dites oui pour d’autres, ou non pour continuer.')];
+        if (isMT()) helpBits.push('⚠ Translated by computer: check with the doctor.');
+        $('listHelp').innerHTML = (cur ? `<span data-notr>${done + 1} / ${pool.length} · </span>` : '') + helpBits.map((b) => `<span>${esc(b)}</span>`).join(' ');
         $('listCounter').textContent = L2(`${qPicked.length} added`, `${qPicked.length} ajoutée(s)`);
         if (cur) {
           const who = (SID('who').answer || '').trim(), known = ['Family doctor', 'Neurologist', 'Foot clinic'].find((x) => lc(x) === lc(who));
-          const tag = aiTags[cur] === 'd' ? (known ? L2('For your ', 'Pour : ') + tr(known).toLowerCase() : L2('For this doctor', 'Pour ce médecin'))
+          const tag = aiTags[cur] === 'd' ? (known ? L2('For:', 'Pour :') + ' ' + tr(known).toLowerCase() : L2('For this doctor', 'Pour ce médecin'))
             : aiTags[cur] === 'c' ? L2('About your visit · suggested by Claude', 'Sur votre visite · suggérée par Claude') : (commonSrc(cur) || L2('Common question', 'Question courante'));
           items.innerHTML = `<div class="w-full bg-white border-2 border-[#1E2634] rounded-[22px] p-4 flex flex-col gap-2">
               <span class="text-[11px] font-extrabold uppercase tracking-wide ${aiTags[cur] === 'd' ? 'text-[#B84A27]' : 'text-[#425268]'}">${esc(tag)}</span>
@@ -3995,31 +3990,6 @@
       return 'sms:+14164545597?&body=' + encodeURIComponent(body);
     }
     const canText = () => /iPhone|iPad|Android|Mac/i.test(navigator.userAgent);
-    // "Message Rama": pick text message, WhatsApp or Signal (23 Nov). Text message only where the device can send one.
-    function openChatPicker() {
-      const fr = lang === 'fr', body = decodeURIComponent(chatHref().split('&body=')[1] || '');
-      let el = document.getElementById('chatPick');
-      if (!el) {
-        el = document.createElement('div'); el.id = 'chatPick'; el.className = 'chat-pick';
-        document.getElementById('appContainer').appendChild(el);
-        el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-cp="close"]')) closeChatPicker(); else if (e.target.closest('a')) setTimeout(closeChatPicker, 300); });
-        el.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeChatPicker(); });
-      }
-      const btn = (href, label, note, ext) => `<a class="cp-btn" href="${href}"${ext ? ' target="_blank" rel="noopener"' : ''}>${ico('chat')}<span><b>${label}</b>${note ? `<small>${note}</small>` : ''}</span></a>`;
-      el.innerHTML = `<div class="cp-card" role="dialog" aria-modal="true" aria-labelledby="cpTitle" data-notr>
-          <p id="cpTitle" class="cp-title">${fr ? 'Écrire à Rama' : 'Message Rama'}</p>
-          <p class="cp-sub">${fr ? 'Rama a créé WellHeard. Choisissez comment lui écrire.' : 'Rama made WellHeard. Choose how to send your message.'}</p>
-          ${canText() ? btn(chatHref(), fr ? 'Message texte' : 'Text message', '', false) : ''}
-          ${btn('https://wa.me/14164545597?text=' + encodeURIComponent(body), 'WhatsApp', '', true)}
-          ${btn('https://signal.me/#p/+14164545597', 'Signal', fr ? 'Tapez votre message dans Signal' : 'Type your message in Signal', true)}
-          <p class="cp-num">${fr ? 'Ou appelez ou textez le' : 'Or call or text'} 416-454-5597</p>
-          <button type="button" class="cp-close" data-cp="close">${fr ? 'Fermer' : 'Close'}</button>
-        </div>`;
-      el.hidden = false; el.classList.add('open');
-      const first = el.querySelector('.cp-btn'); if (first) first.focus();
-    }
-    function closeChatPicker() { const el = document.getElementById('chatPick'); if (el) el.classList.remove('open'); }
-    document.addEventListener('click', (e) => { const c = e.target.closest('[data-chat]'); if (!c) return; e.preventDefault(); e.stopPropagation(); ensureCtx(); const rm = document.getElementById('reidMenu'); if (rm) rm.classList.add('hidden'); openChatPicker(); }, true);
 
     // ---------- first page: Reid says hello in a speech bubble and offers to read the page ----------
     // Phones only allow sound after a tap, so Reid can't speak the moment the page opens.
@@ -4117,7 +4087,6 @@
         z = vh < 560 ? Math.max(0.85, vh / 560) : 1;
         w = vw / z; h = vh / z;
         main.style.borderRadius = '0'; main.style.borderWidth = '0'; main.classList.remove('wide');
-        main.style.boxShadow = ''; document.body.style.backgroundColor = '';
       } else {                              // iPad or computer: the page, as big as fits
         // Computer or sideways iPad: a wide layout. Reid, Help and the progress sit in a column on the left,
         // the question gets the rest. Less stacked up, so the whole page can be bigger.
@@ -4126,9 +4095,7 @@
         main.classList.toggle('wide', wide);
         if (wide) { z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000); w = 1000; h = 640; }
         else { z = Math.min(1.7, (vh * 0.96) / 820, (vw * 0.96) / 420); w = 420; h = 820; }
-        // computer or sideways iPad: no phone-style frame, the page simply fills the screen (Rama, 23 Nov)
-        main.style.borderRadius = wide ? '0' : ''; main.style.borderWidth = wide ? '0' : ''; main.style.boxShadow = wide ? 'none' : '';
-        document.body.style.backgroundColor = wide ? '#FAF7F0' : '';
+        main.style.borderRadius = ''; main.style.borderWidth = '';
       }
       // Text size: everything grows together; the page keeps the same place on the screen
       const ts = [1, 1.18, 1.36][textSize] || 1; z *= ts; w /= ts; h /= ts;
@@ -4136,22 +4103,6 @@
       main.classList.toggle('narrow', w < 385);
       main.classList.toggle('tiny', w < 330);   // extra-large text on a phone: the owl stands for WellHeard, Help and Settings keep their labels
       main.style.zoom = z; main.style.width = w + 'px'; main.style.maxWidth = 'none'; main.style.height = h + 'px';
-      // Wide layout: make sure the left column (Reid, Help, progress, "Reid can") and the bottom bar fit.
-      // Measure them at normal size; if they need more room than the page has, the whole page gets a
-      // little smaller (and wider, so it still fills the screen) instead of cutting things off (23 Nov).
-      if (main.classList.contains('wide')) {
-        const sec = main.querySelector(':scope > section'), side = document.getElementById('sideReid');
-        main.style.zoom = '1'; main.style.height = 'auto';
-        const sh = sec ? sec.style.height : '', so = sec ? sec.style.overflow : '';
-        if (sec) { sec.style.height = '0px'; sec.style.overflow = 'hidden'; }
-        let need = main.offsetHeight + 8;
-        // room for every "Reid can" button a question page can show, so the size doesn't jump between pages
-        const btns = side ? side.querySelectorAll('[data-s]') : [], most = inputPreference === 'voice' ? 4 : 3;
-        if (btns.length && btns.length < most) need += (most - btns.length) * (btns[0].offsetHeight + 10);
-        if (sec) { sec.style.height = sh; sec.style.overflow = so; }
-        if (need > h) { const r = need / h; z /= r; w *= r; h = need; }
-        main.style.zoom = z; main.style.width = w + 'px'; main.style.height = h + 'px';
-      }
       if (LISTMODES[steps[currentIndex].mode]) renderList();
       if (steps[currentIndex].mode === 'visitQuestions') renderVisitQuestionsChecklist();
       fitLanding();
@@ -4175,20 +4126,18 @@
     function renderSide() {
       const fr = lang === 'fr', onStep = steps[currentIndex].mode !== 'landing', voice = inputPreference === 'voice';
       const SB = 'tactile-btn w-full min-h-[52px] px-3 rounded-2xl font-extrabold text-[15px] flex items-center gap-3 text-left bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]';
-      side.innerHTML = `<p class="text-xs font-extrabold uppercase tracking-wider text-[#3B5E42] px-1">${fr ? 'Reid peut' : 'Reid can'}</p>
+      side.innerHTML = `<p class="text-xs font-extrabold uppercase tracking-wider text-[#3B5E42] px-1">${fr ? 'Reid peut :' : 'Reid can:'}</p>
         <button type="button" data-s="read" class="${SB}">${ico('pages')}${fr ? 'Lire l’écran' : 'Read this screen'}</button>
         ${onStep ? `<button type="button" data-s="explain" class="${SB}">${ico('explain')}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
         ${voice && onStep ? `<button type="button" data-s="listen" class="${SB}">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter' : 'Start listening')}</button>` : ''}
-        <p class="text-xs font-extrabold uppercase tracking-wider text-[#3B5E42] px-1 side-gap">${fr ? 'Besoin d’une personne ?' : 'Need a person?'}</p>
-        <button type="button" data-chat class="${SB} bg-[#E5EFE7] border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Message Rama'}</button>`;
-      // the list's length changes the room the left column needs: re-fit the page (after this draw)
-      clearTimeout(window.__whFitT); window.__whFitT = setTimeout(() => { if (typeof sizeApp === 'function') sizeApp(); }, 0);
+        <a href="${chatHref()}" data-s="chat" class="${SB} bg-[#E5EFE7] border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Textez Rama' : 'Chat: text Rama'}</a>`;
     }
     side.addEventListener('click', (e) => {
       const b = e.target.closest('[data-s]'); if (!b) return; ensureCtx();
       if (b.dataset.s === 'read') readScreen();
       if (b.dataset.s === 'explain') explainStep();
       if (b.dataset.s === 'listen') { toggleListening(); renderSide(); applyLang(); }
+      if (b.dataset.s === 'chat' && !canText()) { e.preventDefault(); showToast(lang === 'fr' ? 'Textez Rama au 416-454-5597' : 'Text Rama at 416-454-5597'); }
     });
 
     // ---------- iPhone / iPad in Safari: show how to make WellHeard full screen ----------
@@ -4414,7 +4363,7 @@
       return false;
     }
     function medHeard(t, low) {
-      const yes = /^(yes|yeah|yep|correct|that's right|right|oui|sí|si|sim)$/.test(low), no = /^(no|nope|non|não)$/.test(low), d = medDraft;
+      const yes = /^(yes|yeah|yep|correct|that's right|right|oui|sí|si|sim)$/.test(low) || cmdOf(low) === 'yes', no = /^(no|nope|non|não)$/.test(low) || cmdOf(low) === 'no', d = medDraft;
       if (d.sugg.length && d.stage === 'name') {
         if (yes) { d.name = d.sugg[0].name; d.sugg = []; medGo('dose'); return true; }
         if (no) { d.sugg = []; medGo('dose'); return true; }
@@ -4437,7 +4386,7 @@
       const OFF = 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]', ON = 'bg-[#1E2634] text-white', GO = 'bg-[#3B5E42] text-white';
       const nm = `<span data-notr>${esc(d.name)}</span>`;
       $('listTitle').innerHTML = { list: L2('Your medicines', 'Vos médicaments'), name: d.edit > -1 ? L2('Medicine name', 'Nom du médicament') : n ? L2('Add a medicine', 'Ajouter un médicament') : L2('What medicines do you take?', 'Quels médicaments prenez-vous ?'),
-        dose: L2('How strong is each pill of ', 'Quelle est la force de ') + nm + '?', sched: L2('When do you take ', 'Quand prenez-vous ') + nm + '?' }[d.stage];
+        dose: nm + ' · <span>' + L2('How strong is each pill?', 'Quelle est la force de chaque comprimé ?') + '</span>', sched: nm + ' · <span>' + L2('When do you take it?', 'Quand le prenez-vous ?') + '</span>' }[d.stage];
       $('listHelp').textContent = { list: SID('meds').fromLast ? L2('From your last visit. Tap one to change it, or ✕ to remove it.', 'De votre dernière visite. Touchez-en un pour le modifier, ou ✕ pour le retirer.') : L2('Tap one to change it. Add vitamins too.', 'Touchez-en un pour le modifier. Ajoutez aussi les vitamines.'),
         name: L2('Start typing and pick it from the list, or say it.', 'Commencez à écrire et choisissez dans la liste, ou dites-le.'),
         dose: L2('It’s on the label, for example 100/25 mg. Type the number, then tap the unit.', 'C’est sur l’étiquette, par exemple 100/25 mg. Écrivez le nombre, puis touchez l’unité.'),
@@ -4479,7 +4428,7 @@
           <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5">${L2('Time', 'Heure')}</p>
           <div class="grid grid-cols-6 gap-[6px]">${[...Array(12)].map((_, i) => i + 1).map((h) => `<button type="button" data-med="hr" data-v="${h}" class="${CH} !px-0 !min-h-[42px] ${a.h === h ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${h}</button>`).join('')}</div>
           <div class="grid grid-cols-6 gap-[6px]">${[0, 15, 30, 45].map((mi) => `<button type="button" data-med="mi" data-v="${mi}" class="${CH} !px-0 !min-h-[42px] ${a.m === mi ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">:${String(mi).padStart(2, '0')}</button>`).join('')}${['am', 'pm'].map((p) => `<button type="button" data-med="ap" data-v="${p}" class="${CH} !px-0 !min-h-[42px] ${a.ap === p ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${p.toUpperCase()}</button>`).join('')}</div>
-          <button type="button" data-med="tadd" class="${CH} ${a.h ? GO : 'bg-[#D6CFC0] text-[#425268]'} w-full" ${a.h ? '' : 'aria-disabled="true"'}>+ ${a.h ? `${L2('Add', 'Ajouter')} ${fmtN(a.n)} ${cw(a.n)} ${L2('at', 'à')} ${fmtT(`${String((a.h % 12) + (a.ap === 'pm' ? 12 : 0)).padStart(2, '0')}:${String(a.m).padStart(2, '0')}`, fr)}` : L2('Pick a time first', 'Choisissez d’abord une heure')}</button></div>`;
+          <button type="button" data-med="tadd" class="${CH} ${a.h ? GO : 'bg-[#D6CFC0] text-[#425268]'} w-full" ${a.h ? '' : 'aria-disabled="true"'}>+ ${a.h ? `<span>${L2('Add', 'Ajouter')}:</span>&nbsp;<span data-notr>${fmtN(a.n)}</span>&nbsp;<span>${cw(a.n)}</span>&nbsp;<span data-notr>· ${fmtT(`${String((a.h % 12) + (a.ap === 'pm' ? 12 : 0)).padStart(2, '0')}:${String(a.m).padStart(2, '0')}`, fr)}</span>` : L2('Pick a time first', 'Choisissez d’abord une heure')}</button></div>`;
         html += `<button type="button" data-med="prn" aria-pressed="${d.prn}" class="${CH} w-full ${d.prn ? ON : OFF}">${d.prn ? '✓ ' : ''}${L2('Also when needed', 'Aussi au besoin')}</button>
           <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5 mt-1">${L2('With meals? (if the label says)', 'Avec les repas ? (si l’étiquette le dit)')}</p>
           <div class="grid grid-cols-3 gap-[6px]">${Object.keys(FOOD).map((f) => `<button type="button" data-med="food" data-v="${f}" aria-pressed="${d.food === f}" class="${CH} !min-h-[48px] !text-[14px] leading-tight ${d.food === f ? ON : OFF}">${d.food === f ? '✓ ' : ''}${FOOD[f][fr ? 1 : 0]}</button>`).join('')}</div>`;
@@ -4495,7 +4444,7 @@
           const q = inp.value.trim(), local = medSuggest(q), lcs = new Set(local.map(lc));
           const all = local.concat(more.filter((x) => !lcs.has(lc(x)))).slice(0, 7);
           box.innerHTML = all.map(btn).join('') + (q.length >= 3 && !all.some((x) => lc(x) === lc(q))
-            ? `<button type="button" data-med="pick" data-v="${esc(q)}" class="tactile-btn min-h-[48px] px-4 rounded-2xl font-bold text-[15px] flex items-center text-left bg-[#F0EBE1] border border-dashed border-[#B8AE9C] text-[#425268] w-full">${L2('Use', 'Utiliser')} “${esc(q)}” ${L2('as I typed it', 'tel quel')}</button>` : '');
+            ? `<button type="button" data-med="pick" data-v="${esc(q)}" class="tactile-btn min-h-[48px] px-4 rounded-2xl font-bold text-[15px] flex items-center text-left bg-[#F0EBE1] border border-dashed border-[#B8AE9C] text-[#425268] w-full"><span>${L2('Use what I typed:', 'Utiliser ce que j’ai écrit :')}</span>&nbsp;<span data-notr>“${esc(q)}”</span></button>` : '');
         };
         // more names from Health Canada's list of approved drugs (only the typed letters are sent)
         const lookUp = () => { clearTimeout(timer); const q = inp.value.trim(); more = []; paint(); if (q.length < 3) return;
@@ -4607,24 +4556,9 @@
       $('listHelp').textContent = L2('Please read, then choose below.', 'Lisez, puis choisissez plus bas.');
       $('listCounter').classList.add('hidden');
       items.innerHTML = `${privacySummary('data-cs="more"')}
-        <div id="csHint" class="cs-hint${consent || consentSeen ? ' hidden' : ''}" aria-hidden="true"><span>${L2('Scroll down to read, then choose', 'Défilez pour lire, puis choisissez')}</span><span class="cs-bob text-lg">↓</span></div>
         <button type="button" data-cs="yes" class="tactile-btn w-full min-h-[58px] rounded-[18px] ${ok ? 'bg-[#3B5E42]' : 'bg-[#1E2634]'} text-white font-extrabold text-lg">${ok ? '✓ ' : ''}${L2('I agree', 'J’accepte')}</button>
         <button type="button" data-cs="no" class="tactile-btn w-full min-h-[54px] rounded-[18px] ${no ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-[15px]">${no ? '✓ ' : ''}${L2('No thanks: I’ll type, nothing is sent', 'Non merci : j’écris, rien n’est envoyé')}</button>`;
       items.classList.add('overflow-y-auto'); foot.innerHTML = '';
-      // Next only works once they've scrolled down to the I agree / No thanks buttons (Rama, 23 Nov)
-      items.onscroll = consentCheckSeen; requestAnimationFrame(consentCheckSeen); dimNext(steps[currentIndex]);
-    }
-    var consentSeen = false;
-    function consentCheckSeen() {
-      if (steps[currentIndex].mode !== 'consent') return;
-      const items = document.getElementById('listItems'), y = items.querySelector('[data-cs="yes"]'); if (!y) return;
-      const r = y.getBoundingClientRect(), c = items.getBoundingClientRect();
-      if (r.top < c.bottom - 8) { consentSeen = true; const h = document.getElementById('csHint'); if (h) h.classList.add('hidden'); }
-    }
-    // the Next button looks switched off on the privacy page until they choose
-    function dimNext(step) {
-      const nb = document.getElementById('nextNavBtn'), off = step && step.mode === 'consent' && !consent;
-      nb.classList.toggle('next-off', !!off); nb.setAttribute('aria-disabled', off ? 'true' : 'false');
     }
     document.getElementById('listItems').addEventListener('click', (e) => {
       const b = e.target.closest('[data-cs]'); if (!b) return; ensureCtx();
@@ -4661,8 +4595,7 @@
           <button type="button" data-r="read" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('pages')}${fr ? 'Lire ce qui est à l’écran' : 'Read what’s on this screen'}</button>
           ${onStep ? `<button type="button" data-r="repeat" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('voice')}${fr ? 'Répéter la question' : 'Repeat the question'}</button>` : ''}
           ${voice && onStep ? `<button type="button" data-r="listen" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter de nouveau' : 'Start listening')}</button>` : ''}
-          <p class="text-sm font-extrabold text-[#3B5E42] px-1 side-gap">${fr ? 'Besoin d’une personne ?' : 'Need a person?'}</p>
-          <button type="button" data-chat class="${MB} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Message Rama'}</button>
+          <a href="${chatHref()}" data-r="chat" class="${MB} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Clavarder : textez Rama' : 'Chat: text Rama for help'}</a>
           <button type="button" data-r="close" class="${MB} bg-white border border-[#D6CFC0] text-[#1E2634] justify-center">${fr ? 'Fermer' : 'Close'}</button>`;
         menu.classList.remove('hidden');
       };
@@ -4670,6 +4603,7 @@
       wrap.addEventListener('click', (e) => { e.stopPropagation(); ensureCtx(); if (menu.classList.contains('hidden')) open(); else close(); });
       menu.addEventListener('click', (e) => {
         e.stopPropagation(); const b = e.target.closest('[data-r]'); if (!b) return; close();
+        if (b.dataset.r === 'chat' && !canText()) { e.preventDefault(); showToast(lang === 'fr' ? 'Textez Rama au 416-454-5597' : 'Text Rama at 416-454-5597'); }
         if (b.dataset.r === 'explain') explainStep();
         if (b.dataset.r === 'repeat') speakStep();
         if (b.dataset.r === 'read') readScreen();
@@ -4767,19 +4701,24 @@
 
     // ---------- languages: choosing one, and the warning about computer translation ----------
     const LANG_EN = { en: 'English', fr: 'French', zh: 'Mandarin Chinese', yue: 'Cantonese', pa: 'Punjabi', es: 'Spanish', tl: 'Tagalog', ar: 'Arabic', it: 'Italian', pt: 'Portuguese', ta: 'Tamil', ur: 'Urdu', fa: 'Persian (Farsi)', ru: 'Russian', ko: 'Korean', vi: 'Vietnamese', hi: 'Hindi', gu: 'Gujarati', pl: 'Polish', uk: 'Ukrainian', el: 'Greek' };
-    const WARN_EN = '⚠ Translated by computer. It can be wrong, especially medicine names, doses, numbers, dates and words like "not". Your page for the doctor is printed in English. For anything important, ask the clinic for a professional interpreter when you book.';
-    function MT_WARN() { return `<span>${esc(WARN_EN)}</span><span class="block mt-1.5 opacity-80" data-notr>${esc(WARN_EN)}</span>`; }
+    const WARN_TITLE = 'Translated by computer';
+    const WARN_EN = '⚠ WellHeard is translated by computer, and it can make mistakes. Take extra care with medicine names, doses, numbers, dates and words like "not". Your doctor\'s page is always in English. For important visits, ask the clinic for a professional interpreter when you book.';
+    // the warning in the patient's language, with the English underneath for a helper or the doctor (shown once if no checked translation exists)
+    function MT_WARN() {
+      const t = tr(WARN_EN);
+      return t !== WARN_EN ? `<span data-notr>${esc(t)}</span><span class="block mt-2 pt-2 border-t border-[#D97706]/40 text-[12px] font-semibold opacity-80" data-notr lang="en" dir="ltr">${esc(WARN_EN)}</span>` : `<span data-notr>${esc(WARN_EN)}</span>`;
+    }
     const note = document.createElement('div'); note.id = 'mtNotice';
     note.className = 'hidden absolute inset-0 z-50 bg-[#1E2634]/40 flex items-end';
     document.getElementById('appContainer').appendChild(note);
     function showMTNotice() {
       note.innerHTML = `<div class="w-full bg-[#FAF7F0] rounded-t-[32px] p-5 flex flex-col gap-3 border-t-2 border-[#1E2634]">
-        <h2 class="text-xl font-extrabold text-[#1E2634]" data-notr>🌐 ${esc(langName(lang))}</h2>
+        <h2 class="text-xl font-extrabold text-[#1E2634]"><span data-notr>🌐 ${esc(langName(lang))}</span><span class="block text-base text-[#7A4A06] mt-1">${esc(WARN_TITLE)}</span></h2>
         <div class="bg-[#FDF3E1] border-2 border-[#D97706] rounded-2xl p-3 text-[14px] font-bold text-[#7A4A06] leading-snug">${MT_WARN()}</div>
         <button type="button" data-n="more" class="text-left text-[15px] font-extrabold text-[#3B5E42] underline underline-offset-2 min-h-[44px]">What to do if words come out wrong ›</button>
         <button type="button" data-n="ok" class="tactile-btn w-full min-h-[56px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">OK</button></div>`;
       note.classList.remove('hidden'); applyLang();
-      say(WARN_EN.replace('⚠ ', ''));
+      say(tr(WARN_EN).replace('⚠ ', ''), true);
     }
     note.addEventListener('click', (e) => {
       const b = e.target.closest('[data-n]');
@@ -4790,7 +4729,7 @@
       if (!LOC[c] || c === lang) return;
       lang = c; voiceName = ''; stopRec(); hush(); qPage = 0;
       saveAll(); renderSettings(); renderCurrentStep();
-      if (isMT()) { closeModal('helpSettingsModal'); showMTNotice(); }
+      if (isMT()) { closeModal('helpSettingsModal'); loadPack(c).then(() => { if (lang === c) { applyLang(); showMTNotice(); } }); }
       if (isListening) setTimeout(startRec, 300);
     }
     document.getElementById('langPick').addEventListener('click', () => { ensureCtx(); openModal('helpSettingsModal'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); });
@@ -4895,7 +4834,7 @@
       if (LISTMODES[step.mode]) renderList();
       if (step.mode === 'ideas' || step.id === 'ask') { fetchClaudeQuestions(); refillIdeas(); }   // start early so they're ready when the suggestions screen opens
       if (step.id === 'recap') recapFromRecording();
-      placeHearBtn(step); placePicker(step); if (typeof renderSide === 'function') renderSide(); dimNext(step);
+      placeHearBtn(step); placePicker(step); if (typeof renderSide === 'function') renderSide();
       if (step.mode === 'landing') stopRec();
       // the Next button just says Next, so it is never cut off
       const nl = document.getElementById('nextNavLabel');
@@ -4914,16 +4853,7 @@
       try {
         const step = steps[currentIndex];
         if (step.mode === 'voice') { saveCurrentStepState(); if (await vagueCheck(step)) return; }
-        if (step.mode === 'consent' && !consent) {
-          consentCheckSeen();
-          const m = consentSeen ? L2('Please tap I agree, or No thanks.', 'Touchez J’accepte, ou Non merci.')
-            : L2('Please scroll down and read about your privacy first. Then tap I agree, or No thanks.', 'Faites d’abord défiler pour lire sur votre vie privée. Puis touchez J’accepte, ou Non merci.');
-          showToast(m); say(m);
-          const items = document.getElementById('listItems'), h = document.getElementById('csHint');
-          if (!consentSeen) { items.scrollBy({ top: 140, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); if (h) { h.classList.remove('cs-flash'); void h.offsetWidth; h.classList.add('cs-flash'); } }
-          else { const y = items.querySelector('[data-cs="yes"]'); if (y) y.focus(); }
-          return;
-        }
+        if (step.mode === 'consent' && !consent) { const m = L2('Please tap I agree, or No thanks.', 'Touchez J’accepte, ou Non merci.'); showToast(m); say(m); return; }
         if (step.mode === 'meds' && medNext()) return;
         if (step.id === 'detail') await detailNext(step);
         if (step.mode === 'priority' && chosen().length && !qPrio.length && !prioWarned) {
