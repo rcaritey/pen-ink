@@ -5829,7 +5829,7 @@
       const desk = main.classList.contains('with-pages') || main.classList.contains('wide');
       if (!(desk ? ['landing', 'consent'] : ['landing', 'consent', 'goalqs', 'ready', 'priority', 'review']).includes(steps[currentIndex].mode)) {
         const floor = desk ? 0.9 : 0.85;
-        const boxes = ['listItems', 'screenQuestion'].map((id) => document.getElementById(id)).filter((e) => e && e.offsetParent);
+        const boxes = ['listItems', 'screenQuestion', 'sideReid'].map((id) => document.getElementById(id)).filter((e) => e && e.offsetParent);
         for (let k = 0; k < 3; k++) {
           const over = Math.max(0, ...boxes.map((e) => e.scrollHeight - e.clientHeight)); if (over <= 2) break;
           const z = parseFloat(main.style.zoom) || 1, h = parseFloat(main.style.height), w = parseFloat(main.style.width);
@@ -5960,7 +5960,7 @@
       main.style.zoom = z; main.style.width = W + 'px'; main.style.height = h + 'px';
       if (LISTMODES[steps[currentIndex].mode]) renderList();
       // the same no-scroll fit as everywhere else
-      const boxes = ['listItems', 'screenQuestion'].map((id) => document.getElementById(id)).filter((e) => e && e.offsetParent);
+      const boxes = ['listItems', 'screenQuestion', 'sideReid'].map((id) => document.getElementById(id)).filter((e) => e && e.offsetParent);
       if (steps[currentIndex].mode !== 'consent') for (let k = 0; k < 3; k++) {
         const over = Math.max(0, ...boxes.map((e) => e.scrollHeight - e.clientHeight)); if (over <= 2) break;
         const nz = Math.max(0.85, z * h / (h + over + 10)); if (nz >= z - 0.001) break;
@@ -6045,6 +6045,17 @@
       closeModal = function (id) { const r = cm(id); if (!document.querySelector('[role="dialog"]:not(.hidden)')) document.body.classList.remove('modal-open'); return r; }; }
     // a medicine screen can grow as times are added: fit it again after each tap
     document.getElementById('listItems').addEventListener('click', (e) => { if (e.target.closest('[data-med]')) { clearTimeout(window.__medFit); window.__medFit = setTimeout(() => { if (steps[currentIndex].mode === 'meds') sizeApp(); }, 30); } });
+    // Reid listens again on the first tap after the page is reopened (browsers only allow the microphone after a tap),
+    // unless the person paused him on purpose
+    let userPaused = false;
+    { const tl = toggleListening; toggleListening = function () { tl(); userPaused = !isListening; }; }
+    document.addEventListener('pointerdown', (e) => {
+      if (userPaused || isListening || inputPreference !== 'voice') return;
+      const st = steps[currentIndex]; if (!st || st.mode === 'landing' || document.body.classList.contains('modal-open')) return;
+      if (e.target.closest('[data-s="listen"], [data-r="listen"], #companionEmblem')) return;   // those buttons decide for themselves
+      isListening = true; syncVoiceBarVisuals(); setCompanionState('listening'); try { startRec(); } catch (err) { /* needs another tap */ }
+      if (typeof renderSide === 'function') renderSide();
+    }, true);
     // Initial render
     loadAll();
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }
