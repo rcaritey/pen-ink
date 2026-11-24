@@ -2327,8 +2327,9 @@
         circle.className = 'w-9 h-9 rounded-full bg-[#DC2626] text-white flex items-center justify-center shrink-0 animate-pulse';
         label.textContent = 'Recording — tap to pause';
         label.className = 'text-[#991B1B] truncate';
+        window.__recFrom = Date.now() - recordSeconds * 1000;
         recordTimerId = setInterval(() => {
-          recordSeconds++;
+          recordSeconds = Math.floor((Date.now() - window.__recFrom) / 1000);
           const m = Math.floor(recordSeconds / 60);
           const s = String(recordSeconds % 60).padStart(2, '0');
           document.getElementById('recordTimer').textContent = `${m}:${s}`;
@@ -3104,7 +3105,7 @@
       heard(t);
     }
     function startRec() {
-      if (inputPreference !== 'voice' || !isListening || recRec || (IOS && speaking)) return;
+      if (inputPreference !== 'voice' || !isListening || recRec || isRecording || (IOS && speaking)) return;
       if (steps[currentIndex].mode === 'landing') return;
       if (!(consent && consent.choice === 'yes')) return;
       if (rec) return;
@@ -3303,7 +3304,7 @@
           recRec.onerror = (e) => console.warn('Recording problem', e && e.error);
           try { recRec.start(); } catch (e) { console.warn('Could not record', e); }
         };
-        go(); recapDone = false;
+        window.__recGo = go; go(); recapDone = false;
       } else if (recRec) {
         const r = recRec; recRec = null; r.onend = null; try { r.stop(); } catch (e) { /* stopped */ }
         showToast(lang === 'fr' ? 'Enregistré. Reid en fera des notes après la visite.' : 'Saved. Reid will turn it into notes after the visit.');
@@ -6376,6 +6377,51 @@
       const b = e.target.closest('[data-rm]'); if (!b) return; e.stopPropagation();
       removeQ(qShown[+b.dataset.rm]);
     }, true);
+
+    // ---------- the visit recording keeps going until Stop (Rama, 24 Nov) ----------
+    // Moving around the app never stops it. Reid stays quiet while it records (he would be recorded, and would
+    // talk over the doctor). A bar at the top of every screen shows the time and has Stop. The screen is kept
+    // awake. If the iPhone or iPad pauses the microphone while you're in another app, recording picks up again
+    // by itself when you come back.
+    { const sy = say; say = function (t, raw) { if (isRecording) return Promise.resolve(); return sy(t, raw); }; }
+    const recBar = document.createElement('div'); recBar.id = 'recBar'; recBar.setAttribute('role', 'status');
+    recBar.style.cssText = 'position:fixed;top:max(8px, env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:90;display:none;align-items:center;gap:12px;background:#991B1B;color:#fff;border-radius:999px;padding:6px 6px 6px 18px;font-weight:800;font-size:17px;box-shadow:0 6px 20px rgba(0,0,0,.2)';
+    recBar.innerHTML = '<span aria-hidden="true" style="width:12px;height:12px;border-radius:99px;background:#fff"></span><span id="recBarText"></span><button type="button" id="recBarStop" style="font:inherit;font-weight:800;min-height:48px;padding:0 18px;border-radius:999px;border:0;background:#fff;color:#991B1B;cursor:pointer"></button>';
+    document.body.appendChild(recBar);
+    let wakeLock = null;
+    const keepAwake = async () => { try { if (isRecording && navigator.wakeLock && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch (e) { /* not allowed here */ } };
+    const letSleep = () => { try { if (wakeLock) wakeLock.release(); } catch (e) { /* gone */ } wakeLock = null; };
+    function syncRecBar() {
+      recBar.style.display = isRecording ? 'flex' : 'none';
+      if (!isRecording) return;
+      const cap = document.getElementById('companionStateCaption'); if (cap) cap.textContent = L2('Quiet while recording', 'Silencieux pendant l’enregistrement');
+      const m = Math.floor(recordSeconds / 60), sec = String(recordSeconds % 60).padStart(2, '0');
+      document.getElementById('recBarText').textContent = L2('Recording', 'Enregistrement') + ' ' + m + ':' + sec;
+      document.getElementById('recBarStop').textContent = L2('■ Stop', '■ Arrêter');
+    }
+    setInterval(syncRecBar, 1000);
+    document.getElementById('recBarStop').addEventListener('click', () => { if (isRecording) { toggleVisitRecording(); syncRecBar(); if (steps[currentIndex].mode === 'visitStart') { renderList(); applyLang(); } } });
+    { const tv = toggleVisitRecording; toggleVisitRecording = function () { const r = tv.apply(this, arguments); setTimeout(() => { syncRecBar(); if (isRecording) { stopRec(); keepAwake(); } else letSleep(); }, 50); return r; }; }
+    // coming back to WellHeard: make sure the microphone is still feeding the recording; if not, start it again
+    function healRecording() {
+      if (!isRecording) return;
+      keepAwake();
+      try { const c = CanadaRec.sharedCtx && CanadaRec.sharedCtx(); if (c && c.state !== 'running') c.resume(); } catch (e) { /* later */ }
+      setTimeout(() => {
+        if (!isRecording) return;
+        const r = recRec, tracks = r && r._stream ? r._stream.getAudioTracks() : [];
+        const dead = !r || !tracks.length || tracks.some((t) => t.readyState === 'ended' || t.muted) || (r._beat && performance.now() - r._beat > 3000);
+        if (dead) {
+          if (r) { r.onend = null; try { r.stop(); } catch (e) { /* stopped */ } }
+          recRec = null; if (window.__recGo) window.__recGo();
+          showToast(L2('Still recording.', 'L’enregistrement continue.'));
+        }
+      }, 800);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') healRecording(); });
+    window.addEventListener('pageshow', healRecording); window.addEventListener('focus', healRecording);
+    setInterval(() => { if (isRecording && document.visibilityState === 'visible' && recRec && recRec._beat && performance.now() - recRec._beat > 5000) healRecording(); }, 5000);
+    window.addEventListener('beforeunload', (e) => { if (isRecording) { e.preventDefault(); e.returnValue = ''; } });
 
     // Spoken "next" is caught however it arrives: "Next?", "okay next", "next please", or tacked onto
     // an answer ("myotonic dystrophy, next"): the answer is kept, then Reid moves on.
