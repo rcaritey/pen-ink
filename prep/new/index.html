@@ -335,12 +335,11 @@
     /* "Welcome back, how would you like to answer?" as a bubble from Reid (24 Nov) */
     #welcomeBack .wb-face { position: fixed; border-radius: 9999px; background: #FAF7F0; box-shadow: 0 0 0 4px #FAF7F1, 0 4px 14px rgba(0,0,0,.25); overflow: hidden; }
     #welcomeBack .wb-bubble { border: 2px solid #3B5E42; }
-    #welcomeBack .wb-bubble::before { content: ''; position: absolute; top: -11px; left: var(--tail, 22px); width: 20px; height: 20px; background: #FAF7F1;
-      border-left: 2px solid #3B5E42; border-top: 2px solid #3B5E42; border-top-left-radius: 4px; transform: rotate(45deg); }
+    /* the curved tail (Rama's "speech rectangle" shape): sweeps out of the bubble's left side back to Reid's face */
+    .reid-tail { position: absolute; left: -32px; top: var(--tailY, 14px); width: 34px; height: 30px; overflow: visible; pointer-events: none; }
     /* Reid's notes as a speech bubble from his face (24 Nov) */
     #toastBanner.reid-bubble { padding: 10px 16px; border-radius: 18px; box-shadow: 0 2px 6px rgba(51,72,47,.18), 0 10px 24px rgba(51,72,47,.18); }
-    #toastBanner.reid-bubble::before { content: ''; position: absolute; top: -10px; left: var(--tail, 20px); width: 18px; height: 18px; background: #fff;
-      border-left: 2px solid #3B5E42; border-top: 2px solid #3B5E42; border-top-left-radius: 4px; transform: rotate(45deg); }
+
     #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 2 / span 3; align-self: stretch; }
     /* upright iPad (layout D, Rama 24 Nov): a slim Reid rail down the left — Reid on top, his tools stacked as big tiles;
        the logo, road map, question and Next fill the rest */
@@ -2652,6 +2651,9 @@
       }
     }
 
+    // curved speech-bubble tail; its tip is at its top-left corner (1, 1), it joins the bubble along its right edge
+    const reidTail = (bg) => `<svg class="reid-tail" viewBox="0 0 34 30" aria-hidden="true"><path d="M35 4 Q18 7 1 1 Q13 16 35 27 Z" fill="${bg}"/><path d="M33.5 4.2 Q18 7 1 1 Q13 16 33.5 26.4" fill="none" stroke="#3B5E42" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+
     let toastTimer;
     function showToast(msg) {
       const toast = document.getElementById('toastBanner');
@@ -2669,11 +2671,13 @@
       if (em && app) {
         const z = parseFloat(app.style.zoom) || 1, a = app.getBoundingClientRect(), r = em.getBoundingClientRect();
         const ax = (r.left - a.left) / z, ay = (r.bottom - a.top) / z, cx = ax + r.width / z / 2, aw = a.width / z;
+        // beside his face, to the right, with the curved tail sweeping back to him
+        const fr = (r.right - a.left) / z, ft = (r.top - a.top) / z, fh = r.height / z;
         toast.classList.add('reid-bubble'); toast.firstChild.remove(); toast.style.transform = 'none';
-        toast.style.maxWidth = Math.min(360, aw - 16) + 'px';
-        const left = Math.max(8, Math.min(ax - 6, aw - toast.offsetWidth - 8));
-        toast.style.left = left + 'px'; toast.style.top = (ay + 14) + 'px';
-        toast.style.setProperty('--tail', Math.max(14, Math.min(cx - left - 9, toast.offsetWidth - 30)) + 'px');
+        toast.insertAdjacentHTML('beforeend', reidTail('#fff'));
+        const left = fr + 32; toast.style.maxWidth = Math.max(180, Math.min(380, aw - left - 8)) + 'px';
+        toast.style.left = left + 'px'; toast.style.top = (ft - 2) + 'px';
+        toast.style.setProperty('--tailY', Math.max(10, fh / 2 + 1) + 'px');
       }
       toast.classList.remove('opacity-0');
       toast.classList.add('opacity-100');
@@ -6899,10 +6903,11 @@
         Object.assign(lit.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
         const f = face.cloneNode(true); f.removeAttribute('id'); f.setAttribute('width', '100%'); f.setAttribute('height', '100%'); lit.appendChild(f); box.appendChild(lit);
         box.className = 'fixed inset-0 z-[85] bg-black/45';
-        card.classList.add('wb-bubble'); const w = Math.min(440, vw - 24); card.style.width = w + 'px';
-        const left = Math.max(12, Math.min(r.left - 6, vw - w - 12));
-        Object.assign(card.style, { position: 'absolute', left: left + 'px', top: (r.bottom + 16) + 'px' });
-        card.style.setProperty('--tail', Math.max(16, Math.min(r.left + r.width / 2 - left - 10, w - 36)) + 'px');
+        // beside his face, to the right, with the curved tail sweeping back to him
+        card.classList.add('wb-bubble'); if (!card.querySelector('.reid-tail')) card.insertAdjacentHTML('beforeend', reidTail('#FAF7F1'));
+        const left = r.right + 32, w = Math.min(440, vw - left - 10); card.style.width = w + 'px';
+        Object.assign(card.style, { position: 'absolute', left: left + 'px', top: (r.top - 2) + 'px' });
+        card.style.setProperty('--tailY', Math.max(10, r.height / 2 + 1) + 'px');
         if (card.getBoundingClientRect().bottom > window.innerHeight - 8) card.style.top = Math.max(8, window.innerHeight - card.offsetHeight - 8) + 'px';
       };
       // placed once the page has finished sizing itself (and again if the window changes), hidden until then
