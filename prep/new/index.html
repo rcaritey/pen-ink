@@ -5301,7 +5301,7 @@
       'concerns', 'story', 'goal', 'ideas', 'detail', 'priority', 'review', 'ready'];
     function orderPrep() {
       const prep = steps.filter((s) => s.phaseIndex === 0), dq = prep.filter((s) => /^dq\d+$/.test(s.id));
-      const main = prep.filter((s) => !/^dq\d+$/.test(s.id) && s.id !== 'ask')
+      const main = prep.filter((s) => !/^dq\d+$/.test(s.id) && s.id !== 'ask' && s.id !== 'review')   // no separate Check everything: the Ready page shows the pages and every part can be changed there (Rama, 24 Nov)
         .sort((a, b) => PREP_ORDER.indexOf(a.id) - PREP_ORDER.indexOf(b.id));
       const out = []; main.forEach((s) => { out.push(s); if (s.id === 'detail') out.push(...dq); });
       const first = steps.findIndex((s) => s.phaseIndex === 0);
