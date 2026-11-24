@@ -249,6 +249,22 @@ const INTENT_SCHEMA = {
   additionalProperties: false,
 };
 
+// A medicine name that voice typing (or a shaky hand) got wrong (Rama, 24 Nov: "BA Turn 25100"): the real
+// medicines it most likely is, so Reid can ask "Did you mean…?". Never a guess dressed up as fact.
+const MEDNAME = `A patient (often older, often with Parkinson's disease) said or typed the name of a medicine they take, and speech-to-text or typing may have garbled it.
+Give up to 3 real medicines (sold in Canada, brand or generic name as people say it) that it most likely is, best first, judged by how it SOUNDS when spoken aloud and by what such a patient commonly takes.
+Examples of garbling: "sin a met" or "cinnamon" -> Sinemet; "pro lopa" -> Prolopa; "a zilect" -> Azilect; "BA Turn" could be a mishearing of a brand name; "25100" or "25 100" -> 25/100; "100 25" -> 100/25.
+If the text already is a real medicine name, return just that one, spelled correctly.
+For each, "dose" is the strength if one was said (like "25/100 mg" or "0.5 mg"), else "".
+If nothing plausible, return an empty list. Never invent a medicine that doesn't exist. Vitamins and supplements count.`;
+
+const MEDNAME_SCHEMA = {
+  type: 'object',
+  properties: { candidates: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dose: { type: 'string' } }, required: ['name', 'dose'], additionalProperties: false } } },
+  required: ['candidates'],
+  additionalProperties: false,
+};
+
 const HELP_SCHEMA = {
   type: 'object',
   properties: { answer: { type: 'string' } },
@@ -398,7 +414,7 @@ export default async function handler(req, res) {
     const send = res.json.bind(res);
     res.json = (obj) => { try { return send(JSON.parse(scrubbed.restore(JSON.stringify(obj), true))); } catch (e) { return send(obj); } };
   }
-  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui', 'intent'].includes(body.mode) ? body.mode : 'suggest';
+  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui', 'intent', 'medname'].includes(body.mode) ? body.mode : 'suggest';
   const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -480,6 +496,15 @@ export default async function handler(req, res) {
       const ask = clean(out && out.ask, 160);
       const unclear = !!(out && out.unclear) && !!ask && options.length === 2;
       return res.status(200).json({ ok: true, unclear, ask: unclear ? ask : '', options: unclear ? options : [] });
+    }
+
+    if (mode === 'medname') {
+      const said = clean(body.text, 120);
+      if (!said) return res.status(400).json({ ok: false, error: 'No name.' });
+      const ctx = `Language: ${LANG_NAME[lang]}\nTheir health conditions: ${clean(body.conditions, 200) || 'not given'}\nOther medicines they take: ${clean(body.others, 300) || 'none listed'}\nWhat was heard or typed: ${said}`;
+      const out = await askClaude(MEDNAME, ctx, MEDNAME_SCHEMA, 250);
+      if (!out || !Array.isArray(out.candidates)) return res.status(502).json({ ok: false, error: UNAVAILABLE });
+      return res.status(200).json({ ok: true, candidates: out.candidates.slice(0, 3).map((c) => ({ name: clean(c.name, 60), dose: clean(c.dose, 30) })).filter((c) => c.name) });
     }
 
     if (mode === 'intent') {

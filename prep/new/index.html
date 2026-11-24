@@ -4860,7 +4860,34 @@
     function medEdit(i) { const m = medsList[i]; const sd = splitDose(m.dose || '') || {};
       medDraft = Object.assign(blankMed(), { edit: i, name: m.name, amount: m.amount || sd.amount || '', unit: m.unit || sd.unit || 'mg', doseNote: m.doseNote || (/^(not with me|not sure)$/i.test(m.dose || '') ? m.dose : ''), doses: (m.doses || []).slice(), prn: !!m.prn, food: m.food || '', foodParts: m.foodParts ? Object.assign(blankFood(), m.foodParts) : foodFromOld(m.food), freqParts: Object.assign(blankFreq(), m.freqParts || {}, { days: ((m.freqParts || {}).days || []).slice() }) });
       if (!medDraft.doses.length && Array.isArray(m.times)) medDraft.doses = m.times.map((s) => ({ t: SLOT_TIME[s], n: 1 }));
-      medGo('name'); }
+      medGo('name'); if (!medKnown(m.name)) { medDraft.heard = m.name; medDraft.checkedFor = m.name; medCheck(); } }
+    // A name that isn't on the medicine list goes to Claude for the real medicines it most likely is (Rama, 24 Nov:
+    // voice typing turned a medicine into "BA Turn 25100"). Reid asks "Did you mean…?" before moving on.
+    const medKnown = (n) => { const x = lc(n || '').replace(/[.,]+$/, '').trim(); return !x || MED_LC.includes(x) || MED_LC.some((m) => x.startsWith(m + ' ')); };
+    async function medCheck(then) {
+      const d = medDraft, raw = (d.heard || d.name || '').trim();
+      if (!raw || medKnown(d.name)) { then && then(); return; }
+      d.checking = true; renderList(); applyLang();
+      let j = null;
+      try {
+        const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 6000);
+        const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: ctl.signal,
+          body: JSON.stringify({ mode: 'medname', lang, text: raw, conditions: (SID('conditions').answer || '').slice(0, 200), others: medsList.map((m) => m.name).join(', ') }) });
+        clearTimeout(tm); j = await r.json().catch(() => null); if (!r.ok || !j || !j.ok) j = null;
+      } catch (e) { j = null; }
+      d.checking = false; if (medDraft !== d || d.stage !== 'name') return;
+      const fromAI = (j ? j.candidates : []).filter((c) => c.name && lc(c.name) !== lc(d.name)).map((c) => ({ name: c.name.replace(/^./, (x) => x.toUpperCase()), dose: c.dose || '', score: 0.9 }));
+      const seen = new Set(fromAI.map((c) => lc(c.name)));
+      d.sugg = fromAI.concat((d.sugg || []).filter((c) => !seen.has(lc(c.name)))).slice(0, 3);
+      renderList(); applyLang();
+      if (d.sugg.length) { const c = d.sugg[0]; say(L2('Reid heard ', 'Reid a entendu ') + raw + '. ' + L2('Did you mean ', 'Vouliez-vous dire ') + c.name + (c.dose ? ' ' + c.dose : '') + '?', true); }
+      else then && then();
+    }
+    function medPickSugg(c) {
+      const d = medDraft; d.name = c.name; d.sugg = [];
+      if (c.dose && !d.amount) { const sd = splitDose(c.dose); if (sd) { d.amount = sd.amount; if (sd.unit) d.unit = sd.unit; } }
+      medGo(d.amount ? (d.doses.length ? 'sched' : 'dose') : 'dose');
+    }
     function addPending() {   // the time being built in the schedule step
       const a = medDraft.add; if (!a.h) return false;
       const h24 = (a.h % 12) + (a.ap === 'pm' ? 12 : 0), t = `${String(h24).padStart(2, '0')}:${String(a.m).padStart(2, '0')}`;
@@ -4887,7 +4914,8 @@
         if (d.stage === 'list') { medDraft = blankMed(); }
         if (p.dose) { const sd = splitDose(p.dose); if (sd && sd.unit) { medDraft.amount = sd.amount; medDraft.unit = sd.unit; } }
         const ts = parseTimes(t); if (ts.length) medDraft.doses = ts;
-        const nm0 = p.name.replace(/\s(at|à|@)\s.*$/i, '').replace(/\b\d.*$/, '').trim(); if (nm0) medSetName(nm0); else if (!medDraft.name) return;
+        const nm0 = p.name.replace(/\s(at|à|@)\s.*$/i, '').replace(/\b\d.*$/, '').trim(); if (nm0) { medSetName(nm0); medDraft.heard = t.replace(/[.,]+$/, '').trim(); } else if (!medDraft.name) return;
+        if (!medKnown(medDraft.name)) { medDraft.stage = 'name'; const dd = medDraft; medCheck(() => { if (medDraft === dd) medGo(dd.amount ? 'sched' : 'dose'); }); return; }
         if (medDraft.sugg.length) { medDraft.stage = 'name'; renderList(); applyLang(); say(L2('Did you mean ', 'Vouliez-vous dire ') + medDraft.sugg[0].name + '?', lang === 'fr'); return; }
         medGo(medDraft.amount ? 'sched' : 'dose'); return;
       }
@@ -4898,7 +4926,8 @@
     function medNext() {   // Next button / "next": true if it was handled on this page
       const inp = document.getElementById('medInput'), d = medDraft;
       if (d.stage === 'list') return false;
-      if (d.stage === 'name') { if (inp && inp.value.trim()) { medSetName(inp.value.trim()); if (medDraft.sugg.length) { renderList(); applyLang(); return true; } medGo('dose'); return true; }
+      if (d.stage === 'name') { if (d.checking) return true;
+        if (inp && inp.value.trim() && (inp.value.trim() !== d.name || d.checkedFor !== d.name)) { const v = inp.value.trim(); d.checkedFor = v; if (v === d.name && d.edit > -1 && medKnown(v)) { medGo('dose'); return true; } medTake(v); return true; }
         if (d.name) { medGo('dose'); return true; } if (medsList.length) { medDraft = blankMed(); medGo('list'); return true; } return false; }
       if (d.stage === 'dose') { const a = document.getElementById('medAmount'); if (a && a.value.trim()) d.amount = a.value.trim().replace(/\s+/g, ''); if (!d.amount && !d.doseNote) d.doseNote = 'Not sure'; medGo('sched'); return true; }
       if (d.stage === 'sched') { addPending(); medGo('freq'); return true; }
@@ -4909,7 +4938,7 @@
     function medHeard(t, low) {
       const yes = /^(yes|yeah|yep|correct|that's right|right|oui|sí|si|sim)$/.test(low) || cmdOf(low) === 'yes', no = /^(no|nope|non|não)$/.test(low) || cmdOf(low) === 'no', d = medDraft;
       if (d.sugg.length && d.stage === 'name') {
-        if (yes) { d.name = d.sugg[0].name; d.sugg = []; medGo('dose'); return true; }
+        if (yes) { medPickSugg(d.sugg[0]); return true; }
         if (no) { d.sugg = []; medGo('dose'); return true; }
       }
       if (d.stage === 'list') {
@@ -4958,7 +4987,7 @@
         html += `<div class="flex flex-col gap-[8px]">${medsList.map((m, i) => `<div class="w-full bg-white border border-[#D6CFC0] rounded-2xl flex items-stretch min-h-[60px]">
             <button type="button" data-med="edit" data-i="${i}" class="tactile-btn flex-1 min-w-0 text-left pl-3 pr-1 py-2 flex items-center gap-2.5" aria-label="${L2('Change', 'Modifier')} ${esc(m.name)}">
               <span class="w-8 h-8 rounded-full bg-[#E5EFE7] flex items-center justify-center shrink-0 text-[16px]" aria-hidden="true">💊</span>
-              <span class="min-w-0"><span class="block font-extrabold text-[16px] text-[#1E2634] leading-tight" data-notr>${esc(m.name)}${doseOf(m) ? ' <span class="font-bold text-[#425268]">' + esc(doseOf(m)) + '</span>' : ''}</span>
+              <span class="min-w-0">${medKnown(m.name) ? '' : `<span class="block w-fit mb-1 px-2 py-0.5 rounded-lg bg-[#FDF1E7] border border-[#B45309] text-[#8A3A06] text-[12px] font-extrabold">${L2('⚠ Check the name: tap to fix', '⚠ Vérifiez le nom : touchez pour corriger')}</span>`}<span class="block font-extrabold text-[16px] text-[#1E2634] leading-tight" data-notr>${esc(m.name)}${doseOf(m) ? ' <span class="font-bold text-[#425268]">' + esc(doseOf(m)) + '</span>' : ''}</span>
               <span class="block text-[13px] font-bold text-[#425268] leading-snug">${esc(schedText(m, fr) || L2('times not given', 'heures non indiquées'))}</span></span>
               <span class="ml-auto text-[#425268] font-extrabold pr-1" aria-hidden="true">✎</span></button>
             <button type="button" data-med="del" data-i="${i}" aria-label="${L2('Remove', 'Retirer')} ${esc(m.name)}" class="tactile-btn w-[52px] shrink-0 rounded-r-2xl border-l border-[#E6DFD0] text-[#B84A27] font-extrabold text-xl">✕</button></div>`).join('')}</div>
@@ -4968,8 +4997,9 @@
         html += `<div class="w-full bg-white border-2 border-[#1E2634] rounded-[18px] p-2 flex items-center gap-2">
           <input id="medInput" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" value="${esc(d.name)}" placeholder="${esc(L2('Type a medicine…', 'Écrivez un médicament…'))}" class="flex-1 min-w-0 bg-transparent text-[#1E2634] font-extrabold text-[18px] focus:outline-none px-2 min-h-[44px]"></div>
           <div id="medSugg" class="flex flex-col gap-[6px]" data-notr></div>`;
-        if (d.sugg.length) html += `<p class="text-[13px] font-extrabold text-[#B45309]">${L2('Reid heard', 'Reid a entendu')} “${esc(d.heard)}”. ${L2('Did you mean:', 'Vouliez-vous dire :')}</p>
-          <div class="grid grid-cols-2 gap-[8px]" data-notr>${d.sugg.map((x) => `<button type="button" data-med="pick" data-v="${esc(x.name)}" class="${CH} bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]">${esc(x.name)}</button>`).join('')}<button type="button" data-med="keep" class="${CH} ${OFF}">${L2('Keep', 'Garder')} “${esc(d.heard)}”</button></div>`;
+        if (d.checking) html += `<p class="text-[15px] font-extrabold text-[#3B5E42]" role="status">${L2('Reid is checking the name…', 'Reid vérifie le nom…')}</p>`;
+        else if (d.sugg.length) html += `<p class="text-[13px] font-extrabold text-[#B45309]">${L2('Reid heard', 'Reid a entendu')} “${esc(d.heard)}”. ${L2('Did you mean:', 'Vouliez-vous dire :')}</p>
+          <div class="grid grid-cols-2 gap-[8px]" data-notr>${d.sugg.map((x) => `<button type="button" data-med="pick" data-v="${esc(x.name)}" class="${CH} bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]">${esc(x.name)}${x.dose ? '<span class="block font-bold text-[14px]">' + esc(x.dose) + '</span>' : ''}</button>`).join('')}<button type="button" data-med="keep" class="${CH} ${OFF}">${L2('Keep', 'Garder')} “${esc(d.heard)}”</button></div>`;
         else if (!n && d.edit < 0) html += `<button type="button" data-med="none" class="${CH} ${OFF} w-full">${L2('I don’t take any', 'Je n’en prends pas')}</button>`;
       }
       if (d.stage === 'dose') {
@@ -5039,7 +5069,7 @@
     document.getElementById('listItems').addEventListener('click', (e) => {
       const b = e.target.closest('[data-med]'); if (!b) return; const k = b.dataset.med, d = medDraft, v = b.dataset.v;
       const redraw = () => { renderList(); applyLang(); };
-      if (k === 'pick') { d.name = v.replace(/^./, (c) => c.toUpperCase()); d.sugg = []; medGo('dose'); }
+      if (k === 'pick') { const c = (d.sugg || []).find((x) => x.name === v) || { name: v.replace(/^./, (c0) => c0.toUpperCase()), dose: '' }; medPickSugg(c); }
       if (k === 'keep') { d.sugg = []; medGo('dose'); }
       if (k === 'none') { SID('meds').none = true; medsList = []; syncMeds(); goNext(); }
       if (k === 'unit') { const a = document.getElementById('medAmount'); if (a) d.amount = a.value.trim().replace(/\s+/g, ''); d.unit = v; redraw(); }
