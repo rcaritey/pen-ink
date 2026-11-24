@@ -2609,7 +2609,7 @@
       'Tap one above, or say yes or skip...': 'Touchez un choix, ou dites oui ou passer...', "I'm not sure": 'Je ne sais pas', 'Skip this one': 'Passer celle-ci', 'Say or type your answer...': 'Dites ou écrivez votre réponse...',
       'Your questions': 'Vos questions', 'What do you want to ask the doctor?': 'Que voulez-vous demander au médecin ?',
       'Say one question at a time, then pause. Or tap None yet.': 'Dites une question à la fois, puis faites une pause. Ou touchez Aucune pour l’instant.',
-      'None yet': 'Aucune pour l’instant', 'One question per line...': 'Une question par ligne...', 'Questions to consider': 'Questions à considérer',
+      'None yet': 'Aucune pour l’instant', 'One question per line...': 'Une question par ligne...', 'Questions to consider': 'Questions à considérer', 'Questions for the doctor': 'Questions pour le médecin',
       'Anything else': 'Autre chose', "Anything else you'd like to ask?": 'Autre chose à demander ?', 'One question per line. If not, tap Next.': 'Une question par ligne. Sinon, touchez Suivant.',
       "No, that's all": "Non, c'est tout", 'What matters most': 'Le plus important', 'Check everything': 'Vérifiez tout', 'Most important first': 'Les plus importantes en premier',
       'Reid is listening': 'Reid écoute', 'Reid got it': 'Reid a compris', 'Reid has a quick question': 'Reid a une petite question', 'Reid is paused': 'Reid est en pause', 'Tap / Type mode': 'Mode toucher / écrire'
@@ -3004,8 +3004,8 @@
         if (ic === 'yes') { decideIdea('yes'); return; }
         if (ic === 'no') { decideIdea('no'); return; }
         if (ic === 'star') { decideIdea('star'); return; }
-        if (/^(yes|yeah|yep|sure|ok|okay|add it|yes please|oui|ajoute|sí|si|sì|sim|da|tak|так|да|네|vâng|có|haan|ہاں|بله|نعم|是|好|係)$/.test(low)) { decideIdea('yes'); return; }
-        if (/^(no|nope|skip|no thanks|pass|non|passer|não|nie|нет|ні|아니|không|nahin|نہیں|نه|لا|不|不要|唔要)$/.test(low)) { decideIdea('no'); return; }
+        if (/^(keep|keep it|keep that|keep this one|garder|garde|gardez|gardez-la|yes|yeah|yep|sure|ok|okay|add it|yes please|oui|ajoute|sí|si|sì|sim|da|tak|так|да|네|vâng|có|haan|ہاں|بله|نعم|是|好|係)$/.test(low)) { decideIdea('yes'); return; }
+        if (/^(leave out|leave it out|leave it|leave that out|drop it|laisser|laisse|laissez|laissez-la|no|nope|skip|no thanks|pass|non|passer|não|nie|нет|ні|아니|không|nahin|نہیں|نه|لا|不|不要|唔要)$/.test(low)) { decideIdea('no'); return; }
         if (/(most important|very important|important|très important|importante?|muy importante|molto importante)$/.test(low)) { decideIdea('star'); return; }
         if (/^(previous|previous one|undo|go back one|last one|précédente)$/.test(low)) { decideIdea('undo'); return; }
       }
@@ -3706,7 +3706,7 @@
     const commonSrc = (q) => (COMMON_SRC.find((c) => c[0] === q || c[1] === q) || [])[2];
     function ideaPool() {
       const mine = qLines(SID('ask').answer).concat(qLines(SID('ideasmore').answer), ownQs), out = [];
-      aiPool.concat(COMMON[lang === 'fr' ? 'fr' : 'en']).forEach((q) => {
+      (typeof goalPool === 'object' ? goalPool : []).concat(aiPool, COMMON[lang === 'fr' ? 'fr' : 'en']).forEach((q) => {
         if (qPicked.includes(q)) { if (!out.includes(q)) out.push(q); return; }
         if (mine.some((m) => similar(m, q)) || out.some((o) => similar(o, q))) return;
         out.push(q);
@@ -3981,24 +3981,23 @@
       if (step.mode === 'ideas') {
         const pool = ideaPool(), cur = curIdea(), done = pool.filter((q) => qPicked.includes(q) || qSkipped.includes(q)).length;
         qShown = cur ? [cur] : [];
-        $('listTitle').textContent = cur ? L2('Would you like to ask the doctor this?', 'Voulez-vous poser cette question au médecin ?') : aiBusy ? L2('Finding more questions…', 'Je cherche d’autres questions…') : L2('That’s all my suggestions', 'C’est tout pour mes suggestions');
+        $('listTitle').textContent = cur ? L2('Ask the doctor this?', 'Poser cette question au médecin ?') : aiBusy ? L2('Finding more questions…', 'Je cherche d’autres questions…') : L2('That’s all my suggestions', 'C’est tout pour mes suggestions');
         // built from separate pieces so each fixed sentence uses its checked translation and the numbers stay as they are
         const helpBits = aiLoading && !cur ? [L2('Reid is thinking of questions for your visit…', 'Reid réfléchit à des questions pour votre visite…')]
-          : cur ? [L2('Say yes, no, or most important.', 'Dites oui, non, ou très important.')].concat(aiLoading ? [L2('Reid is finding more…', 'Reid en cherche d’autres…')] : []) : [L2('Say yes for more, or no to go on.', 'Dites oui pour d’autres, ou non pour continuer.')];
+          : cur ? [L2('Keep it, or leave it out.', 'Gardez-la, ou laissez-la.')].concat(aiLoading ? [L2('Reid is finding more…', 'Reid en cherche d’autres…')] : []) : [L2('Say yes for more, or no to go on.', 'Dites oui pour d’autres, ou non pour continuer.')];
         if (isMT()) helpBits.push('⚠ Translated by computer: check with the doctor.');
         $('listHelp').innerHTML = (cur ? `<span data-notr>${done + 1} / ${pool.length} · </span>` : '') + helpBits.map((b) => `<span>${esc(b)}</span>`).join(' ');
         $('listCounter').textContent = L2(`${qPicked.length} added`, `${qPicked.length} ajoutée(s)`);
         if (cur) {
           const who = (SID('who').answer || '').trim(), known = ['Family doctor', 'Neurologist', 'Foot clinic'].find((x) => lc(x) === lc(who));
-          const tag = aiTags[cur] === 'd' ? (known ? L2('For:', 'Pour :') + ' ' + tr(known).toLowerCase() : L2('For this doctor', 'Pour ce médecin'))
-            : aiTags[cur] === 'c' ? L2('About your visit · suggested by Claude', 'Sur votre visite · suggérée par Claude') : (commonSrc(cur) || L2('Common question', 'Question courante'));
+          const tag = typeof goalPool === 'object' && goalPool.includes(cur) ? L2('For what you want from this visit', 'Pour ce que vous voulez de cette visite') : aiTags[cur] === 'd' ? (known ? L2('For:', 'Pour :') + ' ' + tr(known).toLowerCase() : L2('For this doctor', 'Pour ce médecin'))
+            : aiTags[cur] === 'c' ? L2('You may not have thought of this', 'Vous n’y avez peut-être pas pensé') : (commonSrc(cur) || L2('Common question', 'Question courante'));
           items.innerHTML = `<div class="w-full bg-white border-2 border-[#1E2634] rounded-[22px] p-4 flex flex-col gap-2">
               <span class="text-[11px] font-extrabold uppercase tracking-wide ${aiTags[cur] === 'd' ? 'text-[#B84A27]' : 'text-[#425268]'}">${esc(tag)}</span>
               ${qText(cur, 'font-extrabold text-[21px] leading-snug text-[#1E2634]')}</div>
-            <button type="button" data-idea="yes" class="tactile-btn w-full min-h-[60px] rounded-[18px] bg-[#3B5E42] text-white font-extrabold text-lg">✓ ${L2('Yes, add it', 'Oui, l’ajouter')}</button>
-            <div class="flex items-stretch"><button type="button" data-idea="star" class="tactile-btn flex-1 min-h-[56px] rounded-[18px] bg-[#1E2634] text-white font-extrabold text-base">★ ${L2('Most important', 'Très important')}</button>
-              <div class="w-[12px] shrink-0" aria-hidden="true"></div>
-              <button type="button" data-idea="no" class="tactile-btn flex-1 min-h-[56px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${L2('No, skip', 'Non, passer')}</button></div>`;
+            <div class="flex items-stretch"><button type="button" data-idea="yes" class="tactile-btn flex-1 min-h-[68px] rounded-[18px] bg-[#3B5E42] text-white font-extrabold text-xl">✓ ${L2('Keep', 'Garder')}</button>
+              <div class="w-[16px] shrink-0" aria-hidden="true"></div>
+              <button type="button" data-idea="no" class="tactile-btn flex-1 min-h-[68px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xl">✕ ${L2('Leave out', 'Laisser')}</button></div>`;
         } else {
           items.innerHTML = `<div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[22px] p-4 text-[16px] font-bold text-[#1E2634] leading-snug">${qPicked.length ? L2(`You added ${qPicked.length}. They're on your pages.`, `Vous en avez ajouté ${qPicked.length}. Elles sont sur vos pages.`) : L2('You haven’t added any. That’s fine.', 'Vous n’en avez ajouté aucune. Pas de souci.')}
               <span class="block mt-2 text-[19px] font-extrabold">${L2('Would you like me to suggest more?', 'Voulez-vous que j’en suggère d’autres ?')}</span></div>
@@ -4121,7 +4120,7 @@
     const readList = () => qShown.map((q, i) => `${i + 1}. ${stop(q)}`).join(' ');
     const EXPLAIN = {
       setup: () => L2('This page sets up WellHeard for you. Tap Change to pick your language. Tap a bigger A for bigger text. Choose speak and tap, or tap and type. Turn Reid’s reading on or off. Then tap Next.', 'Cette page règle WellHeard pour vous. Touchez Changer pour la langue, un plus grand A pour un texte plus grand, puis Suivant.'),
-      ideas: () => L2('Reid suggests questions one at a time. For each, tap or say yes to add it, no to skip it, or most important. Previous goes back one. Your own adds a question. Reid, more asks Claude for new ideas. ', 'Reid propose une question à la fois. Pour chacune, dites oui, non, ou très important. ') + (curIdea() ? stop(curIdea()) : '')
+      ideas: () => L2('Reid reads you questions for the doctor, one at a time. First the ones for what you want from this visit, then ones you may not have thought of. For each, tap or say keep, or leave out. Previous goes back one. Your own adds a question. Reid, more asks for new ones. ', 'Reid vous lit des questions pour le médecin, une à la fois. Pour chacune, dites garder, ou laisser. ') + (curIdea() ? stop(curIdea()) : '')
         + L2(' Tap the ones you want, or say their number. Say more for others. Then say next.', ' Touchez celles que vous voulez, ou dites leur numéro. Dites plus pour en voir d’autres. Puis dites suivant.'),
       priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Tap or say the most important first. Then say next.', ' Touchez ou dites la plus importante en premier. Puis dites suivant.')
         : L2("You haven't added any questions yet. Add one, or say next.", "Vous n'avez pas encore de questions. Ajoutez-en une, ou dites suivant."),
@@ -4136,7 +4135,7 @@
         + L2('You can send it to family, or print it.', 'Vous pouvez l’envoyer à la famille, ou l’imprimer.')
     };
     const SPEAK = {
-      ideas: () => curIdea() ? L2('Would you like to ask the doctor: ', 'Voulez-vous demander au médecin : ') + stop(curIdea()) + L2(' Say yes, no, or most important.', ' Dites oui, non, ou très important.') : L2('That’s all my suggestions. Would you like me to suggest more?', 'C’est tout. Voulez-vous que j’en suggère d’autres ?'),
+      ideas: () => curIdea() ? L2('Ask the doctor: ', 'Demander au médecin : ') + stop(curIdea()) + L2(' Keep it, or leave it out?', ' La garder, ou la laisser ?') : L2('That’s all my suggestions. Would you like me to suggest more?', 'C’est tout. Voulez-vous que j’en suggère d’autres ?'),
       priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Say the number of the most important one.', ' Dites le numéro de la plus importante.') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       review: () => L2('Does everything look right?', 'Est-ce que tout est correct ?'),
       ready: () => L2('You’re ready. Your pages are ready to print, save or send. Tap Change to fix anything. Then tap Next.', 'Vous êtes prêt. Vos pages sont prêtes à imprimer, enregistrer ou envoyer. Touchez Modifier pour corriger. Puis Suivant.'),
@@ -5266,13 +5265,12 @@
     steps.splice(steps.findIndex((x) => x.id === 'story') + 1, 0,
       ND({ id: 'goal', topic: 'Your goal', question: 'What do you want to get out of this appointment?', helperText: 'Tap all that apply, or say it in your own words.',
         presets: ['Understand what is going on', 'Relief from a symptom', 'Review or change my medicines', 'A test, referral or results', 'A plan for what comes next', 'Something else'],
-        customOptionLabel: 'Something else', multi: true, defaultPlaceholder: 'Tap above, or say what you hope for...', customPlaceholder: 'Say or type what you hope to get out of it...' }),
-      ND({ id: 'goalqs', mode: 'goalqs', topic: 'Your questions', question: 'Questions to get what you came for' }));
+        customOptionLabel: 'Something else', multi: true, defaultPlaceholder: 'Tap above, or say what you hope for...', customPlaceholder: 'Say or type what you hope to get out of it...' }));
     KEEP.push('about');
     LISTMODES.basicsCheck = 1; LISTMODES.goalqs = 1;
     // the order of Prepare; the doctor-style questions (dq0, dq1, …) always follow "detail"
     const PREP_ORDER = ['consent', 'setup', 'name', 'basicsCheck', 'about', 'conditions', 'meds', 'allergies', 'who', 'day', 'time', 'where',
-      'concerns', 'story', 'goal', 'goalqs', 'ideas', 'detail', 'priority', 'review', 'ready'];
+      'concerns', 'story', 'goal', 'ideas', 'detail', 'priority', 'review', 'ready'];
     function orderPrep() {
       const prep = steps.filter((s) => s.phaseIndex === 0), dq = prep.filter((s) => /^dq\d+$/.test(s.id));
       const main = prep.filter((s) => !/^dq\d+$/.test(s.id) && s.id !== 'ask')
@@ -5287,7 +5285,7 @@
     // the doctor-style questions, now framed as getting ready for what the care team may ask
     Object.assign(SID('detail'), { topic: 'What they may ask', question: 'Want to get ready for what the doctor may ask you?',
       helperText: "Reid asks a few questions a doctor would likely ask, so your answers are ready. He can't diagnose." });
-    SID('ideas').topic = 'Questions to consider';
+    SID('ideas').topic = 'Questions for the doctor';
     Object.assign(FR, {
       'Your age, height and weight?': 'Votre âge, votre taille et votre poids ?',
       'Optional. It helps the doctor with doses. For example: 78, 5 ft 9 in, 160 lb.': 'Facultatif. Cela aide le médecin pour les doses. Par exemple : 78 ans, 1 m 75, 72 kg.',
@@ -5374,6 +5372,7 @@
       else if (!goalPool.length) { goalPool = starterQs(); goalStarter = true; }   // Reid always has something to offer
       goalBusy = false;
       if (steps[currentIndex].mode === 'goalqs') { renderList(); applyLang(); if (goalPool.length) speakStep(); }
+      if (steps[currentIndex].mode === 'ideas') { const had = qShown[0]; renderList(); applyLang(); if (curIdea() && curIdea() !== had) speakStep(); }
     }
     function addOwn(t) {
       t = String(t || '').trim().replace(/\s+/g, ' '); if (!t) return;
@@ -5447,7 +5446,7 @@
         h.textContent = L2('You came for: ', 'Vous venez pour : ') + goal + '. ' + L2('Tap the most important first.', 'Touchez la plus importante en premier.');
       }
     }; }
-    { const ip = ideaPool; ideaPool = function () { return ip().filter((q) => !goalPool.some((g) => similar(g, q)) && !COMMON.en.includes(q) && !COMMON.fr.includes(q)); }; }
+    { const ip = ideaPool; ideaPool = function () { return ip().filter((q) => (goalPool.includes(q) || !goalPool.some((g) => similar(g, q))) && !COMMON.en.includes(q) && !COMMON.fr.includes(q)); }; }
     Object.assign(SPEAK, {
       goalqs: () => goalPool.length ? L2('Here are questions for what you want out of this visit. Tap the ones to keep. You can also say your own question.', 'Voici des questions selon ce que vous voulez de cette visite. Touchez celles à garder. Vous pouvez aussi dire votre propre question.')
         : L2('Reid is writing questions to help you get what you came for. You can say your own question too.', 'Reid écrit des questions pour votre objectif. Vous pouvez aussi dire votre question.'),
@@ -5811,7 +5810,7 @@
     let pagesHidden = false, pagesPick = null, pagesPickAt = '';
     const PAGES_FROM = ['goalqs', 'ideas', 'detail', 'priority', 'review', 'ready', 'recap', 'nextSteps', 'shareFinish'];
     const pagesPart = () => { const s = steps[currentIndex]; return PAGES_FROM.includes(s.id) || /^dq\d+$/.test(s.id) ? 'late' : 'early'; };
-    const pagesAuto = () => pagesPart() === 'early' || steps[currentIndex].phaseIndex === 1;
+    const pagesAuto = () => true;   // hidden unless the person taps See my pages (Rama, 24 Nov: showing them added nothing)
     { const head = document.querySelector('#livePages .lp-head');
       if (head) { const b = document.createElement('button'); b.type = 'button'; b.id = 'lpHide'; b.className = 'lp-hide';
         b.addEventListener('click', () => setPagesHidden(true)); head.appendChild(b); } }
