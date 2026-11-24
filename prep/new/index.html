@@ -3051,7 +3051,8 @@
     };
     function onHeard(t) {
       if (!t) return;
-      if (speaking || ducked) { if (isEcho(t)) { if (audioEl) audioEl.volume = 1; ducked = false; return; } hush(true); }
+      const cmdOnly = /^(next|next please|back|go back|stop|pause|suivant|retour)$/.test(t.toLowerCase().replace(/[.!,?]/g, '').trim());
+      if (speaking || ducked) { if (!cmdOnly && isEcho(t)) { if (audioEl) audioEl.volume = 1; ducked = false; return; } hush(true); }
       heard(t);
     }
     function startRec() {
@@ -6071,6 +6072,22 @@
       window.addEventListener('focus', claim);
       claim();
     } catch (e) { /* older browser: nothing to coordinate */ }
+    // Spoken "next" is caught however it arrives: "Next?", "okay next", "next please", or tacked onto
+    // an answer ("myotonic dystrophy, next"): the answer is kept, then Reid moves on.
+    { const hN = heard; heard = function (t) {
+      const raw = String(t || ''), w = raw.toLowerCase().replace(/[.!,?¿;:…"“”«»。！，？]/g, ' ').replace(/\s+/g, ' ').trim();
+      const FILL = '(?:(?:ok|okay|alright|all right|and|so|um+|uh+|yes|yeah|right|go|go to|go to the|the|on to the|reid|now|oui|bon|alors|d\'accord|ok reid)\\s+)*';
+      const NEXT = '(next|next please|next page|next one|next step|next question|go on|move on|carry on|continue|done|i\'m done|that\'s it|that\'s all|suivant|suivante|continuer|c\'est tout)';
+      if (new RegExp('^' + FILL + NEXT + '(?:\\s+(?:please|now|reid|s\'il vous plaît))*$').test(w)) return hN(lang === 'fr' && /suivant|continuer|c'est tout/.test(w) ? 'suivant' : 'next');
+      const s = steps[currentIndex], m = w.match(/^(.+?)\s+(?:and\s+|then\s+|ok(?:ay)?\s+)?(next|next please|suivant)$/);
+      if (m && s && !s.big && s.mode === 'voice' && m[1].split(' ').length <= 12) {
+        hN(raw.replace(/[\s,.;:!?]*(?:(?:and|then|ok(?:ay)?)\s+)?(next(?:\s+please)?|suivant)[\s.!?]*$/i, ''));
+        if (steps[currentIndex] === s) hN(lang === 'fr' ? 'suivant' : 'next');
+        return;
+      }
+      return hN(t);
+    }; }
+
     // Initial render
     loadAll();
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }
