@@ -5644,7 +5644,7 @@
           isRecording ? L2('● Recording. Tap to pause', '● Enregistrement. Toucher pour arrêter') : L2('Ask, then start recording', 'Demander, puis enregistrer'), 'rec', isRecording)}
         ${st(2, '📄', L2('Hand over the doctor’s page', 'Donnez la page du médecin'), L2('Give the printed page, or show it on your phone.', 'Donnez la page imprimée, ou montrez-la sur votre téléphone.'), L2('Show it on my phone', 'La montrer sur mon téléphone'), 'doc')}
         ${st(3, '📝', L2('Keep your page as a guide', 'Gardez votre page comme guide'), L2('Your questions, most important first, and space for notes.', 'Vos questions, les plus importantes en premier, et de la place pour des notes.'), L2('See my page', 'Voir ma page'), 'mine')}
-        ${st(4, '🗣️', L2('Ask to go through your questions', 'Demandez à passer vos questions'), L2('"I have a few questions. May I go through them?" Then tap Next to tick them off.', '« J’ai quelques questions. Est-ce que je peux les passer ? » Puis touchez Suivant pour les cocher.'))}</div>`;
+        ${st(4, '🗣️', L2('Ask to go through your questions', 'Demandez à passer vos questions'), L2('"I have a few questions. May I go through them?" Then tick each one below once it’s answered.', '« J’ai quelques questions. Est-ce que je peux les passer ? » Puis touchez Suivant pour les cocher.'))}${visitExtras()}</div>`;
       foot.innerHTML = '';
     }
     { const rl2 = renderList; renderList = function () {
@@ -6422,6 +6422,34 @@
     window.addEventListener('pageshow', healRecording); window.addEventListener('focus', healRecording);
     setInterval(() => { if (isRecording && document.visibilityState === 'visible' && recRec && recRec._beat && performance.now() - recRec._beat > 5000) healRecording(); }, 5000);
     window.addEventListener('beforeunload', (e) => { if (isRecording) { e.preventDefault(); e.returnValue = ''; } });
+
+    // At the appointment: the three pages one tap away, and the questions with boxes to tick as you go (Rama, 24 Nov)
+    let qAsked = {}; try { qAsked = JSON.parse(localStorage.getItem('wellheard-asked') || '{}') || {}; } catch (e) { /* none */ }
+    function visitExtras() {
+      const qs = chosen(), done = qs.filter((q) => qAsked[q]).length;
+      const pb = (k, en, fr) => `<button type="button" data-visit="pg-${k}" class="tactile-btn flex-1 min-h-[52px] px-2 rounded-xl bg-white border-2 border-[#1E2634] text-[#1E2634] font-extrabold text-[14px] leading-tight">${L2(en, fr)}</button>`;
+      const row = (q, i) => { const on = !!qAsked[q], top = qPrio.indexOf(q);
+        return `<button type="button" data-ask="${i}" aria-pressed="${on}" class="tactile-btn w-full min-h-[54px] px-3 py-2 rounded-[14px] ${on ? 'bg-[#E5EFE7] border-2 border-[#3B5E42]' : 'bg-white border border-[#D6CFC0]'} flex items-center gap-3 text-left">
+          <span aria-hidden="true" class="w-8 h-8 shrink-0 rounded-lg border-2 ${on ? 'bg-[#3B5E42] border-[#3B5E42] text-white' : 'bg-white border-[#1E2634]'} flex items-center justify-center font-extrabold text-[18px]">${on ? '✓' : ''}</span>
+          <span class="flex-1 min-w-0 text-[15px] font-bold leading-snug ${on ? 'line-through text-[#425268]' : 'text-[#1E2634]'}">${top > -1 ? '★ ' : ''}${esc(q)}</span></button>`; };
+      return `<div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[18px] p-2.5 flex flex-col gap-1.5">
+          <p class="font-extrabold text-[14px] text-[#1E2634] px-1">${L2('Your pages', 'Vos pages')}</p>
+          <div class="flex gap-[6px]">${pb('mine', 'Patient’s page', 'Page du patient')}${pb('doc', 'Medical team’s page', 'Page de l’équipe médicale')}${pb('circle', 'Care circle’s page', 'Page du cercle d’aidants')}</div></div>
+        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[18px] p-2.5 flex flex-col gap-1.5">
+          <div class="flex items-baseline gap-2 px-1"><p class="flex-1 font-extrabold text-[14px] text-[#1E2634]">${L2('Your questions: tick each one once it’s answered', 'Vos questions : cochez chacune une fois répondue')}</p>
+          <span class="text-[13px] font-extrabold text-[#3B5E42] shrink-0">${L2(`${done} of ${qs.length}`, `${done} sur ${qs.length}`)}</span></div>
+          ${qs.length ? qs.map(row).join('') : `<p class="text-[14px] font-bold text-[#425268] px-1">${L2('No questions kept yet.', 'Aucune question gardée.')}</p>`}</div>`;
+    }
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const a = e.target.closest('[data-ask]'); if (a && steps[currentIndex].mode === 'visitStart') {
+        const q = chosen()[+a.dataset.ask]; if (!q) return;
+        if (qAsked[q]) delete qAsked[q]; else qAsked[q] = 1;
+        try { localStorage.setItem('wellheard-asked', JSON.stringify(qAsked)); } catch (x) { /* full */ }
+        if (typeof visitQuestions !== 'undefined' && Array.isArray(visitQuestions)) visitQuestions.forEach((v) => { if (v.text === q) v.done = !!qAsked[q]; });
+        const y = document.getElementById('listItems').scrollTop; renderList(); applyLang(); document.getElementById('listItems').scrollTop = y; return;
+      }
+      const v = e.target.closest('[data-visit^="pg-"]'); if (v) showPage(v.dataset.visit.slice(3));
+    });
 
     // Spoken "next" is caught however it arrives: "Next?", "okay next", "next please", or tacked onto
     // an answer ("myotonic dystrophy, next"): the answer is kept, then Reid moves on.
