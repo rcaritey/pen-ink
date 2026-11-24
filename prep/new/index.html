@@ -274,6 +274,18 @@
     #appContainer.wide > footer { grid-column: 2 / span 2; grid-row: 4; }
     #appContainer.wide #reidHello { right: auto; width: 330px; top: 140px; }
     #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 2 / span 3; align-self: stretch; }
+    /* upright iPad (layout B): logo and Help/Settings on top, then Reid's bar across the full width, then the road map and the question */
+    #appContainer.wide.tall { grid-template-columns: 1fr auto; grid-template-rows: auto auto auto 1fr auto; column-gap: 16px; row-gap: 16px; padding-left: 28px; padding-right: 28px; }
+    #appContainer.wide.tall #wideLogo { grid-column: 1; }
+    #appContainer.wide.tall > header > div:last-child { grid-column: 2; }
+    #appContainer.wide.tall > #sideReid { grid-column: 1 / span 2; grid-row: 2; display: grid !important; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; background: #fff; border: 1px solid #E2DBD0; border-radius: 24px; padding: 14px; align-self: start; }
+    #appContainer.wide.tall > #sideReid > p { display: none; }
+    #appContainer.wide.tall #reidBadge { grid-column: 1 / -1; border: 0; padding: 0 2px 4px; margin: 0; }
+    #appContainer.wide.tall #sideReid > button { min-height: 56px; justify-content: center; text-align: center; padding: 6px 8px; }
+    #appContainer.wide.tall #sideReid .lp-show.in-side { margin-top: 0; }
+    #appContainer.wide.tall > #progressHeader { grid-column: 1 / span 2; grid-row: 3; }
+    #appContainer.wide.tall > section { grid-column: 1 / span 2; grid-row: 4; }
+    #appContainer.wide.tall > footer { grid-column: 1 / span 2; grid-row: 5; }
     #wideLogo { display: none; }
     .wl-word { font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: #1E2634; line-height: 1; white-space: nowrap; }
     .wl-word span { color: #3B5E42; }
@@ -4404,8 +4416,10 @@
         // Past the welcome page on a computer or sideways iPad: the questions on the left and the pages
         // filling in on the right, like the first desktop version (Rama, 23 Nov).
         const landscape = vw >= 900 && vw > vh * 1.1, livePg = landscape && steps[currentIndex].mode !== 'landing', wide = landscape && !livePg;
-        main.classList.toggle('wide', wide); main.classList.toggle('with-pages', livePg);
-        if (wide) { z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000); w = 1000; h = 640; }
+        const tall = !landscape && vw >= 600 && vh > vw;   // upright iPad: layout B, Reid's bar across the top (Rama, 24 Nov)
+        main.classList.toggle('wide', wide || tall); main.classList.toggle('tall', tall); main.classList.toggle('with-pages', livePg);
+        if (tall) { z = Math.min(1.5, (vw * 0.96) / 760); w = 760; h = (vh * 0.97) / z; }
+        else if (wide) { z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000); w = 1000; h = 640; }
         // the phone page's full height (every step is designed to fit it), a little wider than a phone
         // bigger than the phone page would allow: the few tallest steps scroll a little instead (23 Nov)
         // the pages panel is only as wide as the page; the questions get all the rest (Rama, 23 Nov 22:12).
@@ -6347,42 +6361,6 @@
     }; }
     { const gl = glance; glance = function () {   // a "day" that isn't a day stays off the pages
       const d = SID('day'), keep = d.answer; if (keep && !DAYISH.test(keep) && !d.dateISO) { d.answer = ''; const h = gl(); d.answer = keep; return h; } return gl(); }; }
-
-    // upright iPad: a gentle note to turn it sideways, where WellHeard looks like it does on a computer (Rama, 24 Nov).
-    // Tapping anywhere on it closes it; it goes by itself once the iPad is sideways.
-    { const note = document.createElement('button'); note.type = 'button'; note.id = 'turnNote'; note.hidden = true;
-      note.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483000;max-width:560px;width:calc(100% - 48px);background:#1E2634;color:#fff;border:0;border-radius:20px;padding:14px 16px 14px 18px;display:none;align-items:center;gap:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font:inherit;font-weight:800;font-size:19px;line-height:1.3;text-align:left;cursor:pointer;pointer-events:auto;touch-action:manipulation';
-      note.innerHTML = '<span aria-hidden="true" style="font-size:30px">⟲</span><span style="flex:1" id="turnNoteText"></span><span style="min-height:52px;padding:0 20px;border-radius:14px;background:#fff;color:#1E2634;display:flex;align-items:center" id="turnNoteOk">OK</span>';
-      document.body.appendChild(note);
-      let dismissed = false; try { dismissed = sessionStorage.getItem('wellheard-turn') === '1'; } catch (e) { /* private */ }
-      const portraitMQ = window.matchMedia ? matchMedia('(orientation: portrait)') : null;
-      const check = () => {
-        const w = Math.max(window.innerWidth, document.documentElement.clientWidth || 0), touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 1;
-        const upright = portraitMQ ? portraitMQ.matches : window.innerHeight > window.innerWidth;
-        note.hidden = dismissed || !touch || !upright || Math.min(screen.width, screen.height) < 600 || w < 500; note.style.display = note.hidden ? 'none' : 'flex';   // inline display would beat [hidden]
-        if (!note.hidden) { document.getElementById('turnNoteText').textContent = L2('For the best view, turn your iPad sideways.', 'Pour une meilleure vue, tournez votre iPad à l’horizontale.'); document.getElementById('turnNoteOk').textContent = 'OK'; }
-      };
-      const close = (e) => { if (e) { e.preventDefault(); e.stopPropagation(); } dismissed = true; try { sessionStorage.setItem('wellheard-turn', '1'); } catch (x) { /* private */ } note.hidden = true; note.style.display = 'none'; };
-      note.addEventListener('click', close); note.addEventListener('touchend', close, { passive: false }); note.addEventListener('pointerup', close);
-      if (portraitMQ) { if (portraitMQ.addEventListener) portraitMQ.addEventListener('change', check); else if (portraitMQ.addListener) portraitMQ.addListener(check); }
-      window.addEventListener('resize', () => setTimeout(check, 150)); window.addEventListener('orientationchange', () => { setTimeout(check, 300); setTimeout(check, 900); });
-      setTimeout(check, 400); setInterval(check, 1500);
-    }
-
-    // take a kept question off the list (Which questions matter most? ✕, and the list beside the questions screen)
-    function removeQ(q) {
-      if (!q) return;
-      const same = (x) => x === q;
-      qPicked = qPicked.filter((x) => !same(x)); qPrio = qPrio.filter((x) => !same(x)); if (typeof ownQs !== 'undefined') ownQs = ownQs.filter((x) => !same(x));
-      ['ask', 'ideasmore'].forEach((id) => { const st = SID(id); if (st && st.answer) st.answer = qLines(st.answer).filter((x) => !same(x)).join('\n'); });
-      if (!qSkipped.includes(q)) qSkipped.push(q);
-      saveAll(); renderList(); applyLang(); lpSoon(true);
-      showToast(L2('Removed. Ask Reid again if you change your mind.', 'Retirée.'));
-    }
-    document.getElementById('listItems').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-rm]'); if (!b) return; e.stopPropagation();
-      removeQ(qShown[+b.dataset.rm]);
-    }, true);
 
     // Spoken "next" is caught however it arrives: "Next?", "okay next", "next please", or tacked onto
     // an answer ("myotonic dystrophy, next"): the answer is kept, then Reid moves on.
