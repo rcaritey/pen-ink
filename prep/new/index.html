@@ -146,7 +146,7 @@
     .lp-hide:hover { border-color: #1E2634; } .lp-hide:focus-visible, .lp-show:focus-visible { outline: 3px solid #D97706; outline-offset: 2px; }
     .lp-show { position: fixed; right: 20px; top: 20px; z-index: 60; font: inherit; font-weight: 800; font-size: 17px; min-height: 52px; padding: 10px 20px;
       border-radius: 16px; cursor: pointer; background: #1E2634; color: #fff; border: 0; box-shadow: 0 6px 20px rgba(30,38,52,.25); }
-    .lp-show[hidden] { display: none; }
+    .lp-show[hidden], body.modal-open .lp-show { display: none !important; }
     .live-pages[hidden] { display: none; }
     .lp-head { display: flex; align-items: center; gap: 12px; }
     .lp-head h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
@@ -260,7 +260,7 @@
     #reidBadge .rb-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
     #reidBadge .rb-name { font-weight: 800; font-size: 16px; color: #1E2634; line-height: 1.2; }
     #reidBadge #companionStateCaption { font-size: 14px !important; margin: 0; }
-    #sideReid .lp-show.in-side { position: static; margin-top: auto; width: 100%; box-shadow: none; }
+    #sideReid .lp-show.in-side { position: static !important; z-index: auto !important; margin-top: auto; width: 100%; box-shadow: none; }
     /* bigger text on the wide layout: there's room across */
     .wide #screenLanding h1 { font-size: 2rem !important; } .wide #landingIntro, .wide #landingHook, .wide #screenLanding li { font-size: 18px !important; } .wide #landingWelcome { font-size: 14px !important; }
     .wide #screenLanding [aria-label="How WellHeard works"] p { font-size: 16px !important; }
@@ -3536,7 +3536,12 @@
           <p class="text-sm text-[#425268] leading-snug">${T('Everything on the screen grows together.', 'Tout l’écran grandit ensemble.')}</p></div>`;
       } else if (setView === 'answermode') {
         body = head(T('How you answer', 'Comment vous répondez'), 1) + `<div class="flex flex-col gap-[12px]">
-          ${card(T('How you answer', 'Comment vous répondez'), pair('mode', T('Talking + tapping', 'Parler + toucher'), T('Tapping + typing', 'Toucher + écrire'), inputPreference === 'voice'))}</div>`;
+          ${[['1', '🗣️', T('Talk and tap', 'Parler et toucher'), T('Reid reads each question aloud and listens for your answer. You can still tap or type any time.', 'Reid lit chaque question à voix haute et écoute votre réponse. Vous pouvez toujours toucher ou écrire.'), inputPreference === 'voice'],
+             ['0', '👆', T('Tap and type only', 'Toucher et écrire seulement'), T('Reid stays quiet and doesn’t listen. You tap the choices or type your answers. Read this screen still works.', 'Reid reste silencieux et n’écoute pas. Vous touchez les choix ou écrivez vos réponses. « Lire l’écran » fonctionne toujours.'), inputPreference !== 'voice']]
+            .map(([v, icon, title, sub, on]) => `<button type="button" data-set="mode" data-v="${v}" aria-pressed="${on}" class="tactile-btn w-full min-h-[96px] px-4 py-3 rounded-2xl border-2 ${on ? 'border-[#3B5E42] bg-[#E5EFE7]' : 'border-[#D6CFC0] bg-white'} flex items-start gap-3 text-left">
+                <span class="w-8 h-8 shrink-0 rounded-full border-2 ${on ? 'border-[#3B5E42] bg-[#3B5E42] text-white' : 'border-[#9AA3AF] bg-white'} flex items-center justify-center font-extrabold mt-0.5" aria-hidden="true">${on ? '✓' : ''}</span>
+                <span class="min-w-0"><span class="block text-[18px] font-extrabold text-[#1E2634]"><span aria-hidden="true">${icon}</span> ${title}${on ? ` <span class="text-[13px] text-[#3B5E42]">· ${T('now on', 'actif')}</span>` : ''}</span>
+                <span class="block text-[15px] font-bold text-[#425268] leading-snug mt-1">${sub}</span></span></button>`).join('')}</div>`;
       } else if (setView === 'steps') {
         const names = ['1. Prepare', '2. At Visit', '3. After'], namesFr = ['1. Préparer', '2. Au rendez-vous', '3. Après'];
         body = head(T('All steps', 'Toutes les étapes'), 1) + `<div class="flex flex-col gap-2">${[0, 1, 2].map((ph) => `<p class="text-xs font-extrabold uppercase tracking-wider text-[#425268] mt-1">${(fr ? namesFr : names)[ph]}</p>
@@ -6018,6 +6023,26 @@
         b.addEventListener('click', () => clearTap(b)); ex.after(b);
       }
     }; }
+    // ---------- the doctor's page names the sources behind Reid's question guide ----------
+    function questionSources() {
+      const all = (SID('conditions').answer + ' ' + SID('concerns').answer + ' ' + SID('story').answer + ' ' + SID('who').answer).toLowerCase();
+      const src = ['Choosing Wisely Canada, “Four Questions to Ask”', 'ISMP Canada, “5 Questions to Ask About Your Medications”', 'IHI, “Ask Me 3”', 'AHRQ, QuestionBuilder'];
+      if (/parkinson|neurolog|tremor|levodopa/.test(all)) src.push('Canadian Guideline for Parkinson Disease, 2nd ed. (CMAJ 2019)', 'Parkinson Canada visit worksheets', 'Parkinson’s Foundation pre-appointment worksheet', 'UBC Movement Disorders Clinic, “Preparing for your visit”');
+      if (/cancer|tumou?r|oncolog|chemo/.test(all)) src.push('Canadian Cancer Society, “Questions to ask”');
+      if (/heart|cardi|stroke|blood pressure|afib|atrial/.test(all)) src.push('Heart & Stroke Foundation of Canada');
+      if (/memory|dementia|alzheimer/.test(all)) src.push('Alzheimer Society of Canada');
+      if (/emergency|urgence|\ber\b/.test(all)) src.push('Nova Scotia Health, emergency department visit guide');
+      return src;
+    }
+    { const dp2 = doctorPage; doctorPage = function () {
+      const h = dp2(); if (!allQs().length) return h;
+      const fr = lang === 'fr';
+      const add = `<p class="foot"><b>${fr ? 'Sources des questions suggérées' : 'Sources behind the suggested questions'}:</b> ${fr ? 'Claude a suivi un guide rédigé par WellHeard à partir de ' : 'Claude followed a guide written by WellHeard from '}${questionSources().map(esc).join('; ')}. ${fr ? 'Les sujets seulement, rien de copié mot à mot. Le guide n’a pas encore été révisé par un clinicien.' : 'Topics only; no wording copied. The guide has not yet been reviewed by a clinician.'}</p>`;
+      const i = h.lastIndexOf('</div>'); return i > 0 ? h.slice(0, i) + add + h.slice(i) : h + add;
+    }; }
+    { const om = openModal, cm = closeModal;   // nothing floats over an open panel
+      openModal = function (id) { document.body.classList.add('modal-open'); return om(id); };
+      closeModal = function (id) { const r = cm(id); if (!document.querySelector('[role="dialog"]:not(.hidden)')) document.body.classList.remove('modal-open'); return r; }; }
     // Initial render
     loadAll();
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }
