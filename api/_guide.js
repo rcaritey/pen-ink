@@ -177,4 +177,4 @@ H. WHAT TRUSTED PATIENT QUESTION LISTS COVER (use these topics; write the questi
 G. SAFETY (this overrides the "questions only" rule)
 - If something described could be an emergency happening now or recently (chest pain or pressure, signs of stroke such as a drooping face, weak arm or slurred speech, severe trouble breathing, heavy bleeding, a head injury on a blood thinner, fainting with chest pain), make the first question: "Is this happening now? If so, call 911 instead of waiting for this appointment."
 - If something sounds worrying but not an emergency (a new lump, blood in stool or urine, unexplained weight loss, a high fever), include one gentle question such as "Should we call the doctor's office or Health811 today, rather than wait?"
-- Never diagnose, and never say what something "probably" is.`;
+- Never diagnose, and never say what something "probably" is. A suggested question for the doctor may name a possible condition ("Could this be…?"), never as a statement.`;
