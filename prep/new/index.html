@@ -4470,10 +4470,27 @@
     const DOSE_RE = /(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?\s*(?:mg|milligrams?|mcg|micrograms?|ml|millilit(?:er|re)s?|units?|grams?|g|%|puffs?|pills?|tablets?|capsules?|drops?|patch(?:es)?|sprays?)\b(?:\s*(?:pill|tablet|capsule)s?)?)/i;
     const FREQS = [['Once a day', /\b(once a day|one time a day|daily|every day|once daily)\b/i], ['Twice a day', /\b(twice a day|two times a day|2 times a day|morning and night)\b/i],
       ['3 times a day', /\b(three times a day|3 times a day)\b/i], ['4 times a day', /\b(four times a day|4 times a day)\b/i], ['Only when needed', /\b(when needed|as needed|if needed|when i need)\b/i], ['Once a week', /\b(once a week|weekly|every week)\b/i]];
-    const blankMed = () => ({ stage: 'name', edit: -1, name: '', amount: '', unit: 'mg', doseNote: '', doses: [], prn: false, food: '', heard: '', sugg: [], add: { n: 1, h: 0, m: 0, ap: 'am' } });
+    const blankMed = () => ({ stage: 'name', edit: -1, name: '', amount: '', unit: 'mg', doseNote: '', doses: [], prn: false, food: '', foodParts: blankFood(), heard: '', sugg: [], add: { n: 1, h: 0, m: 0, ap: 'am' } });
     let medsList = [], medDraft = blankMed();
     // ---------- one medicine = name, strength (amount + unit), and its own times of day ----------
     const FOOD = { with: ['With food', 'Avec de la nourriture'], empty: ['On an empty stomach', 'À jeun'], before: ['30 min before eating', '30 min avant de manger'] };
+    // meals and timing, as flexible as labels are (levodopa: often before meals, or a while after, away from protein)
+    function blankFood() { return { with: false, empty: false, before: 0, after: 0, protein: false, other: '' }; }
+    const minTxt = (n, fr) => (n >= 60 ? (n % 60 ? `${Math.floor(n / 60)} h ${n % 60}` : `${n / 60} h`) : `${n} min`);
+    function foodText(f, fr) {
+      if (!f) return '';
+      const p = [];
+      if (f.with) p.push(fr ? 'avec de la nourriture' : 'with food');
+      if (f.empty) p.push(fr ? 'à jeun' : 'on an empty stomach');
+      if (f.before) p.push(fr ? `${minTxt(f.before)} avant de manger` : `${minTxt(f.before)} before eating`);
+      if (f.after) p.push(fr ? `${minTxt(f.after)} après avoir mangé` : `${minTxt(f.after)} after eating`);
+      let t = p.join(fr ? ' ou ' : ' or ');
+      if (f.protein) t += (t ? ', ' : '') + (fr ? 'loin des protéines' : 'away from protein');
+      if (f.other) t += (t ? ', ' : '') + f.other;
+      return t;
+    }
+    const foodLabel = (m, fr) => (m.foodParts ? foodText(m.foodParts, fr) : m.food && FOOD[m.food] ? FOOD[m.food][fr ? 1 : 0].toLowerCase() : (m.food || ''));
+    const foodFromOld = (v) => Object.assign(blankFood(), v === 'with' ? { with: true } : v === 'empty' ? { empty: true } : v === 'before' ? { before: 30 } : {});
     const UNITS = ['mg', 'mcg', 'g', 'mL', 'units', '%', 'drops', 'puffs'];
     const COUNTS = [0.5, 1, 1.5, 2, 3, 4];
     const SLOTS = [['am', '☀️', 'Morning', 'Matin'], ['noon', '🌤️', 'Midday', 'Midi'], ['pm', '🌙', 'Evening', 'Soir'], ['bed', '🛏️', 'Bedtime', 'Coucher']];
@@ -4489,7 +4506,7 @@
     const sortDoses = (a) => a.slice().sort((x, y) => x.t.localeCompare(y.t));
     const schedText = (m, fr) => { const d = sortDoses(m.doses || []).map((x) => `${fmtN(x.n)} ${fr ? 'à' : 'at'} ${fmtT(x.t, fr)}`);
       if (m.prn) d.push(fr ? 'au besoin' : 'when needed');
-      if (m.food) d.push(FOOD[m.food][fr ? 1 : 0].toLowerCase()); if (!d.length && m.freq && m.freq !== 'Not sure') d.push(tr(m.freq).toLowerCase()); return d.join(', '); };
+      if (foodLabel(m, fr)) d.push(foodLabel(m, fr)); if (!d.length && m.freq && m.freq !== 'Not sure') d.push(tr(m.freq).toLowerCase()); return d.join(', '); };
     // ---------- the medicine chart: a timeline by time of day; pictures and numbers read the same in every language ----------
     function chartPrint(opt) {
       opt = opt || {};
@@ -4499,7 +4516,7 @@
       const byT = {};
       medsList.forEach((m) => (m.doses || []).forEach((x) => { (byT[x.t] = byT[x.t] || []).push({ m, n: x.n }); }));
       const b = 'border:1px solid #999;padding:4pt 6pt';
-      const line = (m, n) => `<span style="${stopped(m) ? 'text-decoration:line-through' : ''}"><b data-notr>${esc(m.name)}</b>${doseOf(m) ? ' <span data-notr>' + esc(doseOf(m)) + '</span>' : ''}</span> &nbsp;<b>× ${fmtN(n)}</b> ${countWord(m, n, fr)}${m.food ? ' <i>(' + FOOD[m.food][fr ? 1 : 0].toLowerCase() + ')</i>' : ''}${stopped(m) ? ` <b style="color:#B45309">${fr ? '⚠ Arrêter : à vérifier' : '⚠ Stop: check this'}</b>` : ''}`;
+      const line = (m, n) => `<span style="${stopped(m) ? 'text-decoration:line-through' : ''}"><b data-notr>${esc(m.name)}</b>${doseOf(m) ? ' <span data-notr>' + esc(doseOf(m)) + '</span>' : ''}</span> &nbsp;<b>× ${fmtN(n)}</b> ${countWord(m, n, fr)}${foodLabel(m, fr) ? ' <i>(' + esc(foodLabel(m, fr)) + ')</i>' : ''}${stopped(m) ? ` <b style="color:#B45309">${fr ? '⚠ Arrêter : à vérifier' : '⚠ Stop: check this'}</b>` : ''}`;
       const times = Object.keys(byT).sort();
       let html = `<h2>${title}</h2>`;
       if (times.length) html += `<table style="border-collapse:collapse;width:100%">${times.map((t) => `<tr><td style="${b};width:1%;white-space:nowrap;font-size:12pt"><span aria-hidden="true">${iconOfT(t)}</span> <b>${fmtT(t, fr)}</b></td><td style="${b}">${byT[t].map((e) => line(e.m, e.n)).join('<br>')}</td></tr>`).join('')}</table>`;
@@ -4546,12 +4563,12 @@
     }
     function medGo(stage) { medDraft.stage = stage; renderList(); applyLang(); speakStep(); }
     function medSave() {
-      const d = medDraft, m = { name: d.name, amount: d.amount, unit: d.amount ? d.unit : '', doseNote: d.doseNote, dose: d.amount ? `${d.amount} ${d.unit}` : d.doseNote, doses: sortDoses(d.doses), prn: d.prn, food: d.food };
+      const d = medDraft, m = { name: d.name, amount: d.amount, unit: d.amount ? d.unit : '', doseNote: d.doseNote, dose: d.amount ? `${d.amount} ${d.unit}` : d.doseNote, doses: sortDoses(d.doses), prn: d.prn, food: foodText(d.foodParts, false), foodParts: Object.assign({}, d.foodParts) };
       if (d.edit > -1) medsList[d.edit] = m; else medsList.push(m);
       SID('meds').none = false; SID('meds').fromLast = false; medDraft = blankMed(); medDraft.stage = 'list'; syncMeds(); medGo('list');
     }
     function medEdit(i) { const m = medsList[i]; const sd = splitDose(m.dose || '') || {};
-      medDraft = Object.assign(blankMed(), { edit: i, name: m.name, amount: m.amount || sd.amount || '', unit: m.unit || sd.unit || 'mg', doseNote: m.doseNote || (/^(not with me|not sure)$/i.test(m.dose || '') ? m.dose : ''), doses: (m.doses || []).slice(), prn: !!m.prn, food: m.food || '' });
+      medDraft = Object.assign(blankMed(), { edit: i, name: m.name, amount: m.amount || sd.amount || '', unit: m.unit || sd.unit || 'mg', doseNote: m.doseNote || (/^(not with me|not sure)$/i.test(m.dose || '') ? m.dose : ''), doses: (m.doses || []).slice(), prn: !!m.prn, food: m.food || '', foodParts: m.foodParts ? Object.assign(blankFood(), m.foodParts) : foodFromOld(m.food) });
       if (!medDraft.doses.length && Array.isArray(m.times)) medDraft.doses = m.times.map((s) => ({ t: SLOT_TIME[s], n: 1 }));
       medGo('name'); }
     function addPending() {   // the time being built in the schedule step
@@ -4665,8 +4682,19 @@
           <div class="grid grid-cols-6 gap-[6px]">${[0, 15, 30, 45].map((mi) => `<button type="button" data-med="mi" data-v="${mi}" class="${CH} !px-0 !min-h-[42px] ${a.m === mi ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">:${String(mi).padStart(2, '0')}</button>`).join('')}${['am', 'pm'].map((p) => `<button type="button" data-med="ap" data-v="${p}" class="${CH} !px-0 !min-h-[42px] ${a.ap === p ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${p.toUpperCase()}</button>`).join('')}</div>
           <button type="button" data-med="tadd" class="${CH} ${a.h ? GO : 'bg-[#D6CFC0] text-[#425268]'} w-full" ${a.h ? '' : 'aria-disabled="true"'}>+ ${a.h ? `<span>${L2('Add', 'Ajouter')}:</span>&nbsp;<span data-notr>${fmtN(a.n)}</span>&nbsp;<span>${cw(a.n)}</span>&nbsp;<span data-notr>· ${fmtT(`${String((a.h % 12) + (a.ap === 'pm' ? 12 : 0)).padStart(2, '0')}:${String(a.m).padStart(2, '0')}`, fr)}</span>` : L2('Pick a time first', 'Choisissez d’abord une heure')}</button></div>`;
         html += `<button type="button" data-med="prn" aria-pressed="${d.prn}" class="${CH} w-full ${d.prn ? ON : OFF}">${d.prn ? '✓ ' : ''}${L2('Also when needed', 'Aussi au besoin')}</button>
-          <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5 mt-1">${L2('With meals? (if the label says)', 'Avec les repas ? (si l’étiquette le dit)')}</p>
-          <div class="grid grid-cols-3 gap-[6px]">${Object.keys(FOOD).map((f) => `<button type="button" data-med="food" data-v="${f}" aria-pressed="${d.food === f}" class="${CH} !min-h-[48px] !text-[14px] leading-tight ${d.food === f ? ON : OFF}">${d.food === f ? '✓ ' : ''}${FOOD[f][fr ? 1 : 0]}</button>`).join('')}</div>`;
+          <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5 mt-1">${L2('Meals and timing (as the label or doctor says)', 'Repas et moment (selon l’étiquette ou le médecin)')}</p>
+          ${(() => { const F = d.foodParts || (d.foodParts = blankFood()), pick = (on) => (on ? ON : OFF), CHs = `${CH} !min-h-[46px] !text-[14px] leading-tight`;
+            const mins = (k, list) => list.map((n) => `<button type="button" data-med="foodmin" data-k="${k}" data-v="${n}" aria-pressed="${F[k] === n}" class="${CHs} !px-0 ${pick(F[k] === n)}">${minTxt(n)}</button>`).join('');
+            return `<div class="grid grid-cols-2 gap-[6px]">
+                <button type="button" data-med="foodflag" data-k="with" aria-pressed="${F.with}" class="${CHs} ${pick(F.with)}">${F.with ? '✓ ' : ''}${L2('With food', 'Avec de la nourriture')}</button>
+                <button type="button" data-med="foodflag" data-k="empty" aria-pressed="${F.empty}" class="${CHs} ${pick(F.empty)}">${F.empty ? '✓ ' : ''}${L2('Empty stomach', 'À jeun')}</button></div>
+              <p class="text-[13px] font-extrabold text-[#1E2634] mt-0.5">${L2('Before eating', 'Avant de manger')}</p>
+              <div class="grid grid-cols-4 gap-[6px]">${mins('before', [15, 30, 45, 60])}</div>
+              <p class="text-[13px] font-extrabold text-[#1E2634] mt-0.5">${L2('Or after eating', 'Ou après avoir mangé')}</p>
+              <div class="grid grid-cols-4 gap-[6px]">${mins('after', [30, 60, 90, 120])}</div>
+              <button type="button" data-med="foodflag" data-k="protein" aria-pressed="${F.protein}" class="${CHs} w-full ${pick(F.protein)}">${F.protein ? '✓ ' : ''}${L2('Away from protein (meat, eggs, milk)', 'Loin des protéines (viande, œufs, lait)')}</button>
+              <input id="foodOther" type="text" value="${esc(F.other)}" placeholder="${L2('Other: type what the label says', 'Autre : écrivez ce que dit l’étiquette')}" aria-label="${L2('Other instructions about meals', 'Autres consignes pour les repas')}" class="w-full min-h-[46px] px-3 rounded-xl border-2 border-[#D6CFC0] bg-white text-[15px] font-bold">
+              ${foodText(F, fr) ? `<p class="text-[14px] font-extrabold text-[#3B5E42]">✓ <span>${esc(foodText(F, fr))}</span></p>` : ''}`; })()}`;
       }
       const keep = d.stage === 'sched' ? items.scrollTop : 0;
       items.innerHTML = html; foot.innerHTML = ''; items.scrollTop = keep;
@@ -4704,7 +4732,8 @@
       if (k === 'tadd') { if (addPending()) { redraw(); say(L2('Added. Add another time, or tap Next.', 'Ajouté. Ajoutez une autre heure, ou touchez Suivant.')); } }
       if (k === 'tdel') { d.doses = d.doses.filter((x) => x.t !== b.dataset.t); redraw(); }
       if (k === 'prn') { d.prn = !d.prn; redraw(); }
-      if (k === 'food') { d.food = d.food === v ? '' : v; redraw(); }
+      if (k === 'foodflag') { const F = d.foodParts || (d.foodParts = blankFood()), kk = b.dataset.k; F[kk] = !F[kk]; if (kk === 'with' && F.with) F.empty = false; if (kk === 'empty' && F.empty) F.with = false; redraw(); }
+      if (k === 'foodmin') { const F = d.foodParts || (d.foodParts = blankFood()), kk = b.dataset.k, n = +v; F[kk] = F[kk] === n ? 0 : n; if (F[kk]) F.with = false; redraw(); }
       if (k === 'save') { addPending(); medSave(); }
       if (k === 'another') { medDraft = blankMed(); medGo('name'); }
       if (k === 'edit') medEdit(Number(b.dataset.i));
@@ -5819,6 +5848,10 @@
       if (r) { r.style.background = '#E5EFE7'; r.style.borderRadius = '12px'; r.style.margin = '0 -6px'; r.style.padding = '6px'; r.setAttribute('aria-current', 'true'); }
     }; }
 
+    document.getElementById('listItems').addEventListener('input', (e) => {
+      if (e.target.id !== 'foodOther' || !medDraft) return;
+      (medDraft.foodParts || (medDraft.foodParts = blankFood())).other = e.target.value.slice(0, 120);
+    });
     // Initial render
     loadAll();
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }
