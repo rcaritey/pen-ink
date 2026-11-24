@@ -141,7 +141,12 @@
     :is(#appContainer.with-pages, #appContainer.wide) .rv-val { font-size: 17px; }
     /* the pages beside the questions */
     .live-pages { display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; padding: 18px 8px 14px 28px; background: #FAF7F0; color: #1E2634;
-      border-left: 1px solid #DDD6C7; flex: none; }
+      flex: none; }
+    .lp-hide { font: inherit; font-weight: 800; font-size: 15px; min-height: 44px; padding: 6px 16px; border-radius: 14px; cursor: pointer; background: #F0EBE1; color: #1E2634; border: 1px solid #D6CFC0; }
+    .lp-hide:hover { border-color: #1E2634; } .lp-hide:focus-visible, .lp-show:focus-visible { outline: 3px solid #D97706; outline-offset: 2px; }
+    .lp-show { position: fixed; right: 20px; top: 20px; z-index: 60; font: inherit; font-weight: 800; font-size: 17px; min-height: 52px; padding: 10px 20px;
+      border-radius: 16px; cursor: pointer; background: #1E2634; color: #fff; border: 0; box-shadow: 0 6px 20px rgba(30,38,52,.25); }
+    .lp-show[hidden] { display: none; }
     .live-pages[hidden] { display: none; }
     .lp-head { display: flex; align-items: center; gap: 12px; }
     .lp-head h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
@@ -155,7 +160,7 @@
     .lp-tabs button[aria-selected="true"]::before { content: "\2713  "; }
     .lp-tabs button[hidden] { display: none; }
     .lp-tabs button:focus-visible, .lp-paper:focus-visible { outline: 3px solid #D97706; outline-offset: 2px; }
-    .lp-paper { flex: 1; min-height: 0; overflow-y: auto; background: #F0EBE1; border-radius: 16px; padding: 16px; }
+    .lp-paper { flex: 1; min-height: 0; overflow-y: auto; background: transparent; padding: 6px 4px 16px; }
     .lp-sheet { background: #fff; color: #111A22; border-radius: 4px; padding: 30px 32px; aspect-ratio: 8.5 / 11; max-width: 640px; margin: 0 auto;
       box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(30,38,52,.10); font-size: 15px; line-height: 1.5; }
     .lp-sheet h1 { font-size: 20px; font-weight: 800; margin: 0 0 2px; }
@@ -5380,11 +5385,11 @@
       $('listHelp').textContent = L2('Four steps. Tap each one as you go.', 'Quatre étapes. Touchez chacune au fur et à mesure.');
       $('listCounter').classList.add('hidden');
       items.classList.add('overflow-y-auto');
-      const st = (n, icon, title, body, btn, act, on) => `<div class="w-full bg-white border-2 ${on ? 'border-[#3B5E42]' : 'border-[#E6DFD0]'} rounded-[18px] p-3 flex flex-col gap-2">
+      const st = (n, icon, title, body, btn, act, on) => `<div class="w-full bg-white border-2 ${on ? 'border-[#3B5E42]' : 'border-[#E6DFD0]'} rounded-[18px] px-3 py-2 flex flex-col gap-1.5">
           <div class="flex items-start gap-3"><span class="w-8 h-8 shrink-0 rounded-full bg-[#1E2634] text-white font-extrabold flex items-center justify-center">${n}</span>
-          <div class="min-w-0"><p class="font-extrabold text-[17px] text-[#1E2634] leading-snug"><span aria-hidden="true">${icon}</span> ${title}</p><p class="text-[14px] font-bold text-[#425268] leading-snug">${body}</p></div></div>
-          ${btn ? `<button type="button" data-visit="${act}" class="tactile-btn w-full min-h-[52px] rounded-xl ${on ? 'bg-[#3B5E42] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-[15px]">${btn}</button>` : ''}</div>`;
-      items.innerHTML = `<div class="w-full flex flex-col gap-[8px]">
+          <div class="min-w-0"><p class="font-extrabold text-[16px] text-[#1E2634] leading-tight"><span aria-hidden="true">${icon}</span> ${title}</p><p class="text-[13px] font-bold text-[#425268] leading-snug">${body}</p></div></div>
+          ${btn ? `<button type="button" data-visit="${act}" class="tactile-btn w-full min-h-[46px] rounded-xl ${on ? 'bg-[#3B5E42] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-[15px]">${btn}</button>` : ''}</div>`;
+      items.innerHTML = `<div class="w-full flex flex-col gap-[6px]">
         ${st(1, '🎙️', L2('Ask to record', 'Demandez pour enregistrer'), L2('"Is it okay if I record this on my phone, so I remember?"', '« Est-ce que je peux enregistrer sur mon téléphone, pour m’en souvenir ? »'),
           isRecording ? L2('● Recording. Tap to pause', '● Enregistrement. Toucher pour arrêter') : L2('Ask, then start recording', 'Demander, puis enregistrer'), 'rec', isRecording)}
         ${st(2, '📄', L2('Hand over the doctor’s page', 'Donnez la page du médecin'), L2('Give the printed page, or show it on your phone.', 'Donnez la page imprimée, ou montrez-la sur votre téléphone.'), L2('Show it on my phone', 'La montrer sur mon téléphone'), 'doc')}
@@ -5509,26 +5514,28 @@
     function renderAbout(items, foot) {
       const $ = (id) => document.getElementById(id);
       $('listTitle').textContent = L2('Your age, height and weight', 'Votre âge, votre taille et votre poids');
-      $('listHelp').textContent = about.fromLast && about.answer ? L2('From your last visit. Still right? Tap Next, or change it.', 'De votre dernière visite. Toujours exact ? Touchez Suivant, ou changez-le.')
-        : L2('Optional. It helps the doctor with doses. Tap − or +, type a number, or say it.', 'Facultatif. Cela aide le médecin pour les doses. Touchez − ou +, écrivez un chiffre, ou dites-le.');
+      $('listHelp').textContent = about.fromLast && about.answer ? L2('From your last visit. Still right?', 'De votre dernière visite. Toujours exact ?')
+        : L2('Optional. It helps with doses. Tap, type or say it.', 'Facultatif. Aide pour les doses. Touchez, écrivez ou dites-le.');
       $('listCounter').classList.add('hidden');
       items.classList.add('overflow-y-auto');
-      const num = (k, label, unit) => `<div class="flex items-center gap-2">
-          <button type="button" data-ab="minus" data-k="${k}" class="tactile-btn w-[56px] h-[56px] shrink-0 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[28px] font-extrabold text-[#1E2634]" aria-label="${L2('Less', 'Moins')}: ${label}">−</button>
+      const metric = AB.hu === 'cm';
+      const num = (k, label, unit) => `<div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" data-ab="minus" data-k="${k}" class="tactile-btn w-[46px] h-[48px] shrink-0 rounded-xl bg-[#F0EBE1] border border-[#D6CFC0] text-[26px] font-extrabold text-[#1E2634]" aria-label="${L2('Less', 'Moins')}: ${label}">−</button>
           <input data-abin="${k}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${esc(AB[k])}" aria-label="${label}" placeholder="–"
-            class="w-[76px] h-[56px] rounded-2xl border-2 border-[#1E2634] bg-white text-center text-[24px] font-extrabold text-[#1E2634]">
-          <button type="button" data-ab="plus" data-k="${k}" class="tactile-btn w-[56px] h-[56px] shrink-0 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[28px] font-extrabold text-[#1E2634]" aria-label="${L2('More', 'Plus')}: ${label}">+</button>
-          <span class="text-[17px] font-extrabold text-[#425268]" aria-hidden="true">${unit}</span></div>`;
-      const seg = (kind, cur, opts) => `<div class="inline-flex rounded-xl border border-[#D6CFC0] overflow-hidden" role="group" aria-label="${L2('Units', 'Unités')}">${opts.map(([u, l]) => `<button type="button" data-abu="${kind}" data-u="${u}" aria-pressed="${cur === u}" class="tactile-btn min-h-[44px] px-3 font-extrabold text-[14px] ${cur === u ? 'bg-[#1E2634] text-white' : 'bg-white text-[#1E2634]'}">${l}</button>`).join('')}</div>`;
-      const card = (title, extra, body) => `<div class="w-full bg-white border border-[#E6DFD0] rounded-[18px] p-3 flex flex-col gap-2">
-          <div class="flex items-center justify-between gap-2"><span class="font-extrabold text-[17px] text-[#1E2634]">${title}</span>${extra}</div>${body}</div>`;
-      items.innerHTML = `<div class="w-full flex flex-col gap-[8px]">
-        ${card(L2('Age', 'Âge'), '', num('age', L2('Age in years', 'Âge en années'), L2('years', 'ans')))}
-        ${card(L2('Height', 'Taille'), seg('h', AB.hu, [['ft', 'ft / in'], ['cm', 'cm']]),
-          AB.hu === 'ft' ? num('ft', L2('Height, feet', 'Taille, pieds'), 'ft') + num('inch', L2('Height, inches', 'Taille, pouces'), 'in') : num('cm', L2('Height in centimetres', 'Taille en centimètres'), 'cm'))}
-        ${card(L2('Weight', 'Poids'), seg('w', AB.wu, [['lb', 'lb'], ['kg', 'kg']]),
-          AB.wu === 'lb' ? num('lb', L2('Weight in pounds', 'Poids en livres'), 'lb') : num('kg', L2('Weight in kilograms', 'Poids en kilos'), 'kg'))}
-        <button type="button" data-ab="skip" class="tactile-btn w-full min-h-[52px] rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${L2('Skip for now', 'Passer pour l’instant')}</button></div>`;
+            class="w-[58px] h-[48px] rounded-xl border-2 border-[#1E2634] bg-white text-center text-[22px] font-extrabold text-[#1E2634]">
+          <button type="button" data-ab="plus" data-k="${k}" class="tactile-btn w-[46px] h-[48px] shrink-0 rounded-xl bg-[#F0EBE1] border border-[#D6CFC0] text-[26px] font-extrabold text-[#1E2634]" aria-label="${L2('More', 'Plus')}: ${label}">+</button>
+          <span class="min-w-[26px] text-[16px] font-extrabold text-[#425268]" aria-hidden="true">${unit}</span></div>`;
+      const row = (title, body) => `<div class="w-full flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-1.5">
+          <span class="w-[64px] font-extrabold text-[17px] text-[#1E2634]">${title}</span><div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">${body}</div></div>`;
+      const unitBtn = (u, l) => `<button type="button" data-abu="both" data-u="${u}" aria-pressed="${(u === 'cm') === metric}" class="tactile-btn min-h-[44px] px-3 font-extrabold text-[14px] ${(u === 'cm') === metric ? 'bg-[#1E2634] text-white' : 'bg-white text-[#1E2634]'}">${l}</button>`;
+      items.innerHTML = `<div class="w-full flex items-center justify-between gap-2">
+          <span class="text-[14px] font-extrabold text-[#425268]">${L2('Units', 'Unités')}</span>
+          <div class="inline-flex rounded-xl border border-[#D6CFC0] overflow-hidden" role="group" aria-label="${L2('Units', 'Unités')}">${unitBtn('ft', 'ft · lb')}${unitBtn('cm', 'cm · kg')}</div></div>
+        <div class="w-full bg-white border border-[#E6DFD0] rounded-[18px] px-3 py-1 flex flex-col divide-y divide-[#EFE9DE]">
+          ${row(L2('Age', 'Âge'), num('age', L2('Age in years', 'Âge en années'), L2('yrs', 'ans')))}
+          ${row(L2('Height', 'Taille'), metric ? num('cm', L2('Height in centimetres', 'Taille en centimètres'), 'cm')
+            : num('ft', L2('Height, feet', 'Taille, pieds'), 'ft') + num('inch', L2('Height, inches', 'Taille, pouces'), 'in'))}
+          ${row(L2('Weight', 'Poids'), metric ? num('kg', L2('Weight in kilograms', 'Poids en kilos'), 'kg') : num('lb', L2('Weight in pounds', 'Poids en livres'), 'lb'))}</div>`;
       foot.innerHTML = '';
       items.querySelectorAll('[data-abin]').forEach((inp) => {
         inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(0, 3); AB[inp.dataset.abin] = inp.value; abSave(); });
@@ -5548,7 +5555,7 @@
       list.addEventListener('click', (e) => {
         const b = e.target.closest('[data-ab],[data-abu]'); if (!b) return;
         if (b.dataset.held) { delete b.dataset.held; return; }   // a long press already counted
-        if (b.dataset.abu) { abSwitch(b.dataset.abu, b.dataset.u); renderList(); applyLang(); return; }
+        if (b.dataset.abu) { const m = b.dataset.u === 'cm'; abSwitch('h', m ? 'cm' : 'ft'); abSwitch('w', m ? 'kg' : 'lb'); renderList(); applyLang(); return; }
         if (b.dataset.ab === 'skip') { AB = Object.assign(AB, { age: '', ft: '', inch: '', cm: '', lb: '', kg: '' }); abSave(); goNext(); return; }
         abStep(b.dataset.k, b.dataset.ab === 'plus' ? 1 : -1);
         const i = list.querySelector(`[data-abin="${b.dataset.k}"]`); if (i) i.value = AB[b.dataset.k];
@@ -5584,6 +5591,124 @@
     // erasing everything also forgets the numbers, the goal questions and the calendar date
     { const ra = resetAllFromSettings; resetAllFromSettings = function (x) { ra(x); if (x !== true) { AB = Object.assign(AB, { age: '', ft: '', inch: '', cm: '', lb: '', kg: '' }); goalPool = []; goalSig = ''; recapNext = {};
       ['wellheard-about', 'wellheard-goalqs', 'wellheard-next', 'wellheard-at'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* blocked */ } }); } }; }
+    // =====================================================================
+    // Urgent signs: Reid stops and says so plainly. Two checks: words on this phone (instant, works offline)
+    // and Claude's own reading of the whole picture (sent back with the questions).
+    // =====================================================================
+    const RED = [
+      [/chest (pain|pressure|tightness)|douleur (à|a) la poitrine|serrement (à|a) la poitrine/i, 'now', ['chest pain or pressure', 'une douleur ou pression à la poitrine']],
+      [/(can'?t|cannot|hard to|trouble|struggling to) breathe|short(ness)? of breath|gasping|(du mal|difficult[ée]) (à|a) respirer|essouffl/i, 'now', ['trouble breathing', 'du mal à respirer']],
+      [/face (is )?droop|slurred speech|(sudden(ly)?|one side).{0,25}(weak|numb)|(weak|numb).{0,25}one side|visage (qui )?tombe|parole (confuse|pâteuse)|engourdi.{0,20}un côté/i, 'now', ['signs that can mean a stroke', 'des signes qui peuvent indiquer un AVC']],
+      [/worst headache|thunderclap|pire mal de t[eê]te/i, 'now', ['a sudden, very bad headache', 'un mal de tête soudain et très fort']],
+      [/faint(ed|ing)|passed out|unconscious|blacked out|perdu connaissance|évanoui/i, 'now', ['fainting or passing out', 'un évanouissement']],
+      [/(won'?t|doesn'?t|can'?t) stop bleeding|bleeding (a lot|heavily)|(vomit|cough)(ing|ed)? (up )?blood|saigne beaucoup|vomi(t|ssement) de sang|crach(e|er) du sang/i, 'now', ['heavy bleeding or blood', 'un saignement important']],
+      [/seizure|convuls|crise d'?épilep/i, 'now', ['a seizure', 'une convulsion']],
+      [/overdose|took too (many|much)|surdose|trop de (pilules|comprimés)/i, 'now', ['taking too much medicine', 'trop de médicaments pris']],
+      [/suddenly confused|sudden confusion|confusion soudaine|soudainement confus/i, 'now', ['sudden confusion', 'une confusion soudaine']],
+      [/suicid|kill myself|end my life|want to die|hurt myself|me tuer|en finir|mettre fin à (ma|mes) (vie|jours)/i, 'crisis', ['thoughts of ending your life', 'des pensées de mettre fin à vos jours']],
+      [/hit (my|his|her) head|(fell|fall).{0,30}head|cogné la tête/i, 'today', ['a fall with a blow to the head', 'une chute avec un coup à la tête']],
+      [/(high|very high) fever|fièvre (forte|élevée)/i, 'today', ['a high fever', 'une forte fièvre']],
+      [/black (stool|poop)|selles noires/i, 'today', ['black stools', 'des selles noires']],
+      [/(sudden(ly)?|lost).{0,20}(vision|sight)|perte (soudaine )?de (la )?vue/i, 'now', ['a sudden change in vision', 'un changement soudain de la vue']]
+    ];
+    const urgentSeen = new Set();
+    function urgentCheck(text) {
+      const t = String(text || ''); if (!t.trim()) return false;
+      const hit = RED.find(([re]) => re.test(t)); if (!hit) return false;
+      return urgentAlert(hit[1], hit[2][lang === 'fr' ? 1 : 0]);
+    }
+    function urgentAlert(level, why) {
+      const key = level + '|' + (why || ''); if (urgentSeen.has(key) || document.getElementById('urgentBox')) return false;
+      urgentSeen.add(key);
+      const fr = lang === 'fr', crisis = level === 'crisis', now = level === 'now' || crisis;
+      const box = document.createElement('div'); box.id = 'urgentBox';
+      box.className = 'fixed inset-0 z-[90] bg-black/55 flex items-end sm:items-center justify-center p-3';
+      box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'urgentTitle'); box.setAttribute('aria-describedby', 'urgentBody');
+      const title = crisis ? (fr ? 'Vous n’êtes pas seul. De l’aide est là maintenant.' : 'You’re not alone. Help is here now.')
+        : now ? (fr ? 'Cela pourrait être urgent' : 'This could be urgent') : (fr ? 'Faites vérifier cela aujourd’hui' : 'Get this checked today');
+      const body = crisis ? (fr ? 'Vous avez parlé de ' + why + '. Appelez ou textez le 988, à toute heure, pour parler à quelqu’un maintenant. En danger immédiat : appelez le 911.' : 'You mentioned ' + why + '. Call or text 988, any time, to talk with someone now. If you are in immediate danger, call 911.')
+        : now ? (fr ? 'Vous avez mentionné ' + why + '. Si cela se passe maintenant, ou vient de se passer, n’attendez pas le rendez-vous : appelez le 911 ou allez à l’urgence.' : 'You mentioned ' + why + '. If this is happening now, or just happened, don’t wait for the appointment: call 911 or go to the emergency department.')
+        : (fr ? 'Vous avez mentionné ' + why + '. N’attendez pas le rendez-vous : appelez votre médecin aujourd’hui, ou Santé811 (le 811) pour parler à une infirmière. Si cela empire : le 911.' : 'You mentioned ' + why + '. Don’t wait for the appointment: call your doctor today, or Health811 (dial 811) to talk to a nurse. If it gets worse, call 911.');
+      const B = 'tactile-btn w-full min-h-[60px] rounded-2xl font-extrabold text-lg flex items-center justify-center gap-2';
+      box.innerHTML = `<div class="w-full max-w-md bg-white border-4 border-[#B42318] rounded-3xl p-5 space-y-3 shadow-2xl">
+          <p class="text-[13px] font-extrabold uppercase tracking-wide text-[#B42318]">⚠ ${fr ? 'Reid s’arrête un instant' : 'Reid is stopping for a moment'}</p>
+          <h2 id="urgentTitle" class="text-[24px] font-extrabold text-[#7A1A12] leading-tight">${title}</h2>
+          <p id="urgentBody" class="text-[17px] font-bold text-[#1E2634] leading-snug">${esc(body)}</p>
+          ${crisis ? `<a href="tel:988" class="${B} bg-[#B42318] text-white">${fr ? 'Appeler le 988' : 'Call 988'}</a><a href="sms:988" class="${B} bg-white border-2 border-[#B42318] text-[#7A1A12]">${fr ? 'Texter le 988' : 'Text 988'}</a>`
+            : now ? `<a href="tel:911" class="${B} bg-[#B42318] text-white">${fr ? 'Appeler le 911' : 'Call 911'}</a><a href="tel:811" class="${B} bg-white border-2 border-[#B42318] text-[#7A1A12]">${fr ? 'Pas sûr ? Appeler Santé811' : 'Not sure? Call Health811'}</a>`
+            : `<a href="tel:811" class="${B} bg-[#B42318] text-white">${fr ? 'Appeler Santé811 (811)' : 'Call Health811 (811)'}</a>`}
+          <button type="button" data-urg="ok" class="${B} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] text-base">${crisis ? (fr ? 'Je suis en sécurité pour l’instant. Continuer' : 'I’m safe for now. Continue') : now ? (fr ? 'Ce n’est pas en train de se passer. Continuer' : 'It’s not happening now. Continue') : (fr ? 'Compris. Continuer' : 'Understood. Continue')}</button>
+          <p class="text-[13px] font-bold text-[#425268]">${fr ? 'Reid n’est pas un médecin et ne peut pas savoir si c’est grave. En cas de doute, appelez.' : 'Reid isn’t a doctor and can’t tell how serious it is. If in doubt, call.'}</p></div>`;
+      document.body.appendChild(box);
+      box.querySelector('[data-urg]').addEventListener('click', () => box.remove());
+      box.querySelector('a, button').focus();
+      say(title + '. ' + body);
+      return true;
+    }
+    // words on this phone: checked when moving on from the steps where people describe the problem
+    { const gn = goNext; goNext = async function () {
+      const s = steps[currentIndex];
+      if (s && s.mode === 'voice' && ['concerns', 'story', 'goal'].concat(steps.filter((x) => /^dq\d+$/.test(x.id)).map((x) => x.id)).includes(s.id)) {
+        saveCurrentStepState(); if (urgentCheck(s.answer)) return;   // the warning shows; Next again carries on
+      }
+      return gn();
+    }; }
+    // Claude's reading, on every set of questions it sends back
+    { const f0 = window.fetch; window.fetch = async function (u, o) {
+      const r = await f0(u, o);
+      try { if (u === '/api/suggest' && r.ok) { const d = await r.clone().json(); if (d && (d.urgent === 'now' || d.urgent === 'today')) urgentAlert(d.urgent, d.urgentWhy || L2('something that may need care soon', 'quelque chose qui pourrait demander des soins rapidement')); } } catch (e) { /* not json */ }
+      return r;
+    }; }
+
+    // =====================================================================
+    // The pages beside the questions (computers): no frame, and a Hide / Show button
+    // =====================================================================
+    // the pages stay out of the way while answering, and come out for the questions and the end (Rama, 23 Nov);
+    // they can be opened or hidden at any time, and that choice holds until the next part of the app
+    let pagesHidden = false, pagesPick = null, pagesPickAt = '';
+    const PAGES_FROM = ['goalqs', 'ideas', 'detail', 'priority', 'review', 'ready', 'recap', 'nextSteps', 'shareFinish'];
+    const pagesPart = () => { const s = steps[currentIndex]; return PAGES_FROM.includes(s.id) || /^dq\d+$/.test(s.id) ? 'late' : 'early'; };
+    const pagesAuto = () => pagesPart() === 'early' || steps[currentIndex].phaseIndex === 1;
+    { const head = document.querySelector('#livePages .lp-head');
+      if (head) { const b = document.createElement('button'); b.type = 'button'; b.id = 'lpHide'; b.className = 'lp-hide';
+        b.addEventListener('click', () => setPagesHidden(true)); head.appendChild(b); } }
+    const lpShow = document.createElement('button'); lpShow.type = 'button'; lpShow.id = 'lpShow'; lpShow.className = 'lp-show'; lpShow.hidden = true;
+    lpShow.addEventListener('click', () => setPagesHidden(false)); document.body.appendChild(lpShow);
+    function setPagesHidden(h) {
+      pagesPick = h; pagesPickAt = pagesPart() + (steps[currentIndex].phaseIndex || 0);
+      sizeApp(); (h ? lpShow : document.getElementById('lpHide')).focus();
+    }
+    { const sa = sizeApp; sizeApp = function () {
+      if (pagesPick !== null && pagesPickAt !== pagesPart() + (steps[currentIndex].phaseIndex || 0)) pagesPick = null;   // a new part: back to the default
+      pagesHidden = pagesPick !== null ? pagesPick : pagesAuto();
+      sa();
+      const main = document.getElementById('appContainer'), lp = document.getElementById('livePages');
+      const could = main.classList.contains('with-pages') || (pagesHidden && window.innerWidth >= 900 && window.innerWidth > window.innerHeight * 1.1 && steps[currentIndex].mode !== 'landing');
+      if (pagesHidden && main.classList.contains('with-pages')) {   // lay out as if there were no pages
+        main.classList.remove('with-pages'); main.classList.add('wide'); lp.hidden = true; document.body.style.flexDirection = '';
+        const vw = window.innerWidth, vh = window.innerHeight, z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000);
+        main.style.zoom = z; main.style.width = '1000px'; main.style.height = '640px';
+        if (LISTMODES[steps[currentIndex].mode]) renderList();
+      }
+      // on a computer, nothing should need scrolling: if a screen is too tall, make everything a little smaller instead
+      const desk = main.classList.contains('with-pages') || main.classList.contains('wide');
+      if (!(desk ? ['landing', 'consent'] : ['landing', 'consent', 'goalqs', 'ready', 'meds', 'priority', 'review']).includes(steps[currentIndex].mode)) {
+        const floor = desk ? 0.9 : 0.85;
+        const boxes = ['listItems', 'screenQuestion'].map((id) => document.getElementById(id)).filter((e) => e && e.offsetParent);
+        for (let k = 0; k < 3; k++) {
+          const over = Math.max(0, ...boxes.map((e) => e.scrollHeight - e.clientHeight)); if (over <= 2) break;
+          const z = parseFloat(main.style.zoom) || 1, h = parseFloat(main.style.height), w = parseFloat(main.style.width);
+          const nz = Math.max(floor, z * h / (h + over + 10)); if (nz >= z - 0.001 || nz < floor) break;
+          main.style.zoom = nz; main.style.height = (h * z / nz) + 'px'; main.style.width = (w * z / nz) + 'px';
+          if (LISTMODES[steps[currentIndex].mode]) renderList();
+        }
+      }
+      lpShow.hidden = !(pagesHidden && could);
+      lpShow.innerHTML = '<span aria-hidden="true">📄</span> ' + L2('See my pages', 'Voir mes pages');
+      const hb = document.getElementById('lpHide'); if (hb) { hb.textContent = L2('Hide', 'Masquer'); hb.setAttribute('aria-label', L2('Hide the pages', 'Masquer les pages')); }
+    }; }
+    window.addEventListener('resize', () => { /* sizeApp already listens; this keeps the Show button in step */ });
+
     // Initial render
     loadAll();
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }

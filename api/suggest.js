@@ -111,8 +111,10 @@ const QUESTION_SCHEMA = {
         additionalProperties: false,
       },
     },
+    urgent: { type: 'string', enum: ['none', 'now', 'today'], description: 'now = what they describe could be an emergency (call 911); today = worrying, should be seen or call Health811 today; none = otherwise.' },
+    urgentWhy: { type: 'string', description: 'If urgent is now or today: under 15 plain words naming the warning sign they mentioned, without diagnosing. Else empty string.' },
   },
-  required: ['questions'],
+  required: ['questions', 'urgent', 'urgentWhy'],
   additionalProperties: false,
 };
 const tidy = (list) => (Array.isArray(list) ? list : [])
@@ -513,10 +515,11 @@ Always phrase them so the doctor decides: never tell the patient to start anythi
       : `\n\n## This time\nThese are questions they may not have thought of. Do not repeat or reword any question already listed. Look at other angles of their specific concern, conditions and medicines.`) + '\n\nNo generic questions that would fit any visit (such as "What are the risks?", "When is my next visit?" or "Who do I call with questions?"): every question must be specific to this patient\'s concern, conditions or medicines.' + '\n\nNever repeat, reword or closely echo anything under "Questions they already have" or "Questions already asked". Each new question must cover a different topic.';
     const out = await askClaude(mode === 'clarify' ? CLARIFY : SYSTEM, buildPrompt(p) + langNote + focusNote, QUESTION_SCHEMA, 2500);
     const questions = tidy(out.questions);
+    const urgent = ['now', 'today'].includes(out.urgent) ? out.urgent : 'none', urgentWhy = urgent === 'none' ? '' : clean(out.urgentWhy, 160);
     if (!questions.length) {
       return res.status(502).json({ ok: false, error: 'The suggestions came back in a form we could not read. Please try again.' });
     }
-    return res.status(200).json({ ok: true, questions });
+    return res.status(200).json({ ok: true, questions, urgent, urgentWhy });
   } catch (error) {
     if (error && error.code === 'parse') return res.status(502).json({ ok: false, error: 'The suggestions came back in a form we could not read. Please try again.' });
     if (!(error && error.code)) console.error('Request failed', error && error.name);
