@@ -492,7 +492,7 @@ export default async function handler(req, res) {
         ? body.details.slice(0, LIMITS.list).map((v) => clean(v, LIMITS.detail)).filter(Boolean)
         : [],
     };
-    if (!p.purpose && !p.story && !p.tell.length && !p.ask.length) {
+    if (!p.purpose && !p.story && !p.goal && !p.tell.length && !p.ask.length) {
       return res.status(400).json({ ok: false, error: 'Add what the appointment is for, or what they said in their own words, then try again.' });
     }
     const langNote = mode === 'clarify'
@@ -502,7 +502,7 @@ export default async function handler(req, res) {
     const focusNote = mode === 'clarify' ? '' : (body.focus === 'doctor'
       ? `\n\n## This time\nEvery question must be specific to the kind of doctor they are seeing (see "Seeing"): what this doctor checks, manages or decides, their tests and treatments, and how that touches the patient's other conditions and medications. Use section F of the guide. If "Seeing" is a family doctor, ask about coordinating care, referrals and follow-up.`
       : body.focus === 'goal'
-      ? `\n\n## This time\nWrite 5 or 6 questions that directly help the patient get what they want out of this appointment (see "What they want to get out of this appointment"). Tie each one to their own concern, conditions and medicines. These are the questions they came in wanting answered, so make them the most useful, concrete version of that.`
+      ? `\n\n## This time\nWrite 5 or 6 questions that directly help the patient get what they want out of this appointment (see "What they want to get out of this appointment"). Tie each one to their own concern, conditions and medicines. These are the questions they came in wanting answered, so make them the most useful, concrete version of that. Use the exact details they gave: the body part, the activity (a sport, work, walking), when it hurts, how long, what they tried, their conditions and medicines. Cover, as questions to the doctor: what could be causing it and how the doctor will tell; what to do at home and exactly how (stretches, ice, rest, how often); what to avoid or change (activity, shoes, equipment); whether therapy, supports, tests or a specialist would help; how long it should take to improve; and which signs mean they should come back sooner. Never state or guess what it is: ask the doctor.`
       : `\n\n## This time\nThese are questions they may not have thought of. Do not repeat or reword any question already listed. Look at other angles of their specific concern, conditions and medicines.`) + '\n\nNo generic questions that would fit any visit (such as "What are the risks?", "When is my next visit?" or "Who do I call with questions?"): every question must be specific to this patient\'s concern, conditions or medicines.' + '\n\nNever repeat, reword or closely echo anything under "Questions they already have" or "Questions already asked". Each new question must cover a different topic.';
     const out = await askClaude(mode === 'clarify' ? CLARIFY : SYSTEM, buildPrompt(p) + langNote + focusNote, QUESTION_SCHEMA, 2500);
     const questions = tidy(out.questions);

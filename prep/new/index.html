@@ -5190,19 +5190,40 @@
     }
 
     // ---------- 4A: Reid's questions for the patient's goal, plus their own ----------
-    let goalPool = [], goalSig = '', goalBusy = false, goalEdit = -1;
+    let goalPool = [], goalSig = '', goalBusy = false, goalEdit = -1, goalStarter = false;
+    // if Claude can't be reached: starter questions shaped by the goal and the concern, in the patient's language
+    const STARTERS = {
+      'Understand what is going on': [['What do you think could be causing this, and how will we find out?', 'Qu’est-ce qui pourrait causer cela, et comment allons-nous le savoir ?']],
+      'Relief from a symptom': [['What can I do at home to ease this, and exactly how should I do it?', 'Que puis-je faire à la maison pour soulager cela, et comment exactement ?'],
+        ['Is there anything I should stop or change, like an activity or my shoes?', 'Y a-t-il quelque chose que je devrais arrêter ou changer, comme une activité ou mes chaussures ?'],
+        ['Would physiotherapy, a support or a brace help?', 'La physiothérapie, un support ou une orthèse aideraient-ils ?']],
+      'Review or change my medicines': [['Could any of my medicines be part of this problem?', 'Un de mes médicaments pourrait-il jouer un rôle dans ce problème ?'],
+        ['Should the timing or dose of any medicine change?', 'Faut-il changer l’heure ou la dose d’un médicament ?']],
+      'A test, referral or results': [['Do I need a test or a specialist for this, and how long is the wait?', 'Ai-je besoin d’un test ou d’un spécialiste, et quelle est l’attente ?']],
+      'A plan for what comes next': [['How long should this take to get better, and what if it doesn’t?', 'Combien de temps pour aller mieux, et que faire si ce n’est pas le cas ?'],
+        ['Which signs mean I should come back sooner?', 'Quels signes veulent dire que je devrais revenir plus tôt ?']]
+    };
+    const STARTER_ALL = () => Object.values(STARTERS).flat().map((p) => p[lang === 'fr' ? 1 : 0]);
+    function starterQs() {
+      const goal = SID('goal').answer || '', picked = Object.keys(STARTERS).filter((k) => goal.includes(k) || goal.includes(FR[k] || '~'));
+      const keys = picked.length ? picked : ['Understand what is going on', 'Relief from a symptom', 'A plan for what comes next'];
+      return keys.flatMap((k) => STARTERS[k]).map((p) => p[lang === 'fr' ? 1 : 0]).slice(0, 6);
+    }
     try { const g = JSON.parse(localStorage.getItem('wellheard-goalqs') || 'null'); if (g) { goalPool = g.pool || []; goalSig = g.sig || ''; } } catch (e) { /* fresh */ }
     const saveGoal = () => { try { localStorage.setItem('wellheard-goalqs', JSON.stringify({ pool: goalPool, sig: goalSig })); } catch (e) { /* full */ } };
     async function fetchGoalQs(force) {
       const p = picture(), sig = JSON.stringify([p.goal, p.purpose, p.story, p.seeing]);
       if (goalBusy || (!force && sig === goalSig && goalPool.length)) return;
-      if (!p.goal && !p.purpose && !p.story) return;
-      if (!consent || consent.choice !== 'yes') return;
+      const starters = () => { if (!goalPool.length) { goalPool = starterQs(); goalStarter = true; } };
+      if ((!p.goal && !p.purpose && !p.story && !ownQs.length) || !consent || consent.choice !== 'yes') { starters(); return; }
       goalBusy = true; if (steps[currentIndex].mode === 'goalqs') { renderList(); applyLang(); }
-      try {
-        const qs = await askClaudeQs('goal', ownQs.concat(force ? goalPool : []));
-        if (qs.length) { if (sig !== goalSig) goalPool = goalPool.filter((q) => qPicked.includes(q)); goalPool = dedupe(goalPool.concat(qs)).slice(0, 10); goalSig = sig; saveGoal(); }
-      } catch (e) { console.warn('Goal questions unavailable', e); }
+      let qs = [];
+      for (let t = 0; t < 2 && !qs.length; t++) {   // one quiet retry before giving up
+        if (t) await new Promise((r) => setTimeout(r, 1500));
+        try { qs = await askClaudeQs('goal', ownQs.concat(force ? goalPool : [])); } catch (e) { console.warn('Goal questions unavailable', e); }
+      }
+      if (qs.length) { if (sig !== goalSig) goalPool = goalPool.filter((q) => qPicked.includes(q) && !STARTER_ALL().includes(q)); goalPool = dedupe(goalPool.concat(qs)).slice(0, 12); goalSig = sig; goalStarter = false; saveGoal(); }
+      else if (!goalPool.length) { goalPool = starterQs(); goalStarter = true; }   // Reid always has something to offer
       goalBusy = false;
       if (steps[currentIndex].mode === 'goalqs') { renderList(); applyLang(); if (goalPool.length) speakStep(); }
     }
@@ -5211,6 +5232,7 @@
       if (!/[?？]$/.test(t)) t += '?'; t = t.charAt(0).toUpperCase() + t.slice(1);
       if (!ownQs.some((q) => similar(q, t))) ownQs.push(t);
       saveAll(); renderList(); applyLang();
+      if (goalStarter || !goalPool.length) { goalPool = goalPool.filter((q) => qPicked.includes(q)); goalSig = ''; fetchGoalQs(true); }
     }
     function renderGoalQs(items, foot) {
       const $ = (id) => document.getElementById(id), goal = (SID('goal').answer || '').trim();
@@ -5232,7 +5254,8 @@
           <button type="button" data-gq="delown" data-i="${i}" class="tactile-btn w-[52px] shrink-0 rounded-xl bg-[#F0EBE1] border border-[#D6CFC0] font-extrabold" aria-label="${L2('Remove', 'Retirer')}">✕</button></div>`).join('');
       items.innerHTML = `<div class="w-full flex flex-col gap-[8px]">
           ${goalPool.length ? goalPool.map(row).join('') : (goalBusy ? `<div class="w-full min-h-[56px] rounded-xl bg-[#F0EBE1] animate-pulse" aria-hidden="true"></div><div class="w-full min-h-[56px] rounded-xl bg-[#F0EBE1] animate-pulse" aria-hidden="true"></div>` : `<p class="text-[15px] font-bold text-[#425268]">${L2('Reid has no suggestions right now. Add your own below.', 'Reid n’a pas de suggestion pour l’instant. Ajoutez les vôtres en bas.')}</p>`)}
-          ${goalPool.length && !goalBusy ? `<button type="button" data-gq="more" class="tactile-btn self-start min-h-[44px] px-3 rounded-xl bg-white border border-[#D6CFC0] font-extrabold text-[14px] text-[#1E2634]">+ ${L2('Suggest a few more', 'En suggérer d’autres')}</button>` : ''}
+          ${goalBusy && goalPool.length ? `<p class="text-[14px] font-bold text-[#425268]">${L2('Reid is writing more…', 'Reid en écrit d’autres…')}</p>` : ''}
+          ${goalPool.length && !goalBusy ? `<button type="button" data-gq="more" class="tactile-btn self-start min-h-[44px] px-3 rounded-xl bg-white border border-[#D6CFC0] font-extrabold text-[14px] text-[#1E2634]">${goalStarter ? '↻ ' + L2('Get questions written for your visit', 'Obtenir des questions pour votre visite') : '+ ' + L2('Suggest a few more', 'En suggérer d’autres')}</button>` : ''}
           <p class="text-[13px] font-extrabold uppercase tracking-wide text-[#425268] mt-1">${L2('Any other questions?', 'D’autres questions ?')}</p>
           ${mine}
           <div class="w-full flex gap-2 items-stretch"><input id="ownQInput" type="text" placeholder="${L2('Type or say your own question…', 'Écrivez ou dites votre question…')}" class="flex-1 min-w-0 min-h-[52px] px-3 rounded-xl border-2 border-[#D6CFC0] bg-white text-[16px] font-bold" aria-label="${L2('Your own question', 'Votre question')}"><button type="button" data-gq="add" class="tactile-btn min-h-[52px] px-4 rounded-xl bg-[#1E2634] text-white font-extrabold">${L2('Add', 'Ajouter')}</button></div></div>`;
@@ -5255,7 +5278,7 @@
         goalEdit = -1; saveGoal(); }
       if (k === 'add') { addOwn(document.getElementById('ownQInput').value); return; }
       if (k === 'delown') ownQs.splice(i, 1);
-      if (k === 'more') { fetchGoalQs(true); return; }
+      if (k === 'more') { if (goalStarter) { goalPool = goalPool.filter((q) => qPicked.includes(q)); goalSig = ''; renderList(); applyLang(); } fetchGoalQs(true); return; }
       saveAll(); renderList(); applyLang();
     });
     // what's said on that screen becomes the patient's own question
