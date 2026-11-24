@@ -239,14 +239,28 @@
     #appContainer { padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
   </style>
   <style id="wideLayout">
-    #appContainer.wide { display: grid !important; grid-template-columns: 280px 1fr; grid-template-rows: auto auto 1fr auto; column-gap: 40px; padding-left: 32px; padding-right: 32px; }
-    #appContainer.wide > header { grid-column: 1; grid-row: 1; flex-direction: column; align-items: stretch; gap: 18px; }
-    #appContainer.wide > header > button { justify-content: center; }
-    #appContainer.wide > #progressHeader { grid-column: 1; grid-row: 2; align-self: start; margin-top: 28px; }
-    #appContainer.wide > section { grid-column: 2; grid-row: 1 / span 3; }
-    #appContainer.wide > footer { grid-column: 2; grid-row: 4; }
-    #appContainer.wide #reidHello { right: auto; width: 330px; top: 84px; }
-    #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 3 / span 2; align-self: end; }
+    /* iPad / computer (Rama, 23 Nov): logo top left · road map top middle · Help and Settings top right;
+       down the left: Reid, what Reid can do, See my pages at the bottom */
+    #appContainer.wide { display: grid !important; grid-template-columns: 270px 1fr auto; grid-template-rows: auto 1fr auto; column-gap: 36px; row-gap: 18px; padding-left: 32px; padding-right: 32px; }
+    #appContainer.wide > header, #appContainer.wide > header > div:first-of-type { display: contents; }
+    #appContainer.wide #brandText { display: none; }
+    #appContainer.wide #wideLogo { display: flex; grid-column: 1; grid-row: 1; align-self: center; align-items: center; gap: 12px; }
+    #appContainer.wide > header > div:last-child { grid-column: 3; grid-row: 1; align-self: center; }
+    #appContainer.wide > #progressHeader { grid-column: 2; grid-row: 1; align-self: center; justify-self: center; width: 100%; max-width: 560px; margin: 0 !important; }
+    #appContainer.wide > section { grid-column: 2 / span 2; grid-row: 2; }
+    #appContainer.wide > footer { grid-column: 2 / span 2; grid-row: 3; }
+    #appContainer.wide #reidHello { right: auto; width: 330px; top: 140px; }
+    #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 2 / span 2; align-self: stretch; }
+    #wideLogo { display: none; }
+    .wl-word { font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: #1E2634; line-height: 1; white-space: nowrap; }
+    .wl-word span { color: #3B5E42; }
+    #reidBadge { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #fff; border: 1px solid #E2DBD0; border-radius: 18px; margin-bottom: 6px; }
+    #reidBadge #companionEmblem { width: 64px; height: 64px; }
+    #reidBadge #companionEmblem svg { width: 54px; height: 54px; }
+    #reidBadge .rb-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    #reidBadge .rb-name { font-weight: 800; font-size: 16px; color: #1E2634; line-height: 1.2; }
+    #reidBadge #companionStateCaption { font-size: 14px !important; margin: 0; }
+    #sideReid .lp-show.in-side { position: static; margin-top: auto; width: 100%; box-shadow: none; }
     /* bigger text on the wide layout: there's room across */
     .wide #screenLanding h1 { font-size: 2rem !important; } .wide #landingIntro, .wide #landingHook, .wide #screenLanding li { font-size: 18px !important; } .wide #landingWelcome { font-size: 14px !important; }
     .wide #screenLanding [aria-label="How WellHeard works"] p { font-size: 16px !important; }
@@ -3069,6 +3083,13 @@
       if (cur.trim()) out.push(cur.trim());
       return out.length ? out : [String(text)];
     }
+    // Asked for on purpose (Read this screen, Explain, Repeat): Reid speaks even when reading aloud is off
+    // or the person answers by tapping, and the button shows it is working.
+    function forceSay(fn) {
+      const was = [inputPreference, readAloud]; inputPreference = 'voice'; readAloud = true;
+      try { fn(); } finally { inputPreference = was[0]; readAloud = was[1]; }
+      if (typeof showToast === 'function') showToast(lang === 'fr' ? 'Reid lit…' : 'Reid is reading…');
+    }
     async function say(text, raw) {
       if (!text || inputPreference !== 'voice' || !readAloud) return;
       hush(); const g = sayGen; speaking = true; speakStart = performance.now(); talkFace(true);
@@ -4349,8 +4370,8 @@
     }
     side.addEventListener('click', (e) => {
       const b = e.target.closest('[data-s]'); if (!b) return; ensureCtx();
-      if (b.dataset.s === 'read') readScreen();
-      if (b.dataset.s === 'explain') explainStep();
+      if (b.dataset.s === 'read') forceSay(readScreen);
+      if (b.dataset.s === 'explain') forceSay(explainStep);
       if (b.dataset.s === 'listen') { toggleListening(); renderSide(); applyLang(); }
     });
 
@@ -4833,9 +4854,9 @@
       wrap.addEventListener('click', (e) => { e.stopPropagation(); ensureCtx(); if (menu.classList.contains('hidden')) open(); else close(); });
       menu.addEventListener('click', (e) => {
         e.stopPropagation(); const b = e.target.closest('[data-r]'); if (!b) return; close();
-        if (b.dataset.r === 'explain') explainStep();
-        if (b.dataset.r === 'repeat') speakStep();
-        if (b.dataset.r === 'read') readScreen();
+        if (b.dataset.r === 'explain') forceSay(explainStep);
+        if (b.dataset.r === 'repeat') forceSay(speakStep);
+        if (b.dataset.r === 'read') forceSay(readScreen);
         if (b.dataset.r === 'listen') toggleListening();
       });
       document.addEventListener('click', (e) => { if (!menu.contains(e.target)) close(); });
@@ -5562,7 +5583,7 @@
       });
     }
     // said aloud: "86, five foot eight, 150 pounds" / "j'ai 86 ans, 1 m 73, 68 kilos"
-    function abHeard(t) {
+    function abHeard(t, quiet) {
       const s = ' ' + lc(t).replace(/,/g, ' ') + ' ';
       const W = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, un: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11 };
       const n = (x) => (x == null ? null : (W[x] != null ? W[x] : parseInt(x, 10)));
@@ -5574,7 +5595,7 @@
       if ((m = s.match(/(\d{2,3})\s*(?:pounds?|lbs?|livres?)/))) { AB.wu = 'lb'; AB.lb = m[1]; hit = true; }
       else if ((m = s.match(/(\d{2,3})\s*(?:kilos?|kg|kilograms?|kilogrammes?)/))) { AB.wu = 'kg'; AB.kg = m[1]; hit = true; }
       if ((m = s.match(/(\d{1,3})\s*(?:years?|yrs?|ans|an)\b/)) || (m = s.match(/^\s*(?:i'm|i am|j'ai)?\s*(\d{2,3})\b(?!\s*(?:feet|foot|ft|cm|m\b|pounds?|lbs?|kilos?|kg|livres?))/))) { const a = +m[1]; if (a > 0 && a <= 120) { AB.age = String(a); hit = true; } }
-      if (hit) { abSave(); renderList(); applyLang(); say(L2('Got it: ', 'Noté : ') + abFmt() + L2('. Say next when you’re done.', '. Dites suivant quand c’est fini.')); }
+      if (hit) { abSave(); renderList(); applyLang(); if (!quiet) say(L2('Got it: ', 'Noté : ') + abFmt() + L2('. Say next when you’re done.', '. Dites suivant quand c’est fini.')); }
       return hit;
     }
     { const h1 = heard; heard = function (t) { const s = steps[currentIndex]; if (s && s.mode === 'about' && abHeard(t)) return; return h1(t); }; }
@@ -5708,6 +5729,95 @@
       const hb = document.getElementById('lpHide'); if (hb) { hb.textContent = L2('Hide', 'Masquer'); hb.setAttribute('aria-label', L2('Hide the pages', 'Masquer les pages')); }
     }; }
     window.addEventListener('resize', () => { /* sizeApp already listens; this keeps the Show button in step */ });
+
+    // =====================================================================
+    // iPad / computer layout (Rama, 23 Nov): logo top left, road map top middle, Help and Settings top right;
+    // down the left: Reid, what Reid can do, and See my pages at the bottom
+    // =====================================================================
+    { const head = document.querySelector('#appContainer > header');
+      const logo = document.createElement('div'); logo.id = 'wideLogo'; logo.setAttribute('data-notr', '');
+      logo.innerHTML = `<svg viewBox="4 2 56 52" width="54" height="50" aria-hidden="true"><path d="M42 12 a18 16 0 1 1 6 30.5 L56 51 L41 44 a18 16 0 0 1 1 -32 Z" fill="#76A07E"/><path d="M26 4 a22 18 0 1 1 -4 35.7 L8 49 L13.5 35 A22 18 0 0 1 26 4 Z" fill="#1B3A5C" stroke="#FAF7F0" stroke-width="3" paint-order="stroke"/><path d="M16.5 22 L23.5 29 L35.5 15.5" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="wl-word">Well<span>Heard</span></span>`;
+      logo.setAttribute('role', 'img'); logo.setAttribute('aria-label', 'WellHeard');
+      head.insertBefore(logo, head.firstChild);
+      const badge = document.createElement('div'); badge.id = 'reidBadge';
+      const side = document.getElementById('sideReid'); side.insertBefore(badge, side.firstChild);
+      const emblem = document.getElementById('companionEmblem'), cap = document.getElementById('companionStateCaption'), brand = document.getElementById('brandText');
+      const home = { emblemParent: emblem.parentElement, emblemNext: emblem.nextSibling };
+      const badgeText = document.createElement('div'); badgeText.className = 'rb-text';
+      badgeText.innerHTML = '<span class="rb-name">Reid</span>';
+      let inWide = null;
+      window.placeWide = function () {
+        const wide = document.getElementById('appContainer').classList.contains('wide');
+        if (wide === inWide) { if (wide && !side.contains(badge)) side.insertBefore(badge, side.firstChild); return; }
+        inWide = wide;
+        if (wide) { badge.append(emblem, badgeText); badgeText.appendChild(cap); if (!side.contains(badge)) side.insertBefore(badge, side.firstChild); }
+        else { home.emblemParent.insertBefore(emblem, brand); brand.appendChild(cap); }
+      };
+    }
+    { const rs = renderSide; renderSide = function () {   // the side list is rebuilt often: keep Reid's badge and the pages button in it
+      const side = document.getElementById('sideReid'), badge = document.getElementById('reidBadge'), show = document.getElementById('lpShow');
+      rs();
+      if (badge && document.getElementById('appContainer').classList.contains('wide')) side.insertBefore(badge, side.firstChild);
+      if (show && document.getElementById('appContainer').classList.contains('wide')) side.appendChild(show);
+      const rn = badge && badge.querySelector('.rb-name'); if (rn) rn.textContent = L2('Reid, your AI helper', 'Reid, votre aide IA');
+    }; }
+    { const sa2 = sizeApp; sizeApp = function () {
+      sa2();
+      placeWide();
+      const wide = document.getElementById('appContainer').classList.contains('wide'), show = document.getElementById('lpShow'), side = document.getElementById('sideReid');
+      if (show) { if (wide) { side.appendChild(show); show.classList.add('in-side'); } else if (show.parentElement !== document.body) { document.body.appendChild(show); show.classList.remove('in-side'); } }
+    }; }
+
+    // =====================================================================
+    // Age, height and weight by voice: one question at a time, then Reid waits for the answer
+    // =====================================================================
+    let abAsk = 0;   // 0 age, 1 height, 2 weight, 3 done
+    const AB_Q = [
+      () => L2('How old are you?', 'Quel âge avez-vous ?'),
+      () => AB.hu === 'cm' ? L2('How tall are you, in centimetres? For example, 170.', 'Combien mesurez-vous, en centimètres ? Par exemple, 170.') : L2('How tall are you? For example: five foot eight.', 'Combien mesurez-vous ? Par exemple : cinq pieds huit.'),
+      () => AB.wu === 'kg' ? L2('About how much do you weigh, in kilos?', 'Environ combien pesez-vous, en kilos ?') : L2('About how much do you weigh, in pounds?', 'Environ combien pesez-vous, en livres ?')
+    ];
+    const abFirstEmpty = () => (!AB.age ? 0 : !(AB.hu === 'cm' ? AB.cm : AB.ft) ? 1 : !(AB.wu === 'kg' ? AB.kg : AB.lb) ? 2 : 3);
+    function abNums(t) {
+      const W = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11 };
+      return lc(t).replace(/[,.]/g, ' ').split(/\s+/).map((w) => (W[w] != null ? W[w] : /^\d+$/.test(w) ? +w : null)).filter((n) => n != null);
+    }
+    function abAskNext() {
+      abAsk = abFirstEmpty(); renderList(); applyLang();
+      if (abAsk < 3) say(AB_Q[abAsk]());
+      else say(L2('Thank you. ', 'Merci. ') + abFmt() + L2('. Say next, or change any number.', '. Dites suivant, ou changez un chiffre.'));
+    }
+    SPEAK.about = () => { abAsk = abFirstEmpty(); return abAsk < 3 ? L2('This one is optional. ', 'Celle-ci est facultative. ') + AB_Q[abAsk]() : L2('Here is what I have: ', 'Voici ce que j’ai : ') + abFmt() + L2('. Say next, or change any number.', '. Dites suivant, ou changez un chiffre.'); };
+    { const h2 = heard; heard = function (t) {
+      const s = steps[currentIndex], w = lc(String(t || '').trim());
+      if (!(s && s.mode === 'about') || !w) return h2(t);
+      if (/^(next|suivant|back|retour|go back)\b/.test(w)) return h2(t);
+      if (/\b(skip|pass|passer|don'?t know|not sure|je ne sais pas)\b/.test(w)) {   // leave this one blank and go on
+        const k = abAsk; abAsk = Math.min(3, k + 1);
+        if (abAsk < 3) { say(AB_Q[abAsk]()); } else say(L2('Okay. Say next when you’re ready.', 'D’accord. Dites suivant quand vous êtes prêt.'));
+        return;
+      }
+      if (abHeard(t, true)) { abAskNext(); return; }   // said with units: may fill several at once
+      const n = abNums(t);
+      if (!n.length) return h2(t);
+      let ok = false;
+      if (abAsk === 0 && n[0] > 0 && n[0] <= 120) { AB.age = String(n[0]); ok = true; }
+      if (abAsk === 1) {
+        if (n[0] >= 100 && n[0] <= 230) { AB.hu = 'cm'; AB.cm = String(n[0]); ok = true; }
+        else if (n[0] >= 3 && n[0] <= 7) { AB.hu = 'ft'; AB.ft = String(n[0]); AB.inch = n[1] != null && n[1] < 12 ? String(n[1]) : '0'; ok = true; }
+      }
+      if (abAsk === 2 && n[0] >= 20 && n[0] <= 500) { if (AB.wu === 'kg') AB.kg = String(n[0]); else AB.lb = String(n[0]); ok = true; }
+      if (!ok) { say(L2('Sorry, I didn’t catch the number. ', 'Désolé, je n’ai pas compris le chiffre. ') + AB_Q[Math.min(abAsk, 2)]()); return; }
+      abSave(); abAskNext();
+    }; }
+    // the row Reid is asking about is highlighted
+    { const ra = renderAbout; renderAbout = function (items, foot) {
+      ra(items, foot);
+      if (inputPreference !== 'voice' || abAsk > 2) return;
+      const rows = items.querySelectorAll('.divide-y > div'); const r = rows[abAsk];
+      if (r) { r.style.background = '#E5EFE7'; r.style.borderRadius = '12px'; r.style.margin = '0 -6px'; r.style.padding = '6px'; r.setAttribute('aria-current', 'true'); }
+    }; }
 
     // Initial render
     loadAll();
