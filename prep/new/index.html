@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <style>html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }</style>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -4422,6 +4423,8 @@
       // Text size: everything grows together; the page keeps the same place on the screen
       // the app's own text size, times the device's Larger Text setting on iPhone and iPad (Rama, 24 Nov)
       const ts = ([1, 1.18, 1.36][textSize] || 1) * sysTextScale(); z *= ts; w /= ts; h /= ts;
+      // an upright iPad never gets so zoomed that the page is narrower than a phone (that squeezes the layout and shrinks its text)
+      if (vw >= 500 && !main.classList.contains('wide') && !main.classList.contains('with-pages') && w < 380) { w = 380; z = (vw * 0.96) / 380; h = (vh * 0.97) / z; }
       document.documentElement.classList.toggle('ts-1', textSize === 1); document.documentElement.classList.toggle('ts-2', textSize === 2);
       main.classList.toggle('narrow', w < 385);
       main.classList.toggle('tiny', w < 330);   // extra-large text on a phone: Reid stands for WellHeard, Help and Settings keep their labels
