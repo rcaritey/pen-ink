@@ -3238,6 +3238,25 @@
       const help = document.getElementById('screenHelperText'); if (!help) return;
       help.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 600, easing: 'ease-out' });
     }
+    // What the doctor may ask (Rama, 24 Nov): Reid introduces the set — how many, one at a time, skip any —
+    // and each screen says "Question 2 of 5", out loud and on screen.
+    const dqNum = (st) => { const m = /^dq(\d+)$/.exec(st && st.id || ''); return m ? +m[1] : -1; };
+    const dqCount = () => steps.filter((x) => /^dq\d+$/.test(x.id)).length;
+    function dqHelp(st) {
+      const i = dqNum(st), n = dqCount();
+      return i === 0 ? L2(`The doctor may ask you these ${n} questions. Here is question 1 of ${n}. Answer in your own words, say I’m not sure, or skip it.`, `Le médecin pourrait vous poser ces ${n} questions. Voici la question 1 sur ${n}. Répondez avec vos mots, dites je ne suis pas sûr, ou passez-la.`)
+        : L2(`Question ${i + 1} of ${n}.`, `Question ${i + 1} sur ${n}.`) + (i === n - 1 ? L2(' The last one.', ' La dernière.') : '');
+    }
+    { const rcsD = renderCurrentStep; renderCurrentStep = function () { const st = steps[currentIndex]; if (dqNum(st) > -1) st.helperText = dqHelp(st); return rcsD.apply(this, arguments); }; }
+    { const spD = speakStep; speakStep = function () {
+        const st = steps[currentIndex], i = dqNum(st);
+        if (i < 0) return spD.apply(this, arguments);
+        const n = dqCount();
+        const lead = i === 0 && !st._introSaid
+          ? L2(`Now a few questions the doctor may ask you. There are ${n}, and I’ll ask them one at a time. Answer in your own words, say I’m not sure, or say skip. Question 1.`, `Maintenant, quelques questions que le médecin pourrait vous poser. Il y en a ${n}, et je vais les poser une à la fois. Répondez avec vos mots, dites je ne suis pas sûr, ou dites passer. Question 1.`)
+          : L2(`Question ${i + 1} of ${n}${i === n - 1 ? ', the last one' : ''}.`, `Question ${i + 1} sur ${n}${i === n - 1 ? ', la dernière' : ''}.`);
+        if (i === 0) st._introSaid = true;
+        say(lead + ' ' + st.question, true); }; }
     // Reid understands what's said to him beyond the fixed commands (Rama, 24 Nov): anything that isn't a
     // command or plainly an answer goes to Claude with what's on the screen, and Reid does it or replies.
     const REQ = /\b(reid|again|repeat|pardon|sorry|didn'?t (hear|catch|get|understand)|don'?t (understand|get it|know what)|can you|could you|would you|please|louder|slower|faster|go (back|on)|start (over|again)|lost|confused|what was|hang on|give me a (minute|moment|second)|scratch that|that'?s wrong|never mind|thank)/;
@@ -5468,7 +5487,7 @@
     { const sd = spliceDetail; spliceDetail = function () { sd(); orderPrep(); }; }
     // the doctor-style questions, now framed as getting ready for what the care team may ask
     Object.assign(SID('detail'), { topic: 'What they may ask', question: 'Want to get ready for what the doctor may ask you?',
-      helperText: "Reid asks a few questions a doctor would likely ask, so your answers are ready. He can't diagnose." });
+      helperText: "Reid will ask you about 5 questions a doctor would likely ask, one at a time, so your answers are ready. Answer in your own words, or skip any. He can't diagnose." });
     SID('ideas').topic = 'Questions for the doctor';
     Object.assign(FR, {
       'Your age, height and weight?': 'Votre âge, votre taille et votre poids ?',
@@ -5480,7 +5499,7 @@
       'A test, referral or results': 'Un test, une référence ou des résultats', 'A plan for what comes next': 'Un plan pour la suite', 'Something else': 'Autre chose',
       'Tap above, or say what you hope for...': 'Touchez ci-dessus, ou dites ce que vous espérez...', 'Say or type what you hope to get out of it...': 'Dites ou écrivez ce que vous espérez en tirer...',
       'Want to get ready for what the doctor may ask you?': 'Voulez-vous vous préparer à ce que le médecin pourrait vous demander ?',
-      "Reid asks a few questions a doctor would likely ask, so your answers are ready. He can't diagnose.": 'Reid pose quelques questions qu’un médecin poserait sans doute, pour que vos réponses soient prêtes. Il ne peut pas poser de diagnostic.',
+      "Reid will ask you about 5 questions a doctor would likely ask, one at a time, so your answers are ready. Answer in your own words, or skip any. He can't diagnose.": 'Reid va vous poser environ 5 questions qu’un médecin poserait sans doute, une à la fois, pour que vos réponses soient prêtes. Répondez avec vos mots, ou passez celles que vous voulez. Il ne peut pas poser de diagnostic.',
       'About you': 'À propos de vous', 'Your goal': 'Votre objectif', 'What they may ask': 'Ce qu’on pourrait vous demander', 'Your basics': 'Vos informations'
     });
 
