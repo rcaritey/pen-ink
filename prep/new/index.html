@@ -4499,11 +4499,25 @@
     const DOSE_RE = /(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?\s*(?:mg|milligrams?|mcg|micrograms?|ml|millilit(?:er|re)s?|units?|grams?|g|%|puffs?|pills?|tablets?|capsules?|drops?|patch(?:es)?|sprays?)\b(?:\s*(?:pill|tablet|capsule)s?)?)/i;
     const FREQS = [['Once a day', /\b(once a day|one time a day|daily|every day|once daily)\b/i], ['Twice a day', /\b(twice a day|two times a day|2 times a day|morning and night)\b/i],
       ['3 times a day', /\b(three times a day|3 times a day)\b/i], ['4 times a day', /\b(four times a day|4 times a day)\b/i], ['Only when needed', /\b(when needed|as needed|if needed|when i need)\b/i], ['Once a week', /\b(once a week|weekly|every week)\b/i]];
-    const blankMed = () => ({ stage: 'name', edit: -1, name: '', amount: '', unit: 'mg', doseNote: '', doses: [], prn: false, food: '', foodParts: blankFood(), heard: '', sugg: [], add: { n: 1, h: 0, m: 0, ap: 'am' } });
+    const blankMed = () => ({ stage: 'name', edit: -1, name: '', amount: '', unit: 'mg', doseNote: '', doses: [], prn: false, food: '', foodParts: blankFood(), freqParts: blankFreq(), heard: '', sugg: [], add: { n: 1, h: 0, m: 0, ap: 'am' } });
     let medsList = [], medDraft = blankMed();
     // ---------- one medicine = name, strength (amount + unit), and its own times of day ----------
     const FOOD = { with: ['With food', 'Avec de la nourriture'], empty: ['On an empty stomach', 'À jeun'], before: ['30 min before eating', '30 min avant de manger'] };
     // meals and timing, as flexible as labels are (levodopa: often before meals, or a while after, away from protein)
+    // how often: every day unless the label says otherwise
+    function blankFreq() { return { kind: 'daily', days: [], other: '' }; }
+    const DAYS = [['Mon', 'lun'], ['Tue', 'mar'], ['Wed', 'mer'], ['Thu', 'jeu'], ['Fri', 'ven'], ['Sat', 'sam'], ['Sun', 'dim']];
+    const FREQ = [['daily', 'Every day', 'Tous les jours'], ['alt', 'Every other day', 'Un jour sur deux'], ['days', 'Certain days', 'Certains jours'],
+      ['week', 'Once a week', 'Une fois par semaine'], ['month', 'Once a month', 'Une fois par mois'], ['other', 'Other', 'Autre']];
+    function freqText(f, fr) {
+      if (!f || f.kind === 'daily') return '';
+      const dn = (f.days || []).slice().sort((a, b) => a - b).map((i) => DAYS[i][fr ? 1 : 0]).join(', ');
+      if (f.kind === 'alt') return fr ? 'un jour sur deux' : 'every other day';
+      if (f.kind === 'days') return dn ? (fr ? 'seulement ' : 'only ') + dn : (fr ? 'certains jours' : 'certain days');
+      if (f.kind === 'week') return (fr ? 'une fois par semaine' : 'once a week') + (dn ? (fr ? ', le ' : ', on ') + dn : '');
+      if (f.kind === 'month') return fr ? 'une fois par mois' : 'once a month';
+      return f.other || (fr ? 'autre' : 'other');
+    }
     function blankFood() { return { with: false, empty: false, before: 0, after: 0, protein: false, other: '' }; }
     const minTxt = (n, fr) => (n >= 60 ? (n % 60 ? `${Math.floor(n / 60)} h ${n % 60}` : `${n / 60} h`) : `${n} min`);
     function foodText(f, fr) {
@@ -4533,7 +4547,7 @@
       if (u === 'ml') return 'mL'; return fr ? (n > 1 ? 'comprimés' : 'comprimé') : (n > 1 ? 'pills' : 'pill'); };
     const doseOf = (m) => (m.amount ? `${m.amount} ${m.unit}` : m.dose && !/^(not with me|not sure)$/i.test(m.dose) ? m.dose : '');
     const sortDoses = (a) => a.slice().sort((x, y) => x.t.localeCompare(y.t));
-    const schedText = (m, fr) => { const d = sortDoses(m.doses || []).map((x) => `${fmtN(x.n)} ${fr ? 'à' : 'at'} ${fmtT(x.t, fr)}`);
+    const schedText = (m, fr) => { const d = sortDoses(m.doses || []).map((x) => `${fmtN(x.n)} ${fr ? 'à' : 'at'} ${fmtT(x.t, fr)}`); if (freqText(m.freqParts, fr)) d.unshift(freqText(m.freqParts, fr));
       if (m.prn) d.push(fr ? 'au besoin' : 'when needed');
       if (foodLabel(m, fr)) d.push(foodLabel(m, fr)); if (!d.length && m.freq && m.freq !== 'Not sure') d.push(tr(m.freq).toLowerCase()); return d.join(', '); };
     // ---------- the medicine chart: a timeline by time of day; pictures and numbers read the same in every language ----------
@@ -4545,7 +4559,7 @@
       const byT = {};
       medsList.forEach((m) => (m.doses || []).forEach((x) => { (byT[x.t] = byT[x.t] || []).push({ m, n: x.n }); }));
       const b = 'border:1px solid #999;padding:4pt 6pt';
-      const line = (m, n) => `<span style="${stopped(m) ? 'text-decoration:line-through' : ''}"><b data-notr>${esc(m.name)}</b>${doseOf(m) ? ' <span data-notr>' + esc(doseOf(m)) + '</span>' : ''}</span> &nbsp;<b>× ${fmtN(n)}</b> ${countWord(m, n, fr)}${foodLabel(m, fr) ? ' <i>(' + esc(foodLabel(m, fr)) + ')</i>' : ''}${stopped(m) ? ` <b style="color:#B45309">${fr ? '⚠ Arrêter : à vérifier' : '⚠ Stop: check this'}</b>` : ''}`;
+      const line = (m, n) => `<span style="${stopped(m) ? 'text-decoration:line-through' : ''}"><b data-notr>${esc(m.name)}</b>${doseOf(m) ? ' <span data-notr>' + esc(doseOf(m)) + '</span>' : ''}</span> &nbsp;<b>× ${fmtN(n)}</b> ${countWord(m, n, fr)}${[freqText(m.freqParts, fr), foodLabel(m, fr)].filter(Boolean).length ? ' <i>(' + esc([freqText(m.freqParts, fr), foodLabel(m, fr)].filter(Boolean).join(', ')) + ')</i>' : ''}${stopped(m) ? ` <b style="color:#B45309">${fr ? '⚠ Arrêter : à vérifier' : '⚠ Stop: check this'}</b>` : ''}`;
       const times = Object.keys(byT).sort();
       let html = `<h2>${title}</h2>`;
       if (times.length) html += `<table style="border-collapse:collapse;width:100%">${times.map((t) => `<tr><td style="${b};width:1%;white-space:nowrap;font-size:12pt"><span aria-hidden="true">${iconOfT(t)}</span> <b>${fmtT(t, fr)}</b></td><td style="${b}">${byT[t].map((e) => line(e.m, e.n)).join('<br>')}</td></tr>`).join('')}</table>`;
@@ -4592,12 +4606,12 @@
     }
     function medGo(stage) { medDraft.stage = stage; renderList(); applyLang(); speakStep(); }
     function medSave() {
-      const d = medDraft, m = { name: d.name, amount: d.amount, unit: d.amount ? d.unit : '', doseNote: d.doseNote, dose: d.amount ? `${d.amount} ${d.unit}` : d.doseNote, doses: sortDoses(d.doses), prn: d.prn, food: foodText(d.foodParts, false), foodParts: Object.assign({}, d.foodParts) };
+      const d = medDraft, m = { name: d.name, amount: d.amount, unit: d.amount ? d.unit : '', doseNote: d.doseNote, dose: d.amount ? `${d.amount} ${d.unit}` : d.doseNote, doses: sortDoses(d.doses), prn: d.prn, food: foodText(d.foodParts, false), foodParts: Object.assign({}, d.foodParts), freqParts: Object.assign(blankFreq(), d.freqParts || {}, { days: ((d.freqParts || {}).days || []).slice() }) };
       if (d.edit > -1) medsList[d.edit] = m; else medsList.push(m);
       SID('meds').none = false; SID('meds').fromLast = false; medDraft = blankMed(); medDraft.stage = 'list'; syncMeds(); medGo('list');
     }
     function medEdit(i) { const m = medsList[i]; const sd = splitDose(m.dose || '') || {};
-      medDraft = Object.assign(blankMed(), { edit: i, name: m.name, amount: m.amount || sd.amount || '', unit: m.unit || sd.unit || 'mg', doseNote: m.doseNote || (/^(not with me|not sure)$/i.test(m.dose || '') ? m.dose : ''), doses: (m.doses || []).slice(), prn: !!m.prn, food: m.food || '', foodParts: m.foodParts ? Object.assign(blankFood(), m.foodParts) : foodFromOld(m.food) });
+      medDraft = Object.assign(blankMed(), { edit: i, name: m.name, amount: m.amount || sd.amount || '', unit: m.unit || sd.unit || 'mg', doseNote: m.doseNote || (/^(not with me|not sure)$/i.test(m.dose || '') ? m.dose : ''), doses: (m.doses || []).slice(), prn: !!m.prn, food: m.food || '', foodParts: m.foodParts ? Object.assign(blankFood(), m.foodParts) : foodFromOld(m.food), freqParts: Object.assign(blankFreq(), m.freqParts || {}, { days: ((m.freqParts || {}).days || []).slice() }) });
       if (!medDraft.doses.length && Array.isArray(m.times)) medDraft.doses = m.times.map((s) => ({ t: SLOT_TIME[s], n: 1 }));
       medGo('name'); }
     function addPending() {   // the time being built in the schedule step
@@ -4710,6 +4724,14 @@
           <div class="grid grid-cols-6 gap-[6px]">${[...Array(12)].map((_, i) => i + 1).map((h) => `<button type="button" data-med="hr" data-v="${h}" class="${CH} !px-0 !min-h-[42px] ${a.h === h ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${h}</button>`).join('')}</div>
           <div class="grid grid-cols-6 gap-[6px]">${[0, 15, 30, 45].map((mi) => `<button type="button" data-med="mi" data-v="${mi}" class="${CH} !px-0 !min-h-[42px] ${a.m === mi ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">:${String(mi).padStart(2, '0')}</button>`).join('')}${['am', 'pm'].map((p) => `<button type="button" data-med="ap" data-v="${p}" class="${CH} !px-0 !min-h-[42px] ${a.ap === p ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${p.toUpperCase()}</button>`).join('')}</div>
           <button type="button" data-med="tadd" class="${CH} ${a.h ? GO : 'bg-[#D6CFC0] text-[#425268]'} w-full" ${a.h ? '' : 'aria-disabled="true"'}>+ ${a.h ? `<span>${L2('Add', 'Ajouter')}:</span>&nbsp;<span data-notr>${fmtN(a.n)}</span>&nbsp;<span>${cw(a.n)}</span>&nbsp;<span data-notr>· ${fmtT(`${String((a.h % 12) + (a.ap === 'pm' ? 12 : 0)).padStart(2, '0')}:${String(a.m).padStart(2, '0')}`, fr)}</span>` : L2('Pick a time first', 'Choisissez d’abord une heure')}</button></div>`;
+        { const Q = d.freqParts || (d.freqParts = blankFreq()), CHf = `${CH} !min-h-[46px] !text-[14px] leading-tight`;
+          const dayPick = Q.kind === 'days' || Q.kind === 'week';
+          html += `<div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-2 flex flex-col gap-[6px]">
+            <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5">${L2('How often', 'À quelle fréquence')}</p>
+            <div class="grid grid-cols-3 gap-[6px]">${FREQ.map(([k, en, f]) => `<button type="button" data-med="freq" data-v="${k}" aria-pressed="${Q.kind === k}" class="${CHf} ${Q.kind === k ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${Q.kind === k ? '✓ ' : ''}${fr ? f : en}</button>`).join('')}</div>
+            ${dayPick ? `<p class="text-[13px] font-extrabold text-[#1E2634]">${Q.kind === 'week' ? L2('Which day?', 'Quel jour ?') : L2('Which days?', 'Quels jours ?')}</p>
+              <div class="grid grid-cols-7 gap-[4px]">${DAYS.map((dd, i) => `<button type="button" data-med="fday" data-v="${i}" aria-pressed="${Q.days.includes(i)}" class="${CH} !px-0 !min-h-[44px] !text-[13px] ${Q.days.includes(i) ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${dd[fr ? 1 : 0]}</button>`).join('')}</div>` : ''}
+            ${Q.kind === 'other' ? `<input id="freqOther" type="text" value="${esc(Q.other)}" placeholder="${L2('For example: every 3 days, twice a month', 'Par exemple : tous les 3 jours, deux fois par mois')}" aria-label="${L2('How often, in your words', 'La fréquence, avec vos mots')}" class="w-full min-h-[46px] px-3 rounded-xl border-2 border-[#D6CFC0] bg-white text-[15px] font-bold">` : ''}</div>`; }
         html += `<button type="button" data-med="prn" aria-pressed="${d.prn}" class="${CH} w-full ${d.prn ? ON : OFF}">${d.prn ? '✓ ' : ''}${L2('Also when needed', 'Aussi au besoin')}</button>
           <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5 mt-1">${L2('Meals and timing (as the label or doctor says)', 'Repas et moment (selon l’étiquette ou le médecin)')}</p>
           ${(() => { const F = d.foodParts || (d.foodParts = blankFood()), pick = (on) => (on ? ON : OFF), CHs = `${CH} !min-h-[46px] !text-[14px] leading-tight`;
@@ -4761,6 +4783,8 @@
       if (k === 'tadd') { if (addPending()) { redraw(); say(L2('Added. Add another time, or tap Next.', 'Ajouté. Ajoutez une autre heure, ou touchez Suivant.')); } }
       if (k === 'tdel') { d.doses = d.doses.filter((x) => x.t !== b.dataset.t); redraw(); }
       if (k === 'prn') { d.prn = !d.prn; redraw(); }
+      if (k === 'freq') { const Q = d.freqParts || (d.freqParts = blankFreq()); Q.kind = v; if (v === 'week' && Q.days.length > 1) Q.days = Q.days.slice(0, 1); if (!['days', 'week'].includes(v)) Q.days = []; redraw(); }
+      if (k === 'fday') { const Q = d.freqParts || (d.freqParts = blankFreq()), i = +v; if (Q.kind === 'week') Q.days = Q.days[0] === i ? [] : [i]; else Q.days = Q.days.includes(i) ? Q.days.filter((x) => x !== i) : Q.days.concat(i); redraw(); }
       if (k === 'foodflag') { const F = d.foodParts || (d.foodParts = blankFood()), kk = b.dataset.k; F[kk] = !F[kk]; if (kk === 'with' && F.with) F.empty = false; if (kk === 'empty' && F.empty) F.with = false; redraw(); }
       if (k === 'foodmin') { const F = d.foodParts || (d.foodParts = blankFood()), kk = b.dataset.k, n = +v; F[kk] = F[kk] === n ? 0 : n; if (F[kk]) F.with = false; redraw(); }
       if (k === 'save') { addPending(); medSave(); }
@@ -5880,6 +5904,7 @@
     }; }
 
     document.getElementById('listItems').addEventListener('input', (e) => {
+      if (e.target.id === 'freqOther' && medDraft) { (medDraft.freqParts || (medDraft.freqParts = blankFreq())).other = e.target.value.slice(0, 80); return; }
       if (e.target.id !== 'foodOther' || !medDraft) return;
       (medDraft.foodParts || (medDraft.foodParts = blankFood())).other = e.target.value.slice(0, 120);
     });
