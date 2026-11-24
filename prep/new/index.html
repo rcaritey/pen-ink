@@ -108,17 +108,36 @@
     #nextNavBtn.next-off { opacity: .5; }
     /* Next arrow: bold drawn arrow in a soft circle */
     .arrow-badge { width: 40px; height: 40px; background: rgba(255,255,255,.25); }
+    /* ===== Type scale (23 Nov) =====
+       One size per job, largest to smallest, so the eye lands on the question first:
+       28 the question / page title · 20 a heading inside the page · 17 answers and buttons ·
+       16 reading text and the instruction under the question · 14 step counter, small buttons ·
+       13 labels and captions. Nothing smaller than 13. */
+    #appContainer #screenQuestion, #appContainer #listTitle { font-size: 28px !important; line-height: 1.15 !important; letter-spacing: -.015em; }
+    #appContainer #screenHelperText, #appContainer #listHelp { font-size: 16px !important; line-height: 1.35 !important; font-weight: 600 !important; color: #425268 !important; }
+    #appContainer .font-serif.text-\[1\.6rem\] { font-size: 20px !important; }
+    #appContainer header .text-\[1\.25rem\] { font-size: 18px !important; }
+    #appContainer #listItems .text-\[15px\] { font-size: 16px !important; line-height: 1.45 !important; }
+    #appContainer #listItems [data-cs="yes"], #appContainer #listItems [data-cs="no"] { font-size: 17px !important; }
+    #appContainer #stepSubtitle, #appContainer .text-\[13px\] { font-size: 14px !important; }
+    #appContainer .text-xs, #appContainer .text-\[12px\], #appContainer .text-\[11px\], #appContainer .text-\[10px\] { font-size: 13px !important; }
+    #appContainer #nextNavLabel, #appContainer #backNavBtn span { font-size: 17px !important; }
+    /* "Check everything" tiles: the label, a chevron to show it opens, then the answer */
+    .rv-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; width: 100%; }
+    .rv-lab { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: #425268; line-height: 1.2; }
+    .rv-go { font-size: 22px; font-weight: 800; color: #3B5E42; line-height: .8; }
+    #appContainer .rv-val { font-size: 16px; }
     /* the pages beside the questions */
     .live-pages { display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; padding: 18px 8px 14px 28px; background: #FAF7F0; color: #1E2634;
       border-left: 1px solid #DDD6C7; flex: none; }
     .live-pages[hidden] { display: none; }
     .lp-head { display: flex; align-items: center; gap: 12px; }
-    .lp-head h2 { margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: -.02em; }
-    .lp-head p { margin: 2px 0 0; font-weight: 800; color: #3B5E42; font-size: .9rem; }
+    .lp-head h2 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+    .lp-head p { margin: 2px 0 0; font-weight: 700; color: #3B5E42; font-size: 14px; }
     .lp-dot { margin-left: auto; width: 14px; height: 14px; border-radius: 50%; background: #C9C1B2; flex: none; transition: background .4s; }
     .lp-dot.on { background: #3B5E42; }
     .lp-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
-    .lp-tabs button { font: inherit; font-weight: 800; font-size: .95rem; min-height: 44px; padding: 6px 18px; border-radius: 14px; cursor: pointer; background: #F0EBE1; color: #1E2634; border: 1px solid #D6CFC0; }
+    .lp-tabs button { font: inherit; font-weight: 800; font-size: 14px; min-height: 44px; padding: 6px 18px; border-radius: 14px; cursor: pointer; background: #F0EBE1; color: #1E2634; border: 1px solid #D6CFC0; }
     .lp-tabs button:hover { border-color: #1E2634; }
     .lp-tabs button[aria-selected="true"] { background: #1E2634; color: #fff; border-color: #1E2634; }
     .lp-tabs button[aria-selected="true"]::before { content: "\2713  "; }
@@ -127,9 +146,9 @@
     .lp-paper { flex: 1; min-height: 0; overflow-y: auto; background: #F0EBE1; border-radius: 16px; padding: 16px; }
     .lp-sheet { background: #fff; color: #111A22; border-radius: 4px; padding: 30px 32px; aspect-ratio: 8.5 / 11; max-width: 8.5in; margin: 0 auto;
       box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(30,38,52,.10); font-size: 13px; line-height: 1.5; }
-    .lp-sheet h1 { font-size: 1.3rem; font-weight: 800; margin: 0 0 2px; }
+    .lp-sheet h1 { font-size: 18px; font-weight: 800; margin: 0 0 2px; }
     .lp-sheet .meta { color: #3B4A57; margin: 0 0 8px; }
-    .lp-sheet h2 { font-size: .82rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #3B4A57; border-bottom: 2px solid #111A22; margin: 14px 0 6px; padding-bottom: 3px; }
+    .lp-sheet h2 { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #3B4A57; border-bottom: 2px solid #111A22; margin: 14px 0 6px; padding-bottom: 3px; }
     .lp-sheet ul, .lp-sheet ol { margin: 0; padding-left: 1.4em; } .lp-sheet ul { list-style: disc; } .lp-sheet ol { list-style: decimal; } .lp-sheet li { margin: 3px 0; }
     .lp-sheet .ans { border-bottom: 1.5px solid #8794A0; height: 26px; } .lp-sheet .foot { font-size: .8rem; color: #4A5866; margin-top: 12px; }
     .lp-sheet .say { font-weight: 800; font-size: 1.05rem; border: 2px solid #111A22; border-radius: 8px; padding: 10px 14px; }
@@ -137,7 +156,7 @@
     .lp-sec { border-radius: 6px; }
     .lp-sec.lp-new { animation: lpFlash 2.6s ease-out 1; }
     @keyframes lpFlash { 0%, 35% { background: #E5EFE7; box-shadow: 0 0 0 8px #E5EFE7; } 100% { background: transparent; box-shadow: 0 0 0 8px transparent; } }
-    .lp-foot { margin: 0; font-size: .85rem; color: #425268; font-weight: 700; }
+    .lp-foot { margin: 0; font-size: 13px; color: #425268; font-weight: 700; }
     @media (prefers-reduced-motion: reduce) { .lp-sec.lp-new { animation: none; background: #E5EFE7; } }
     /* Message Rama chooser */
     .side-gap { margin-top: 10px; }
@@ -3945,9 +3964,9 @@
         $('listTitle').textContent = L2('Check everything', 'Vérifiez tout');
         $('listHelp').textContent = L2('This goes on your pages. Tap anything to change it.', 'Ceci va sur vos pages. Touchez une case pour la changer.');
         $('listCounter').classList.add('hidden');
-        items.innerHTML = `<div class="grid grid-cols-2 gap-[10px]">${tiles.map(([h, v, id]) => `<button type="button" data-jump="${id}" class="tactile-btn min-h-[62px] px-3 py-2 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-left flex flex-col justify-center min-w-0 hover:bg-[#E6DFD0]">
-            <span class="text-[11px] font-extrabold uppercase text-[#425268] flex justify-between w-full"><span>${esc(h)}</span><span class="text-[#3B5E42]">${L2('Change', 'Changer')} ›</span></span>
-            <span class="font-extrabold text-[14px] leading-snug ${v ? 'text-[#1E2634]' : 'text-[#B84A27]'} truncate w-full">${esc(v || L2('Not filled in', 'Pas rempli'))}</span></button>`).join('')}</div>`;
+        items.innerHTML = `<div class="grid grid-cols-2 gap-[10px]">${tiles.map(([h, v, id]) => `<button type="button" data-jump="${id}" aria-label="${esc(h)}: ${esc(v || L2('Not filled in', 'Pas rempli'))}. ${L2('Change', 'Changer')}" class="tactile-btn min-h-[62px] px-3 py-2 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-left flex flex-col justify-center min-w-0 hover:bg-[#E6DFD0]">
+            <span class="rv-row"><span class="rv-lab">${esc(h)}</span><span class="rv-go" aria-hidden="true">›</span></span>
+            <span class="rv-val font-extrabold leading-snug ${v ? 'text-[#1E2634]' : 'text-[#B84A27]'} truncate w-full">${esc(v || L2('Not filled in', 'Pas rempli'))}</span></button>`).join('')}</div>`;
         foot.innerHTML = `<button type="button" data-foot="print" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">🖨 ${L2('Print my pages', 'Imprimer mes pages')}</button>`;
       }
       if (qAdding) { const inp = document.getElementById('listAddInput'); if (inp) { inp.focus(); inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') listAdd(); }); } }
