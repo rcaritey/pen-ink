@@ -51,33 +51,66 @@
     @supports (-webkit-touch-callout: none) { input, textarea, select { font-size: max(16px, 1em) !important; } }
 
     /* Tremor-forgiving tactile button physics */
+    /* Physical-button feel, same as the Atelier (24 Nov): soft, diffused shadows tinted to each button's colour,
+       a light top-left highlight on pale buttons; the button lifts on hover (mouse only), sinks in when pressed,
+       and springs back with a small bounce (CSS linear() curve, 0.28s). Most important actions sit highest. */
+    :root {
+      --wh-lift-pale: -2px -2px 6px rgba(255,255,255,.85), 0 1px 3px rgba(80,62,40,.16), 0 6px 16px rgba(80,62,40,.13);
+      --wh-lift-pale-hover: -3px -3px 8px rgba(255,255,255,.9), 0 2px 5px rgba(80,62,40,.16), 0 12px 28px rgba(80,62,40,.19);
+      --wh-lift-sage: -2px -2px 6px rgba(255,255,255,.85), 0 1px 3px rgba(51,72,47,.20), 0 6px 16px rgba(51,72,47,.16);
+      --wh-lift-sage-hover: -3px -3px 8px rgba(255,255,255,.9), 0 2px 5px rgba(51,72,47,.20), 0 12px 28px rgba(51,72,47,.23);
+      --wh-pressed-pale: inset 2px 2px 5px rgba(80,62,40,.18), inset -2px -2px 5px rgba(255,255,255,.8);
+      --wh-lift-navy: 0 1px 3px rgba(20,26,38,.34), 0 8px 20px rgba(30,38,52,.30);
+      --wh-lift-navy-hover: 0 2px 5px rgba(20,26,38,.32), 0 14px 32px rgba(30,38,52,.36);
+      --wh-lift-green: 0 1px 3px rgba(36,64,31,.32), 0 8px 20px rgba(46,72,42,.30);
+      --wh-lift-green-hover: 0 2px 5px rgba(36,64,31,.30), 0 14px 32px rgba(46,72,42,.36);
+      --wh-lift-clay: 0 1px 3px rgba(110,40,18,.32), 0 8px 20px rgba(150,60,30,.30);
+      --wh-lift-clay-hover: 0 2px 5px rgba(110,40,18,.30), 0 14px 32px rgba(150,60,30,.36);
+      --wh-pressed-dark: inset 0 2px 6px rgba(0,0,0,.40);
+    }
     .tactile-btn {
-      transition: transform 0.08s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      transition: box-shadow .2s ease-out, transform .28s linear(0, .3 8%, .75 18%, 1.05 30%, 1.08 37%, 1.03 50%, .99 66%, 1), background-color .15s ease, border-color .15s ease;
       user-select: none;
       touch-action: manipulation;
     }
-    .tactile-btn:active {
-      transform: scale(0.985);
+    .tactile-btn:is([class*="bg-[#F0EBE1]"], [class*="bg-[#E6DFD0]"], [class*="bg-white"]) { box-shadow: var(--wh-lift-pale); }
+    .tactile-btn:is([class*="bg-[#E5EFE7]"], [class*="bg-[#D7E7DA]"]) { box-shadow: var(--wh-lift-sage); }
+    .tactile-btn[class*="bg-[#1E2634]"] { box-shadow: var(--wh-lift-navy); }
+    .tactile-btn[class*="bg-[#3B5E42]"] { box-shadow: var(--wh-lift-green); }
+    .tactile-btn:is([class*="bg-[#A84B2F]"], [class*="bg-[#B84A27]"]) { box-shadow: var(--wh-lift-clay); }
+    @media (hover: hover) and (pointer: fine) {
+      .tactile-btn:not(:disabled):hover { transform: translateY(-1px); }
+      .tactile-btn:is([class*="bg-[#F0EBE1]"], [class*="bg-[#E6DFD0]"], [class*="bg-white"]):not(:disabled):hover { box-shadow: var(--wh-lift-pale-hover); }
+      .tactile-btn:is([class*="bg-[#E5EFE7]"], [class*="bg-[#D7E7DA]"]):not(:disabled):hover { box-shadow: var(--wh-lift-sage-hover); }
+      .tactile-btn[class*="bg-[#1E2634]"]:not(:disabled):hover { box-shadow: var(--wh-lift-navy-hover); }
+      .tactile-btn[class*="bg-[#3B5E42]"]:not(:disabled):hover { box-shadow: var(--wh-lift-green-hover); }
+      .tactile-btn:is([class*="bg-[#A84B2F]"], [class*="bg-[#B84A27]"]):not(:disabled):hover { box-shadow: var(--wh-lift-clay-hover); }
     }
+    .tactile-btn:not(:disabled):active { transform: scale(.97) translateY(1px); transition-duration: .09s; }
+    .tactile-btn:is([class*="bg-[#F0EBE1]"], [class*="bg-[#E6DFD0]"], [class*="bg-white"], [class*="bg-[#E5EFE7]"], [class*="bg-[#D7E7DA]"]):not(:disabled):active { box-shadow: var(--wh-pressed-pale); }
+    .tactile-btn:is([class*="bg-[#1E2634]"], [class*="bg-[#3B5E42]"], [class*="bg-[#A84B2F]"], [class*="bg-[#B84A27]"]):not(:disabled):active { box-shadow: var(--wh-pressed-dark); }
+    .tactile-btn:disabled { box-shadow: none; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .tactile-btn, .primary-capsule-btn { transform: none !important; transition: box-shadow .2s ease-out, background-color .15s ease !important; } }
     .tactile-btn:focus-visible {
       outline: 3px solid #D97706;
       outline-offset: 2px;
     }
 
     /* Color-blind-safe primary forward capsule button (distinct shape, elevation & badge) */
+    /* the main forward button is the highest: a solid key edge plus a soft clay-tinted ambient shadow; pressed, it sinks onto its edge */
     .primary-capsule-btn {
       background-color: #B84A27;
       color: #FFFFFF;
       border-radius: 999px;
-      box-shadow: 0 4px 0 #7C2D12;
+      box-shadow: 0 4px 0 #7C2D12, 0 8px 18px rgba(124,45,18,.28);
       border: 2px solid #9E3C1D;
     }
-    .primary-capsule-btn:hover {
-      background-color: #A64020;
+    @media (hover: hover) and (pointer: fine) {
+      .primary-capsule-btn:not(:disabled):hover { background-color: #A64020; transform: translateY(-1px); box-shadow: 0 5px 0 #7C2D12, 0 13px 28px rgba(124,45,18,.34); }
     }
-    .primary-capsule-btn:active {
-      transform: translateY(2px) scale(0.99);
-      box-shadow: 0 2px 0 #7C2D12;
+    .primary-capsule-btn:not(:disabled):active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #7C2D12, inset 0 2px 6px rgba(0,0,0,.28);
     }
 
     /* State-reactive WellHeard Companion emblem animations */
