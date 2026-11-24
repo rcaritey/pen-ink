@@ -210,6 +210,8 @@
     .cp-btn span { display: flex; flex-direction: column; line-height: 1.2; }
     .cp-btn b { font-weight: 800; } .cp-btn small { font-size: 13px; font-weight: 700; color: #425268; }
     .cp-num { text-align: center; font-size: 14px; font-weight: 700; color: #425268; margin: 2px 0 0; }
+    .cp-num a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: #1E4627; text-decoration: underline; text-underline-offset: 3px; }
+    .cp-num a:focus-visible { outline: 3px solid #D97706; outline-offset: 2px; border-radius: 6px; }
     .chat-pick .cp-card { max-height: 100%; overflow-y: auto; }
     .cp-qrrow { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
     .cp-qr { width: 130px; height: 130px; flex-shrink: 0; border: 1px solid #D6CFC0; border-radius: 12px; background: #fff; }
@@ -4458,7 +4460,7 @@
           <p class="cp-big">${fr ? 'Ou textez ou appelez le' : 'Or text or call'} <b>416-454-5597</b></p></div>`
         : `<p class="cp-sub">${fr ? 'Rama a créé WellHeard. Envoyez-lui un texto; il vous répondra par texto.' : 'Rama made WellHeard. Send him a text and he’ll text you back.'}</p>
           ${chatBtn}
-          <p class="cp-num">${fr ? 'Ou textez ou appelez le' : 'Or text or call'} 416-454-5597</p>`;
+          <p class="cp-num">${fr ? 'Ou appelez Rama :' : 'Or call Rama:'} <a href="tel:+14164545597">416-454-5597</a></p>`;
       el.innerHTML = `<div class="cp-card" role="dialog" aria-modal="true" aria-labelledby="cpTitle" data-notr>
           <p id="cpTitle" class="cp-title">${fr ? 'Écrire à Rama' : 'Chat with Rama'}</p>
           ${body}
