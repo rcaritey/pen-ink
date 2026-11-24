@@ -3512,7 +3512,8 @@
     function allQs() { const c = chosen(); return c.length ? c : visitQuestions.map((q) => q.text).filter(Boolean); }
     const star = (q) => qPrio.includes(q) ? '★ ' : '';
     // a key under the heading wherever a ★ shows (Rama, 24 Nov)
-    const starKey = (list) => list.some((q) => qPrio.includes(q)) ? `<p class="key" style="margin:0 0 4pt;font-size:.85em;font-weight:700;color:#8A3A06">★ = ${lang === 'fr' ? 'à poser absolument' : 'must ask'}</p>` : '';
+    // the patient's own page says "must ask"; the medical team's and care circle's say what it means to them (Rama, 24 Nov)
+    const starKey = (list, own) => list.some((q) => qPrio.includes(q)) ? `<p class="key" style="margin:0 0 4pt;font-size:.85em;font-weight:700;color:#8A3A06">★ = ${own ? (lang === 'fr' ? 'à poser absolument' : 'must ask') : (lang === 'fr' ? 'le plus important pour le patient' : 'most important to the patient')}</p>` : '';
     const qli = (q, body) => `<li${qPrio.includes(q) ? ' class="top"' : ''}>${star(q)}${body}</li>`;
     function doctorPage() {
       const name = SID('name').answer, fr = lang === 'fr';
@@ -3538,7 +3539,7 @@
         <p>${fr ? 'Donnez le résumé au médecin. Puis demandez : « Est-ce que je peux enregistrer ce rendez-vous sur mon téléphone ? »' : 'Hand the doctor your summary. Then ask: "Is it okay if I record this appointment on my phone?"'}</p>
         ${mention.length ? `<h2>${fr ? 'À mentionner' : 'Make sure I mention'}</h2><ul>${mention.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         ${chartPrint()}
-        ${qs.length ? `<h2>${fr ? 'Mes questions' : 'My questions'}</h2>${starKey(qs)}<ol>${qs.map((q) => qli(q, esc(q))).join('')}</ol>` : ''}
+        ${qs.length ? `<h2>${fr ? 'Mes questions' : 'My questions'}</h2>${starKey(qs, true)}<ol>${qs.map((q) => qli(q, esc(q))).join('')}</ol>` : ''}
         <h2>${fr ? 'Avant de partir, demandez' : 'Before you leave, ask'}</h2><p>${fr ? '« Si j’ai des questions avant le prochain rendez-vous, qui dois-je contacter, et comment ? »' : '"If I have questions before my next appointment, who should I contact, and how?"'}</p>
         <p>${fr ? 'Qui et comment' : 'Who and how'}: ______________________ &nbsp; ${fr ? 'Prochain rendez-vous' : 'Next appointment'}: ______________</p>
         <h2>${fr ? 'Mes notes' : 'My notes: what the doctor says'}</h2><div class="ans"></div><div class="ans"></div><div class="ans"></div></div>`;
