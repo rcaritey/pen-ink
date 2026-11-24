@@ -332,6 +332,10 @@
     #appContainer.wide > section { grid-column: 2 / span 2; grid-row: 3; }
     #appContainer.wide > footer { grid-column: 2 / span 2; grid-row: 4; }
     #appContainer.wide #reidHello { right: auto; width: 330px; top: 140px; }
+    /* Reid's notes as a speech bubble from his face (24 Nov) */
+    #toastBanner.reid-bubble { padding: 10px 16px; border-radius: 18px; box-shadow: 0 2px 6px rgba(51,72,47,.18), 0 10px 24px rgba(51,72,47,.18); }
+    #toastBanner.reid-bubble::before { content: ''; position: absolute; top: -10px; left: var(--tail, 20px); width: 18px; height: 18px; background: #fff;
+      border-left: 2px solid #3B5E42; border-top: 2px solid #3B5E42; border-top-left-radius: 4px; transform: rotate(45deg); }
     #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 2 / span 3; align-self: stretch; }
     /* upright iPad (layout D, Rama 24 Nov): a slim Reid rail down the left — Reid on top, his tools stacked as big tiles;
        the logo, road map, question and Next fill the rest */
@@ -2651,6 +2655,20 @@
       toast.innerHTML = '<span class="w-10 h-10 rounded-full shrink-0 bg-[#FAF7F0] border border-[#E2DACB] flex items-center justify-center overflow-hidden"></span><span class="pt-2 min-w-0"></span>';
       if (face) { const f = face.cloneNode(true); f.setAttribute('width', '36'); f.setAttribute('height', '36'); toast.firstChild.appendChild(f); }
       toast.lastChild.textContent = msg;
+      // a speech bubble coming from Reid (Rama, 24 Nov): when his face is on screen, the note sits just under it
+      // with a tail pointing up at him; otherwise it stays the centred note with his face in it
+      const app = document.getElementById('appContainer'), em = [...document.querySelectorAll('#companionEmblem, #sideReid .reid-face')]
+        .find((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight; });
+      toast.classList.remove('reid-bubble'); toast.style.left = toast.style.top = toast.style.transform = toast.style.maxWidth = ''; toast.style.removeProperty('--tail');
+      if (em && app) {
+        const z = parseFloat(app.style.zoom) || 1, a = app.getBoundingClientRect(), r = em.getBoundingClientRect();
+        const ax = (r.left - a.left) / z, ay = (r.bottom - a.top) / z, cx = ax + r.width / z / 2, aw = a.width / z;
+        toast.classList.add('reid-bubble'); toast.firstChild.remove(); toast.style.transform = 'none';
+        toast.style.maxWidth = Math.min(360, aw - 16) + 'px';
+        const left = Math.max(8, Math.min(ax - 6, aw - toast.offsetWidth - 8));
+        toast.style.left = left + 'px'; toast.style.top = (ay + 14) + 'px';
+        toast.style.setProperty('--tail', Math.max(14, Math.min(cx - left - 9, toast.offsetWidth - 30)) + 'px');
+      }
       toast.classList.remove('opacity-0');
       toast.classList.add('opacity-100');
       clearTimeout(toastTimer);
