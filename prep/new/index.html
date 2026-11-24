@@ -274,18 +274,22 @@
     #appContainer.wide > footer { grid-column: 2 / span 2; grid-row: 4; }
     #appContainer.wide #reidHello { right: auto; width: 330px; top: 140px; }
     #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 2 / span 3; align-self: stretch; }
-    /* upright iPad (layout B): logo and Help/Settings on top, then Reid's bar across the full width, then the road map and the question */
-    #appContainer.wide.tall { grid-template-columns: 1fr auto; grid-template-rows: auto auto auto 1fr auto; column-gap: 16px; row-gap: 16px; padding-left: 28px; padding-right: 28px; }
-    #appContainer.wide.tall #wideLogo { grid-column: 1; }
-    #appContainer.wide.tall > header > div:last-child { grid-column: 2; }
-    #appContainer.wide.tall > #sideReid { grid-column: 1 / span 2; grid-row: 2; display: grid !important; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; background: #fff; border: 1px solid #E2DBD0; border-radius: 24px; padding: 14px; align-self: start; }
+    /* upright iPad (layout D, Rama 24 Nov): a slim Reid rail down the left — Reid on top, his tools stacked as big tiles;
+       the logo, road map, question and Next fill the rest */
+    #appContainer.wide.tall { grid-template-columns: 172px 1fr auto; grid-template-rows: auto auto 1fr auto; column-gap: 0; row-gap: 18px; padding: 0 !important; }
+    #appContainer.wide.tall > * { margin-left: 0; }
+    #appContainer.wide.tall #wideLogo { grid-column: 2; grid-row: 1; padding: 26px 0 0 32px; }
+    #appContainer.wide.tall > header > div:last-child { grid-column: 3; grid-row: 1; padding: 26px 28px 0 12px; }
+    #appContainer.wide.tall > #sideReid { grid-column: 1; grid-row: 1 / span 4; display: flex !important; flex-direction: column; align-items: stretch; gap: 10px; background: #F0EBE1; border-right: 1px solid #E2DACB; padding: 24px 12px; align-self: stretch; overflow-y: auto; }
     #appContainer.wide.tall > #sideReid > p { display: none; }
-    #appContainer.wide.tall #reidBadge { grid-column: 1 / -1; border: 0; padding: 0 2px 4px; margin: 0; }
-    #appContainer.wide.tall #sideReid > button { min-height: 56px; justify-content: center; text-align: center; padding: 6px 8px; }
-    #appContainer.wide.tall #sideReid .lp-show.in-side { margin-top: 0; }
-    #appContainer.wide.tall > #progressHeader { grid-column: 1 / span 2; grid-row: 3; }
-    #appContainer.wide.tall > section { grid-column: 1 / span 2; grid-row: 4; }
-    #appContainer.wide.tall > footer { grid-column: 1 / span 2; grid-row: 5; }
+    #appContainer.wide.tall #reidBadge { flex-direction: column; text-align: center; background: transparent; border: 0; padding: 0 0 6px; margin: 0; gap: 6px; }
+    #appContainer.wide.tall #reidBadge #companionEmblem, #appContainer.wide.tall #reidBadge #companionEmblem svg { width: 96px; height: 96px; }
+    #appContainer.wide.tall #reidBadge .rb-text { align-items: center; }
+    #appContainer.wide.tall #sideReid > button { min-height: 76px; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 4px; padding: 8px 6px; background: #fff; border-radius: 18px; line-height: 1.15; }
+    #appContainer.wide.tall #sideReid .lp-show.in-side { margin-top: auto; }
+    #appContainer.wide.tall > #progressHeader { grid-column: 2 / span 2; grid-row: 2; width: auto !important; margin: 0 28px 0 32px !important; box-sizing: border-box; min-width: 0; }
+    #appContainer.wide.tall > section { grid-column: 2 / span 2; grid-row: 3; padding-left: 32px; padding-right: 28px; min-width: 0; }
+    #appContainer.wide.tall > footer { grid-column: 2 / span 2; grid-row: 4; padding: 0 28px 24px 32px; }
     #wideLogo { display: none; }
     .wl-word { font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: #1E2634; line-height: 1; white-space: nowrap; }
     .wl-word span { color: #3B5E42; }
@@ -4417,9 +4421,9 @@
         // Past the welcome page on a computer or sideways iPad: the questions on the left and the pages
         // filling in on the right, like the first desktop version (Rama, 23 Nov).
         const landscape = vw >= 900 && vw > vh * 1.1, livePg = landscape && steps[currentIndex].mode !== 'landing', wide = landscape && !livePg;
-        const tall = !landscape && vw >= 600 && vh > vw;   // upright iPad: layout B, Reid's bar across the top (Rama, 24 Nov)
+        const tall = !landscape && vw >= 600 && vh > vw;   // upright iPad: layout D, Reid's rail down the left (Rama, 24 Nov)
         main.classList.toggle('wide', wide || tall); main.classList.toggle('tall', tall); main.classList.toggle('with-pages', livePg);
-        if (tall) { z = Math.min(1.5, (vw * 0.96) / 760); w = 760; h = (vh * 0.97) / z; }
+        if (tall) { z = Math.min(1.5, vw / 780); w = vw / z; h = vh / z; }
         else if (wide) { z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000); w = 1000; h = 640; }
         // the phone page's full height (every step is designed to fit it), a little wider than a phone
         // bigger than the phone page would allow: the few tallest steps scroll a little instead (23 Nov)
@@ -6422,6 +6426,38 @@
     window.addEventListener('pageshow', healRecording); window.addEventListener('focus', healRecording);
     setInterval(() => { if (isRecording && document.visibilityState === 'visible' && recRec && recRec._beat && performance.now() - recRec._beat > 5000) healRecording(); }, 5000);
     window.addEventListener('beforeunload', (e) => { if (isRecording) { e.preventDefault(); e.returnValue = ''; } });
+
+    // Warnings when moving off the page while recording (Rama, 24 Nov): changing screens in the app, leaving for
+    // another app (shown on return: nothing can show while you're away), and closing the tab (the browser asks).
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const recWarn = document.createElement('div'); recWarn.id = 'recWarn'; recWarn.setAttribute('role', 'alert');
+    recWarn.style.cssText = 'position:fixed;top:calc(max(8px, env(safe-area-inset-top)) + 70px);left:50%;transform:translateX(-50%);z-index:91;display:none;align-items:flex-start;gap:12px;width:min(560px, calc(100vw - 24px));box-sizing:border-box;background:#FFF4F2;color:#1E2634;border:3px solid #991B1B;border-radius:20px;padding:14px 10px 14px 18px;font-weight:700;font-size:18px;line-height:1.35;box-shadow:0 10px 28px rgba(0,0,0,.18)';
+    recWarn.innerHTML = '<span aria-hidden="true" style="font-size:24px;line-height:1">⚠️</span><span id="recWarnText" style="flex:1"></span><button type="button" id="recWarnX" style="font:inherit;font-weight:800;min-width:48px;min-height:48px;border-radius:14px;border:0;background:#991B1B;color:#fff;cursor:pointer"></button>';
+    document.body.appendChild(recWarn);
+    let recWarnT = 0;
+    function warnRec(en, fr, ms) {
+      document.getElementById('recWarnText').textContent = L2(en, fr);
+      const x = document.getElementById('recWarnX'); x.textContent = 'OK'; x.setAttribute('aria-label', L2('Close', 'Fermer'));
+      recWarn.style.display = 'flex'; clearTimeout(recWarnT); recWarnT = setTimeout(() => { recWarn.style.display = 'none'; }, ms || 9000);
+    }
+    document.getElementById('recWarnX').addEventListener('click', () => { recWarn.style.display = 'none'; });
+    { let lastStep = null; const rcsW = renderCurrentStep; renderCurrentStep = function () {
+        rcsW.apply(this, arguments); const id = steps[currentIndex].id;
+        if (isRecording && lastStep !== null && id !== lastStep) warnRec('You left the recording screen. Still recording — tap ■ Stop at the top when the visit is over.', 'Vous avez quitté l’écran d’enregistrement. L’enregistrement continue — touchez ■ Arrêter en haut à la fin de la visite.');
+        lastStep = id; }; }
+    { let wentAway = 0;
+      document.addEventListener('visibilitychange', () => {
+        if (!isRecording) { wentAway = 0; return; }
+        if (document.visibilityState === 'hidden') { wentAway = Date.now(); return; }
+        if (!wentAway) return; const secs = Math.round((Date.now() - wentAway) / 1000); wentAway = 0;
+        if (isIOS) warnRec(`You were away ${secs < 60 ? secs + ' s' : Math.round(secs / 60) + ' min'}. On iPhone and iPad nothing is recorded while WellHeard is not on screen. Recording is on again — keep WellHeard open.`, `Vous étiez absent ${secs < 60 ? secs + ' s' : Math.round(secs / 60) + ' min'}. Sur iPhone et iPad, rien n’est enregistré quand WellHeard n’est pas à l’écran. L’enregistrement a repris — gardez WellHeard ouvert.`, 15000);
+        else warnRec('Welcome back. Still recording — tap ■ Stop at the top when the visit is over.', 'Bon retour. L’enregistrement continue — touchez ■ Arrêter en haut à la fin de la visite.');
+      }); }
+    // when recording starts on iPhone or iPad, say so up front
+    { let wasRec = false; setInterval(() => {
+        if (isRecording && !wasRec && isIOS) warnRec('Keep WellHeard on screen while you record. If you switch apps or lock the screen, that part is not recorded.', 'Gardez WellHeard à l’écran pendant l’enregistrement. Si vous changez d’app ou verrouillez l’écran, cette partie n’est pas enregistrée.', 12000);
+        if (!isRecording && wasRec) recWarn.style.display = 'none';
+        wasRec = isRecording; }, 400); }
 
     // At the appointment: the three pages one tap away, and the questions with boxes to tick as you go (Rama, 24 Nov)
     let qAsked = {}; try { qAsked = JSON.parse(localStorage.getItem('wellheard-asked') || '{}') || {}; } catch (e) { /* none */ }
