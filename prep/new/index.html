@@ -157,6 +157,7 @@
     .live-pages.kept #lpKept { display: flex; }
     #lpKept .kq { background: #E5EFE7; border: 2px solid #3B5E42; border-radius: 16px; padding: 12px 16px; font-weight: 800; font-size: 18px; line-height: 1.35; display: flex; gap: 10px; align-items: flex-start; }
     #lpKept .kq::before { content: "\2713"; color: #3B5E42; flex: none; }
+    #lpKept .krm { flex: none; width: 44px; height: 44px; margin: -8px -8px -8px 0; border-radius: 12px; border: 1px solid #B9CBA7; background: #fff; color: #8A2E1C; font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; }
     #lpKept .kq.tap { cursor: pointer; } #lpKept .kq.tap:hover { border-color: #1E2634; }
     #lpKept .kstar { flex: none; background: #1E2634; color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 14px; }
     #lpKept .kq:has(.kstar)::before { content: none; }
@@ -4068,9 +4069,10 @@
         // a star, not a number: ☆ until tapped, then ★1, ★2… in the order tapped
         const rows = qShown.map((q, i) => {
           const k = qPrio.indexOf(q);
-          return `<button type="button" data-i="${i}" aria-pressed="${k > -1}" class="${k > -1 ? B_ON : B_OFF}">
+          return `<div class="w-full flex items-stretch gap-[8px]"><button type="button" data-i="${i}" aria-pressed="${k > -1}" class="${k > -1 ? B_ON : B_OFF} flex-1 min-w-0">
             <span class="min-w-[34px] h-8 px-1 rounded-full ${k > -1 ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#9AA3AF]'} font-extrabold text-sm flex items-center justify-center shrink-0" aria-hidden="true">${k > -1 ? '★' + (k + 1) : '☆'}</span>
-            <span class="min-w-0">${qText(q, 'prio-q font-extrabold text-[15.5px] leading-snug')}</span></button>`;
+            <span class="min-w-0">${qText(q, 'prio-q font-extrabold text-[15.5px] leading-snug')}</span></button>
+            <button type="button" data-rm="${i}" aria-label="${L2('Remove this question', 'Retirer cette question')}" class="tactile-btn shrink-0 w-[56px] rounded-2xl bg-white border border-[#D6CFC0] text-[#8A2E1C] font-extrabold text-[20px] flex items-center justify-center">✕</button></div>`;
         }).join('');
         if (wide) {   // computers and iPads: every question at once, in two columns where the pages used to be
           items.innerHTML = `<div class="w-full grid ${all.length > 5 ? 'grid-cols-2' : 'grid-cols-1'} gap-[8px] content-start">${rows}</div>`;
@@ -6238,7 +6240,7 @@
         document.getElementById('lpSub').textContent = mode === 'review' ? L2('In the order they go on your pages. Tap one to change the order.', 'Dans l’ordre de vos pages. Touchez-en une pour changer l’ordre.')
           : list.length ? L2(`${list.length} kept so far. Newest first.`, `${list.length} gardée(s). Les plus récentes en premier.`) : L2('The ones you keep show here.', 'Celles que vous gardez s’affichent ici.');
         const badge = (q) => { const k = top.indexOf(q); return mode === 'review' && k > -1 ? `<span class="kstar">★${k + 1}</span>` : ''; };
-        kept.innerHTML = list.length ? list.map((q) => `<div class="kq${mode === 'ideas' && !keptPrev.includes(q) ? ' new' : ''}${mode === 'review' ? ' tap' : ''}"${mode === 'review' ? ' role="button" tabindex="0"' : ''}>${badge(q)}${esc(q)}</div>`).join('') : `<p class="knone">${L2('None yet.', 'Aucune pour l’instant.')}</p>`;
+        kept.innerHTML = list.length ? list.map((q, i) => `<div class="kq${mode === 'ideas' && !keptPrev.includes(q) ? ' new' : ''}${mode === 'review' ? ' tap' : ''}"${mode === 'review' ? ' role="button" tabindex="0"' : ''}>${badge(q)}<span style="flex:1">${esc(q)}</span><button type="button" class="krm" data-krm="${i}" aria-label="${L2('Remove this question', 'Retirer cette question')}">✕</button></div>`).join('') : `<p class="knone">${L2('None yet.', 'Aucune pour l’instant.')}</p>`;
         const cards = [...kept.querySelectorAll('.kq')];
         if (kept.scrollHeight > kept.clientHeight + 1) {
           const more = document.createElement('p'); more.className = 'kmore'; kept.appendChild(more);
@@ -6246,7 +6248,7 @@
         }
         keptPrev = list;
       };
-      kept.addEventListener('click', (e) => { if (e.target.closest('.kq.tap')) goTo(steps.findIndex((x) => x.id === 'priority')); });
+      kept.addEventListener('click', (e) => { const r = e.target.closest('[data-krm]'); if (r) { e.stopPropagation(); const mode = steps[currentIndex].mode, all = chosen(), top = qPrio.filter((q) => all.includes(q)); const list = mode === 'review' ? top.concat(all.filter((q) => !top.includes(q))) : all.slice().reverse(); removeQ(list[+r.dataset.krm]); return; } if (e.target.closest('.kq.tap')) goTo(steps.findIndex((x) => x.id === 'priority')); });
       kept.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.kq.tap')) { e.preventDefault(); goTo(steps.findIndex((x) => x.id === 'priority')); } });
       const di = decideIdea; decideIdea = function (a) { const r = di(a); lpSoon(true); return r; };
       const ao = typeof addOwn === 'function' ? addOwn : null; if (ao) addOwn = function (t) { const r = ao(t); lpSoon(true); return r; };
@@ -6346,21 +6348,41 @@
     { const gl = glance; glance = function () {   // a "day" that isn't a day stays off the pages
       const d = SID('day'), keep = d.answer; if (keep && !DAYISH.test(keep) && !d.dateISO) { d.answer = ''; const h = gl(); d.answer = keep; return h; } return gl(); }; }
 
-    // upright iPad: a gentle note to turn it sideways, where WellHeard looks like it does on a computer (Rama, 24 Nov)
-    { const note = document.createElement('div'); note.id = 'turnNote'; note.setAttribute('role', 'status'); note.hidden = true;
-      note.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:70;max-width:560px;width:calc(100% - 48px);background:#1E2634;color:#fff;border-radius:20px;padding:16px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-weight:800;font-size:19px;line-height:1.3';
-      note.innerHTML = '<span aria-hidden="true" style="font-size:30px">⟲</span><span style="flex:1" id="turnNoteText"></span><button type="button" id="turnNoteOk" style="font:inherit;font-weight:800;min-height:52px;padding:0 20px;border-radius:14px;background:#fff;color:#1E2634;border:0">OK</button>';
+    // upright iPad: a gentle note to turn it sideways, where WellHeard looks like it does on a computer (Rama, 24 Nov).
+    // Tapping anywhere on it closes it; it goes by itself once the iPad is sideways.
+    { const note = document.createElement('button'); note.type = 'button'; note.id = 'turnNote'; note.hidden = true;
+      note.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483000;max-width:560px;width:calc(100% - 48px);background:#1E2634;color:#fff;border:0;border-radius:20px;padding:14px 16px 14px 18px;display:none;align-items:center;gap:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font:inherit;font-weight:800;font-size:19px;line-height:1.3;text-align:left;cursor:pointer;pointer-events:auto;touch-action:manipulation';
+      note.innerHTML = '<span aria-hidden="true" style="font-size:30px">⟲</span><span style="flex:1" id="turnNoteText"></span><span style="min-height:52px;padding:0 20px;border-radius:14px;background:#fff;color:#1E2634;display:flex;align-items:center" id="turnNoteOk">OK</span>';
       document.body.appendChild(note);
       let dismissed = false; try { dismissed = sessionStorage.getItem('wellheard-turn') === '1'; } catch (e) { /* private */ }
+      const portraitMQ = window.matchMedia ? matchMedia('(orientation: portrait)') : null;
       const check = () => {
-        const vw = window.innerWidth, vh = window.innerHeight, touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 1;
-        const upright = touch && vw >= 600 && vh > vw;
-        note.hidden = !upright || dismissed;
-        if (!note.hidden) document.getElementById('turnNoteText').textContent = L2('For the best view, turn your iPad sideways.', 'Pour une meilleure vue, tournez votre iPad à l’horizontale.');
+        const w = Math.max(window.innerWidth, document.documentElement.clientWidth || 0), touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 1;
+        const upright = portraitMQ ? portraitMQ.matches : window.innerHeight > window.innerWidth;
+        note.hidden = dismissed || !touch || !upright || Math.min(screen.width, screen.height) < 600 || w < 500; note.style.display = note.hidden ? 'none' : 'flex';   // inline display would beat [hidden]
+        if (!note.hidden) { document.getElementById('turnNoteText').textContent = L2('For the best view, turn your iPad sideways.', 'Pour une meilleure vue, tournez votre iPad à l’horizontale.'); document.getElementById('turnNoteOk').textContent = 'OK'; }
       };
-      document.getElementById('turnNoteOk').addEventListener('click', () => { dismissed = true; try { sessionStorage.setItem('wellheard-turn', '1'); } catch (e) { /* private */ } check(); });
-      window.addEventListener('resize', () => setTimeout(check, 150)); window.addEventListener('orientationchange', () => setTimeout(check, 300)); setTimeout(check, 400);
+      const close = (e) => { if (e) { e.preventDefault(); e.stopPropagation(); } dismissed = true; try { sessionStorage.setItem('wellheard-turn', '1'); } catch (x) { /* private */ } note.hidden = true; note.style.display = 'none'; };
+      note.addEventListener('click', close); note.addEventListener('touchend', close, { passive: false }); note.addEventListener('pointerup', close);
+      if (portraitMQ) { if (portraitMQ.addEventListener) portraitMQ.addEventListener('change', check); else if (portraitMQ.addListener) portraitMQ.addListener(check); }
+      window.addEventListener('resize', () => setTimeout(check, 150)); window.addEventListener('orientationchange', () => { setTimeout(check, 300); setTimeout(check, 900); });
+      setTimeout(check, 400); setInterval(check, 1500);
     }
+
+    // take a kept question off the list (Which questions matter most? ✕, and the list beside the questions screen)
+    function removeQ(q) {
+      if (!q) return;
+      const same = (x) => x === q;
+      qPicked = qPicked.filter((x) => !same(x)); qPrio = qPrio.filter((x) => !same(x)); if (typeof ownQs !== 'undefined') ownQs = ownQs.filter((x) => !same(x));
+      ['ask', 'ideasmore'].forEach((id) => { const st = SID(id); if (st && st.answer) st.answer = qLines(st.answer).filter((x) => !same(x)).join('\n'); });
+      if (!qSkipped.includes(q)) qSkipped.push(q);
+      saveAll(); renderList(); applyLang(); lpSoon(true);
+      showToast(L2('Removed. Ask Reid again if you change your mind.', 'Retirée.'));
+    }
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-rm]'); if (!b) return; e.stopPropagation();
+      removeQ(qShown[+b.dataset.rm]);
+    }, true);
 
     // Spoken "next" is caught however it arrives: "Next?", "okay next", "next please", or tacked onto
     // an answer ("myotonic dystrophy, next"): the answer is kept, then Reid moves on.
