@@ -5352,6 +5352,12 @@
     }
     try { const g = JSON.parse(localStorage.getItem('wellheard-goalqs') || 'null'); if (g) { goalPool = g.pool || []; goalSig = g.sig || ''; } } catch (e) { /* fresh */ }
     const saveGoal = () => { try { localStorage.setItem('wellheard-goalqs', JSON.stringify({ pool: goalPool, sig: goalSig })); } catch (e) { /* full */ } };
+    // the stand-in questions shown while Claude was unreachable go once real ones arrive, so nothing is asked twice
+    function dropStarters() {
+      const st = STARTER_ALL(), gone = (q) => st.includes(q);
+      goalPool = goalPool.filter((q) => !gone(q)); qPicked = qPicked.filter((q) => !gone(q));
+      if (typeof qPrio !== 'undefined' && Array.isArray(qPrio)) qPrio = qPrio.filter((q) => !gone(q));
+    }
     async function fetchGoalQs(force) {
       const p = picture(), sig = JSON.stringify([p.goal, p.purpose, p.story, p.seeing]);
       if (goalBusy || (!force && sig === goalSig && goalPool.length)) return;
@@ -5363,6 +5369,7 @@
         if (t) await new Promise((r) => setTimeout(r, 1500));
         try { qs = await askClaudeQs('goal', ownQs.concat(force ? goalPool : [])); } catch (e) { console.warn('Goal questions unavailable', e); }
       }
+      if (qs.length) dropStarters();   // real questions replace the stand-in ones, ticked or not
       if (qs.length) { if (sig !== goalSig) goalPool = goalPool.filter((q) => qPicked.includes(q) && !STARTER_ALL().includes(q)); goalPool = dedupe(goalPool.concat(qs)).slice(0, 12); goalSig = sig; goalStarter = false; saveGoal(); }
       else if (!goalPool.length) { goalPool = starterQs(); goalStarter = true; }   // Reid always has something to offer
       goalBusy = false;
@@ -6146,6 +6153,7 @@
 
     // Initial render
     loadAll();
+    if (goalPool.some((q) => !STARTER_ALL().includes(q)) && goalPool.some((q) => STARTER_ALL().includes(q) || qPicked.includes(q) && STARTER_ALL().includes(q))) { dropStarters(); goalStarter = false; saveGoal(); saveAll(); }
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }
     { const at = (() => { try { return localStorage.getItem('wellheard-at'); } catch (e) { return ''; } })(), i = steps.findIndex((s) => s.id === at); if (at && i > 0) currentIndex = i; }
     setCompanionState('listening');
