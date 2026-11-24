@@ -356,8 +356,9 @@ export default async function handler(req, res) {
   })();
   if (body.mode !== 'ui') {
     const scrubbed = await removePersonalDetails(body, body.lang);
+    const safe = JSON.parse(JSON.stringify(scrubbed.body || {}));   // a copy: when nothing was scrubbed this is the same object
     Object.keys(body).forEach((k) => { delete body[k]; });
-    Object.assign(body, scrubbed.body);
+    Object.assign(body, safe);
     const send = res.json.bind(res);
     res.json = (obj) => { try { return send(JSON.parse(scrubbed.restore(JSON.stringify(obj), true))); } catch (e) { return send(obj); } };
   }

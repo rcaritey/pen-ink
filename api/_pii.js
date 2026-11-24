@@ -41,7 +41,7 @@ async function analyse(docs, endpoint, key) {
 // [P1]; restore(text) puts the real details back into Claude's reply here on
 // the server, so Claude never sees them but the person still does.
 export async function removePersonalDetails(body, lang) {
-  const none = { body, restore: (t) => t };
+  const none = { body: body && typeof body === 'object' ? JSON.parse(JSON.stringify(body)) : body, restore: (t) => t };   // always a copy
   const key = process.env.AZURE_LANGUAGE_KEY, endpoint = process.env.AZURE_LANGUAGE_ENDPOINT;
   if (!key || !endpoint || !body || typeof body !== 'object') return none;
   const language = LANG[lang] || 'en';
