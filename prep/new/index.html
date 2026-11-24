@@ -113,24 +113,29 @@
        24 the question / page title · 19 a heading inside the page · 17-18 answers and buttons ·
        17 reading text and the instruction under the question · 15 step counter ·
        14 labels and captions. Nothing smaller than 14. Revised 23 Nov evening: the question was
-       too far above everything else, and the rest was smaller than it needed to be. */
-    #appContainer #screenQuestion, #appContainer #listTitle { font-size: 24px !important; line-height: 1.2 !important; letter-spacing: -.015em; }
-    #appContainer #screenHelperText, #appContainer #listHelp { font-size: 17px !important; line-height: 1.35 !important; font-weight: 600 !important; color: #425268 !important; }
-    #appContainer .font-serif.text-\[1\.6rem\] { font-size: 19px !important; }
-    #appContainer header .text-\[1\.25rem\] { font-size: 18px !important; }
-    #appContainer #listItems .text-\[15px\] { font-size: 17px !important; line-height: 1.45 !important; }
-    #appContainer #listItems [data-cs="yes"], #appContainer #listItems [data-cs="no"] { font-size: 18px !important; }
-    #appContainer .text-\[16\.5px\], #appContainer .text-\[17px\] { font-size: 17px !important; }
+       too far above everything else, and the rest was smaller than it needed to be.
+       Computers and sideways iPads only: phones keep their earlier sizes (Rama, 23 Nov 22:07). */
+    :is(#appContainer.with-pages, #appContainer.wide) #screenQuestion, :is(#appContainer.with-pages, #appContainer.wide) #listTitle { font-size: 24px !important; line-height: 1.2 !important; letter-spacing: -.015em; }
+    :is(#appContainer.with-pages, #appContainer.wide) #screenHelperText, :is(#appContainer.with-pages, #appContainer.wide) #listHelp { font-size: 17px !important; line-height: 1.35 !important; font-weight: 600 !important; color: #425268 !important; }
+    :is(#appContainer.with-pages, #appContainer.wide) .font-serif.text-\[1\.6rem\] { font-size: 19px !important; }
+    :is(#appContainer.with-pages, #appContainer.wide) header .text-\[1\.25rem\] { font-size: 18px !important; }
+    :is(#appContainer.with-pages, #appContainer.wide) #listItems .text-\[15px\] { font-size: 17px !important; line-height: 1.45 !important; }
+    :is(#appContainer.with-pages, #appContainer.wide) #listItems [data-cs="yes"], :is(#appContainer.with-pages, #appContainer.wide) #listItems [data-cs="no"] { font-size: 18px !important; }
+    :is(#appContainer.with-pages, #appContainer.wide) .text-\[16\.5px\], :is(#appContainer.with-pages, #appContainer.wide) .text-\[17px\] { font-size: 17px !important; }
     #appContainer.with-pages > section { overflow-y: auto !important; }
-    #appContainer #answerInput, #appContainer #answerInput::placeholder { font-size: 18px !important; }
-    #appContainer #stepSubtitle, #appContainer .text-\[13px\] { font-size: 15px !important; }
-    #appContainer .text-xs, #appContainer .text-\[12px\], #appContainer .text-\[11px\], #appContainer .text-\[10px\] { font-size: 14px !important; }
-    #appContainer #nextNavLabel, #appContainer #backNavBtn span { font-size: 18px !important; }
+    :is(#appContainer.with-pages, #appContainer.wide) #answerInput, :is(#appContainer.with-pages, #appContainer.wide) #answerInput::placeholder { font-size: 18px !important; }
+    :is(#appContainer.with-pages, #appContainer.wide) #stepSubtitle, :is(#appContainer.with-pages, #appContainer.wide) .text-\[13px\] { font-size: 15px !important; }
+    :is(#appContainer.with-pages, #appContainer.wide) .text-xs, :is(#appContainer.with-pages, #appContainer.wide) .text-\[12px\], :is(#appContainer.with-pages, #appContainer.wide) .text-\[11px\], :is(#appContainer.with-pages, #appContainer.wide) .text-\[10px\] { font-size: 14px !important; }
+    :is(#appContainer.with-pages, #appContainer.wide) #nextNavLabel, :is(#appContainer.with-pages, #appContainer.wide) #backNavBtn span { font-size: 18px !important; }
     /* "Check everything" tiles: the label, a chevron to show it opens, then the answer */
     .rv-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; width: 100%; }
-    .rv-lab { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: #425268; line-height: 1.2; }
-    .rv-go { font-size: 22px; font-weight: 800; color: #3B5E42; line-height: .8; }
-    #appContainer .rv-val { font-size: 17px; }
+    .rv-lab { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #425268; }
+    .rv-go { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #3B5E42; white-space: nowrap; }
+    .rv-val { font-size: 14px; }
+    :is(#appContainer.with-pages, #appContainer.wide) .rv-lab { font-size: 14px; letter-spacing: .03em; line-height: 1.2; }
+    :is(#appContainer.with-pages, #appContainer.wide) .rv-go { font-size: 22px; line-height: .8; }
+    :is(#appContainer.with-pages, #appContainer.wide) .rv-ch { display: none; }
+    :is(#appContainer.with-pages, #appContainer.wide) .rv-val { font-size: 17px; }
     /* the pages beside the questions */
     .live-pages { display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; padding: 18px 8px 14px 28px; background: #FAF7F0; color: #1E2634;
       border-left: 1px solid #DDD6C7; flex: none; }
@@ -3969,7 +3974,7 @@
         $('listHelp').textContent = L2('This goes on your pages. Tap anything to change it.', 'Ceci va sur vos pages. Touchez une case pour la changer.');
         $('listCounter').classList.add('hidden');
         items.innerHTML = `<div class="grid grid-cols-2 gap-[10px]">${tiles.map(([h, v, id]) => `<button type="button" data-jump="${id}" aria-label="${esc(h)}: ${esc(v || L2('Not filled in', 'Pas rempli'))}. ${L2('Change', 'Changer')}" class="tactile-btn min-h-[62px] px-3 py-2 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-left flex flex-col justify-center min-w-0 hover:bg-[#E6DFD0]">
-            <span class="rv-row"><span class="rv-lab">${esc(h)}</span><span class="rv-go" aria-hidden="true">›</span></span>
+            <span class="rv-row"><span class="rv-lab">${esc(h)}</span><span class="rv-go" aria-hidden="true"><span class="rv-ch">${L2('Change', 'Changer')} </span>›</span></span>
             <span class="rv-val font-extrabold leading-snug ${v ? 'text-[#1E2634]' : 'text-[#B84A27]'} truncate w-full">${esc(v || L2('Not filled in', 'Pas rempli'))}</span></button>`).join('')}</div>`;
         foot.innerHTML = `<button type="button" data-foot="print" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">🖨 ${L2('Print my pages', 'Imprimer mes pages')}</button>`;
       }
