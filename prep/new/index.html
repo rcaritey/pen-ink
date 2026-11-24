@@ -3268,7 +3268,8 @@
         .filter((x) => x.l && x.l.length > 1 && !/erase|clear|delete|remove|efface|supprim|retir/i.test(x.l)).slice(0, 24);
     }
     async function understand(t, fallback) {
-      const step = steps[currentIndex]; if (!step || understanding) return;
+      const step = steps[currentIndex]; if (!step) return;
+      if (understanding) { if (fallback) fallback(); return; }   // never lose words said while Reid is still working out the last thing
       understanding = true; setCompanionState('asking');
       const btns = screenButtons(), h = document.querySelector('#appContainer > section h1, #appContainer > section h2');
       let d = null;
