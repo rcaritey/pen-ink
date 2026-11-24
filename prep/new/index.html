@@ -4397,12 +4397,13 @@
           const panelW = Math.min(740, Math.max(560, vw * 0.42)), avail = vw - panelW - 56;
           z = Math.min(1.5, avail / 480, (vh * 0.96) / 600); w = Math.min(640, avail / z); h = (vh * 0.96) / z;
         }
-        else { z = Math.min(1.7, (vh * 0.96) / 820, (vw * 0.96) / 420); w = 420; h = 820; }
+        // upright iPad: the full screen, no phone frame, text a little bigger (Rama, 24 Nov: don't make people turn it)
+        else { z = Math.min(1.45, (vh * 0.97) / 820); w = Math.min(680, (vw * 0.96) / z); h = (vh * 0.97) / z; }
         // computer or sideways iPad: no phone-style frame (Rama, 23 Nov). With the pages beside it, a soft card.
         // borderless: one paper-coloured screen, a hairline between the questions and the pages (Rama, 23 Nov)
-        main.style.borderRadius = wide || livePg ? '0' : ''; main.style.borderWidth = wide || livePg ? '0' : '';
-        main.style.borderColor = ''; main.style.boxShadow = wide || livePg ? 'none' : '';
-        document.body.style.backgroundColor = wide || livePg ? '#FAF7F0' : '';
+        main.style.borderRadius = '0'; main.style.borderWidth = '0';
+        main.style.borderColor = ''; main.style.boxShadow = 'none';
+        document.body.style.backgroundColor = '#FAF7F0';
       }
       // Text size: everything grows together; the page keeps the same place on the screen
       const ts = [1, 1.18, 1.36][textSize] || 1; z *= ts; w /= ts; h /= ts;
