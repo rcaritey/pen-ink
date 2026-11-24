@@ -4701,12 +4701,12 @@
       const OFF = 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]', ON = 'bg-[#1E2634] text-white', GO = 'bg-[#3B5E42] text-white';
       const nm = `<span data-notr>${esc(d.name)}</span>`;
       $('listTitle').innerHTML = { list: L2('Your medicines', 'Vos médicaments'), name: d.edit > -1 ? L2('Medicine name', 'Nom du médicament') : n ? L2('Add a medicine', 'Ajouter un médicament') : L2('What medicines do you take?', 'Quels médicaments prenez-vous ?'),
-        dose: nm + ' · <span>' + L2('How strong is each pill?', 'Quelle est la force de chaque comprimé ?') + '</span>', sched: nm + ' · <span>' + L2('What time do you take it?', 'À quelle heure le prenez-vous ?') + '</span>',
+        dose: nm + ' · <span>' + L2('How strong is each pill?', 'Quelle est la force de chaque comprimé ?') + '</span>', sched: nm + ' · <span>' + L2('How much do you take, and when?', 'Combien en prenez-vous, et quand ?') + '</span>',
         freq: nm + ' · <span>' + L2('How often?', 'À quelle fréquence ?') + '</span>', food: nm + ' · <span>' + L2('With meals?', 'Avec les repas ?') + '</span>' }[d.stage];
       $('listHelp').textContent = { list: SID('meds').fromLast ? L2('From your last visit. Tap one to change it, or ✕ to remove it.', 'De votre dernière visite. Touchez-en un pour le modifier, ou ✕ pour le retirer.') : L2('Tap one to change it. Add vitamins too.', 'Touchez-en un pour le modifier. Ajoutez aussi les vitamines.'),
         name: L2('Start typing and pick it from the list, or say it.', 'Commencez à écrire et choisissez dans la liste, ou dites-le.'),
         dose: L2('It’s on the label, for example 100/25 mg. Type the number, then tap the unit.', 'C’est sur l’étiquette, par exemple 100/25 mg. Écrivez le nombre, puis touchez l’unité.'),
-        sched: L2('Add each time, then tap Next.', 'Ajoutez chaque heure, puis Suivant.'),
+        sched: L2('Pick how many and the time, then Add. Add each time you take it.', 'Choisissez combien et l’heure, puis Ajouter. Ajoutez chaque prise.'),
         freq: L2('Every day, unless the label says otherwise. Then tap Next.', 'Tous les jours, sauf si l’étiquette dit autre chose. Puis Suivant.'),
         food: L2('Only if the label or your doctor says. If not, just tap Next.', 'Seulement si l’étiquette ou le médecin le dit. Sinon, touchez Suivant.') }[d.stage];
       $('listCounter').textContent = L2(`${n} added`, `${n} ajouté(s)`);
@@ -4739,12 +4739,12 @@
       }
       if (d.stage === 'sched') {
         const a = d.add, cw = (k) => countWord(d, k, fr);
-        html += d.doses.length ? `<div class="grid grid-cols-2 gap-[6px]">${sortDoses(d.doses).map((x) => `<div class="bg-white border-2 border-[#3B5E42] rounded-xl pl-2 flex items-center gap-1 min-h-[44px]"><span class="text-[15px]" aria-hidden="true">${iconOfT(x.t)}</span><span class="flex-1 font-extrabold text-[15px] text-[#1E2634] leading-tight">${fmtT(x.t, fr)} <span class="text-[#3B5E42]">×${fmtN(x.n)}</span></span><button type="button" data-med="tdel" data-t="${x.t}" aria-label="${L2('Remove', 'Retirer')} ${fmtT(x.t, fr)}" class="tactile-btn w-[40px] h-[44px] text-[#B84A27] font-extrabold text-lg">✕</button></div>`).join('')}</div>` : '';
+        html += `<div class="w-full flex items-center flex-wrap gap-[6px]"><span class="text-[12px] font-extrabold uppercase tracking-wide text-[#3B5E42]">${d.doses.length ? L2('Added:', 'Ajouté :') : L2('No times added yet', 'Aucune heure encore')}</span>` + (d.doses.length ? `${sortDoses(d.doses).map((x) => `<div class="bg-white border-2 border-[#3B5E42] rounded-full pl-2 flex items-center gap-1 min-h-[40px]"><span class="text-[15px]" aria-hidden="true">${iconOfT(x.t)}</span><span class="flex-1 font-extrabold text-[15px] text-[#1E2634] leading-tight">${fmtT(x.t, fr)} <span class="text-[#3B5E42]">×${fmtN(x.n)}</span></span><button type="button" data-med="tdel" data-t="${x.t}" aria-label="${L2('Remove', 'Retirer')} ${fmtT(x.t, fr)}" class="tactile-btn w-[40px] h-[40px] text-[#B84A27] font-extrabold text-lg">✕</button></div>`).join('')}` : '') + '</div>';
         html += `<div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-2 flex flex-col gap-[6px]">
           <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5">${L2('How many', 'Combien')}</p>
           <div class="grid grid-cols-6 gap-[6px]">${COUNTS.map((c) => `<button type="button" data-med="cnt" data-v="${c}" class="${CH} !px-0 !min-h-[42px] ${a.n === c ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${fmtN(c)}</button>`).join('')}</div>
           <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5">${L2('Time', 'Heure')}</p>
-          <div class="grid grid-cols-6 gap-[6px]">${[...Array(12)].map((_, i) => i + 1).map((h) => `<button type="button" data-med="hr" data-v="${h}" class="${CH} !px-0 !min-h-[42px] ${a.h === h ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${h}</button>`).join('')}</div>
+          <div class="grid grid-cols-6 sm:grid-cols-12 gap-[6px]">${[...Array(12)].map((_, i) => i + 1).map((h) => `<button type="button" data-med="hr" data-v="${h}" class="${CH} !px-0 !min-h-[42px] ${a.h === h ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${h}</button>`).join('')}</div>
           <div class="grid grid-cols-6 gap-[6px]">${[0, 15, 30, 45].map((mi) => `<button type="button" data-med="mi" data-v="${mi}" class="${CH} !px-0 !min-h-[42px] ${a.m === mi ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">:${String(mi).padStart(2, '0')}</button>`).join('')}${['am', 'pm'].map((p) => `<button type="button" data-med="ap" data-v="${p}" class="${CH} !px-0 !min-h-[42px] ${a.ap === p ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${p.toUpperCase()}</button>`).join('')}</div>
           <button type="button" data-med="tadd" class="${CH} ${a.h ? GO : 'bg-[#D6CFC0] text-[#425268]'} w-full" ${a.h ? '' : 'aria-disabled="true"'}>+ ${a.h ? `<span>${L2('Add', 'Ajouter')}:</span>&nbsp;<span data-notr>${fmtN(a.n)}</span>&nbsp;<span>${cw(a.n)}</span>&nbsp;<span data-notr>· ${fmtT(`${String((a.h % 12) + (a.ap === 'pm' ? 12 : 0)).padStart(2, '0')}:${String(a.m).padStart(2, '0')}`, fr)}</span>` : L2('Pick a time first', 'Choisissez d’abord une heure')}</button></div>`;
       }
@@ -5827,7 +5827,7 @@
       }
       // on a computer, nothing should need scrolling: if a screen is too tall, make everything a little smaller instead
       const desk = main.classList.contains('with-pages') || main.classList.contains('wide');
-      if (!(desk ? ['landing', 'consent'] : ['landing', 'consent', 'goalqs', 'ready', 'meds', 'priority', 'review']).includes(steps[currentIndex].mode)) {
+      if (!(desk ? ['landing', 'consent'] : ['landing', 'consent', 'goalqs', 'ready', 'priority', 'review']).includes(steps[currentIndex].mode)) {
         const floor = desk ? 0.9 : 0.85;
         const boxes = ['listItems', 'screenQuestion'].map((id) => document.getElementById(id)).filter((e) => e && e.offsetParent);
         for (let k = 0; k < 3; k++) {
@@ -6043,6 +6043,8 @@
     { const om = openModal, cm = closeModal;   // nothing floats over an open panel
       openModal = function (id) { document.body.classList.add('modal-open'); return om(id); };
       closeModal = function (id) { const r = cm(id); if (!document.querySelector('[role="dialog"]:not(.hidden)')) document.body.classList.remove('modal-open'); return r; }; }
+    // a medicine screen can grow as times are added: fit it again after each tap
+    document.getElementById('listItems').addEventListener('click', (e) => { if (e.target.closest('[data-med]')) { clearTimeout(window.__medFit); window.__medFit = setTimeout(() => { if (steps[currentIndex].mode === 'meds') sizeApp(); }, 30); } });
     // Initial render
     loadAll();
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }
