@@ -4264,7 +4264,12 @@
         if (wide) { z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000); w = 1000; h = 640; }
         // the phone page's full height (every step is designed to fit it), a little wider than a phone
         // bigger than the phone page would allow: the few tallest steps scroll a little instead (23 Nov)
-        else if (livePg) { z = Math.min(1.5, (vh * 0.96) / 700, (vw * 0.46) / 480); w = 480; h = 700; }
+        // the pages panel is only as wide as the page; the questions get all the rest (Rama, 23 Nov 22:12).
+        // Wider space also means bigger text, but never so big that a page is shorter than 600 to work in.
+        else if (livePg) {
+          const panelW = Math.min(740, Math.max(560, vw * 0.42)), avail = vw - panelW - 56;
+          z = Math.min(1.5, avail / 480, (vh * 0.96) / 600); w = Math.min(640, avail / z); h = (vh * 0.96) / z;
+        }
         else { z = Math.min(1.7, (vh * 0.96) / 820, (vw * 0.96) / 420); w = 420; h = 820; }
         // computer or sideways iPad: no phone-style frame (Rama, 23 Nov). With the pages beside it, a soft card.
         // borderless: one paper-coloured screen, a hairline between the questions and the pages (Rama, 23 Nov)
@@ -4299,7 +4304,7 @@
       document.body.style.flexDirection = showLp ? 'row' : ''; document.body.style.gap = showLp ? '0' : '';
       if (lp) {
         lp.hidden = !showLp;
-        if (showLp) { const mw = w * z, mh = h * z; lp.style.height = mh + 'px'; lp.style.width = Math.max(360, Math.min(900, vw - mw - 48)) + 'px'; }
+        if (showLp) { const mw = w * z, mh = h * z; lp.style.height = mh + 'px'; lp.style.width = Math.max(360, Math.min(740, vw - mw - 56)) + 'px'; }
       }
       if (LISTMODES[steps[currentIndex].mode]) renderList();
       if (steps[currentIndex].mode === 'visitQuestions') renderVisitQuestionsChecklist();
