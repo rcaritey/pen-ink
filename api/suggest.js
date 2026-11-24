@@ -77,6 +77,8 @@ function buildPrompt(p) {
   const add = (label, text) => { if (text) lines.push(`## ${label}\n${text}`); };
   add('Seeing', p.seeing);
   add('Appointment is for', p.purpose);
+  add('What they want to get out of this appointment', p.goal);
+  add('Age, height and weight', p.about);
   add('Health conditions', p.conditions);
   add('Medications', p.meds.length ? p.meds.map((m) => `- ${m}`).join('\n') : '');
   add('Allergies', p.allergies);
@@ -475,6 +477,8 @@ export default async function handler(req, res) {
     const p = {
       seeing: clean(body.seeing, LIMITS.seeing),
       purpose: clean(body.purpose, LIMITS.purpose),
+      goal: clean(body.goal, LIMITS.purpose),
+      about: clean(body.about, 120),
       conditions: clean(body.conditions, LIMITS.conditions),
       team: clean(body.team, LIMITS.team),
       changes: clean(body.changes, LIMITS.changes),
@@ -497,7 +501,9 @@ export default async function handler(req, res) {
     // focus=doctor: questions about what this kind of doctor checks, manages and decides
     const focusNote = mode === 'clarify' ? '' : (body.focus === 'doctor'
       ? `\n\n## This time\nEvery question must be specific to the kind of doctor they are seeing (see "Seeing"): what this doctor checks, manages or decides, their tests and treatments, and how that touches the patient's other conditions and medications. Use section F of the guide. If "Seeing" is a family doctor, ask about coordinating care, referrals and follow-up.`
-      : '') + '\n\nNever repeat, reword or closely echo anything under "Questions they already have" or "Questions already asked". Each new question must cover a different topic.';
+      : body.focus === 'goal'
+      ? `\n\n## This time\nWrite 5 or 6 questions that directly help the patient get what they want out of this appointment (see "What they want to get out of this appointment"). Tie each one to their own concern, conditions and medicines. These are the questions they came in wanting answered, so make them the most useful, concrete version of that.`
+      : `\n\n## This time\nThese are questions they may not have thought of. Do not repeat or reword any question already listed. Look at other angles of their specific concern, conditions and medicines.`) + '\n\nNo generic questions that would fit any visit (such as "What are the risks?", "When is my next visit?" or "Who do I call with questions?"): every question must be specific to this patient\'s concern, conditions or medicines.' + '\n\nNever repeat, reword or closely echo anything under "Questions they already have" or "Questions already asked". Each new question must cover a different topic.';
     const out = await askClaude(mode === 'clarify' ? CLARIFY : SYSTEM, buildPrompt(p) + langNote + focusNote, QUESTION_SCHEMA, 2500);
     const questions = tidy(out.questions);
     if (!questions.length) {

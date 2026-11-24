@@ -741,7 +741,7 @@
             onclick="shareRecap()"
             class="tactile-btn flex-1 min-h-[54px] px-3 rounded-[16px] bg-[#1E2634] text-white font-extrabold text-sm flex items-center justify-center gap-2"
           >
-            <span>Send to family</span>
+            <span>Send to my care circle</span>
           </button>
           <div class="w-[14px] shrink-0 dead-zone" aria-hidden="true"></div>
           <button
@@ -3722,11 +3722,11 @@
       if (more && !quiet) say(lang === 'fr' ? 'Un instant. Reid cherche d’autres questions.' : 'One moment. Reid is finding more questions.');
       let added = [];
       try {
-        const asked = dedupe(ideaPool().concat(aiPool, chosen()));   // everything already offered, skipped ones too
+        const asked = dedupe(ideaPool().concat(aiPool, chosen(), typeof goalPool === 'object' ? goalPool : []));   // everything already offered, skipped ones too
         const [c, dq] = await Promise.all([askClaudeQs('', asked).catch(() => []), p.seeing ? askClaudeQs('doctor', asked).catch(() => []) : Promise.resolve([])]);
         const fresh = [];
         for (let i = 0; i < Math.max(c.length, dq.length); i++) { if (c[i]) { fresh.push(c[i]); aiTags[c[i]] = 'c'; } if (dq[i]) { fresh.push(dq[i]); aiTags[dq[i]] = 'd'; } }
-        const known = aiPool.concat(chosen(), COMMON.en, COMMON.fr);
+        const known = aiPool.concat(chosen(), COMMON.en, COMMON.fr, typeof goalPool === 'object' ? goalPool : []);
         added = dedupe(fresh).filter((q) => !known.some((k) => similar(k, q)));
         aiPool = aiPool.concat(added);
       } catch (e) { console.warn('Suggestions unavailable', e); }
@@ -5048,7 +5048,7 @@
       document.getElementById('screenList').classList.toggle('hidden', !LISTMODES[step.mode]);
       if (step.id !== lastListStep) { lastListStep = step.id; qPage = 0; vPage = 0; qAdding = false; if (step.mode === 'meds' && medsList.length && !medDraft.name && medDraft.edit < 0) medDraft.stage = 'list'; }
       if (LISTMODES[step.mode]) renderList();
-      if (step.mode === 'ideas' || step.id === 'ask') { fetchClaudeQuestions(); refillIdeas(); }   // start early so they're ready when the suggestions screen opens
+      if (step.mode === 'ideas' || step.id === 'goalqs') { fetchClaudeQuestions(); refillIdeas(); }   // start early so they're ready when the suggestions screen opens
       if (step.id === 'recap') recapFromRecording();
       placeHearBtn(step); placePicker(step); if (typeof renderSide === 'function') renderSide(); dimNext(step);
       if (step.mode === 'landing') stopRec();
@@ -5100,8 +5100,350 @@
     setCompanionState = function (st) { protoSetCompanion(st); applyLang(); };
     isListening = false;
 
+    // =====================================================================
+    // Prepare, in Rama's order (Nov 2026):
+    //  1. The basics (first time: health, medicines, allergies, age/height/weight; later: "anything changed?")
+    //  2. Appointment details (who, when, where)
+    //  3. The issue: what it's about, in your words, and what you want out of it
+    //  4. Questions: Reid's for your goal + your own, then ones you may not have thought of,
+    //     then getting ready for what the care team may ask, then the most important
+    //  5. The pages: doctor, me, care circle
+    // =====================================================================
+    const ND = (e) => Object.assign({ phaseIndex: 0, mode: 'voice', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] }, e);
+    steps.splice(steps.findIndex((x) => x.id === 'name') + 1, 0,
+      ND({ id: 'basicsCheck', mode: 'basicsCheck', topic: 'Your basics', question: 'Has anything changed since last time?' }),
+      ND({ id: 'about', topic: 'About you', question: 'Your age, height and weight?', helperText: 'Optional. It helps the doctor with doses. For example: 78, 5 ft 9 in, 160 lb.',
+        presets: ['Skip for now'], defaultPlaceholder: 'Say or type your age, height and weight...', customPlaceholder: 'Say or type your age, height and weight...' }));
+    steps.splice(steps.findIndex((x) => x.id === 'story') + 1, 0,
+      ND({ id: 'goal', topic: 'Your goal', question: 'What do you want to get out of this appointment?', helperText: 'Tap all that apply, or say it in your own words.',
+        presets: ['Understand what is going on', 'Relief from a symptom', 'Review or change my medicines', 'A test, referral or results', 'A plan for what comes next', 'Something else'],
+        customOptionLabel: 'Something else', multi: true, defaultPlaceholder: 'Tap above, or say what you hope for...', customPlaceholder: 'Say or type what you hope to get out of it...' }),
+      ND({ id: 'goalqs', mode: 'goalqs', topic: 'Your questions', question: 'Questions for your goal' }));
+    KEEP.push('about');
+    LISTMODES.basicsCheck = 1; LISTMODES.goalqs = 1;
+    // the order of Prepare; the doctor-style questions (dq0, dq1, …) always follow "detail"
+    const PREP_ORDER = ['consent', 'setup', 'name', 'basicsCheck', 'about', 'conditions', 'meds', 'allergies', 'who', 'day', 'time', 'where',
+      'concerns', 'story', 'goal', 'goalqs', 'ideas', 'detail', 'priority', 'review', 'ready'];
+    function orderPrep() {
+      const prep = steps.filter((s) => s.phaseIndex === 0), dq = prep.filter((s) => /^dq\d+$/.test(s.id));
+      const main = prep.filter((s) => !/^dq\d+$/.test(s.id) && s.id !== 'ask')
+        .sort((a, b) => PREP_ORDER.indexOf(a.id) - PREP_ORDER.indexOf(b.id));
+      const out = []; main.forEach((s) => { out.push(s); if (s.id === 'detail') out.push(...dq); });
+      const first = steps.findIndex((s) => s.phaseIndex === 0);
+      const rest = steps.filter((s) => s.phaseIndex !== 0 && steps.indexOf(s) > first);
+      steps.splice(first, steps.length - first, ...out, ...rest);
+    }
+    orderPrep();
+    { const sd = spliceDetail; spliceDetail = function () { sd(); orderPrep(); }; }
+    // the doctor-style questions, now framed as getting ready for what the care team may ask
+    Object.assign(SID('detail'), { topic: 'What they may ask', question: 'Want to get ready for what the doctor may ask you?',
+      helperText: "Reid asks a few questions a doctor would likely ask, so your answers are ready. He can't diagnose." });
+    SID('ideas').topic = 'Questions to consider';
+    Object.assign(FR, {
+      'Your age, height and weight?': 'Votre âge, votre taille et votre poids ?',
+      'Optional. It helps the doctor with doses. For example: 78, 5 ft 9 in, 160 lb.': 'Facultatif. Cela aide le médecin pour les doses. Par exemple : 78 ans, 1 m 75, 72 kg.',
+      'Say or type your age, height and weight...': 'Dites ou écrivez votre âge, taille et poids...',
+      'What do you want to get out of this appointment?': 'Qu’aimeriez-vous obtenir de ce rendez-vous ?',
+      'Tap all that apply, or say it in your own words.': 'Touchez tout ce qui s’applique, ou dites-le avec vos mots.',
+      'Understand what is going on': 'Comprendre ce qui se passe', 'Relief from a symptom': 'Soulager un symptôme', 'Review or change my medicines': 'Revoir ou changer mes médicaments',
+      'A test, referral or results': 'Un test, une référence ou des résultats', 'A plan for what comes next': 'Un plan pour la suite', 'Something else': 'Autre chose',
+      'Tap above, or say what you hope for...': 'Touchez ci-dessus, ou dites ce que vous espérez...', 'Say or type what you hope to get out of it...': 'Dites ou écrivez ce que vous espérez en tirer...',
+      'Want to get ready for what the doctor may ask you?': 'Voulez-vous vous préparer à ce que le médecin pourrait vous demander ?',
+      "Reid asks a few questions a doctor would likely ask, so your answers are ready. He can't diagnose.": 'Reid pose quelques questions qu’un médecin poserait sans doute, pour que vos réponses soient prêtes. Il ne peut pas poser de diagnostic.',
+      'About you': 'À propos de vous', 'Your goal': 'Votre objectif', 'What they may ask': 'Ce qu’on pourrait vous demander', 'Your basics': 'Vos informations'
+    });
+
+    // Reid's questions and the patient's own get the goal and the basics too
+    { const pic = picture; picture = function () { return Object.assign(pic(), { goal: (SID('goal').answer || '').trim(), about: (SID('about').answer || '').trim() }); }; }
+
+    // returning: one screen to confirm the basics instead of going through each again
+    const isReturning = () => ['name', 'about', 'conditions', 'allergies', 'meds'].some((id) => SID(id).fromLast);
+    const SKIPS = { basicsCheck: () => !isReturning() };
+    { const rcs = renderCurrentStep; let prevIdx = currentIndex;
+      renderCurrentStep = function () {
+        for (let n = 0; n < 3; n++) { const s = steps[currentIndex], k = s && SKIPS[s.id]; if (!(k && k())) break; currentIndex += currentIndex >= prevIdx ? 1 : -1; }
+        prevIdx = currentIndex; rcs();
+      }; }
+    function renderBasicsCheck(items, foot) {
+      const $ = (id) => document.getElementById(id);
+      $('listTitle').textContent = L2('Welcome back. Is this still right?', 'Bon retour. Est-ce toujours exact ?');
+      $('listHelp').textContent = L2('From your last visit. If nothing changed, tap All the same.', 'De votre dernière visite. Si rien n’a changé, touchez Tout pareil.');
+      $('listCounter').classList.add('hidden');
+      const row = (label, v) => `<div class="w-full px-3 py-2 rounded-xl bg-white border border-[#E6DFD0]"><span class="block text-[11px] font-extrabold uppercase tracking-wide text-[#425268]">${esc(label)}</span><span class="block text-[15px] font-bold text-[#1E2634]" data-notr>${esc(v || L2('Not given', 'Non indiqué'))}</span></div>`;
+      items.classList.add('overflow-y-auto');
+      items.innerHTML = `<button type="button" data-basics="same" class="tactile-btn w-full min-h-[60px] rounded-[18px] bg-[#3B5E42] text-white font-extrabold text-lg">✓ ${L2('All the same', 'Tout pareil')}</button>
+        <button type="button" data-basics="change" class="tactile-btn w-full min-h-[56px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${L2('Something changed', 'Quelque chose a changé')}</button>
+        <div class="w-full flex flex-col gap-[6px]">
+          ${row(L2('Name', 'Nom'), SID('name').answer)}${row(L2('Age, height, weight', 'Âge, taille, poids'), SID('about').answer)}
+          ${row(L2('Health conditions', 'Problèmes de santé'), SID('conditions').answer)}
+          ${row(L2('Medicines', 'Médicaments'), medsList.length ? medsList.map((m) => m.name).join(', ') : SID('meds').answer)}
+          ${row(L2('Allergies', 'Allergies'), SID('allergies').answer)}</div>`;
+      foot.innerHTML = '';
+    }
+
+    // ---------- 4A: Reid's questions for the patient's goal, plus their own ----------
+    let goalPool = [], goalSig = '', goalBusy = false, goalEdit = -1;
+    try { const g = JSON.parse(localStorage.getItem('wellheard-goalqs') || 'null'); if (g) { goalPool = g.pool || []; goalSig = g.sig || ''; } } catch (e) { /* fresh */ }
+    const saveGoal = () => { try { localStorage.setItem('wellheard-goalqs', JSON.stringify({ pool: goalPool, sig: goalSig })); } catch (e) { /* full */ } };
+    async function fetchGoalQs(force) {
+      const p = picture(), sig = JSON.stringify([p.goal, p.purpose, p.story, p.seeing]);
+      if (goalBusy || (!force && sig === goalSig && goalPool.length)) return;
+      if (!p.goal && !p.purpose && !p.story) return;
+      if (!consent || consent.choice !== 'yes') return;
+      goalBusy = true; if (steps[currentIndex].mode === 'goalqs') { renderList(); applyLang(); }
+      try {
+        const qs = await askClaudeQs('goal', ownQs.concat(force ? goalPool : []));
+        if (qs.length) { if (sig !== goalSig) goalPool = goalPool.filter((q) => qPicked.includes(q)); goalPool = dedupe(goalPool.concat(qs)).slice(0, 10); goalSig = sig; saveGoal(); }
+      } catch (e) { console.warn('Goal questions unavailable', e); }
+      goalBusy = false;
+      if (steps[currentIndex].mode === 'goalqs') { renderList(); applyLang(); if (goalPool.length) speakStep(); }
+    }
+    function addOwn(t) {
+      t = String(t || '').trim().replace(/\s+/g, ' '); if (!t) return;
+      if (!/[?？]$/.test(t)) t += '?'; t = t.charAt(0).toUpperCase() + t.slice(1);
+      if (!ownQs.some((q) => similar(q, t))) ownQs.push(t);
+      saveAll(); renderList(); applyLang();
+    }
+    function renderGoalQs(items, foot) {
+      const $ = (id) => document.getElementById(id), goal = (SID('goal').answer || '').trim();
+      $('listTitle').textContent = L2('Questions for your goal', 'Questions pour votre objectif');
+      $('listHelp').textContent = goalBusy && !goalPool.length ? L2('Reid is writing questions for what you want out of this visit…', 'Reid écrit des questions selon ce que vous voulez de cette visite…')
+        : (goal ? L2('You want: ', 'Vous voulez : ') + goal + '. ' : '') + L2('Tick the ones to keep. Tap ✎ to change one. Add your own below.', 'Cochez celles à garder. Touchez ✎ pour en changer une. Ajoutez les vôtres en bas.');
+      $('listCounter').textContent = L2(`${goalPool.filter((q) => qPicked.includes(q)).length + ownQs.length} kept`, `${goalPool.filter((q) => qPicked.includes(q)).length + ownQs.length} gardée(s)`);
+      items.classList.add('overflow-y-auto');
+      const row = (q, i) => {
+        const on = qPicked.includes(q);
+        if (goalEdit === i) return `<div class="w-full flex gap-2 items-stretch"><input id="goalEditInput" type="text" value="${esc(q)}" class="flex-1 min-w-0 min-h-[52px] px-3 rounded-xl border-2 border-[#1E2634] text-[16px] font-bold" aria-label="${L2('Change the question', 'Modifier la question')}"><button type="button" data-gq="save" class="tactile-btn min-h-[52px] px-4 rounded-xl bg-[#3B5E42] text-white font-extrabold">${L2('Save', 'OK')}</button></div>`;
+        return `<div class="w-full flex items-stretch gap-2">
+          <button type="button" data-gq="pick" data-i="${i}" aria-pressed="${on}" class="tactile-btn flex-1 min-w-0 min-h-[56px] px-3 py-2 rounded-xl border-2 ${on ? 'border-[#3B5E42] bg-[#E5EFE7]' : 'border-[#D6CFC0] bg-white'} flex items-center gap-3 text-left">
+            <span class="w-7 h-7 shrink-0 rounded-lg border-2 ${on ? 'border-[#3B5E42] bg-[#3B5E42] text-white' : 'border-[#9AA3AF] bg-white'} flex items-center justify-center font-extrabold" aria-hidden="true">${on ? '✓' : ''}</span>
+            <span class="text-[16px] font-bold text-[#1E2634] leading-snug">${esc(q)}</span></button>
+          <button type="button" data-gq="edit" data-i="${i}" class="tactile-btn w-[52px] shrink-0 rounded-xl bg-[#F0EBE1] border border-[#D6CFC0] font-extrabold text-[#1E2634]" aria-label="${L2('Change this question', 'Modifier cette question')}">✎</button></div>`;
+      };
+      const mine = ownQs.map((q, i) => `<div class="w-full flex items-stretch gap-2"><div class="flex-1 min-w-0 min-h-[52px] px-3 py-2 rounded-xl border-2 border-[#3B5E42] bg-[#E5EFE7] flex items-center gap-3"><span class="w-7 h-7 shrink-0 rounded-lg bg-[#3B5E42] text-white flex items-center justify-center font-extrabold" aria-hidden="true">✓</span><span class="text-[16px] font-bold text-[#1E2634]" data-notr>${esc(q)}</span></div>
+          <button type="button" data-gq="delown" data-i="${i}" class="tactile-btn w-[52px] shrink-0 rounded-xl bg-[#F0EBE1] border border-[#D6CFC0] font-extrabold" aria-label="${L2('Remove', 'Retirer')}">✕</button></div>`).join('');
+      items.innerHTML = `<div class="w-full flex flex-col gap-[8px]">
+          ${goalPool.length ? goalPool.map(row).join('') : (goalBusy ? `<div class="w-full min-h-[56px] rounded-xl bg-[#F0EBE1] animate-pulse" aria-hidden="true"></div><div class="w-full min-h-[56px] rounded-xl bg-[#F0EBE1] animate-pulse" aria-hidden="true"></div>` : `<p class="text-[15px] font-bold text-[#425268]">${L2('Reid has no suggestions right now. Add your own below.', 'Reid n’a pas de suggestion pour l’instant. Ajoutez les vôtres en bas.')}</p>`)}
+          ${goalPool.length && !goalBusy ? `<button type="button" data-gq="more" class="tactile-btn self-start min-h-[44px] px-3 rounded-xl bg-white border border-[#D6CFC0] font-extrabold text-[14px] text-[#1E2634]">+ ${L2('Suggest a few more', 'En suggérer d’autres')}</button>` : ''}
+          <p class="text-[13px] font-extrabold uppercase tracking-wide text-[#425268] mt-1">${L2('Any other questions?', 'D’autres questions ?')}</p>
+          ${mine}
+          <div class="w-full flex gap-2 items-stretch"><input id="ownQInput" type="text" placeholder="${L2('Type or say your own question…', 'Écrivez ou dites votre question…')}" class="flex-1 min-w-0 min-h-[52px] px-3 rounded-xl border-2 border-[#D6CFC0] bg-white text-[16px] font-bold" aria-label="${L2('Your own question', 'Votre question')}"><button type="button" data-gq="add" class="tactile-btn min-h-[52px] px-4 rounded-xl bg-[#1E2634] text-white font-extrabold">${L2('Add', 'Ajouter')}</button></div></div>`;
+      foot.innerHTML = '';
+      const inp = document.getElementById(goalEdit >= 0 ? 'goalEditInput' : 'ownQInput');
+      if (goalEdit >= 0 && inp) inp.focus();
+      const own = document.getElementById('ownQInput'); if (own) own.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addOwn(own.value); } });
+      const ed = document.getElementById('goalEditInput'); if (ed) ed.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.querySelector('[data-gq="save"]').click(); } });
+    }
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-gq],[data-basics]'); if (!b) return;
+      if (b.dataset.basics === 'same') { goTo(steps.findIndex((s) => s.id === 'who')); return; }
+      if (b.dataset.basics === 'change') { goNext(); return; }
+      const k = b.dataset.gq, i = +b.dataset.i;
+      if (k === 'pick') { const q = goalPool[i]; qPicked = qPicked.includes(q) ? qPicked.filter((x) => x !== q) : qPicked.concat(q); }
+      if (k === 'edit') goalEdit = i;
+      if (k === 'save') { const v = (document.getElementById('goalEditInput').value || '').trim(), old = goalPool[goalEdit];
+        if (v && v !== old) { goalPool[goalEdit] = v; qPicked = qPicked.filter((x) => x !== old).concat(v); qPrio = qPrio.map((x) => (x === old ? v : x)); }
+        else if (v && !qPicked.includes(v)) qPicked = qPicked.concat(v);
+        goalEdit = -1; saveGoal(); }
+      if (k === 'add') { addOwn(document.getElementById('ownQInput').value); return; }
+      if (k === 'delown') ownQs.splice(i, 1);
+      if (k === 'more') { fetchGoalQs(true); return; }
+      saveAll(); renderList(); applyLang();
+    });
+    // what's said on that screen becomes the patient's own question
+    { const h0 = heard; heard = function (t) {
+      const s = steps[currentIndex], w = String(t || '').trim();
+      if (s && s.mode === 'goalqs' && w.split(/\s+/).length >= 3 && !/^(next|back|go back|suivant|retour|continue|continuer)\b/i.test(w)) { addOwn(w); say(L2('Added.', 'Ajoutée.')); return; }
+      return h0(t);
+    }; }
+    // keep the suggestions in step with the goal, and never offer a goal question again later
+    { const rl = renderList; renderList = function () {
+      const step = steps[currentIndex], items = document.getElementById('listItems'), foot = document.getElementById('listFoot');
+      if (step.mode === 'basicsCheck') { document.getElementById('listCounter').classList.remove('hidden'); items.classList.remove('overflow-y-auto'); renderBasicsCheck(items, foot); return; }
+      if (step.mode === 'goalqs') { document.getElementById('listCounter').classList.remove('hidden'); renderGoalQs(items, foot); return; }
+      rl();
+      const goal = (SID('goal').answer || '').trim();
+      if (step.mode === 'priority' && goal && chosen().length) {
+        const h = document.getElementById('listHelp');
+        h.textContent = L2('You came for: ', 'Vous venez pour : ') + goal + '. ' + L2('Tap the most important first.', 'Touchez la plus importante en premier.');
+      }
+    }; }
+    { const ip = ideaPool; ideaPool = function () { return ip().filter((q) => !goalPool.some((g) => similar(g, q)) && !COMMON.en.includes(q) && !COMMON.fr.includes(q)); }; }
+    Object.assign(SPEAK, {
+      goalqs: () => goalPool.length ? L2('Here are questions for what you want out of this visit. Tap the ones to keep. You can also say your own question.', 'Voici des questions selon ce que vous voulez de cette visite. Touchez celles à garder. Vous pouvez aussi dire votre propre question.')
+        : L2('Reid is writing questions for your goal. You can say your own question too.', 'Reid écrit des questions pour votre objectif. Vous pouvez aussi dire votre question.'),
+      basicsCheck: () => L2('Welcome back. Here is what you told me last time. If nothing changed, tap All the same.', 'Bon retour. Voici ce que vous m’avez dit la dernière fois. Si rien n’a changé, touchez Tout pareil.')
+    });
+    if (typeof EXPLAIN === 'object') Object.assign(EXPLAIN, { goalqs: SPEAK.goalqs, basicsCheck: SPEAK.basicsCheck });
+    // start writing the goal questions as soon as the goal is known, and refresh the later suggestions
+    { const rcs2 = renderCurrentStep; renderCurrentStep = function () { rcs2(); const s = steps[currentIndex]; if (s.id === 'goalqs' || s.id === 'goal') fetchGoalQs(); }; }
+
+    // ---------- 5: the care circle page (family and helpers) ----------
+    function circlePage() {
+      const fr = lang === 'fr', name = SID('name').answer, qs = allQs().slice(0, 5), goal = SID('goal').answer;
+      return `<div class="pg"><h1>${fr ? 'Pour le cercle d’aidants' : 'For the care circle'}${name ? ' · ' + esc(name) : ''}</h1><p class="meta">${meta()}</p>
+        <h2>${fr ? 'Le rendez-vous' : 'The appointment'}</h2><p>${meta() || '—'}</p>
+        ${SID('concerns').answer ? `<h2>${fr ? 'Pourquoi' : 'What it is about'}</h2><p>${esc(SID('concerns').answer)}</p>` : ''}
+        ${goal ? `<h2>${fr ? 'Ce qu’on espère' : 'What we hope to get out of it'}</h2><p>${esc(goal)}</p>` : ''}
+        ${qs.length ? `<h2>${fr ? 'Les questions les plus importantes' : 'The most important questions'}</h2><ol>${qs.map((q) => `<li>${esc(q)}</li>`).join('')}</ol>` : ''}
+        ${chartPrint()}
+        <h2>${fr ? 'Comment aider' : 'How you can help'}</h2><ul>
+          <li>${fr ? 'Rappeler d’apporter les pages, ou le téléphone.' : 'Remind them to bring the pages, or their phone.'}</li>
+          <li>${fr ? 'Si vous y allez : prendre des notes, et aider à poser les questions.' : 'If you go along: take notes, and help ask the questions.'}</li>
+          <li>${fr ? 'Après : lire le résumé et aider avec les prochaines étapes.' : 'After: read the recap and help with the next steps.'}</li></ul></div>`;
+    }
+    { const sp = showPage; showPage = function (which) {
+      if (which !== 'circle') return sp(which);
+      sp('mine');
+      const box = document.querySelector('#fullDoctorModal .space-y-3');
+      box.innerHTML = `<div style="font-size:1.05rem;line-height:1.5">${circlePage().replace(/<h2>/g, '<h2 style="font-weight:800;margin:14px 0 4px;text-transform:uppercase;font-size:.85rem;letter-spacing:.06em;color:#425268">').replace('<h1>', '<h1 style="font-size:1.4rem;font-weight:800">')}</div>`;
+      const lab = document.getElementById('pageViewLabel'); if (lab) lab.textContent = L2('Care circle · Large print', 'Cercle d’aidants · Gros caractères');
+      applyLang(box);
+    }; }
+    async function sendCircle() {
+      const tmp = document.createElement('div'); tmp.innerHTML = circlePage();
+      const text = tmp.innerText.replace(/\n{3,}/g, '\n\n').trim(), title = L2('Upcoming appointment', 'Rendez-vous à venir');
+      if (navigator.share) navigator.share({ title, text }).catch(() => {});
+      else location.href = 'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(text);
+    }
+    { const rr = renderReady; renderReady = function (items, foot) {
+      rr(items, foot);
+      const card = document.createElement('div');
+      card.className = 'w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-2.5 flex flex-col gap-[6px]';
+      card.innerHTML = `<div class="flex items-center justify-between gap-2 px-1"><span class="font-extrabold text-[16px] text-[#1E2634]"><span aria-hidden="true">👪</span> ${L2('Care circle page', 'Page du cercle d’aidants')}</span>
+          <button type="button" data-ready="circle" class="tactile-btn min-h-[40px] px-3 rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[13px]">${L2('See it', 'Voir')} ›</button></div>
+        <p class="px-1 text-[14px] font-bold text-[#425268]">${L2('For family and helpers: the visit, the goal, the top questions and the medicine chart.', 'Pour la famille et les aidants : la visite, l’objectif, les questions principales et les médicaments.')}</p>
+        <button type="button" data-ready="sendcircle" class="tactile-btn w-full min-h-[52px] rounded-xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-[15px]">✉️ ${L2('Send to my care circle', 'Envoyer à mon cercle d’aidants')}</button>`;
+      items.appendChild(card);
+      // the pages' rows: the goal goes with "why I'm here"
+      const why = items.querySelector('[data-jump="concerns"]'); if (why && SID('goal').answer) {
+        const g = why.cloneNode(true); g.dataset.jump = 'goal'; g.querySelector('span span').textContent = L2('What I want out of it', 'Ce que j’en attends');
+        g.querySelector('[data-notr]').textContent = SID('goal').answer; why.after(g);
+      }
+    }; }
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-ready]'); if (!b) return;
+      if (b.dataset.ready === 'circle') showPage('circle');
+      if (b.dataset.ready === 'sendcircle') sendCircle();
+    });
+    { const pp = printPages; printPages = async function (which) { await pp(which); if (which !== 'recap') { const a = document.getElementById('printArea'); a.insertAdjacentHTML('beforeend', circlePage()); } }; }
+    // the doctor's page and my page: age, height, weight and the goal
+    { const dp = doctorPage; doctorPage = function () {
+      let h = dp(); const fr = lang === 'fr', about = SID('about').answer, goal = SID('goal').answer;
+      const add = (about ? `<h2>${fr ? 'Âge, taille, poids' : 'Age, height, weight'}</h2><p>${esc(docT(about))}</p>` : '') + (goal ? `<h2>${fr ? 'Ce que le patient espère de la visite' : 'What the patient hopes to get out of this visit'}</h2><p>${esc(docT(goal))}</p>` : '');
+      const i = h.indexOf('<h2>'); return add && i > 0 ? h.slice(0, i) + add + h.slice(i) : h;
+    }; }
+    { const pg = patientPage; patientPage = function () {
+      let h = pg(); const goal = SID('goal').answer; if (!goal) return h;
+      const i = h.indexOf('<h2>'); return i > 0 ? h.slice(0, i) + `<h2>${L2('What I want out of this visit', 'Ce que je veux de cette visite')}</h2><p>${esc(goal)}</p>` + h.slice(i) : h;
+    }; }
+
+    // =====================================================================
+    // At the appointment: one checklist screen first (record, hand the page, go through the questions)
+    // =====================================================================
+    steps.splice(steps.findIndex((x) => x.id === 'doctorSummary'), 0, ND({ id: 'visitStart', phaseIndex: 1, mode: 'visitStart', topic: 'At the appointment', question: 'At the appointment' }));
+    LISTMODES.visitStart = 1;
+    function renderVisitStart(items, foot) {
+      const $ = (id) => document.getElementById(id);
+      $('listTitle').textContent = L2('At the appointment', 'Au rendez-vous');
+      $('listHelp').textContent = L2('Four steps. Tap each one as you go.', 'Quatre étapes. Touchez chacune au fur et à mesure.');
+      $('listCounter').classList.add('hidden');
+      items.classList.add('overflow-y-auto');
+      const st = (n, icon, title, body, btn, act, on) => `<div class="w-full bg-white border-2 ${on ? 'border-[#3B5E42]' : 'border-[#E6DFD0]'} rounded-[18px] p-3 flex flex-col gap-2">
+          <div class="flex items-start gap-3"><span class="w-8 h-8 shrink-0 rounded-full bg-[#1E2634] text-white font-extrabold flex items-center justify-center">${n}</span>
+          <div class="min-w-0"><p class="font-extrabold text-[17px] text-[#1E2634] leading-snug"><span aria-hidden="true">${icon}</span> ${title}</p><p class="text-[14px] font-bold text-[#425268] leading-snug">${body}</p></div></div>
+          ${btn ? `<button type="button" data-visit="${act}" class="tactile-btn w-full min-h-[52px] rounded-xl ${on ? 'bg-[#3B5E42] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-[15px]">${btn}</button>` : ''}</div>`;
+      items.innerHTML = `<div class="w-full flex flex-col gap-[8px]">
+        ${st(1, '🎙️', L2('Ask to record', 'Demandez pour enregistrer'), L2('"Is it okay if I record this on my phone, so I remember?"', '« Est-ce que je peux enregistrer sur mon téléphone, pour m’en souvenir ? »'),
+          isRecording ? L2('● Recording. Tap to pause', '● Enregistrement. Toucher pour arrêter') : L2('Ask, then start recording', 'Demander, puis enregistrer'), 'rec', isRecording)}
+        ${st(2, '📄', L2('Hand over the doctor’s page', 'Donnez la page du médecin'), L2('Give the printed page, or show it on your phone.', 'Donnez la page imprimée, ou montrez-la sur votre téléphone.'), L2('Show it on my phone', 'La montrer sur mon téléphone'), 'doc')}
+        ${st(3, '📝', L2('Keep your page as a guide', 'Gardez votre page comme guide'), L2('Your questions, most important first, and space for notes.', 'Vos questions, les plus importantes en premier, et de la place pour des notes.'), L2('See my page', 'Voir ma page'), 'mine')}
+        ${st(4, '🗣️', L2('Ask to go through your questions', 'Demandez à passer vos questions'), L2('"I have a few questions. May I go through them?" Then tap Next to tick them off.', '« J’ai quelques questions. Est-ce que je peux les passer ? » Puis touchez Suivant pour les cocher.'))}</div>`;
+      foot.innerHTML = '';
+    }
+    { const rl2 = renderList; renderList = function () {
+      const step = steps[currentIndex];
+      if (step.mode === 'visitStart') { document.getElementById('listCounter').classList.remove('hidden'); renderVisitStart(document.getElementById('listItems'), document.getElementById('listFoot')); return; }
+      rl2();
+    }; }
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-visit]'); if (!b) return;
+      const k = b.dataset.visit;
+      if (k === 'rec') { toggleVisitRecording(); setTimeout(() => { if (steps[currentIndex].mode === 'visitStart') { renderList(); applyLang(); } }, 400); }
+      if (k === 'doc') openFullDoctorCard();
+      if (k === 'mine') showPage('mine');
+    });
+    SPEAK.visitStart = () => L2('At the appointment: first, ask if you can record. Then hand over the doctor’s page. Keep your page as a guide, and ask to go through your questions.', 'Au rendez-vous : d’abord, demandez si vous pouvez enregistrer. Puis donnez la page du médecin. Gardez votre page comme guide, et demandez à passer vos questions.');
+    if (typeof EXPLAIN === 'object') EXPLAIN.visitStart = SPEAK.visitStart;
+
+    // =====================================================================
+    // After: add the next appointment (and dated next steps) to the phone's calendar
+    // =====================================================================
+    let recapNext = {};
+    try { recapNext = JSON.parse(localStorage.getItem('wellheard-next') || '{}') || {}; } catch (e) { recapNext = {}; }
+    { const rf = recapFromRecording; recapFromRecording = async function () {
+      const of = window.fetch;   // catch the recap's next-appointment fields on the way past
+      window.fetch = async function (u, o) {
+        const r = await of(u, o);
+        try { if (u === '/api/suggest' && o && /"mode":"recap"/.test(o.body)) { const d = await r.clone().json(); if (d && d.ok) { recapNext = { date: d.nextDate || '', time: d.nextTime || '', with: d.nextWith || '', when: d.nextWhen || '' }; localStorage.setItem('wellheard-next', JSON.stringify(recapNext)); } } } catch (e) { /* not json */ }
+        return r;
+      };
+      try { await rf(); } finally { window.fetch = of; }
+    }; }
+    function icsFile(title, dateISO, time24, note) {
+      const pad = (n) => String(n).padStart(2, '0'), d = dateISO.replace(/-/g, '');
+      const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+      const escI = (t) => String(t || '').replace(/[\\,;]/g, (m) => '\\' + m).replace(/\n/g, '\\n');
+      let when;
+      if (/^\d{2}:\d{2}$/.test(time24 || '')) { const [h, m] = time24.split(':').map(Number), e = h * 60 + m + 60; when = `DTSTART;TZID=America/Toronto:${d}T${pad(h)}${pad(m)}00\r\nDTEND;TZID=America/Toronto:${d}T${pad(Math.floor(e / 60) % 24)}${pad(e % 60)}00`; }
+      else { const nx = new Date(dateISO + 'T12:00:00'); nx.setDate(nx.getDate() + 1); when = `DTSTART;VALUE=DATE:${d}\r\nDTEND;VALUE=DATE:${nx.toISOString().slice(0, 10).replace(/-/g, '')}`; }
+      return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//WellHeard//EN', 'BEGIN:VEVENT', `UID:${Date.now()}@wellheard`, `DTSTAMP:${stamp}`, when, `SUMMARY:${escI(title)}`, `DESCRIPTION:${escI(note)}`,
+        'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', `DESCRIPTION:${escI(title)}`, 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    }
+    function addToCalendar() {
+      const fr = lang === 'fr';
+      const box = document.createElement('div');
+      box.className = 'fixed inset-0 z-[80] bg-black/40 flex items-end sm:items-center justify-center p-3';
+      box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'calTitle');
+      const title0 = recapNext.with ? L2('Appointment: ', 'Rendez-vous : ') + recapNext.with : L2('Next appointment', 'Prochain rendez-vous') + (SID('who').answer ? ' · ' + SID('who').answer : '');
+      box.innerHTML = `<div class="w-full max-w-md bg-[#FAF7F1] rounded-3xl p-5 space-y-3 shadow-xl">
+        <h2 id="calTitle" class="text-xl font-extrabold text-[#1E2634]">${fr ? 'Ajouter au calendrier' : 'Add to my calendar'}</h2>
+        ${recapNext.when && !recapNext.date ? `<p class="text-[15px] font-bold text-[#425268]">${fr ? 'Le médecin a dit : ' : 'The doctor said: '}${esc(recapNext.when)}</p>` : ''}
+        <label class="block text-sm font-extrabold text-[#425268]">${fr ? 'Quoi' : 'What'}<input id="calWhat" type="text" value="${esc(title0)}" class="mt-1 w-full min-h-[50px] px-3 rounded-xl border-2 border-[#D6CFC0] text-[16px] font-bold text-[#1E2634]"></label>
+        <div class="flex gap-2"><label class="flex-1 block text-sm font-extrabold text-[#425268]">${fr ? 'Date' : 'Date'}<input id="calDate" type="date" value="${esc(recapNext.date || '')}" class="mt-1 w-full min-h-[50px] px-2 rounded-xl border-2 border-[#D6CFC0] text-[16px] font-bold"></label>
+          <label class="flex-1 block text-sm font-extrabold text-[#425268]">${fr ? 'Heure (facultatif)' : 'Time (optional)'}<input id="calTime" type="time" value="${esc(recapNext.time || '')}" class="mt-1 w-full min-h-[50px] px-2 rounded-xl border-2 border-[#D6CFC0] text-[16px] font-bold"></label></div>
+        <div class="flex gap-2"><button type="button" data-cal="no" class="tactile-btn flex-1 min-h-[54px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] font-extrabold">${fr ? 'Annuler' : 'Cancel'}</button>
+          <button type="button" data-cal="yes" class="tactile-btn flex-1 min-h-[54px] rounded-2xl bg-[#3B5E42] text-white font-extrabold">${fr ? 'Ajouter' : 'Add it'}</button></div></div>`;
+      document.body.appendChild(box);
+      box.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-cal]'); if (!b && e.target !== box) return;
+        if (b && b.dataset.cal === 'yes') {
+          const date = box.querySelector('#calDate').value;
+          if (!date) { showToast(fr ? 'Choisissez une date.' : 'Pick a date first.'); return; }
+          const todo = nextStepTasks.filter((t) => t.selected).map((t) => '- ' + t.text).join('\n');
+          const blob = new Blob([icsFile(box.querySelector('#calWhat').value || title0, date, box.querySelector('#calTime').value, (fr ? 'Prochaines étapes :\n' : 'Next steps:\n') + todo)], { type: 'text/calendar' });
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'appointment.ics'; document.body.appendChild(a); a.click(); a.remove();
+          showToast(fr ? 'Ouvrez le fichier pour l’ajouter à votre calendrier.' : 'Open the file to add it to your calendar.');
+        }
+        box.remove();
+      });
+    }
+    // the button, beside Send to family and Print
+    { const sf = document.getElementById('screenShareFinish'), row = sf && sf.querySelector('.w-full.flex.items-stretch.shrink-0');
+      if (row) { const btn = document.createElement('button'); btn.type = 'button'; btn.id = 'calBtn';
+        btn.className = 'tactile-btn w-full min-h-[54px] px-3 rounded-[16px] bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-sm flex items-center justify-center gap-2 shrink-0';
+        btn.innerHTML = '<span aria-hidden="true">📅</span><span>Add next appointment to my calendar</span>'; btn.addEventListener('click', addToCalendar);
+        row.parentNode.insertBefore(btn, row); } }
+    FR['Add next appointment to my calendar'] = 'Ajouter le prochain rendez-vous au calendrier';
+    FR['Send to my care circle'] = 'Envoyer à mon cercle d’aidants';
+
+    // where you were, by name (the order of the steps changed)
+    { const s0 = saveAll; setInterval(() => { try { localStorage.setItem('wellheard-at', steps[currentIndex].id); } catch (e) { /* full */ } }, 2000); }
+
     // Initial render
     loadAll();
+    try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }
+    { const at = (() => { try { return localStorage.getItem('wellheard-at'); } catch (e) { return ''; } })(), i = steps.findIndex((s) => s.id === at); if (at && i > 0) currentIndex = i; }
     setCompanionState('listening');
     renderCurrentStep();
   </script>
