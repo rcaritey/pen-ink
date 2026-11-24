@@ -6056,6 +6056,21 @@
       isListening = true; syncVoiceBarVisuals(); setCompanionState('listening'); try { startRec(); } catch (err) { /* needs another tap */ }
       if (typeof renderSide === 'function') renderSide();
     }, true);
+    // Only one Reid at a time: if WellHeard is open in another tab or window on this device, the one you're using
+    // tells the others to stop talking and listening (two copies were talking over each other)
+    try {
+      const bc = new BroadcastChannel('wellheard-reid'), me = Math.random().toString(36).slice(2);
+      const claim = () => { try { bc.postMessage({ active: me }); } catch (e) { /* closed */ } };
+      bc.onmessage = (e) => {
+        if (!e.data || e.data.active === me) return;
+        hush(); stopRec(); if (isListening) { isListening = false; syncVoiceBarVisuals(); setCompanionState('paused'); }
+        if (typeof renderSide === 'function') renderSide();
+      };
+      document.addEventListener('pointerdown', claim, true);
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') claim(); else { hush(); stopRec(); } });
+      window.addEventListener('focus', claim);
+      claim();
+    } catch (e) { /* older browser: nothing to coordinate */ }
     // Initial render
     loadAll();
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }
