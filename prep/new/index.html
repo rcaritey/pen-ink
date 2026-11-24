@@ -4654,7 +4654,9 @@
       if (d.stage === 'name') { if (inp && inp.value.trim()) { medSetName(inp.value.trim()); if (medDraft.sugg.length) { renderList(); applyLang(); return true; } medGo('dose'); return true; }
         if (d.name) { medGo('dose'); return true; } if (medsList.length) { medDraft = blankMed(); medGo('list'); return true; } return false; }
       if (d.stage === 'dose') { const a = document.getElementById('medAmount'); if (a && a.value.trim()) d.amount = a.value.trim().replace(/\s+/g, ''); if (!d.amount && !d.doseNote) d.doseNote = 'Not sure'; medGo('sched'); return true; }
-      if (d.stage === 'sched') { addPending(); medSave(); return true; }
+      if (d.stage === 'sched') { addPending(); medGo('freq'); return true; }
+      if (d.stage === 'freq') { medGo('food'); return true; }
+      if (d.stage === 'food') { medSave(); return true; }
       return false;
     }
     function medHeard(t, low) {
@@ -4669,7 +4671,20 @@
       }
       if (d.stage === 'name' && !medsList.length && /^(none|no medicines|i don't take any|nothing)$/.test(low)) { SID('meds').none = true; syncMeds(); goNext(); return true; }
       if (d.stage === 'dose' && /(don't have (it|that|them) with me|not with me|don't know|not sure|i don't know)/.test(low)) { d.doseNote = /with me/.test(low) ? 'Not with me' : 'Not sure'; d.amount = ''; medGo('sched'); return true; }
-      if (d.stage === 'sched' && /^(done|that's all|that's it|finished|save|c'est tout|terminé)$/.test(low)) { addPending(); medSave(); return true; }
+      if (d.stage === 'sched' && /^(done|that's all|that's it|finished|save|c'est tout|terminé)$/.test(low)) { addPending(); medGo('freq'); return true; }
+      if (d.stage === 'freq') {   // "every day", "every other day", "Mondays and Thursdays", "once a week"
+        const Q = d.freqParts || (d.freqParts = blankFreq()), dayRe = [/\bmon|\blun/, /\btue|\bmar(di)?\b/, /\bwed|\bmer/, /\bthu|\bjeu/, /\bfri|\bven/, /\bsat|\bsam/, /\bsun|\bdim/];
+        const days = dayRe.map((r, i) => (r.test(low) ? i : -1)).filter((i) => i > -1);
+        let hit = true;
+        if (/every other|other day|un jour sur deux/.test(low)) Q.kind = 'alt';
+        else if (/every ?day|daily|tous les jours|chaque jour/.test(low)) Q.kind = 'daily';
+        else if (/once a week|weekly|par semaine/.test(low)) { Q.kind = 'week'; Q.days = days.slice(0, 1); }
+        else if (/once a month|monthly|par mois/.test(low)) Q.kind = 'month';
+        else if (days.length) { Q.kind = 'days'; Q.days = days; }
+        else if (/when needed|as needed|au besoin/.test(low)) d.prn = true;
+        else hit = false;
+        if (hit) { renderList(); applyLang(); say(L2('Got it: ', 'Noté : ') + (freqText(Q, lang === 'fr') || L2('every day', 'tous les jours')) + L2('. Say next.', '. Dites suivant.')); return true; }
+      }
       if (cmdOf(low) || /^(next|back|go back|repeat|help|stop|pause|wait|undo|erase)\b/.test(low)) return false;
       medTake(t); return true;
     }
@@ -4681,11 +4696,14 @@
       const OFF = 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]', ON = 'bg-[#1E2634] text-white', GO = 'bg-[#3B5E42] text-white';
       const nm = `<span data-notr>${esc(d.name)}</span>`;
       $('listTitle').innerHTML = { list: L2('Your medicines', 'Vos médicaments'), name: d.edit > -1 ? L2('Medicine name', 'Nom du médicament') : n ? L2('Add a medicine', 'Ajouter un médicament') : L2('What medicines do you take?', 'Quels médicaments prenez-vous ?'),
-        dose: nm + ' · <span>' + L2('How strong is each pill?', 'Quelle est la force de chaque comprimé ?') + '</span>', sched: nm + ' · <span>' + L2('When do you take it?', 'Quand le prenez-vous ?') + '</span>' }[d.stage];
+        dose: nm + ' · <span>' + L2('How strong is each pill?', 'Quelle est la force de chaque comprimé ?') + '</span>', sched: nm + ' · <span>' + L2('What time do you take it?', 'À quelle heure le prenez-vous ?') + '</span>',
+        freq: nm + ' · <span>' + L2('How often?', 'À quelle fréquence ?') + '</span>', food: nm + ' · <span>' + L2('With meals?', 'Avec les repas ?') + '</span>' }[d.stage];
       $('listHelp').textContent = { list: SID('meds').fromLast ? L2('From your last visit. Tap one to change it, or ✕ to remove it.', 'De votre dernière visite. Touchez-en un pour le modifier, ou ✕ pour le retirer.') : L2('Tap one to change it. Add vitamins too.', 'Touchez-en un pour le modifier. Ajoutez aussi les vitamines.'),
         name: L2('Start typing and pick it from the list, or say it.', 'Commencez à écrire et choisissez dans la liste, ou dites-le.'),
         dose: L2('It’s on the label, for example 100/25 mg. Type the number, then tap the unit.', 'C’est sur l’étiquette, par exemple 100/25 mg. Écrivez le nombre, puis touchez l’unité.'),
-        sched: L2('Add each time, then tap Next.', 'Ajoutez chaque heure, puis Suivant.') }[d.stage];
+        sched: L2('Add each time, then tap Next.', 'Ajoutez chaque heure, puis Suivant.'),
+        freq: L2('Every day, unless the label says otherwise. Then tap Next.', 'Tous les jours, sauf si l’étiquette dit autre chose. Puis Suivant.'),
+        food: L2('Only if the label or your doctor says. If not, just tap Next.', 'Seulement si l’étiquette ou le médecin le dit. Sinon, touchez Suivant.') }[d.stage];
       $('listCounter').textContent = L2(`${n} added`, `${n} ajouté(s)`);
       let html = '';
       items.style.overflowY = 'auto';
@@ -4724,6 +4742,8 @@
           <div class="grid grid-cols-6 gap-[6px]">${[...Array(12)].map((_, i) => i + 1).map((h) => `<button type="button" data-med="hr" data-v="${h}" class="${CH} !px-0 !min-h-[42px] ${a.h === h ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${h}</button>`).join('')}</div>
           <div class="grid grid-cols-6 gap-[6px]">${[0, 15, 30, 45].map((mi) => `<button type="button" data-med="mi" data-v="${mi}" class="${CH} !px-0 !min-h-[42px] ${a.m === mi ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">:${String(mi).padStart(2, '0')}</button>`).join('')}${['am', 'pm'].map((p) => `<button type="button" data-med="ap" data-v="${p}" class="${CH} !px-0 !min-h-[42px] ${a.ap === p ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${p.toUpperCase()}</button>`).join('')}</div>
           <button type="button" data-med="tadd" class="${CH} ${a.h ? GO : 'bg-[#D6CFC0] text-[#425268]'} w-full" ${a.h ? '' : 'aria-disabled="true"'}>+ ${a.h ? `<span>${L2('Add', 'Ajouter')}:</span>&nbsp;<span data-notr>${fmtN(a.n)}</span>&nbsp;<span>${cw(a.n)}</span>&nbsp;<span data-notr>· ${fmtT(`${String((a.h % 12) + (a.ap === 'pm' ? 12 : 0)).padStart(2, '0')}:${String(a.m).padStart(2, '0')}`, fr)}</span>` : L2('Pick a time first', 'Choisissez d’abord une heure')}</button></div>`;
+      }
+      if (d.stage === 'freq') {
         { const Q = d.freqParts || (d.freqParts = blankFreq()), CHf = `${CH} !min-h-[46px] !text-[14px] leading-tight`;
           const dayPick = Q.kind === 'days' || Q.kind === 'week';
           html += `<div class="bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-2 flex flex-col gap-[6px]">
@@ -4732,8 +4752,10 @@
             ${dayPick ? `<p class="text-[13px] font-extrabold text-[#1E2634]">${Q.kind === 'week' ? L2('Which day?', 'Quel jour ?') : L2('Which days?', 'Quels jours ?')}</p>
               <div class="grid grid-cols-7 gap-[4px]">${DAYS.map((dd, i) => `<button type="button" data-med="fday" data-v="${i}" aria-pressed="${Q.days.includes(i)}" class="${CH} !px-0 !min-h-[44px] !text-[13px] ${Q.days.includes(i) ? ON : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${dd[fr ? 1 : 0]}</button>`).join('')}</div>` : ''}
             ${Q.kind === 'other' ? `<input id="freqOther" type="text" value="${esc(Q.other)}" placeholder="${L2('For example: every 3 days, twice a month', 'Par exemple : tous les 3 jours, deux fois par mois')}" aria-label="${L2('How often, in your words', 'La fréquence, avec vos mots')}" class="w-full min-h-[46px] px-3 rounded-xl border-2 border-[#D6CFC0] bg-white text-[15px] font-bold">` : ''}</div>`; }
-        html += `<button type="button" data-med="prn" aria-pressed="${d.prn}" class="${CH} w-full ${d.prn ? ON : OFF}">${d.prn ? '✓ ' : ''}${L2('Also when needed', 'Aussi au besoin')}</button>
-          <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5 mt-1">${L2('Meals and timing (as the label or doctor says)', 'Repas et moment (selon l’étiquette ou le médecin)')}</p>
+        html += `<button type="button" data-med="prn" aria-pressed="${d.prn}" class="${CH} w-full ${d.prn ? ON : OFF}">${d.prn ? '✓ ' : ''}${L2('Also when needed', 'Aussi au besoin')}</button>`;
+      }
+      if (d.stage === 'food') {
+        html += `<p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5 mt-1">${L2('Meals and timing (as the label or doctor says)', 'Repas et moment (selon l’étiquette ou le médecin)')}</p>
           ${(() => { const F = d.foodParts || (d.foodParts = blankFood()), pick = (on) => (on ? ON : OFF), CHs = `${CH} !min-h-[46px] !text-[14px] leading-tight`;
             const mins = (k, list) => list.map((n) => `<button type="button" data-med="foodmin" data-k="${k}" data-v="${n}" aria-pressed="${F[k] === n}" class="${CHs} !px-0 ${pick(F[k] === n)}">${minTxt(n)}</button>`).join('');
             return `<div class="grid grid-cols-2 gap-[6px]">
@@ -4747,7 +4769,7 @@
               <input id="foodOther" type="text" value="${esc(F.other)}" placeholder="${L2('Other: type what the label says', 'Autre : écrivez ce que dit l’étiquette')}" aria-label="${L2('Other instructions about meals', 'Autres consignes pour les repas')}" class="w-full min-h-[46px] px-3 rounded-xl border-2 border-[#D6CFC0] bg-white text-[15px] font-bold">
               ${foodText(F, fr) ? `<p class="text-[14px] font-extrabold text-[#3B5E42]">✓ <span>${esc(foodText(F, fr))}</span></p>` : ''}`; })()}`;
       }
-      const keep = d.stage === 'sched' ? items.scrollTop : 0;
+      const keep = ['sched', 'freq', 'food'].includes(d.stage) ? items.scrollTop : 0;
       items.innerHTML = html; foot.innerHTML = ''; items.scrollTop = keep;
       const inp = $('medInput');
       if (inp) {
@@ -4925,6 +4947,7 @@
         menu.innerHTML = `<p class="text-sm font-extrabold text-[#3B5E42] px-1">${fr ? 'Reid, votre aide IA' : 'Reid, your AI helper'}</p>
           ${onStep ? `<button type="button" data-r="explain" class="${MB} bg-[#1E2634] text-white">${ico('explain', 1)}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
           <button type="button" data-r="read" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('pages')}${fr ? 'Lire ce qui est à l’écran' : 'Read what’s on this screen'}</button>
+          ${onStep ? `<button type="button" data-r="clear" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]"><span class="w-8 h-8 shrink-0 flex items-center justify-center">${CLEAR_ICO}</span><span data-cl>${fr ? 'Effacer cet écran' : 'Clear this screen'}</span></button>` : ''}
           <button type="button" data-r="can" class="${MB} bg-white border border-[#D6CFC0] text-[#3B5E42]">${ico('explain')}${fr ? 'Que peut faire Reid ?' : 'What can Reid do?'}</button>
           ${onStep ? `<button type="button" data-r="repeat" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('voice')}${fr ? 'Répéter la question' : 'Repeat the question'}</button>` : ''}
           ${voice && onStep ? `<button type="button" data-r="listen" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter de nouveau' : 'Start listening')}</button>` : ''}
@@ -4936,7 +4959,9 @@
       const close = () => menu.classList.add('hidden');
       wrap.addEventListener('click', (e) => { e.stopPropagation(); ensureCtx(); if (menu.classList.contains('hidden')) open(); else close(); });
       menu.addEventListener('click', (e) => {
-        e.stopPropagation(); const b = e.target.closest('[data-r]'); if (!b) return; close();
+        e.stopPropagation(); const b = e.target.closest('[data-r]'); if (!b) return;
+        if (b.dataset.r === 'clear') { if (Date.now() - clearArm < 4000 || !canClear()) close(); clearTap(b); return; }
+        close();
         if (b.dataset.r === 'explain') forceSay(explainStep);
         if (b.dataset.r === 'repeat') forceSay(speakStep);
         if (b.dataset.r === 'read') forceSay(readScreen);
@@ -5939,6 +5964,59 @@
       }
       lp.style.height = (h * z) + 'px'; lp.style.width = Math.max(360, Math.min(740, vw - parseFloat(main.style.width) * z - 40)) + 'px';
       const show = document.getElementById('lpShow'), side = document.getElementById('sideReid'); if (show && side && show.parentElement !== side) { side.appendChild(show); show.classList.add('in-side'); }
+    }; }
+    { const gb = goBack; goBack = function () {
+      const s0 = steps[currentIndex];
+      if (s0 && s0.mode === 'meds' && medDraft) {
+        const prev = { food: 'freq', freq: 'sched', sched: 'dose', dose: 'name' }[medDraft.stage];
+        if (prev) { medGo(prev); return; }
+        if (medDraft.stage === 'name' && medsList.length && (medDraft.name || medDraft.edit > -1)) { medDraft = blankMed(); medGo('list'); return; }
+      }
+      return gb();
+    }; }
+    // ---------- "Clear this screen": tap once, then again within 4 seconds (so a shaky tap can't wipe anything) ----------
+    function canClear() {
+      const st = steps[currentIndex];
+      if (st.mode === 'voice') return !!(st.answer || '').trim() || !!(document.getElementById('answerInput').value || '').trim();
+      if (st.mode === 'about') return !!abFmt();
+      if (st.mode === 'priority') return qPrio.length > 0;
+      if (st.mode === 'goalqs') return ownQs.length > 0 || goalPool.some((q) => qPicked.includes(q));
+      if (st.mode === 'meds') return ['dose', 'sched', 'freq', 'food'].includes(medDraft.stage);
+      return false;
+    }
+    function clearScreen() {
+      const st = steps[currentIndex], d = medDraft;
+      if (st.mode === 'voice') { st.answer = ''; st.customActive = false; st.fromLast = false; document.getElementById('answerInput').value = ''; }
+      if (st.mode === 'about') { Object.assign(AB, { age: '', ft: '', inch: '', cm: '', lb: '', kg: '' }); abSave(); abAsk = 0; }
+      if (st.mode === 'priority') qPrio = [];
+      if (st.mode === 'goalqs') { qPicked = qPicked.filter((q) => !goalPool.includes(q)); ownQs = []; }
+      if (st.mode === 'meds') {
+        if (d.stage === 'dose') { d.amount = ''; d.doseNote = ''; }
+        if (d.stage === 'sched') d.doses = [];
+        if (d.stage === 'freq') { d.freqParts = blankFreq(); d.prn = false; }
+        if (d.stage === 'food') d.foodParts = blankFood();
+      }
+      saveAll(); renderCurrentStep();
+      const m = L2('Cleared. You can start this screen again.', 'Effacé. Vous pouvez recommencer cet écran.'); showToast(m); say(m);
+    }
+    let clearArm = 0;
+    function clearTap(btn) {
+      if (!canClear()) { const m = L2('Nothing to clear on this screen.', 'Rien à effacer sur cet écran.'); showToast(m); return; }
+      if (Date.now() - clearArm < 4000) { clearArm = 0; clearScreen(); return; }
+      clearArm = Date.now();
+      const m = L2('Tap Clear again to erase what’s on this screen.', 'Touchez Effacer encore pour effacer cet écran.'); showToast(m); say(m);
+      if (btn) { const lab = btn.querySelector('[data-cl]'); if (lab) { lab.textContent = L2('Tap again to clear', 'Touchez encore pour effacer'); setTimeout(() => { lab.textContent = L2('Clear this screen', 'Effacer cet écran'); }, 4000); } }
+    }
+    const CLEAR_ICO = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20H9l-5-5 10-10 7 7-6 6"/><path d="M8 11l6 6"/></svg>';
+    { const rs4 = renderSide; renderSide = function () {
+      rs4();
+      const side = document.getElementById('sideReid'); if (!side || steps[currentIndex].mode === 'landing') return;
+      const ex = side.querySelector('[data-s="explain"]') || side.querySelector('[data-s="read"]');
+      if (ex && !side.querySelector('[data-clear]')) {
+        const b = document.createElement('button'); b.type = 'button'; b.dataset.clear = '1'; b.className = ex.className;
+        b.innerHTML = `<span class="w-8 h-8 shrink-0 rounded-lg bg-white border border-[#D6CFC0] flex items-center justify-center">${CLEAR_ICO}</span><span data-cl>${L2('Clear this screen', 'Effacer cet écran')}</span>`;
+        b.addEventListener('click', () => clearTap(b)); ex.after(b);
+      }
     }; }
     // Initial render
     loadAll();
