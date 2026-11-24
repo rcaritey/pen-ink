@@ -5267,7 +5267,7 @@
       ND({ id: 'goal', topic: 'Your goal', question: 'What do you want to get out of this appointment?', helperText: 'Tap all that apply, or say it in your own words.',
         presets: ['Understand what is going on', 'Relief from a symptom', 'Review or change my medicines', 'A test, referral or results', 'A plan for what comes next', 'Something else'],
         customOptionLabel: 'Something else', multi: true, defaultPlaceholder: 'Tap above, or say what you hope for...', customPlaceholder: 'Say or type what you hope to get out of it...' }),
-      ND({ id: 'goalqs', mode: 'goalqs', topic: 'Your questions', question: 'Questions for your goal' }));
+      ND({ id: 'goalqs', mode: 'goalqs', topic: 'Your questions', question: 'Questions to get what you came for' }));
     KEEP.push('about');
     LISTMODES.basicsCheck = 1; LISTMODES.goalqs = 1;
     // the order of Prepare; the doctor-style questions (dq0, dq1, …) always follow "detail"
@@ -5377,7 +5377,7 @@
     }
     function renderGoalQs(items, foot) {
       const $ = (id) => document.getElementById(id), goal = (SID('goal').answer || '').trim();
-      $('listTitle').textContent = L2('Questions for your goal', 'Questions pour votre objectif');
+      $('listTitle').textContent = L2('Questions to get what you came for', 'Questions pour obtenir ce que vous voulez');
       $('listHelp').textContent = goalBusy && !goalPool.length ? L2('Reid is writing questions for what you want out of this visit…', 'Reid écrit des questions selon ce que vous voulez de cette visite…')
         : (goal ? L2('You want: ', 'Vous voulez : ') + goal + '. ' : '') + L2('Tick the ones to keep. Tap ✎ to change one. Add your own below.', 'Cochez celles à garder. Touchez ✎ pour en changer une. Ajoutez les vôtres en bas.');
       $('listCounter').textContent = L2(`${goalPool.filter((q) => qPicked.includes(q)).length + ownQs.length} kept`, `${goalPool.filter((q) => qPicked.includes(q)).length + ownQs.length} gardée(s)`);
@@ -5443,7 +5443,7 @@
     { const ip = ideaPool; ideaPool = function () { return ip().filter((q) => !goalPool.some((g) => similar(g, q)) && !COMMON.en.includes(q) && !COMMON.fr.includes(q)); }; }
     Object.assign(SPEAK, {
       goalqs: () => goalPool.length ? L2('Here are questions for what you want out of this visit. Tap the ones to keep. You can also say your own question.', 'Voici des questions selon ce que vous voulez de cette visite. Touchez celles à garder. Vous pouvez aussi dire votre propre question.')
-        : L2('Reid is writing questions for your goal. You can say your own question too.', 'Reid écrit des questions pour votre objectif. Vous pouvez aussi dire votre question.'),
+        : L2('Reid is writing questions to help you get what you came for. You can say your own question too.', 'Reid écrit des questions pour votre objectif. Vous pouvez aussi dire votre question.'),
       basicsCheck: () => L2('Welcome back. Here is what you told me last time. If nothing changed, tap All the same.', 'Bon retour. Voici ce que vous m’avez dit la dernière fois. Si rien n’a changé, touchez Tout pareil.')
     });
     if (typeof EXPLAIN === 'object') Object.assign(EXPLAIN, { goalqs: SPEAK.goalqs, basicsCheck: SPEAK.basicsCheck });
