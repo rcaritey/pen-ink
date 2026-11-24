@@ -332,6 +332,11 @@
     #appContainer.wide > section { grid-column: 2 / span 2; grid-row: 3; }
     #appContainer.wide > footer { grid-column: 2 / span 2; grid-row: 4; }
     #appContainer.wide #reidHello { right: auto; width: 330px; top: 140px; }
+    /* "Welcome back, how would you like to answer?" as a bubble from Reid (24 Nov) */
+    #welcomeBack .wb-face { position: fixed; border-radius: 9999px; background: #FAF7F0; box-shadow: 0 0 0 4px #FAF7F1, 0 4px 14px rgba(0,0,0,.25); overflow: hidden; }
+    #welcomeBack .wb-bubble { border: 2px solid #3B5E42; }
+    #welcomeBack .wb-bubble::before { content: ''; position: absolute; top: -11px; left: var(--tail, 22px); width: 20px; height: 20px; background: #FAF7F1;
+      border-left: 2px solid #3B5E42; border-top: 2px solid #3B5E42; border-top-left-radius: 4px; transform: rotate(45deg); }
     /* Reid's notes as a speech bubble from his face (24 Nov) */
     #toastBanner.reid-bubble { padding: 10px 16px; border-radius: 18px; box-shadow: 0 2px 6px rgba(51,72,47,.18), 0 10px 24px rgba(51,72,47,.18); }
     #toastBanner.reid-bubble::before { content: ''; position: absolute; top: -10px; left: var(--tail, 20px); width: 18px; height: 18px; background: #fff;
@@ -2658,7 +2663,8 @@
       // a speech bubble coming from Reid (Rama, 24 Nov): when his face is on screen, the note sits just under it
       // with a tail pointing up at him; otherwise it stays the centred note with his face in it
       const app = document.getElementById('appContainer'), em = [...document.querySelectorAll('#companionEmblem, #sideReid .reid-face')]
-        .find((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight; });
+        .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight; })
+        .sort((x, y) => y.getBoundingClientRect().width - x.getBoundingClientRect().width)[0];
       toast.classList.remove('reid-bubble'); toast.style.left = toast.style.top = toast.style.transform = toast.style.maxWidth = ''; toast.style.removeProperty('--tail');
       if (em && app) {
         const z = parseFloat(app.style.zoom) || 1, a = app.getBoundingClientRect(), r = em.getBoundingClientRect();
@@ -6870,14 +6876,41 @@
       box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'wbTitle');
       const opt = (v, icon, t, sub, on) => `<button type="button" data-wb="${v}" class="tactile-btn w-full min-h-[92px] px-4 py-3 rounded-2xl border-2 ${on ? 'border-[#3B5E42] bg-[#E5EFE7]' : 'border-[#D6CFC0] bg-white'} flex items-start gap-3 text-left">
           <span class="text-[28px] leading-none mt-0.5" aria-hidden="true">${icon}</span><span><span class="block text-[19px] font-extrabold text-[#1E2634]">${t}</span><span class="block text-[15px] font-bold text-[#425268] leading-snug mt-1">${sub}</span></span></button>`;
-      box.innerHTML = `<div class="w-full max-w-md bg-[#FAF7F1] rounded-3xl p-5 space-y-3 shadow-2xl">
+      box.innerHTML = `<div id="wbCard" class="w-full max-w-md bg-[#FAF7F1] rounded-3xl p-5 space-y-3 shadow-2xl">
           <p class="text-[13px] font-extrabold uppercase tracking-wide text-[#3B5E42]">${fr ? 'Bon retour' : 'Welcome back'}</p>
           <h2 id="wbTitle" class="text-[23px] font-extrabold text-[#1E2634] leading-tight">${fr ? 'Comment voulez-vous répondre ?' : 'How would you like to answer?'}</h2>
           <p class="text-[15px] font-bold text-[#425268]">${fr ? 'Vous reprenez où vous étiez.' : 'You’ll pick up where you left off.'}</p>
           ${opt('voice', '🗣️', fr ? 'Parler et toucher' : 'Talk and tap', fr ? 'Reid lit les questions et écoute vos réponses.' : 'Reid reads the questions and listens to your answers.', inputPreference === 'voice')}
           ${opt('tap', '👆', fr ? 'Toucher et écrire' : 'Tap and type', fr ? 'Reid reste silencieux. Vous touchez ou écrivez.' : 'Reid stays quiet. You tap or type.', inputPreference !== 'voice')}</div>`;
       document.body.appendChild(box); document.body.classList.add('modal-open');
-      box.querySelector(`[data-wb="${inputPreference === 'voice' ? 'voice' : 'tap'}"]`).focus();
+      // a speech bubble from Reid (Rama, 24 Nov): the card sits under his face with a tail pointing at him,
+      // and a copy of his face stays lit above the dimmed screen so it's clear he's the one asking
+      const asReidBubble = () => {
+        if (!box.isConnected) return;
+        box.querySelectorAll('.wb-face').forEach((x) => x.remove());
+        // his main face: the biggest one showing (there are small copies elsewhere on the page)
+        const face = [...document.querySelectorAll('#sideReid .reid-face, #companionEmblem .reid-face')]
+          .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight; })
+          .sort((x, y) => y.getBoundingClientRect().width - x.getBoundingClientRect().width)[0];
+        const card = box.querySelector('#wbCard'); card.style.visibility = '';
+        if (!face) return;
+        const r = face.getBoundingClientRect(), vw = window.innerWidth;
+        const lit = document.createElement('div'); lit.className = 'wb-face'; lit.setAttribute('aria-hidden', 'true');
+        Object.assign(lit.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+        const f = face.cloneNode(true); f.removeAttribute('id'); f.setAttribute('width', '100%'); f.setAttribute('height', '100%'); lit.appendChild(f); box.appendChild(lit);
+        box.className = 'fixed inset-0 z-[85] bg-black/45';
+        card.classList.add('wb-bubble'); const w = Math.min(440, vw - 24); card.style.width = w + 'px';
+        const left = Math.max(12, Math.min(r.left - 6, vw - w - 12));
+        Object.assign(card.style, { position: 'absolute', left: left + 'px', top: (r.bottom + 16) + 'px' });
+        card.style.setProperty('--tail', Math.max(16, Math.min(r.left + r.width / 2 - left - 10, w - 36)) + 'px');
+        if (card.getBoundingClientRect().bottom > window.innerHeight - 8) card.style.top = Math.max(8, window.innerHeight - card.offsetHeight - 8) + 'px';
+      };
+      // placed once the page has finished sizing itself (and again if the window changes), hidden until then
+      box.querySelector('#wbCard').style.visibility = 'hidden';
+      setTimeout(() => requestAnimationFrame(asReidBubble), 120);
+      const onRs = () => { if (!box.isConnected) { window.removeEventListener('resize', onRs); return; } asReidBubble(); };
+      window.addEventListener('resize', onRs);
+      setTimeout(() => box.querySelector(`[data-wb="${inputPreference === 'voice' ? 'voice' : 'tap'}"]`).focus(), 140);
       box.addEventListener('click', (e) => {
         const b = e.target.closest('[data-wb]'); if (!b) return;
         ensureCtx(); box.remove(); document.body.classList.remove('modal-open');
