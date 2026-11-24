@@ -4413,7 +4413,7 @@
           z = Math.min(1.5, avail / 480, (vh * 0.96) / 600); w = Math.min(640, avail / z); h = (vh * 0.96) / z;
         }
         // upright iPad: the full screen, no phone frame, text a little bigger (Rama, 24 Nov: don't make people turn it)
-        else { z = Math.min(1.75, (vh * 0.97) / 700); w = Math.min(620, (vw * 0.96) / z); h = (vh * 0.97) / z; }
+        else { z = Math.min(1.7, (vh * 0.96) / 820, (vw * 0.96) / 420); w = 420; h = 820; }   // upright iPad: the phone page, scaled up; a note suggests turning it sideways
         // computer or sideways iPad: no phone-style frame (Rama, 23 Nov). With the pages beside it, a soft card.
         // borderless: one paper-coloured screen, a hairline between the questions and the pages (Rama, 23 Nov)
         main.style.borderRadius = '0'; main.style.borderWidth = '0';
@@ -4424,7 +4424,7 @@
       // the app's own text size, times the device's Larger Text setting on iPhone and iPad (Rama, 24 Nov)
       const ts = ([1, 1.18, 1.36][textSize] || 1) * sysTextScale(); z *= ts; w /= ts; h /= ts;
       // an upright iPad never gets so zoomed that the page is narrower than a phone (that squeezes the layout and shrinks its text)
-      if (vw >= 500 && !main.classList.contains('wide') && !main.classList.contains('with-pages') && w < 380) { w = 380; z = (vw * 0.96) / 380; h = (vh * 0.97) / z; }
+      if (vw >= 500 && !main.classList.contains('wide') && !main.classList.contains('with-pages') && w < 380) { const k = w / 380; w = 380; h /= k; z *= k; }
       document.documentElement.classList.toggle('ts-1', textSize === 1); document.documentElement.classList.toggle('ts-2', textSize === 2);
       main.classList.toggle('narrow', w < 385);
       main.classList.toggle('tiny', w < 330);   // extra-large text on a phone: Reid stands for WellHeard, Help and Settings keep their labels
@@ -6345,6 +6345,22 @@
     }; }
     { const gl = glance; glance = function () {   // a "day" that isn't a day stays off the pages
       const d = SID('day'), keep = d.answer; if (keep && !DAYISH.test(keep) && !d.dateISO) { d.answer = ''; const h = gl(); d.answer = keep; return h; } return gl(); }; }
+
+    // upright iPad: a gentle note to turn it sideways, where WellHeard looks like it does on a computer (Rama, 24 Nov)
+    { const note = document.createElement('div'); note.id = 'turnNote'; note.setAttribute('role', 'status'); note.hidden = true;
+      note.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:70;max-width:560px;width:calc(100% - 48px);background:#1E2634;color:#fff;border-radius:20px;padding:16px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-weight:800;font-size:19px;line-height:1.3';
+      note.innerHTML = '<span aria-hidden="true" style="font-size:30px">⟲</span><span style="flex:1" id="turnNoteText"></span><button type="button" id="turnNoteOk" style="font:inherit;font-weight:800;min-height:52px;padding:0 20px;border-radius:14px;background:#fff;color:#1E2634;border:0">OK</button>';
+      document.body.appendChild(note);
+      let dismissed = false; try { dismissed = sessionStorage.getItem('wellheard-turn') === '1'; } catch (e) { /* private */ }
+      const check = () => {
+        const vw = window.innerWidth, vh = window.innerHeight, touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 1;
+        const upright = touch && vw >= 600 && vh > vw;
+        note.hidden = !upright || dismissed;
+        if (!note.hidden) document.getElementById('turnNoteText').textContent = L2('For the best view, turn your iPad sideways.', 'Pour une meilleure vue, tournez votre iPad à l’horizontale.');
+      };
+      document.getElementById('turnNoteOk').addEventListener('click', () => { dismissed = true; try { sessionStorage.setItem('wellheard-turn', '1'); } catch (e) { /* private */ } check(); });
+      window.addEventListener('resize', () => setTimeout(check, 150)); window.addEventListener('orientationchange', () => setTimeout(check, 300)); setTimeout(check, 400);
+    }
 
     // Spoken "next" is caught however it arrives: "Next?", "okay next", "next please", or tacked onto
     // an answer ("myotonic dystrophy, next"): the answer is kept, then Reid moves on.
