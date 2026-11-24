@@ -203,6 +203,13 @@
     .rdy-act { flex-direction: column; gap: 2px; }
     @media (min-width: 600px) { .rdy-act { flex-direction: row; gap: 8px; } }
     .rdy-rows { gap: clamp(6px, 1vh, 10px); }
+    /* wide screens: buttons on the left, the "Change" list beside them, so nothing is squeezed (Rama, 24 Nov) */
+    .rdy-wrap { width: 100%; container-type: inline-size; }
+    @container (min-width: 720px) {
+      .rdy { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); column-gap: clamp(14px, 2vw, 28px); align-content: start; }
+      .rdy > :not(.rdy-box) { grid-column: 1; }
+      .rdy > .rdy-box { grid-column: 2; grid-row: 1 / span 3; align-self: start; }
+    }
     /* Chat with Rama box */
     .side-gap { margin-top: 10px; }
     .chat-pick { display: none; position: absolute; inset: 0; z-index: 60; background: rgba(30,38,52,.45); align-items: center; justify-content: center; padding: 16px; }
@@ -4495,6 +4502,11 @@
         <div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-hi="no" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">No thanks</button></div>
 `;
       hello.classList.remove('hidden'); applyLang();
+      // computers: the bubble stays over the left column instead of covering the headline
+      const sd = document.getElementById('sideReid'), mn = document.getElementById('appContainer');
+      if (mn.classList.contains('wide') && sd && sd.offsetWidth) { const r = sd.getBoundingClientRect(), m = mn.getBoundingClientRect(), z = parseFloat(mn.style.zoom) || 1;
+        hello.style.left = ((r.left - m.left) / z) + 'px'; hello.style.right = 'auto'; hello.style.width = (sd.offsetWidth) + 'px'; }
+      else { hello.style.left = ''; hello.style.right = ''; hello.style.width = ''; }
     }
     function readLanding() {
       // what's on the first page, in the language it's showing, without the buttons' small print
@@ -4601,7 +4613,8 @@
         const tall = !landscape && vw >= 600 && vh > vw;   // upright iPad: layout D, Reid's rail down the left (Rama, 24 Nov)
         main.classList.toggle('wide', wide || tall); main.classList.toggle('tall', tall); main.classList.toggle('with-pages', livePg);
         if (tall) { z = Math.min(1.5, vw / 780); w = vw / z; h = vh / z; }
-        else if (wide) { z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000); w = 1000; h = 640; }
+        // fills the window: the size is set by the height, the extra width goes to the question (Rama, 24 Nov)
+        else if (wide) { z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000); w = Math.min(1500, (vw * 0.97) / z); h = (vh * 0.97) / z; }
         // the phone page's full height (every step is designed to fit it), a little wider than a phone
         // bigger than the phone page would allow: the few tallest steps scroll a little instead (23 Nov)
         // the pages panel is only as wide as the page; the questions get all the rest (Rama, 23 Nov 22:12).
@@ -6147,8 +6160,9 @@
       const could = main.classList.contains('with-pages') || (pagesHidden && window.innerWidth >= 900 && window.innerWidth > window.innerHeight * 1.1 && steps[currentIndex].mode !== 'landing');
       if (pagesHidden && main.classList.contains('with-pages')) {   // lay out as if there were no pages
         main.classList.remove('with-pages'); main.classList.add('wide'); lp.hidden = true; document.body.style.flexDirection = '';
-        const vw = window.innerWidth, vh = window.innerHeight, z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000);
-        main.style.zoom = z; main.style.width = '1000px'; main.style.height = '640px';
+        const vw = window.innerWidth, vh = window.innerHeight, ts = ([1, 1.18, 1.36][textSize] || 1) * sysTextScale();
+        const z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000) * ts;
+        main.style.zoom = z; main.style.width = Math.min(1500 / ts, (vw * 0.97) / z) + 'px'; main.style.height = ((vh * 0.97) / z) + 'px';
         if (LISTMODES[steps[currentIndex].mode]) renderList();
       }
       // on a computer, nothing should need scrolling: if a screen is too tall, make everything a little smaller instead
@@ -6207,6 +6221,16 @@
       placeWide();
       const wide = document.getElementById('appContainer').classList.contains('wide'), show = document.getElementById('lpShow'), side = document.getElementById('sideReid');
       if (show) { if (wide) { side.appendChild(show); show.classList.add('in-side'); } else if (show.parentElement !== document.body) { document.body.appendChild(show); show.classList.remove('in-side'); } }
+      // the left column (Reid, what he can do, Chat with Rama, See my pages) must fit on a short screen:
+      // if it doesn't, the whole page gets a little smaller and wider instead of cutting the bottom button off
+      if (wide && side) { const main = document.getElementById('appContainer');
+        for (let k = 0; k < 3; k++) {
+          const over = side.scrollHeight - side.clientHeight; if (over <= 2) break;
+          const z = parseFloat(main.style.zoom) || 1, h = parseFloat(main.style.height), w = parseFloat(main.style.width), nz = z * h / (h + over + 12);
+          if (nz < 0.6) break;
+          main.style.zoom = nz; main.style.height = (h * z / nz) + 'px'; main.style.width = (w * z / nz) + 'px';
+          if (LISTMODES[steps[currentIndex].mode]) renderList();
+        } }
     }; }
 
     // =====================================================================
@@ -6594,10 +6618,10 @@
       }[readyPick];
       const pick = (k) => `<button type="button" data-rp="${k}" aria-pressed="${readyPick === k}" class="tactile-btn flex-1 min-h-[46px] px-2 py-1 rounded-2xl font-extrabold text-[15px] leading-tight ${readyPick === k ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${readyPick === k ? '✓ ' : ''}${L2(...PAGE_NAME[k])}</button>`;
       const act = (k, icon, en, fr, cls) => `<button type="button" data-ra="${k}" class="tactile-btn rdy-act min-h-[48px] px-2 py-1 rounded-2xl font-extrabold text-[15px] flex items-center justify-center leading-tight ${cls}"><span class="text-[18px]" aria-hidden="true">${icon}</span>${L2(en, fr)}</button>`;
-      items.innerHTML = `<div class="rdy"><div class="w-full flex rdy-row" role="group" aria-label="${L2('Which page', 'Quelle page')}">${pick('mine')}${pick('doc')}${pick('circle')}</div>
+      items.innerHTML = `<div class="rdy-wrap"><div class="rdy"><div class="w-full flex rdy-row" role="group" aria-label="${L2('Which page', 'Quelle page')}">${pick('mine')}${pick('doc')}${pick('circle')}</div>
         <button type="button" data-ra="see" class="tactile-btn w-full min-h-[54px] rounded-[18px] bg-[#A84B2F] text-white font-extrabold text-[clamp(16px,4.2vw,18px)] px-4 shadow-[0_4px_12px_rgba(168,75,47,.3)] flex items-center justify-center gap-2"><span class="text-[20px] shrink-0" aria-hidden="true">📄</span><span class="min-w-0 leading-tight">${L2('See the', 'Voir la')} ${L2(...PAGE_NAME[readyPick])}</span></button>
         <div class="grid grid-cols-3 rdy-row">${act('print', '🖨', 'Print', 'Imprimer', 'bg-[#1E2634] text-white')}${act('pdf', '📄', 'Save PDF', 'PDF', 'bg-[#3B5E42] text-white')}${act('send', '✉️', 'Send', 'Envoyer', 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]')}</div>
-        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-2 flex flex-col rdy-rows">${rows}</div></div>`;
+        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-2 flex flex-col rdy-rows rdy-box">${rows}</div></div></div>`;
       setTimeout(() => loadPdfLib().catch(() => {}), 800);
       $help = document.getElementById('listHelp'); if ($help) $help.textContent = L2('Pick a page, then see, print, save or send it. Tap ✎ to change anything.', 'Choisissez une page, puis voyez-la, imprimez-la, enregistrez-la ou envoyez-la. Touchez ✎ pour changer quoi que ce soit.');
     }; }
