@@ -1,8 +1,8 @@
 {
   "name": "WellHeard",
   "short_name": "WellHeard",
-  "start_url": "/prep/new/",
-  "scope": "/prep/new/",
+  "start_url": "/Reid",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#FAF7F0",
   "theme_color": "#FAF7F0",

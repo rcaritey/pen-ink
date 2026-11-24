@@ -205,7 +205,8 @@
     .cp-btn b { font-weight: 800; } .cp-btn small { font-size: 13px; font-weight: 700; color: #425268; }
     .cp-num { text-align: center; font-size: 14px; font-weight: 700; color: #425268; margin: 2px 0 0; }
     .chat-pick .cp-card { max-height: 100%; overflow-y: auto; }
-    .cp-qr { width: 160px; height: 160px; flex-shrink: 0; align-self: center; border: 1px solid #D6CFC0; border-radius: 12px; background: #fff; }
+    .cp-qrrow { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
+    .cp-qr { width: 130px; height: 130px; flex-shrink: 0; border: 1px solid #D6CFC0; border-radius: 12px; background: #fff; }
     .cp-big { text-align: center; font-size: 18px; color: #1E2634; margin: 0; } .cp-big b { font-size: 26px; font-weight: 800; display: block; letter-spacing: .02em; }
     .cp-note { font-size: 14px; font-weight: 700; color: #425268; background: #F0EBE1; border-radius: 14px; padding: 10px 12px; margin: 0; line-height: 1.35; }
     .cp-close { min-height: 52px; border-radius: 18px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer; }
@@ -2711,7 +2712,7 @@
     const PACKS = {}, packWait = {};
     function loadPack(c) {
       if (PACKS[c]) return Promise.resolve(PACKS[c]);
-      if (!packWait[c]) packWait[c] = fetch(c + '.json', { cache: 'no-cache' }).then((r) => (r.ok ? r : fetch('i18n/' + c + '.json', { cache: 'no-cache' }))).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
+      if (!packWait[c]) packWait[c] = fetch('/prep/new/' + c + '.json', { cache: 'no-cache' }).then((r) => (r.ok ? r : fetch('/prep/new/i18n/' + c + '.json', { cache: 'no-cache' }))).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
         .then((d) => { PACKS[c] = (d && d.strings) || {}; if (c === lang) { Object.assign(uic(), PACKS[c]); } return PACKS[c]; });
       return packWait[c];
     }
@@ -3824,7 +3825,7 @@
           : card(T('Full screen', 'Plein écran'), canFS ? `<button type="button" data-act="fullscreen" class="${B}">${T('Go full screen', 'Passer en plein écran')}</button>` : '', T('On Android you can also tap ⋮ then Add to Home screen, so it always opens full screen.', 'Sur Android, touchez aussi ⋮ puis Ajouter à l’écran d’accueil pour toujours l’ouvrir en plein écran.'));
         body = head(T('Full screen & other devices', 'Plein écran et autres appareils'), 1) + `<div class="flex flex-col gap-[12px]">${fsCard}
           ${card(T('1. On this phone', '1. Sur ce téléphone'), `<button type="button" data-act="backup" class="${B}">${T('Save a backup file', 'Enregistrer une sauvegarde')}</button>`, T('Send the file to the other device, by email or message.', 'Envoyez le fichier à l’autre appareil, par courriel ou message.'))}
-          ${card(T('2. On the other device', '2. Sur l’autre appareil'), `<label class="${B} cursor-pointer">${T('Open the backup file', 'Ouvrir la sauvegarde')}<input type="file" accept=".json,application/json" data-act="open" class="hidden"></label>`, T('Open pen-ink.ca/prep/new, then tap this.', 'Ouvrez pen-ink.ca/prep/new, puis touchez ceci.'))}</div>`;
+          ${card(T('2. On the other device', '2. Sur l’autre appareil'), `<label class="${B} cursor-pointer">${T('Open the backup file', 'Ouvrir la sauvegarde')}<input type="file" accept=".json,application/json" data-act="open" class="hidden"></label>`, T('Open pen-ink.ca/Reid, then tap this.', 'Ouvrez pen-ink.ca/Reid, puis touchez ceci.'))}</div>`;
       }
       panel.innerHTML = body;
       speakSettings(panel);
@@ -4442,12 +4443,17 @@
         el.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeChatPicker(); });
       }
       const note = `<p class="cp-note">${fr ? 'Pour de l’aide avec l’application. Si vous devez donner des détails de santé sensibles, appelez Rama plutôt que de lui écrire. Vous pouvez aussi demander à Reid s’il peut vous aider.' : 'For help using the app. If you need to include sensitive health details, please call Rama instead of sending a message. You can also ask Reid if he can help.'}</p>`;
+      // first option everywhere: "Chat with Rama", which opens a text message to him
+      const chatBtn = `<a class="cp-btn" href="${chatHref()}">${ico('chat')}<span><b>${fr ? 'Écrire à Rama' : 'Chat with Rama'}</b><small>${pc
+        ? (fr ? 'Ouvre l’application de messages de cet ordinateur, s’il en a une' : 'Opens this computer’s messages app, if it has one')
+        : (fr ? 'Envoie un texto à Rama' : 'Sends Rama a text message')}</small></span></a>`;
       const body = pc
-        ? `<p class="cp-sub">${fr ? 'Écrivez-lui depuis votre téléphone : pointez l’appareil photo du téléphone vers le carré, puis touchez le lien qui apparaît.' : 'Text him from your phone: point your phone’s camera at the square, then tap the link that appears.'}</p>
-          <svg class="cp-qr" viewBox="-2 -2 29 29" role="img" aria-label="${fr ? 'Code QR pour texter Rama au 416-454-5597' : 'QR code to text Rama at 416-454-5597'}"><rect x="-2" y="-2" width="29" height="29" fill="#fff"/><path fill="#1E2634" d="${CHAT_QR}"/></svg>
-          <p class="cp-big">${fr ? 'Ou textez ou appelez le' : 'Or text or call'} <b>416-454-5597</b></p>`
+        ? `${chatBtn}
+          <p class="cp-sub">${fr ? 'Ou textez depuis votre téléphone : pointez son appareil photo vers le carré et touchez le lien qui apparaît.' : 'Or text from your phone: point its camera at the square and tap the link that appears.'}</p>
+          <div class="cp-qrrow"><svg class="cp-qr" viewBox="-2 -2 29 29" role="img" aria-label="${fr ? 'Code QR pour texter Rama au 416-454-5597' : 'QR code to text Rama at 416-454-5597'}"><rect x="-2" y="-2" width="29" height="29" fill="#fff"/><path fill="#1E2634" d="${CHAT_QR}"/></svg>
+          <p class="cp-big">${fr ? 'Ou textez ou appelez le' : 'Or text or call'} <b>416-454-5597</b></p></div>`
         : `<p class="cp-sub">${fr ? 'Rama a créé WellHeard. Envoyez-lui un texto; il vous répondra par texto.' : 'Rama made WellHeard. Send him a text and he’ll text you back.'}</p>
-          <a class="cp-btn" href="${chatHref()}">${ico('chat')}<span><b>${fr ? 'Texter Rama' : 'Text Rama'}</b><small>${fr ? 'Ouvre votre application de messages' : 'Opens your messages app'}</small></span></a>
+          ${chatBtn}
           <p class="cp-num">${fr ? 'Ou textez ou appelez le' : 'Or text or call'} 416-454-5597</p>`;
       el.innerHTML = `<div class="cp-card" role="dialog" aria-modal="true" aria-labelledby="cpTitle" data-notr>
           <p id="cpTitle" class="cp-title">${fr ? 'Écrire à Rama' : 'Chat with Rama'}</p>

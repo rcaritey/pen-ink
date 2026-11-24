@@ -50,6 +50,10 @@
       "dest": "/prep/index.html"
     },
     {
+      "src": "/[Rr][Ee][Ii][Dd]/?",
+      "dest": "/prep/new/index.html"
+    },
+    {
       "handle": "filesystem"
     }
   ],
