@@ -3072,7 +3072,8 @@
         if (ic === 'star') { decideIdea('star'); return; }
         if (/^(keep|keep it|keep that|keep this one|garder|garde|gardez|gardez-la|yes|yeah|yep|sure|ok|okay|add it|yes please|oui|ajoute|sí|si|sì|sim|da|tak|так|да|네|vâng|có|haan|ہاں|بله|نعم|是|好|係)$/.test(low)) { decideIdea('yes'); return; }
         if (/^(leave out|leave it out|leave it|leave that out|drop it|laisser|laisse|laissez|laissez-la|no|nope|skip|no thanks|pass|non|passer|não|nie|нет|ні|아니|không|nahin|نہیں|نه|لا|不|不要|唔要)$/.test(low)) { decideIdea('no'); return; }
-        if (/(most important|very important|important|très important|importante?|muy importante|molto importante)$/.test(low)) { decideIdea('star'); return; }
+        if (/(must ask|must|must-ask|have to ask|most important|very important|important|top|très important|importante?|absolument|à poser absolument|muy importante|molto importante)$/.test(low)) { decideIdea('star'); return; }
+        if (/^(if there'?s time|if time|if we have time|maybe|later|si on a le temps|peut-être)$/.test(low)) { decideIdea('yes'); return; }
         if (/^(previous|previous one|undo|go back one|last one|précédente)$/.test(low)) { decideIdea('undo'); return; }
       }
       if (step.mode === 'meds' && medHeard(t, low)) return;
@@ -3270,6 +3271,12 @@
           : L2(`Question ${i + 1} of ${n}${i === n - 1 ? ', the last one' : ''}.`, `Question ${i + 1} sur ${n}${i === n - 1 ? ', la dernière' : ''}.`);
         if (i === 0) st._introSaid = true;
         say(lead + ' ' + st.question, true); }; }
+    // "Which questions matter most?" is folded into the one-at-a-time screen (★ Must ask / ✓ If there's time /
+    // ✕ Leave out) — Rama, 24 Nov: the separate ranking screen was confusing. It stays as "Your questions",
+    // reached from Your pages to change stars, but Next and Back go past it.
+    { const gnP = goNext, gbP = goBack, onP = () => steps[currentIndex] && steps[currentIndex].id === 'priority';
+      goNext = function () { const from = steps[currentIndex] && steps[currentIndex].id; const r = gnP.apply(this, arguments); if (onP() && from !== 'priority') return gnP.apply(this, arguments); return r; };
+      goBack = function () { const from = steps[currentIndex] && steps[currentIndex].id; const r = gbP.apply(this, arguments); if (onP() && from !== 'priority') return gbP.apply(this, arguments); return r; }; }
     // Reid understands what's said to him beyond the fixed commands (Rama, 24 Nov): anything that isn't a
     // command or plainly an answer goes to Claude with what's on the screen, and Reid does it or replies.
     const REQ = /\b(reid|again|repeat|pardon|sorry|didn'?t (hear|catch|get|understand)|don'?t (understand|get it|know what)|can you|could you|would you|please|louder|slower|faster|go (back|on)|start (over|again)|lost|confused|what was|hang on|give me a (minute|moment|second)|scratch that|that'?s wrong|never mind|thank)/;
@@ -4183,7 +4190,7 @@
         $('listTitle').textContent = cur ? L2('Ask the doctor this?', 'Poser cette question au médecin ?') : aiBusy ? L2('Finding more questions…', 'Je cherche d’autres questions…') : L2('That’s all my suggestions', 'C’est tout pour mes suggestions');
         // built from separate pieces so each fixed sentence uses its checked translation and the numbers stay as they are
         const helpBits = aiLoading && !cur ? [L2('Reid is thinking of questions for your visit…', 'Reid réfléchit à des questions pour votre visite…')]
-          : cur ? [L2('Keep it, or leave it out.', 'Gardez-la, ou laissez-la.')].concat(aiLoading ? [L2('Reid is finding more…', 'Reid en cherche d’autres…')] : []) : [L2('Say yes for more, or no to go on.', 'Dites oui pour d’autres, ou non pour continuer.')];
+          : cur ? [L2('Must ask, if there’s time, or leave it out?', 'À poser absolument, si on a le temps, ou la laisser ?')].concat(aiLoading ? [L2('Reid is finding more…', 'Reid en cherche d’autres…')] : []) : [L2('Say yes for more, or no to go on.', 'Dites oui pour d’autres, ou non pour continuer.')];
         if (isMT()) helpBits.push('⚠ Translated by computer: check with the doctor.');
         $('listHelp').innerHTML = (cur ? `<span data-notr>${done + 1} / ${pool.length} · </span>` : '') + helpBits.map((b) => `<span>${esc(b)}</span>`).join(' ');
         $('listCounter').textContent = L2(`${qPicked.length} added`, `${qPicked.length} ajoutée(s)`);
@@ -4194,7 +4201,8 @@
           items.innerHTML = `<div class="w-full bg-white border-2 border-[#1E2634] rounded-[22px] p-4 flex flex-col gap-2">
               <span class="text-[11px] font-extrabold uppercase tracking-wide ${aiTags[cur] === 'd' ? 'text-[#B84A27]' : 'text-[#425268]'}">${esc(tag)}</span>
               ${qText(cur, 'font-extrabold text-[21px] leading-snug text-[#1E2634]')}</div>
-            <div class="flex items-stretch"><button type="button" data-idea="yes" class="tactile-btn flex-1 min-h-[68px] rounded-[18px] bg-[#3B5E42] text-white font-extrabold text-xl">✓ ${L2('Keep', 'Garder')}</button>
+            <button type="button" data-idea="star" class="tactile-btn w-full min-h-[68px] rounded-[18px] bg-[#A84B2F] text-white font-extrabold text-xl">★ ${L2('Must ask', 'À poser absolument')}</button>
+            <div class="flex items-stretch"><button type="button" data-idea="yes" class="tactile-btn flex-1 min-h-[68px] rounded-[18px] bg-[#3B5E42] text-white font-extrabold text-xl">✓ ${L2('If there’s time', 'Si on a le temps')}</button>
               <div class="w-[16px] shrink-0" aria-hidden="true"></div>
               <button type="button" data-idea="no" class="tactile-btn flex-1 min-h-[68px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xl">✕ ${L2('Leave out', 'Laisser')}</button></div>`;
         } else {
@@ -4208,15 +4216,15 @@
         fitIdeas(items);
       } else if (step.mode === 'priority') {
         const all = chosen(), wide = window.innerWidth >= 900, pg = wide ? { items: all, n: 1 } : pageOf(all); qShown = pg.items;
-        $('listTitle').textContent = L2('Which questions matter most?', 'Quelles questions comptent le plus ?');
-        $('listHelp').textContent = all.length ? L2('Tap the most important first, then the next. Tap again to undo. They go at the top of your pages.', 'Touchez la plus importante en premier, puis la suivante. Touchez encore pour annuler. Elles iront en haut de vos pages.')
+        $('listTitle').textContent = L2('Your questions', 'Vos questions');
+        $('listHelp').textContent = all.length ? L2('★ means must ask: those go first on your pages. Tap a question to add or take off its star. ✕ removes it.', '★ veut dire à poser absolument : elles vont en premier sur vos pages. Touchez une question pour ajouter ou enlever l’étoile. ✕ la retire.')
           : L2("You haven't added any questions yet. Add one below, or tap Next.", "Vous n'avez pas encore de questions. Ajoutez-en une, ou touchez Suivant.");
-        $('listCounter').textContent = L2(`${qPrio.filter((q) => all.includes(q)).length} most important`, `${qPrio.filter((q) => all.includes(q)).length} importante(s)`);
+        $('listCounter').textContent = L2(`${qPrio.filter((q) => all.includes(q)).length} must ask`, `${qPrio.filter((q) => all.includes(q)).length} à poser absolument`);
         // a star, not a number: ☆ until tapped, then ★1, ★2… in the order tapped
         const rows = qShown.map((q, i) => {
           const k = qPrio.indexOf(q);
           return `<div class="w-full flex items-stretch gap-[8px]"><button type="button" data-i="${i}" aria-pressed="${k > -1}" class="${k > -1 ? B_ON : B_OFF} flex-1 min-w-0">
-            <span class="min-w-[34px] h-8 px-1 rounded-full ${k > -1 ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#9AA3AF]'} font-extrabold text-sm flex items-center justify-center shrink-0" aria-hidden="true">${k > -1 ? '★' + (k + 1) : '☆'}</span>
+            <span class="min-w-[34px] h-8 px-1 rounded-full ${k > -1 ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#9AA3AF]'} font-extrabold text-sm flex items-center justify-center shrink-0" aria-hidden="true">${k > -1 ? '★' : '☆'}</span>
             <span class="min-w-0">${qText(q, 'prio-q font-extrabold text-[15.5px] leading-snug')}</span></button>
             <button type="button" data-rm="${i}" aria-label="${L2('Remove this question', 'Retirer cette question')}" class="tactile-btn shrink-0 w-[56px] rounded-2xl bg-white border border-[#D6CFC0] text-[#8A2E1C] font-extrabold text-[20px] flex items-center justify-center">✕</button></div>`;
         }).join('');
@@ -4244,7 +4252,7 @@
           [L2('Medicines', 'Médicaments'), ms.length ? ms.join(', ') : '', 'meds'],
           [L2('Allergies', 'Allergies'), SID('allergies').answer, 'allergies'],
           [L2('More detail', 'Plus de détails'), dl.length ? L2(`${dl.length} answer${dl.length > 1 ? 's' : ''}`, `${dl.length} réponse${dl.length > 1 ? 's' : ''}`) : '', 'detail'],
-          [L2('Questions', 'Questions'), cq.length ? L2(`${cq.length} · ${qPrio.filter((q) => cq.includes(q)).length} most important`, `${cq.length} · ${qPrio.filter((q) => cq.includes(q)).length} importante(s)`) : '', 'priority']
+          [L2('Questions', 'Questions'), cq.length ? L2(`${cq.length} · ${qPrio.filter((q) => cq.includes(q)).length} must ask`, `${cq.length} · ${qPrio.filter((q) => cq.includes(q)).length} à poser absolument`) : '', 'priority']
         ];
         $('listTitle').textContent = L2('Check everything', 'Vérifiez tout');
         $('listHelp').textContent = L2('This goes on your pages. Tap anything to change it.', 'Ceci va sur vos pages. Touchez une case pour la changer.');
@@ -4290,7 +4298,7 @@
     }
     function listAdd() {
       const inp = document.getElementById('listAddInput'), v = inp ? inp.value.trim() : '';
-      if (v) { ownQs.push(v); if (steps[currentIndex].mode === 'ideas') qPicked = qPicked.filter((x) => x !== v); setCompanionState('captured'); showToast(L2('Question added', 'Question ajoutée')); }
+      if (v) { ownQs.push(v); if (!qPrio.includes(v)) qPrio.push(v); if (steps[currentIndex].mode === 'ideas') qPicked = qPicked.filter((x) => x !== v); setCompanionState('captured'); showToast(L2('Question added', 'Question ajoutée')); }
       qAdding = false; if (steps[currentIndex].mode === 'priority' && chosen().length > 1) { qStarts = [0, chosen().length - 1]; qPage = 1; }
       renderList(); applyLang(); saveAll();
     }
@@ -4333,9 +4341,9 @@
     const readList = () => qShown.map((q, i) => `${i + 1}. ${stop(q)}`).join(' ');
     const EXPLAIN = {
       setup: () => L2('This page sets up WellHeard for you. Tap Change to pick your language. Tap a bigger A for bigger text. Choose speak and tap, or tap and type. Turn Reid’s reading on or off. Then tap Next.', 'Cette page règle WellHeard pour vous. Touchez Changer pour la langue, un plus grand A pour un texte plus grand, puis Suivant.'),
-      ideas: () => L2('Reid reads you questions for the doctor, one at a time. First the ones for what you want from this visit, then ones you may not have thought of. For each, tap or say keep, or leave out. Previous goes back one. Your own adds a question. Reid, more asks for new ones. ', 'Reid vous lit des questions pour le médecin, une à la fois. Pour chacune, dites garder, ou laisser. ') + (curIdea() ? stop(curIdea()) : '')
+      ideas: () => L2('Reid reads you questions for the doctor, one at a time. First the ones for what you want from this visit, then ones you may not have thought of. For each, tap or say must ask, if there’s time, or leave out. Must-ask questions go first on your pages. Previous goes back one. Your own adds a question. Reid, more asks for new ones. ', 'Reid vous lit des questions pour le médecin, une à la fois. Pour chacune, dites à poser absolument, si on a le temps, ou laisser. ') + (curIdea() ? stop(curIdea()) : '')
         + L2(' Tap the ones you want, or say their number. Say more for others. Then say next.', ' Touchez celles que vous voulez, ou dites leur numéro. Dites plus pour en voir d’autres. Puis dites suivant.'),
-      priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Tap or say the most important first. Then say next.', ' Touchez ou dites la plus importante en premier. Puis dites suivant.')
+      priority: () => chosen().length ? L2('Your questions. A star means must ask. ', 'Vos questions. Une étoile veut dire à poser absolument. ') + readList() + L2(' Say a number to add or take off its star. Then say next.', ' Dites un numéro pour ajouter ou enlever l’étoile. Puis dites suivant.')
         : L2("You haven't added any questions yet. Add one, or say next.", "Vous n'avez pas encore de questions. Ajoutez-en une, ou dites suivant."),
       review: () => L2('Check everything. This goes on your pages. ', 'Vérifiez tout. Ceci va sur vos pages. ') + [...document.querySelectorAll('#listItems [data-jump]')].map((b) => { const s = b.querySelectorAll('span'); return s[1].textContent + ': ' + s[3].textContent + '.'; }).join(' ')
         + L2(' Tap anything to change it. When it looks right, say next.', ' Touchez une case pour la changer. Quand tout est bon, dites suivant.'),
@@ -4348,8 +4356,8 @@
         + L2('You can send it to family, or print it.', 'Vous pouvez l’envoyer à la famille, ou l’imprimer.')
     };
     const SPEAK = {
-      ideas: () => curIdea() ? L2('Ask the doctor: ', 'Demander au médecin : ') + stop(curIdea()) + L2(' Keep it, or leave it out?', ' La garder, ou la laisser ?') : L2('That’s all my suggestions. Would you like me to suggest more?', 'C’est tout. Voulez-vous que j’en suggère d’autres ?'),
-      priority: () => chosen().length ? L2('Which questions matter most? ', 'Quelles questions comptent le plus ? ') + readList() + L2(' Say the number of the most important one.', ' Dites le numéro de la plus importante.') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
+      ideas: () => curIdea() ? L2('Ask the doctor: ', 'Demander au médecin : ') + stop(curIdea()) + L2(' Must ask, if there’s time, or leave it out?', ' À poser absolument, si on a le temps, ou la laisser ?') : L2('That’s all my suggestions. Would you like me to suggest more?', 'C’est tout. Voulez-vous que j’en suggère d’autres ?'),
+      priority: () => chosen().length ? L2('Your questions. ', 'Vos questions. ') + readList() + L2(' Say a number to add or take off its star.', ' Dites un numéro pour ajouter ou enlever l’étoile.') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       review: () => L2('Does everything look right?', 'Est-ce que tout est correct ?'),
       ready: () => L2('You’re ready. Your pages are ready to print, save or send. Tap Change to fix anything. Then tap Next.', 'Vous êtes prêt. Vos pages sont prêtes à imprimer, enregistrer ou envoyer. Touchez Modifier pour corriger. Puis Suivant.'),
       meds: () => document.getElementById('listTitle').textContent && steps[currentIndex].mode === 'meds' ? (medDraft.stage === 'list' ? L2('Here are your medicines. Tap one to change it, or add another. Say next when you’re done.', 'Voici vos médicaments. Touchez-en un pour le modifier, ou ajoutez-en un. Dites suivant quand vous avez fini.') : medDraft.sugg.length ? L2('Did you mean ', 'Vouliez-vous dire ') + medDraft.sugg[0].name + '?' : document.getElementById('listTitle').textContent) : '',
@@ -4504,7 +4512,7 @@
       if (st.mode === 'ideas') { say(document.getElementById('listTitle').textContent + ' ' + (curIdea() ? stop(curIdea()) + ' ' : '') + document.getElementById('listHelp').textContent, lang === 'fr'); return; }
       if (st.mode === 'priority') {   // numbered, so the person can answer with a number
         const t = document.getElementById('listTitle').textContent + '. ' + document.getElementById('listHelp').textContent + ' '
-          + qShown.map((q, i) => `${i + 1}. ${stop(q)}` + (st.mode === 'ideas' && qPicked.includes(q) ? L2(' Added.', ' Ajoutée.') : '') + (st.mode === 'priority' && qPrio.includes(q) ? L2(' Most important, number ', ' Importante, numéro ') + (qPrio.indexOf(q) + 1) + '.' : '')).join(' ');
+          + qShown.map((q, i) => `${i + 1}. ${stop(q)}` + (st.mode === 'ideas' && qPicked.includes(q) ? L2(' Added.', ' Ajoutée.') : '') + (st.mode === 'priority' && qPrio.includes(q) ? L2(' Must ask.', ' À poser absolument.') : '')).join(' ');
         say(isMT() ? t : t, lang === 'fr'); return;
       }
       say(screenText(), isMT() || lang === 'fr'); }
@@ -5462,7 +5470,7 @@
         }
         if (step.mode === 'meds' && medNext()) return;
         if (step.id === 'detail') await detailNext(step);
-        if (step.mode === 'priority' && chosen().length && !qPrio.length && !prioWarned) {
+        if (false && step.mode === 'priority' && chosen().length && !qPrio.length && !prioWarned) {
           prioWarned = true; const m = lang === 'fr' ? 'Touchez au moins une question importante, puis Suivant.' : 'Tap at least one question that matters most, then Next.';
           showToast(m); say(m); return;
         }
@@ -5610,7 +5618,7 @@
     function addOwn(t) {
       t = String(t || '').trim().replace(/\s+/g, ' '); if (!t) return;
       if (!/[?？]$/.test(t)) t += '?'; t = t.charAt(0).toUpperCase() + t.slice(1);
-      if (!ownQs.some((q) => similar(q, t))) ownQs.push(t);
+      if (!ownQs.some((q) => similar(q, t))) { ownQs.push(t); if (!qPrio.includes(t)) qPrio.push(t); }
       saveAll(); renderList(); applyLang();
       if (goalStarter || !goalPool.length) { goalPool = goalPool.filter((q) => qPicked.includes(q)); goalSig = ''; fetchGoalQs(true); }
     }
@@ -5674,7 +5682,7 @@
       if (step.mode === 'goalqs') { document.getElementById('listCounter').classList.remove('hidden'); renderGoalQs(items, foot); return; }
       rl();
       const goal = (SID('goal').answer || '').trim();
-      if (step.mode === 'priority' && goal && chosen().length) {
+      if (false && step.mode === 'priority' && goal && chosen().length) {
         const h = document.getElementById('listHelp');
         h.textContent = L2('You came for: ', 'Vous venez pour : ') + goal + '. ' + L2('Tap the most important first.', 'Touchez la plus importante en premier.');
       }
