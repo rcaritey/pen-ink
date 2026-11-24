@@ -3080,8 +3080,13 @@
       if (step.mode === 'ideas' && /(new|more|other|different) (questions|ideas)|reid.*more|generate|nouvelles questions|d'autres questions/.test(low) && low.split(' ').length <= 8) { fetchClaudeQuestions(true); return; }
       if (/^(skip|skip (this|that|it|these)( one)?|passer|on passe)$/.test(low) && (step.id === 'detail' || /^dq\d+$/.test(step.id))) { skipDetail(step); return; }
       if (step.id === 'detail' && /^(yes|yeah|yes please|sure|ok|okay|oui|d'accord|allez-y)$/.test(low)) { selectPreset('Yes, ask me'); return; }
-      if (step.mode !== 'voice') { if (!listHeard(step, low)) if (/\?\s*$/.test(t) || QWORD.test(low)) askReid(t); return; }
-      if ((/\?\s*$/.test(t) || QWORD.test(low)) && low.split(' ').length <= 25 && !step.big) { askReid(t); return; }
+      if (/^(?:(?:sorry|pardon|oh|um|uh|reid)[ ,]+)*((sorry|pardon|what|huh|eh)( me)?|come again|say (it|that) again( please)?|(can|could) you (say|repeat) (it|that)( again)?( please)?|(once|one) more time|again( please)?|i didn'?t (hear|catch|get) (it|that|you)|what did you say|what was (the|that) question|louder( please)?)( reid)?$/.test(low)) { speakStep(); return; }
+      if (step.mode !== 'voice') { if (!listHeard(step, low)) understand(t); return; }
+      if (low.split(' ').length <= 14 && !step.big && ((/\?\s*$/.test(t) || QWORD.test(low)) || REQ.test(low))) { understand(t, () => addAnswer(t)); return; }
+      addAnswer(t);
+    }
+    function addAnswer(t) {
+      const step = steps[currentIndex];
       const input = document.getElementById('answerInput');
       const before = input.value.trim();
       input.value = (step.id === 'day' || step.id === 'time') ? t : before ? before + (step.lines ? '\n' : ' ') + t : t;
@@ -3145,6 +3150,7 @@
       if (typeof showToast === 'function') showToast(lang === 'fr' ? 'Reid lit…' : 'Reid is reading…');
     }
     async function say(text, raw) {
+      if (text) window.__lastSaid = String(text).slice(0, 400);
       if (!text || inputPreference !== 'voice' || !readAloud) return;
       hush(); const g = sayGen; speaking = true; speakStart = performance.now(); talkFace(true);
       if (isMT() && !raw && !Object.values(uic()).includes(text)) { text = await mt(text); if (g !== sayGen) return; }
@@ -3197,6 +3203,80 @@
           + (fr ? 'Ou dites votre réponse avec vos mots. Quand vous avez fini, dites suivant. Pour revenir, dites retour.' : 'Or say your answer in your own words. When you are done, say next. To go back, say back.');
       } else t = (EXPLAIN[step.mode] || (() => ''))();
       showToast(t.length > 140 ? t.slice(0, 137) + '…' : t); say(t);
+    }
+    // A spoken appointment time works like tapping it (Rama, 24 Nov): the hour and minutes light up, and Reid
+    // says it back so it's plain he heard. "2:30", "two thirty pm", "half past two", "quarter to 3", "noon", "14 h 30".
+    const SPOKENNUM = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, thirty: 30, 'forty five': 45, 'forty-five': 45, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12, quinze: 15, trente: 30, 'quarante-cinq': 45, 'quarante cinq': 45 };
+    function parseSpokenTime(raw) {
+      let t = ' ' + raw.toLowerCase().replace(/[.,]/g, ' ').replace(/\b(a\s*m|a m)\b/g, 'am').replace(/\b(p\s*m|p m)\b/g, 'pm') + ' ';
+      Object.keys(SPOKENNUM).sort((a, b) => b.length - a.length).forEach((w) => { t = t.replace(new RegExp('\\b' + w + '\\b', 'g'), String(SPOKENNUM[w])); });
+      t = t.replace(/\b(\d+) (\d{2})\b/g, '$1:$2').replace(/\b(\d+) ?h ?(\d{2})?\b/g, (m0, a, b) => a + ':' + (b || '00'));
+      let h = null, m = 0;
+      if (/\b(noon|midday|midi)\b/.test(t)) { h = 12; }
+      let r;
+      if (h === null && (r = /\bhalf past (\d{1,2})\b/.exec(t))) { h = +r[1]; m = 30; }
+      if (h === null && (r = /\bquarter past (\d{1,2})\b/.exec(t))) { h = +r[1]; m = 15; }
+      if (h === null && (r = /\bquarter (to|of) (\d{1,2})\b/.exec(t))) { h = +r[2] - 1; m = 45; }
+      if (h === null && (r = /\b(\d{1,2}):(\d{2})\b/.exec(t))) { h = +r[1]; m = +r[2]; }
+      if (h === null && (r = /\b(\d{1,2})( o'?clock| am| pm|$| in the| this)/.exec(t.trim() + ' '))) { h = +r[1]; }
+      if (h === null && (r = /^\s*(\d{1,2})\s*$/.exec(t))) { h = +r[1]; }
+      if (h === null || h > 23 || m > 59) return null;
+      const pm = /\bpm\b|afternoon|evening|après-midi|soir/.test(t), am = /\bam\b|morning|matin/.test(t);
+      if (pm && h < 12) h += 12; else if (am && h === 12) h = 0; else if (!pm && !am && h >= 1 && h <= 6) h += 12;   // "2:30" for a clinic means the afternoon
+      return { h, m };
+    }
+    { const hT = heard; heard = function (t) {
+        const st = steps[currentIndex], low = (t || '').toLowerCase().trim();
+        if (st && st.id === 'time' && st.mode === 'voice' && low && !cmdOf(low.replace(/[.!?,]/g, '')) && !/^(next|back|go back|repeat|help|stop|pause|wait|undo|erase|suivant|retour)\b/.test(low)) {
+          if (/not sure|don'?t know|pas sûr|sais pas/.test(low)) { st.time24 = ''; setPick(st, L2('Not sure of the time', 'Heure pas sûre')); say(L2('That’s fine. Say next.', 'Pas de souci. Dites suivant.'), true); return; }
+          const p = parseSpokenTime(low);
+          if (p) { st.time24 = `${p.h}:${String(p.m).padStart(2, '0')}`; const said = hourStr(p.h, p.m); setPick(st, said); flashPick(); { const s2 = said.replace(/\.$/, ''); say(L2(s2 + '. Got it. Say next, or change it.', s2 + '. C’est noté. Dites suivant, ou changez-la.'), true); }; return; }
+          if (low.split(/\s+/).length <= 8 && !/\?$/.test(low)) { const m = L2('Sorry, I didn’t get the time. Say it like 2:30 PM, or tap the hour.', 'Désolé, je n’ai pas compris l’heure. Dites par exemple 14 h 30, ou touchez l’heure.'); showToast(m); say(m, true); return; }
+        }
+        return hT(t); }; }
+    function flashPick() {
+      const help = document.getElementById('screenHelperText'); if (!help) return;
+      help.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 600, easing: 'ease-out' });
+    }
+    // Reid understands what's said to him beyond the fixed commands (Rama, 24 Nov): anything that isn't a
+    // command or plainly an answer goes to Claude with what's on the screen, and Reid does it or replies.
+    const REQ = /\b(reid|again|repeat|pardon|sorry|didn'?t (hear|catch|get|understand)|don'?t (understand|get it|know what)|can you|could you|would you|please|louder|slower|faster|go (back|on)|start (over|again)|lost|confused|what was|hang on|give me a (minute|moment|second)|scratch that|that'?s wrong|never mind|thank)/;
+    let understanding = false;
+    function screenButtons() {
+      const sec = document.querySelector('#appContainer > section'); if (!sec) return [];
+      return [...sec.querySelectorAll('button')].filter((b) => b.offsetParent && !b.disabled)
+        .map((b) => ({ b, l: (b.getAttribute('aria-label') || b.textContent || '').replace(/\s+/g, ' ').trim() }))
+        .filter((x) => x.l && x.l.length > 1 && !/erase|clear|delete|remove|efface|supprim|retir/i.test(x.l)).slice(0, 24);
+    }
+    async function understand(t, fallback) {
+      const step = steps[currentIndex]; if (!step || understanding) return;
+      understanding = true; setCompanionState('asking');
+      const btns = screenButtons(), h = document.querySelector('#appContainer > section h1, #appContainer > section h2');
+      let d = null;
+      try {
+        const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ mode: 'intent', lang, text: t, screen: (h ? h.textContent.trim() : '') + ' (' + step.mode + ')',
+            question: step.mode === 'voice' ? tr(step.question || '') : '', buttons: btns.map((x) => x.l), last: window.__lastSaid || '' }) });
+        d = await r.json().catch(() => null); if (!r.ok || !d || !d.ok) d = null;
+      } catch (e) { d = null; }
+      understanding = false; setCompanionState(isListening ? 'listening' : 'paused');
+      if (steps[currentIndex] !== step) return;   // they moved on meanwhile
+      if (!d) { if (fallback) fallback(); else if (/\?\s*$/.test(t) || QWORD.test(t.toLowerCase())) askReid(t); return; }
+      const talk = async () => { if (d.reply) { showToast(d.reply); await say(d.reply, true); } };
+      switch (d.action) {
+        case 'repeat': speakStep(); break;
+        case 'next': await talk(); goNext(); break;
+        case 'back': await talk(); goBack(); break;
+        case 'explain': explainStep(); break;
+        case 'read_screen': readScreen(); break;
+        case 'pause': await talk(); if (isListening) toggleListening(); break;
+        case 'erase': undoLastWord(); break;
+        case 'slower': case 'faster': slowVoice = d.action === 'slower'; saveAll();
+          { const m = d.reply || (d.action === 'slower' ? L2('OK, I’ll speak more slowly.', 'D’accord, je parle plus lentement.') : L2('OK, I’ll speak a bit faster.', 'D’accord, je parle un peu plus vite.')); showToast(m); say(m, true); } break;
+        case 'tap': { const x = btns[(d.tap || 0) - 1]; if (x && x.b.isConnected) { x.b.click(); } else await talk(); break; }
+        case 'answer': if (fallback) fallback(); else await talk(); break;
+        default: await talk();
+      }
     }
     // Questions said to Reid ("what does that mean?") get a short answer from Claude
     async function askReid(q) {
@@ -5252,7 +5332,7 @@
       }
       const chosen = (step.answer || '').trim(), help = document.getElementById('screenHelperText');
       help.classList.remove('hidden');
-      help.innerHTML = chosen ? `<span class="inline-block mt-1 px-3 py-1 rounded-xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634] text-[16px]" data-notr>✓ ${esc(chosen)}</span>`
+      help.innerHTML = chosen ? `<span class="inline-block mt-1 px-4 py-1.5 rounded-xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634] text-[20px] font-extrabold" data-notr>✓ ${esc(chosen)}</span>`
         : esc(tr(step.id === 'day' ? 'Tap the day, or say it.' : 'Tap the hour, then the minutes, or say it.'));
       pickHost.innerHTML = html;
     }

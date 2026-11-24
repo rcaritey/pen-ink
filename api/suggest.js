@@ -213,6 +213,42 @@ const VAGUE_SCHEMA = {
   additionalProperties: false,
 };
 
+// Reid understands what was said to him beyond the fixed commands (Rama, 24 Nov): "sorry, I didn't catch that",
+// "can you go back one", "the second one", "what's this page for?" — he works out the action, or just replies.
+const INTENT = `You are Reid, WellHeard's AI helper, listening to an older patient (who may have Parkinson's disease) use the app by voice.
+The app shows one screen at a time. You get: the screen's title and question, the buttons on the screen (numbered), and what the patient just said.
+The patient's words were turned into text by voice typing, so expect misheard words, fillers and half-sentences. Work out what they MEAN.
+
+Pick exactly one action:
+- "repeat": they want to hear the question or what Reid said again ("sorry?", "pardon", "I didn't catch that", "say it again", "what was the question", "come again", "louder please").
+- "next": they're done or want to move on ("that's it", "go on", "OK let's keep going", "I'm finished with this").
+- "back": they want the previous screen ("go back one", "I want to change my last answer").
+- "explain": they don't know what to do on this screen ("I'm lost", "I don't understand", "what am I supposed to do").
+- "read_screen": they want the whole screen read out.
+- "pause": they want Reid to stop listening for now ("give me a minute", "hang on", "I need to think").
+- "erase": take back what they just said ("no, that's wrong, scratch that").
+- "slower" / "faster": how fast Reid talks.
+- "tap": they chose one of the numbered buttons, by its words, its meaning or its position ("the second one", "yes keep that", "the doctor's page", "print it"). Set "tap" to that button's number. Never tap a button that erases or deletes.
+- "answer": they are answering the screen's question in their own words (or telling something about their health). Only when a question is asked on the screen.
+- "reply": anything else — a question about the app, small talk, thanks, a request the app can't do. Put Reid's answer in "reply".
+
+"reply" text (for every action, a short spoken line, under 30 words; for "answer", "tap", "next" and "back" it may be empty):
+- Calm, kind, brief, first person, plain words, no lists or markdown, in the language given. Reid is an AI and says so simply if asked.
+- For a medical question (what's wrong, what to take, is it serious): don't answer; say it's a good one for the doctor and they can add it as a question. If it sounds urgent (chest pain, trouble breathing, stroke signs, thoughts of self-harm), tell them to call 911 now.
+- Never diagnose or give medical advice.
+If in doubt between "answer" and anything else on a screen that asks a question, choose "answer".`;
+
+const INTENT_SCHEMA = {
+  type: 'object',
+  properties: {
+    action: { type: 'string', enum: ['repeat', 'next', 'back', 'explain', 'read_screen', 'pause', 'erase', 'slower', 'faster', 'tap', 'answer', 'reply'] },
+    tap: { type: 'integer' },
+    reply: { type: 'string' },
+  },
+  required: ['action', 'tap', 'reply'],
+  additionalProperties: false,
+};
+
 const HELP_SCHEMA = {
   type: 'object',
   properties: { answer: { type: 'string' } },
@@ -362,7 +398,7 @@ export default async function handler(req, res) {
     const send = res.json.bind(res);
     res.json = (obj) => { try { return send(JSON.parse(scrubbed.restore(JSON.stringify(obj), true))); } catch (e) { return send(obj); } };
   }
-  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui'].includes(body.mode) ? body.mode : 'suggest';
+  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui', 'intent'].includes(body.mode) ? body.mode : 'suggest';
   const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -444,6 +480,16 @@ export default async function handler(req, res) {
       const ask = clean(out && out.ask, 160);
       const unclear = !!(out && out.unclear) && !!ask && options.length === 2;
       return res.status(200).json({ ok: true, unclear, ask: unclear ? ask : '', options: unclear ? options : [] });
+    }
+
+    if (mode === 'intent') {
+      const said = clean(body.text, 400);
+      if (!said) return res.status(400).json({ ok: false, error: 'Nothing was said.' });
+      const btns = (Array.isArray(body.buttons) ? body.buttons : []).slice(0, 24).map((b, i) => `${i + 1}. ${clean(b, 80)}`).join('\n');
+      const ctx = `Language: ${LANG_NAME[lang]}\nScreen: ${clean(body.screen, 200) || 'not given'}\nQuestion on the screen: ${clean(body.question, 600) || 'none'}\nButtons:\n${btns || 'none'}\nReid last said: ${clean(body.last, 400) || 'nothing'}\nThe patient said: ${said}`;
+      const out = await askClaude(INTENT, ctx, INTENT_SCHEMA, 250);
+      if (!out || !out.action) return res.status(502).json({ ok: false, error: UNAVAILABLE });
+      return res.status(200).json({ ok: true, action: out.action, tap: Number(out.tap) || 0, reply: clean(out.reply, 300) });
     }
 
     if (mode === 'help') {
