@@ -5567,8 +5567,16 @@
     // the doctor's page and my page: age, height, weight and the goal
     { const dp = doctorPage; doctorPage = function () {
       let h = dp(); const fr = lang === 'fr', about = SID('about').answer, goal = SID('goal').answer;
-      const add = (about ? `<h2>${fr ? 'Âge, taille, poids' : 'Age, height, weight'}</h2><p>${esc(docT(about))}</p>` : '') + (goal ? `<h2>${fr ? 'Ce que le patient espère de la visite' : 'What the patient hopes to get out of this visit'}</h2><p>${esc(docT(goal))}</p>` : '');
-      const i = h.indexOf('<h2>'); return add && i > 0 ? h.slice(0, i) + add + h.slice(i) : h;
+      const add = goal ? `<h2>${fr ? 'Ce que le patient espère de la visite' : 'What the patient hopes to get out of this visit'}</h2><p>${esc(docT(goal))}</p>` : '';
+      const i = h.indexOf('<h2>'); if (add && i > 0) h = h.slice(0, i) + add + h.slice(i);
+      // age, height and weight go right after the medicines, where the doctor checks doses (Rama, 24 Nov)
+      if (about) {
+        const ab = `<h2>${fr ? 'Âge, taille, poids' : 'Age, height, weight'}</h2><p>${esc(docT(about))}</p>`;
+        const after = ['Allergies et précautions', 'Allergies and cautions', 'Questions du patient', "Patient's questions", 'Comment ce résumé', 'How this summary'].map((t) => h.indexOf('<h2>' + t)).filter((x) => x > 0);
+        const at = after.length ? Math.min(...after) : h.lastIndexOf('</div>');
+        h = h.slice(0, at) + ab + h.slice(at);
+      }
+      return h;
     }; }
     { const pg = patientPage; patientPage = function () {
       let h = pg(); const goal = SID('goal').answer; if (!goal) return h;
