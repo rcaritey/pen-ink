@@ -241,16 +241,16 @@
   <style id="wideLayout">
     /* iPad / computer (Rama, 23 Nov): logo top left · road map top middle · Help and Settings top right;
        down the left: Reid, what Reid can do, See my pages at the bottom */
-    #appContainer.wide { display: grid !important; grid-template-columns: 270px 1fr auto; grid-template-rows: auto 1fr auto; column-gap: 36px; row-gap: 18px; padding-left: 32px; padding-right: 32px; }
+    #appContainer.wide { display: grid !important; grid-template-columns: 270px 1fr auto; grid-template-rows: auto auto 1fr auto; column-gap: 36px; row-gap: 18px; padding-left: 32px; padding-right: 32px; }
     #appContainer.wide > header, #appContainer.wide > header > div:first-of-type { display: contents; }
     #appContainer.wide #brandText { display: none; }
-    #appContainer.wide #wideLogo { display: flex; grid-column: 1; grid-row: 1; align-self: center; align-items: center; gap: 12px; }
+    #appContainer.wide #wideLogo { display: flex; grid-column: 1 / span 2; grid-row: 1; align-self: center; align-items: center; gap: 12px; }
     #appContainer.wide > header > div:last-child { grid-column: 3; grid-row: 1; align-self: center; }
-    #appContainer.wide > #progressHeader { grid-column: 2; grid-row: 1; align-self: center; justify-self: center; width: 100%; max-width: 560px; margin: 0 !important; }
-    #appContainer.wide > section { grid-column: 2 / span 2; grid-row: 2; }
-    #appContainer.wide > footer { grid-column: 2 / span 2; grid-row: 3; }
+    #appContainer.wide > #progressHeader { grid-column: 2 / span 2; grid-row: 2; align-self: center; justify-self: stretch; width: 100%; margin: 0 !important; }
+    #appContainer.wide > section { grid-column: 2 / span 2; grid-row: 3; }
+    #appContainer.wide > footer { grid-column: 2 / span 2; grid-row: 4; }
     #appContainer.wide #reidHello { right: auto; width: 330px; top: 140px; }
-    #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 2 / span 2; align-self: stretch; }
+    #appContainer.wide > #sideReid { display: flex !important; grid-column: 1; grid-row: 2 / span 3; align-self: stretch; }
     #wideLogo { display: none; }
     .wl-word { font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: #1E2634; line-height: 1; white-space: nowrap; }
     .wl-word span { color: #3B5E42; }
@@ -3408,7 +3408,7 @@
     const BOFF = 'tactile-btn flex-1 min-h-[52px] rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base';
     let setView = 'menu', voiceName = '', spokenView = null, textSize = 1, menuKind = 'help';
     // which menu each page belongs to, so Back always returns to the right one
-    const VIEW_HOME = { say: 'help', steps: 'help', translate: 'help', voice: 'settings', lang: 'settings', textsize: 'settings', answermode: 'settings', pages: 'settings', device: 'settings' };
+    const VIEW_HOME = { reid: 'help', say: 'help', steps: 'help', translate: 'help', voice: 'settings', lang: 'settings', textsize: 'settings', answermode: 'settings', pages: 'settings', device: 'settings' };
     function openPanel(kind) { menuKind = kind; openModal('helpSettingsModal'); }
     function applyTextSize() { const h = document.documentElement; h.classList.remove('ts-1', 'ts-2'); if (textSize) h.classList.add('ts-' + textSize); if (typeof sizeApp === 'function') sizeApp(); }
     const ICONS = {
@@ -3476,6 +3476,7 @@
         body = head(T('Help', 'Aide')) + `<div class="flex flex-col gap-[10px]">
           ${onStep ? `<button type="button" data-act="explain" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#1E2634] text-white font-extrabold text-base flex items-center justify-center gap-3">${ico('explain', 1)}${T('Explain this screen', 'Expliquer cet écran')}</button>` : ''}
           ${group(T('Using WellHeard', 'Utiliser WellHeard'))}
+          ${row('reid', T('What Reid can do', 'Ce que Reid peut faire'))}
           ${row('say', T('What you can say', 'Ce que vous pouvez dire'))}
           ${onStep ? row('steps', T('See all steps', 'Voir toutes les étapes')) : ''}
           ${row('translate', T('When words come out wrong', 'Quand les mots sont mal compris'))}
@@ -3484,6 +3485,32 @@
           ${group(T('Talk to a person', 'Parler à une personne'))}
           <button type="button" data-chat class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3 text-left">${ico('chat')}<span>${T('Message Rama for help', 'Écrire à Rama pour de l’aide')}</span></button>
           <p class="text-xs text-center text-[#425268]">416-454-5597 · hello@pen-ink.ca</p></div>`;
+      } else if (setView === 'reid') {
+        const it = (icon, a, b) => `<li class="flex gap-3 py-2 border-b border-[#D6CFC0] last:border-0"><span class="text-[22px] leading-none w-7 shrink-0 text-center" aria-hidden="true">${icon}</span><span><b class="block text-[16px] text-[#1E2634] leading-snug">${a}</b>${b ? `<span class="block text-[14px] text-[#425268] leading-snug">${b}</span>` : ''}</span></li>`;
+        const sec = (h, items) => card(h, `<ul>${items.join('')}</ul>`);
+        body = head(T('What Reid can do', 'Ce que Reid peut faire'), 1) + `<div class="flex flex-col gap-[12px]" id="reidCanList">
+          <p class="text-[16px] font-bold text-[#1E2634] leading-snug">${T('Reid is WellHeard’s AI helper. He helps you get ready, keep track during the visit, and remember what was said.', 'Reid est l’assistant IA de WellHeard. Il vous aide à vous préparer, à suivre la visite et à vous souvenir de ce qui a été dit.')}</p>
+          <button type="button" data-act="readreid" class="tactile-btn w-full min-h-[52px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base flex items-center justify-center gap-2">${ico('pages', 1)}${T('Read this to me', 'Lisez-le-moi')}</button>
+          ${sec(T('1. Before your appointment', '1. Avant le rendez-vous'), [
+            it('🗣️', T('Asks one question at a time', 'Pose une question à la fois'), T('You can talk, tap or type. Take your time.', 'Vous pouvez parler, toucher ou écrire. Prenez votre temps.')),
+            it('💊', T('Lists your medicines and when you take them', 'Liste vos médicaments et quand vous les prenez'), ''),
+            it('❓', T('Suggests questions to ask', 'Suggère des questions à poser'), T('For what you want out of the visit, and ones you may not have thought of. You choose which to keep.', 'Pour ce que vous voulez de la visite, et d’autres auxquelles vous n’auriez pas pensé. Vous choisissez.')),
+            it('📄', T('Makes your pages', 'Prépare vos pages'), T('One for the doctor, one for you, one for your care circle. Print, save or send them.', 'Une pour le médecin, une pour vous, une pour vos aidants. À imprimer, enregistrer ou envoyer.'))])}
+          ${sec(T('2. At the appointment', '2. Au rendez-vous'), [
+            it('🎙️', T('Records the visit', 'Enregistre la visite'), T('Only after you confirm everyone agreed.', 'Seulement après avoir confirmé que tout le monde est d’accord.')),
+            it('✅', T('Helps you go through your questions', 'Vous aide à passer vos questions'), T('Tick each one off as it’s answered.', 'Cochez chacune quand elle a une réponse.'))])}
+          ${sec(T('3. After', '3. Après'), [
+            it('📝', T('Writes a summary and next steps', 'Écrit un résumé et les prochaines étapes'), T('From the recording. Check it and change anything.', 'À partir de l’enregistrement. Vérifiez et corrigez.')),
+            it('📅', T('Adds your next appointment to your calendar', 'Ajoute le prochain rendez-vous à votre calendrier'), ''),
+            it('✉️', T('Sends the summary to your care circle', 'Envoie le résumé à vos aidants'), '')])}
+          ${sec(T('Any time', 'À tout moment'), [
+            it('🔊', T('Reads the screen, explains it, or repeats the question', 'Lit l’écran, l’explique, ou répète la question'), T('Tap Reid, or the buttons under him.', 'Touchez Reid, ou les boutons sous lui.')),
+            it('🌐', T('Works in many languages', 'Fonctionne en plusieurs langues'), T('Translated by computer: check medicines, doses and dates.', 'Traduit par ordinateur : vérifiez médicaments, doses et dates.')),
+            it('⚠️', T('Warns you if something sounds urgent', 'Vous avertit si quelque chose semble urgent'), T('And tells you who to call.', 'Et vous dit qui appeler.'))])}
+          ${sec(T('What Reid can’t do', 'Ce que Reid ne peut pas faire'), [
+            it('🩺', T('He isn’t a doctor', 'Il n’est pas médecin'), T('He never diagnoses or gives medical advice. Your doctor decides.', 'Il ne pose jamais de diagnostic et ne donne pas de conseil médical. Votre médecin décide.')),
+            it('🔍', T('He can make mistakes', 'Il peut se tromper'), T('Check anything important with your doctor.', 'Vérifiez tout ce qui est important avec votre médecin.')),
+            it('🚑', T('He can’t call for help', 'Il ne peut pas appeler à l’aide'), T('In an emergency, call 911.', 'En cas d’urgence, appelez le 911.'))])}</div>`;
       } else if (setView === 'say') {
         const li = (a, b) => `<li class="flex justify-between gap-3 py-1.5 border-b border-[#D6CFC0]"><b class="text-[#1E2634]">${a}</b><span class="text-[#425268] text-right">${b}</span></li>`;
         body = head(T('What you can say', 'Ce que vous pouvez dire'), 1) + card(T('Say any of these, any time', 'Dites-les à tout moment'), `<ul class="text-sm">
@@ -3597,6 +3624,8 @@
       }));
       const act = (k) => panel.querySelector(`[data-act="${k}"]`), on = (k, f) => { const el = act(k); if (el) el.addEventListener(k === 'open' ? 'change' : 'click', f); };
       on('explain', () => { closeModal('helpSettingsModal'); explainStep(); });
+      on('readreid', () => { const l = panel.querySelector('#reidCanList'); if (!l) return; const c = l.cloneNode(true); c.querySelectorAll('button').forEach((x) => x.remove());
+        c.querySelectorAll('li, p').forEach((x) => x.append('. ')); forceSay(() => say(c.textContent.replace(/\s+/g, ' ').replace(/\.\s*\./g, '.').trim())); });
       on('test', () => say(fr ? 'Bonjour, je suis Reid.' : "Hi, I'm Reid. This is how I sound."));
       on('print-doc', () => printPages('doctor'));
       on('show-doc', () => { closeModal('helpSettingsModal'); openFullDoctorCard(); });
@@ -4872,6 +4901,7 @@
         menu.innerHTML = `<p class="text-sm font-extrabold text-[#3B5E42] px-1">${fr ? 'Reid, votre aide IA' : 'Reid, your AI helper'}</p>
           ${onStep ? `<button type="button" data-r="explain" class="${MB} bg-[#1E2634] text-white">${ico('explain', 1)}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
           <button type="button" data-r="read" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('pages')}${fr ? 'Lire ce qui est à l’écran' : 'Read what’s on this screen'}</button>
+          <button type="button" data-r="can" class="${MB} bg-white border border-[#D6CFC0] text-[#3B5E42]">${ico('explain')}${fr ? 'Que peut faire Reid ?' : 'What can Reid do?'}</button>
           ${onStep ? `<button type="button" data-r="repeat" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('voice')}${fr ? 'Répéter la question' : 'Repeat the question'}</button>` : ''}
           ${voice && onStep ? `<button type="button" data-r="listen" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter de nouveau' : 'Start listening')}</button>` : ''}
           <p class="text-sm font-extrabold text-[#3B5E42] px-1 side-gap">${fr ? 'Besoin d’une personne ?' : 'Need a person?'}</p>
@@ -4886,6 +4916,7 @@
         if (b.dataset.r === 'explain') forceSay(explainStep);
         if (b.dataset.r === 'repeat') forceSay(speakStep);
         if (b.dataset.r === 'read') forceSay(readScreen);
+        if (b.dataset.r === 'can') { openReidCan(); }
         if (b.dataset.r === 'listen') toggleListening();
       });
       document.addEventListener('click', (e) => { if (!menu.contains(e.target)) close(); });
@@ -5852,6 +5883,38 @@
       if (e.target.id !== 'foodOther' || !medDraft) return;
       (medDraft.foodParts || (medDraft.foodParts = blankFood())).other = e.target.value.slice(0, 120);
     });
+    window.openReidCan = function () { openPanel('help'); setView = 'reid'; renderSettings(); applyLang(); };
+    { const rs3 = renderSide; renderSide = function () {
+      rs3();
+      const side = document.getElementById('sideReid'), h = side && [...side.querySelectorAll('p')].find((p) => /reid can|reid peut/i.test(p.textContent));
+      if (h && !side.querySelector('[data-reidcan]')) {
+        const b = document.createElement('button'); b.type = 'button'; b.dataset.reidcan = '1';
+        b.className = 'tactile-btn w-full min-h-[44px] px-3 rounded-2xl bg-white border border-[#D6CFC0] text-[#3B5E42] font-extrabold text-[14px] flex items-center justify-between gap-2';
+        b.innerHTML = `<span>${L2('What can Reid do?', 'Que peut faire Reid ?')}</span><span aria-hidden="true">›</span>`;
+        b.addEventListener('click', openReidCan); h.after(b);
+      }
+    }; }
+    // Computers use the iPad layout too; when the pages are out, the layout narrows and the pages sit on the right
+    { const sa3 = sizeApp; sizeApp = function () {
+      sa3();
+      const main = document.getElementById('appContainer'), lp = document.getElementById('livePages');
+      if (!main.classList.contains('with-pages')) return;
+      main.classList.add('wide'); placeWide();
+      const vw = window.innerWidth, vh = window.innerHeight, W = 840, appVis = Math.max(640, Math.min(vw * 0.6, vw - 420));
+      let z = Math.min(1.5, (appVis - 24) / W, (vh * 0.96) / 600), h = (vh * 0.96) / z;
+      main.style.zoom = z; main.style.width = W + 'px'; main.style.height = h + 'px';
+      if (LISTMODES[steps[currentIndex].mode]) renderList();
+      // the same no-scroll fit as everywhere else
+      const boxes = ['listItems', 'screenQuestion'].map((id) => document.getElementById(id)).filter((e) => e && e.offsetParent);
+      if (steps[currentIndex].mode !== 'consent') for (let k = 0; k < 3; k++) {
+        const over = Math.max(0, ...boxes.map((e) => e.scrollHeight - e.clientHeight)); if (over <= 2) break;
+        const nz = Math.max(0.85, z * h / (h + over + 10)); if (nz >= z - 0.001) break;
+        const vis = h * z; main.style.width = (W * z / nz) + 'px'; z = nz; h = vis / z; main.style.zoom = z; main.style.height = h + 'px';
+        if (LISTMODES[steps[currentIndex].mode]) renderList();
+      }
+      lp.style.height = (h * z) + 'px'; lp.style.width = Math.max(360, Math.min(740, vw - parseFloat(main.style.width) * z - 40)) + 'px';
+      const show = document.getElementById('lpShow'), side = document.getElementById('sideReid'); if (show && side && show.parentElement !== side) { side.appendChild(show); show.classList.add('in-side'); }
+    }; }
     // Initial render
     loadAll();
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }
