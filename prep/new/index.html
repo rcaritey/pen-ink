@@ -6077,6 +6077,32 @@
     { const at = (() => { try { return localStorage.getItem('wellheard-at'); } catch (e) { return ''; } })(), i = steps.findIndex((s) => s.id === at); if (at && i > 0) currentIndex = i; }
     setCompanionState('listening');
     renderCurrentStep();
+    // Reopened part-way through: ask how they want to answer (this tap is also what lets the microphone start)
+    (function welcomeBack() {
+      const st = steps[currentIndex]; if (!st || st.mode === 'landing') return;
+      const fr = lang === 'fr', box = document.createElement('div'); box.id = 'welcomeBack';
+      box.className = 'fixed inset-0 z-[85] bg-black/45 flex items-end sm:items-center justify-center p-3';
+      box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'wbTitle');
+      const opt = (v, icon, t, sub, on) => `<button type="button" data-wb="${v}" class="tactile-btn w-full min-h-[92px] px-4 py-3 rounded-2xl border-2 ${on ? 'border-[#3B5E42] bg-[#E5EFE7]' : 'border-[#D6CFC0] bg-white'} flex items-start gap-3 text-left">
+          <span class="text-[28px] leading-none mt-0.5" aria-hidden="true">${icon}</span><span><span class="block text-[19px] font-extrabold text-[#1E2634]">${t}</span><span class="block text-[15px] font-bold text-[#425268] leading-snug mt-1">${sub}</span></span></button>`;
+      box.innerHTML = `<div class="w-full max-w-md bg-[#FAF7F1] rounded-3xl p-5 space-y-3 shadow-2xl">
+          <p class="text-[13px] font-extrabold uppercase tracking-wide text-[#3B5E42]">${fr ? 'Bon retour' : 'Welcome back'}</p>
+          <h2 id="wbTitle" class="text-[23px] font-extrabold text-[#1E2634] leading-tight">${fr ? 'Comment voulez-vous répondre ?' : 'How would you like to answer?'}</h2>
+          <p class="text-[15px] font-bold text-[#425268]">${fr ? 'Vous reprenez où vous étiez.' : 'You’ll pick up where you left off.'}</p>
+          ${opt('voice', '🗣️', fr ? 'Parler et toucher' : 'Talk and tap', fr ? 'Reid lit les questions et écoute vos réponses.' : 'Reid reads the questions and listens to your answers.', inputPreference === 'voice')}
+          ${opt('tap', '👆', fr ? 'Toucher et écrire' : 'Tap and type', fr ? 'Reid reste silencieux. Vous touchez ou écrivez.' : 'Reid stays quiet. You tap or type.', inputPreference !== 'voice')}</div>`;
+      document.body.appendChild(box); document.body.classList.add('modal-open');
+      box.querySelector(`[data-wb="${inputPreference === 'voice' ? 'voice' : 'tap'}"]`).focus();
+      box.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-wb]'); if (!b) return;
+        ensureCtx(); box.remove(); document.body.classList.remove('modal-open');
+        if (b.dataset.wb === 'voice') {
+          setInputMode('voice'); userPaused = false; isListening = true; syncVoiceBarVisuals(); setCompanionState('listening');
+          try { startRec(); } catch (err) { /* another tap */ } speakStep();
+        } else { setInputMode('tap'); stopRec(); }
+        saveAll(); renderCurrentStep(); if (typeof sizeApp === 'function') sizeApp();
+      });
+    })();
   </script>
 </body>
 </html>
