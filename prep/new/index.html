@@ -4008,18 +4008,31 @@
         foot.innerHTML = qAdding ? footHtml(1, '') : `${ideaHist.length ? `<button type="button" data-idea="undo" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">‹ ${L2('Previous', 'Précédente')}</button>${gap}` : ''}<button type="button" data-foot="add" class="${B_FOOT} bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634]">+ ${L2('Your own', 'La vôtre')}</button>${gap}<button type="button" data-foot="gen" ${aiBusy ? 'disabled' : ''} class="${B_FOOT} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] ${aiBusy ? 'opacity-60' : ''}">${aiBusy ? L2('Thinking…', 'Un instant…') : L2('✨ Reid: more', '✨ Reid : plus')}</button>`;
         fitIdeas(items);
       } else if (step.mode === 'priority') {
-        const all = chosen(), pg = pageOf(all); qShown = pg.items;
+        const all = chosen(), wide = window.innerWidth >= 900, pg = wide ? { items: all, n: 1 } : pageOf(all); qShown = pg.items;
         $('listTitle').textContent = L2('Which questions matter most?', 'Quelles questions comptent le plus ?');
-        $('listHelp').textContent = all.length ? L2('Tap, or say the number of, the most important first. They go at the top of your pages.', 'Touchez ou dites le numéro de la plus importante en premier. Elles iront en haut de vos pages.')
+        $('listHelp').textContent = all.length ? L2('Tap the most important first, then the next. Tap again to undo. They go at the top of your pages.', 'Touchez la plus importante en premier, puis la suivante. Touchez encore pour annuler. Elles iront en haut de vos pages.')
           : L2("You haven't added any questions yet. Add one below, or tap Next.", "Vous n'avez pas encore de questions. Ajoutez-en une, ou touchez Suivant.");
         $('listCounter').textContent = L2(`${qPrio.filter((q) => all.includes(q)).length} most important`, `${qPrio.filter((q) => all.includes(q)).length} importante(s)`);
-        items.innerHTML = qShown.map((q, i) => {
+        // a star, not a number: ☆ until tapped, then ★1, ★2… in the order tapped
+        const rows = qShown.map((q, i) => {
           const k = qPrio.indexOf(q);
           return `<button type="button" data-i="${i}" aria-pressed="${k > -1}" class="${k > -1 ? B_ON : B_OFF}">
-            <span class="w-7 h-7 rounded-full ${k > -1 ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#425268]'} font-extrabold text-sm flex items-center justify-center shrink-0">${k > -1 ? '★' + (k + 1) : i + 1}</span>
-            <span class="min-w-0">${qText(q, 'font-extrabold text-[15.5px] leading-snug')}</span></button>`;
+            <span class="min-w-[34px] h-8 px-1 rounded-full ${k > -1 ? 'bg-[#1E2634] text-white' : 'bg-white border border-[#D6CFC0] text-[#9AA3AF]'} font-extrabold text-sm flex items-center justify-center shrink-0" aria-hidden="true">${k > -1 ? '★' + (k + 1) : '☆'}</span>
+            <span class="min-w-0">${qText(q, 'prio-q font-extrabold text-[15.5px] leading-snug')}</span></button>`;
         }).join('');
-        foot.innerHTML = footHtml(pg.n, L2('A question we missed', 'Une question oubliée')); fitList(foot);
+        if (wide) {   // computers and iPads: every question at once, in two columns where the pages used to be
+          items.innerHTML = `<div class="w-full grid ${all.length > 5 ? 'grid-cols-2' : 'grid-cols-1'} gap-[8px] content-start">${rows}</div>`;
+          foot.innerHTML = footHtml(1, L2('A question we missed', 'Une question oubliée'));
+          const fitPrio = () => {   // shrink a little at a time until every question fits; scroll only as a last resort
+            const over = () => items.scrollHeight > items.clientHeight + 1, qs = items.querySelectorAll('.prio-q'), bs = items.querySelectorAll('[data-i]');
+            items.classList.remove('overflow-y-auto'); qs.forEach((e) => { e.style.removeProperty('font-size'); }); bs.forEach((e) => { e.style.minHeight = ''; e.style.paddingTop = e.style.paddingBottom = ''; });
+            if (!items.clientHeight) return;
+            const tries = [() => bs.forEach((e) => { e.style.minHeight = '0'; e.style.paddingTop = e.style.paddingBottom = '6px'; }), () => qs.forEach((e) => { e.style.setProperty('font-size', '14.5px', 'important'); }), () => qs.forEach((e) => { e.style.setProperty('font-size', '13.5px', 'important'); }), () => qs.forEach((e) => { e.style.setProperty('font-size', '12.5px', 'important'); })];
+            for (const t of tries) { if (!over()) return; t(); }
+            if (over()) items.classList.add('overflow-y-auto');
+          };
+          requestAnimationFrame(fitPrio); setTimeout(fitPrio, 150);
+        } else { items.innerHTML = rows; foot.innerHTML = footHtml(pg.n, L2('A question we missed', 'Une question oubliée')); fitList(foot); }
       } else {
         qShown = [];
         const ms = qLines(SID('meds').answer), dl = detailLines(), cq = chosen();
