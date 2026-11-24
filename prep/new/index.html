@@ -6362,6 +6362,21 @@
     { const gl = glance; glance = function () {   // a "day" that isn't a day stays off the pages
       const d = SID('day'), keep = d.answer; if (keep && !DAYISH.test(keep) && !d.dateISO) { d.answer = ''; const h = gl(); d.answer = keep; return h; } return gl(); }; }
 
+    // take a kept question off the list (Which questions matter most? ✕, and the list beside the questions screen)
+    function removeQ(q) {
+      if (!q) return;
+      const same = (x) => x === q;
+      qPicked = qPicked.filter((x) => !same(x)); qPrio = qPrio.filter((x) => !same(x)); if (typeof ownQs !== 'undefined') ownQs = ownQs.filter((x) => !same(x));
+      ['ask', 'ideasmore'].forEach((id) => { const st = SID(id); if (st && st.answer) st.answer = qLines(st.answer).filter((x) => !same(x)).join('\n'); });
+      if (!qSkipped.includes(q)) qSkipped.push(q);
+      saveAll(); renderList(); applyLang(); lpSoon(true);
+      showToast(L2('Removed. Ask Reid again if you change your mind.', 'Retirée.'));
+    }
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-rm]'); if (!b) return; e.stopPropagation();
+      removeQ(qShown[+b.dataset.rm]);
+    }, true);
+
     // Spoken "next" is caught however it arrives: "Next?", "okay next", "next please", or tacked onto
     // an answer ("myotonic dystrophy, next"): the answer is kept, then Reid moves on.
     { const hN = heard; heard = function (t) {
