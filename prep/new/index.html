@@ -5448,6 +5448,119 @@
     // where you were, by name (the order of the steps changed)
     { const s0 = saveAll; setInterval(() => { try { localStorage.setItem('wellheard-at', steps[currentIndex].id); } catch (e) { /* full */ } }, 2000); }
 
+    // =====================================================================
+    // Age, height and weight: big number boxes with − and + (no fine typing needed), units to match how people think
+    // =====================================================================
+    const about = SID('about'); about.mode = 'about'; LISTMODES.about = 1;
+    let AB = { age: '', ft: '', inch: '', cm: '', lb: '', kg: '', hu: lang === 'fr' ? 'cm' : 'ft', wu: lang === 'fr' ? 'kg' : 'lb' };
+    try { const a = JSON.parse(localStorage.getItem('wellheard-about') || 'null'); if (a) AB = Object.assign(AB, a); } catch (e) { /* fresh */ }
+    const abFmt = () => {
+      const fr = lang === 'fr', p = [];
+      if (AB.age) p.push(AB.age + (fr ? ' ans' : ' years old'));
+      if (AB.hu === 'ft' && AB.ft) p.push(AB.ft + ' ft' + (AB.inch ? ' ' + AB.inch + ' in' : ''));
+      if (AB.hu === 'cm' && AB.cm) p.push(AB.cm + ' cm');
+      if (AB.wu === 'lb' && AB.lb) p.push(AB.lb + ' lb');
+      if (AB.wu === 'kg' && AB.kg) p.push(AB.kg + ' kg');
+      return p.join(' · ');
+    };
+    const abSave = () => { about.answer = abFmt(); about.customActive = !!about.answer; try { localStorage.setItem('wellheard-about', JSON.stringify(AB)); } catch (e) { /* full */ } saveAll(); };
+    const AB_LIM = { age: [1, 120, 70], ft: [2, 7, 5], inch: [0, 11, 6], cm: [60, 230, 168], lb: [40, 500, 160], kg: [20, 230, 72] };
+    function abStep(k, d) {
+      const [lo, hi, start] = AB_LIM[k]; let v = parseInt(AB[k], 10);
+      v = isNaN(v) ? start : Math.min(hi, Math.max(lo, v + d));
+      AB[k] = String(v); abSave();
+    }
+    function abSwitch(kind, u) {   // convert what's there, so nothing is lost when switching units
+      if (kind === 'h' && AB.hu !== u) {
+        if (u === 'cm' && AB.ft) AB.cm = String(Math.round(((+AB.ft) * 12 + (+AB.inch || 0)) * 2.54));
+        if (u === 'ft' && AB.cm) { const t = Math.round(+AB.cm / 2.54); AB.ft = String(Math.floor(t / 12)); AB.inch = String(t % 12); }
+        AB.hu = u;
+      }
+      if (kind === 'w' && AB.wu !== u) {
+        if (u === 'kg' && AB.lb) AB.kg = String(Math.round(+AB.lb * 0.4536));
+        if (u === 'lb' && AB.kg) AB.lb = String(Math.round(+AB.kg / 0.4536));
+        AB.wu = u;
+      }
+      abSave();
+    }
+    function renderAbout(items, foot) {
+      const $ = (id) => document.getElementById(id);
+      $('listTitle').textContent = L2('Your age, height and weight', 'Votre âge, votre taille et votre poids');
+      $('listHelp').textContent = about.fromLast && about.answer ? L2('From your last visit. Still right? Tap Next, or change it.', 'De votre dernière visite. Toujours exact ? Touchez Suivant, ou changez-le.')
+        : L2('Optional. It helps the doctor with doses. Tap − or +, type a number, or say it.', 'Facultatif. Cela aide le médecin pour les doses. Touchez − ou +, écrivez un chiffre, ou dites-le.');
+      $('listCounter').classList.add('hidden');
+      items.classList.add('overflow-y-auto');
+      const num = (k, label, unit) => `<div class="flex items-center gap-2">
+          <button type="button" data-ab="minus" data-k="${k}" class="tactile-btn w-[56px] h-[56px] shrink-0 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[28px] font-extrabold text-[#1E2634]" aria-label="${L2('Less', 'Moins')}: ${label}">−</button>
+          <input data-abin="${k}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${esc(AB[k])}" aria-label="${label}" placeholder="–"
+            class="w-[76px] h-[56px] rounded-2xl border-2 border-[#1E2634] bg-white text-center text-[24px] font-extrabold text-[#1E2634]">
+          <button type="button" data-ab="plus" data-k="${k}" class="tactile-btn w-[56px] h-[56px] shrink-0 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[28px] font-extrabold text-[#1E2634]" aria-label="${L2('More', 'Plus')}: ${label}">+</button>
+          <span class="text-[17px] font-extrabold text-[#425268]" aria-hidden="true">${unit}</span></div>`;
+      const seg = (kind, cur, opts) => `<div class="inline-flex rounded-xl border border-[#D6CFC0] overflow-hidden" role="group" aria-label="${L2('Units', 'Unités')}">${opts.map(([u, l]) => `<button type="button" data-abu="${kind}" data-u="${u}" aria-pressed="${cur === u}" class="tactile-btn min-h-[44px] px-3 font-extrabold text-[14px] ${cur === u ? 'bg-[#1E2634] text-white' : 'bg-white text-[#1E2634]'}">${l}</button>`).join('')}</div>`;
+      const card = (title, extra, body) => `<div class="w-full bg-white border border-[#E6DFD0] rounded-[18px] p-3 flex flex-col gap-2">
+          <div class="flex items-center justify-between gap-2"><span class="font-extrabold text-[17px] text-[#1E2634]">${title}</span>${extra}</div>${body}</div>`;
+      items.innerHTML = `<div class="w-full flex flex-col gap-[8px]">
+        ${card(L2('Age', 'Âge'), '', num('age', L2('Age in years', 'Âge en années'), L2('years', 'ans')))}
+        ${card(L2('Height', 'Taille'), seg('h', AB.hu, [['ft', 'ft / in'], ['cm', 'cm']]),
+          AB.hu === 'ft' ? num('ft', L2('Height, feet', 'Taille, pieds'), 'ft') + num('inch', L2('Height, inches', 'Taille, pouces'), 'in') : num('cm', L2('Height in centimetres', 'Taille en centimètres'), 'cm'))}
+        ${card(L2('Weight', 'Poids'), seg('w', AB.wu, [['lb', 'lb'], ['kg', 'kg']]),
+          AB.wu === 'lb' ? num('lb', L2('Weight in pounds', 'Poids en livres'), 'lb') : num('kg', L2('Weight in kilograms', 'Poids en kilos'), 'kg'))}
+        <button type="button" data-ab="skip" class="tactile-btn w-full min-h-[52px] rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${L2('Skip for now', 'Passer pour l’instant')}</button></div>`;
+      foot.innerHTML = '';
+      items.querySelectorAll('[data-abin]').forEach((inp) => {
+        inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(0, 3); AB[inp.dataset.abin] = inp.value; abSave(); });
+        inp.addEventListener('focus', () => inp.select());
+      });
+    }
+    // hold − or + to keep counting (useful for weight), with a slow start so a tremor doesn't over-shoot
+    { let hold = null, rep = null;
+      const stop = () => { clearTimeout(hold); clearInterval(rep); hold = rep = null; };
+      const list = document.getElementById('listItems');
+      list.addEventListener('pointerdown', (e) => {
+        const b = e.target.closest('[data-ab="minus"],[data-ab="plus"]'); if (!b) return;
+        const k = b.dataset.k, d = b.dataset.ab === 'plus' ? 1 : -1;
+        hold = setTimeout(() => { rep = setInterval(() => { abStep(k, d); const i = list.querySelector(`[data-abin="${k}"]`); if (i) i.value = AB[k]; b.dataset.held = '1'; }, 140); }, 600);
+      });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => list.addEventListener(ev, stop));
+      list.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-ab],[data-abu]'); if (!b) return;
+        if (b.dataset.held) { delete b.dataset.held; return; }   // a long press already counted
+        if (b.dataset.abu) { abSwitch(b.dataset.abu, b.dataset.u); renderList(); applyLang(); return; }
+        if (b.dataset.ab === 'skip') { AB = Object.assign(AB, { age: '', ft: '', inch: '', cm: '', lb: '', kg: '' }); abSave(); goNext(); return; }
+        abStep(b.dataset.k, b.dataset.ab === 'plus' ? 1 : -1);
+        const i = list.querySelector(`[data-abin="${b.dataset.k}"]`); if (i) i.value = AB[b.dataset.k];
+      });
+    }
+    // said aloud: "86, five foot eight, 150 pounds" / "j'ai 86 ans, 1 m 73, 68 kilos"
+    function abHeard(t) {
+      const s = ' ' + lc(t).replace(/,/g, ' ') + ' ';
+      const W = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, un: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11 };
+      const n = (x) => (x == null ? null : (W[x] != null ? W[x] : parseInt(x, 10)));
+      const w = '(\\d+|' + Object.keys(W).join('|') + ')';
+      let hit = false, m;
+      if ((m = s.match(new RegExp(w + "\\s*(?:feet|foot|ft|'|pieds?)\\s*" + w + '?')))) { AB.hu = 'ft'; AB.ft = String(n(m[1])); AB.inch = m[2] ? String(n(m[2])) : ''; hit = true; }
+      else if ((m = s.match(/(\d)\s*(?:m|mètres?|metres?)\s*(\d{1,2})/))) { AB.hu = 'cm'; AB.cm = String(+m[1] * 100 + +m[2]); hit = true; }
+      else if ((m = s.match(/(\d{2,3})\s*(?:cm|centim)/))) { AB.hu = 'cm'; AB.cm = m[1]; hit = true; }
+      if ((m = s.match(/(\d{2,3})\s*(?:pounds?|lbs?|livres?)/))) { AB.wu = 'lb'; AB.lb = m[1]; hit = true; }
+      else if ((m = s.match(/(\d{2,3})\s*(?:kilos?|kg|kilograms?|kilogrammes?)/))) { AB.wu = 'kg'; AB.kg = m[1]; hit = true; }
+      if ((m = s.match(/(\d{1,3})\s*(?:years?|yrs?|ans|an)\b/)) || (m = s.match(/^\s*(?:i'm|i am|j'ai)?\s*(\d{2,3})\b(?!\s*(?:feet|foot|ft|cm|m\b|pounds?|lbs?|kilos?|kg|livres?))/))) { const a = +m[1]; if (a > 0 && a <= 120) { AB.age = String(a); hit = true; } }
+      if (hit) { abSave(); renderList(); applyLang(); say(L2('Got it: ', 'Noté : ') + abFmt() + L2('. Say next when you’re done.', '. Dites suivant quand c’est fini.')); }
+      return hit;
+    }
+    { const h1 = heard; heard = function (t) { const s = steps[currentIndex]; if (s && s.mode === 'about' && abHeard(t)) return; return h1(t); }; }
+    { const rl3 = renderList; renderList = function () {
+      const step = steps[currentIndex];
+      if (step.mode === 'about') { document.getElementById('listCounter').classList.remove('hidden'); renderAbout(document.getElementById('listItems'), document.getElementById('listFoot')); return; }
+      rl3();
+    }; }
+    SPEAK.about = () => L2('How old are you, and about how tall and heavy? You can say it, like: 86, five foot eight, 150 pounds. Or tap the numbers. This is optional.', 'Quel âge avez-vous, et environ quelle taille et quel poids ? Vous pouvez le dire, par exemple : 86 ans, 1 mètre 73, 68 kilos. Ou touchez les chiffres. C’est facultatif.');
+    if (typeof EXPLAIN === 'object') EXPLAIN.about = SPEAK.about;
+    // a new visit keeps the numbers (they're part of the basics)
+    { const snv = startNewVisit; startNewVisit = function () { snv(); if (abFmt()) { about.answer = abFmt(); about.customActive = true; about.fromLast = true; } }; }
+
+    // erasing everything also forgets the numbers, the goal questions and the calendar date
+    { const ra = resetAllFromSettings; resetAllFromSettings = function (x) { ra(x); if (x !== true) { AB = Object.assign(AB, { age: '', ft: '', inch: '', cm: '', lb: '', kg: '' }); goalPool = []; goalSig = ''; recapNext = {};
+      ['wellheard-about', 'wellheard-goalqs', 'wellheard-next', 'wellheard-at'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* blocked */ } }); } }; }
     // Initial render
     loadAll();
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }
