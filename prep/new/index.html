@@ -843,7 +843,7 @@
       id="toastBanner"
       role="status"
       aria-live="polite"
-      class="pointer-events-none opacity-0 transition-opacity duration-200 absolute top-20 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full bg-[#1E2634] text-white font-extrabold text-xs shadow-lg whitespace-nowrap"
+      class="pointer-events-none opacity-0 transition-opacity duration-200 absolute top-20 left-1/2 -translate-x-1/2 z-40 w-max max-w-[min(560px,calc(100%-24px))] flex items-start gap-2.5 pl-2 pr-4 py-2 rounded-[20px] bg-white border-2 border-[#3B5E42] text-[#1E2634] font-extrabold text-[15px] leading-snug shadow-lg"
     >
       Saved
     </div>
@@ -1185,6 +1185,7 @@
     .paper .pg .meta { color: #444; margin: 0 0 10pt; }
     .paper .pg .foot { font-size: .75em; color: #555; margin-top: 14pt; }
     .paper .pg .say { font-size: 1.08em; }
+    .paper.pdf .pg, .paper.pdf .paper-in { background: #fff !important; box-shadow: none !important; }
     .pg-wrap .sel { flex-wrap: nowrap; }
     .pg-wrap .sel button { flex: 1 1 0; min-width: 0; padding: 6px 8px !important; line-height: 1.15; }
   </style>
@@ -2586,14 +2587,18 @@
     let toastTimer;
     function showToast(msg) {
       const toast = document.getElementById('toastBanner');
-      toast.textContent = msg;
+      // a note from Reid (Rama, 24 Nov): his face, the words wrapping, up long enough to read
+      const face = document.querySelector('#companionEmblem .reid-face');
+      toast.innerHTML = '<span class="w-10 h-10 rounded-full shrink-0 bg-[#FAF7F0] border border-[#E2DACB] flex items-center justify-center overflow-hidden"></span><span class="pt-2 min-w-0"></span>';
+      if (face) { const f = face.cloneNode(true); f.setAttribute('width', '36'); f.setAttribute('height', '36'); toast.firstChild.appendChild(f); }
+      toast.lastChild.textContent = msg;
       toast.classList.remove('opacity-0');
       toast.classList.add('opacity-100');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => {
         toast.classList.remove('opacity-100');
         toast.classList.add('opacity-0');
-      }, 1800);
+      }, Math.max(2200, String(msg).split(/\s+/).length * 380));
     }
 
     function toggleInspectMode() {
@@ -4174,7 +4179,7 @@
       const b = e.target.closest('[data-ready]'); if (!b) return;
       const k = b.dataset.ready;
       if (k === 'print') printPages('doctor');
-      if (k === 'pdf') { const m = L2('In the print window, choose Save as PDF (on iPhone: tap Share, then Save to Files).', 'Dans la fenêtre d’impression, choisissez Enregistrer en PDF (sur iPhone : Partager, puis Enregistrer dans Fichiers).'); showToast(m); say(m); setTimeout(() => printPages('doctor'), 1800); }
+      if (k === 'pdf') savePdf('doc');
       if (k === 'send') sendPages();
       if (k === 'doc' || k === 'mine') showPage(k);
     });
@@ -6486,6 +6491,52 @@
       area.innerHTML = pageHtml(w); if (isMT()) await applyLang(area);
       setTimeout(() => window.print(), 50);
     }
+    // Save PDF makes the PDF itself (Rama, 24 Nov: no more "choose Save as PDF in the print window").
+    // The page is laid out exactly as printed, turned into a letter-size PDF, then handed to the share sheet
+    // (iPhone/iPad: Save to Files) or downloaded (computer).
+    let pdfLib = null;
+    const loadPdfLib = () => pdfLib || (pdfLib = new Promise((ok, no) => { if (window.html2pdf) return ok(window.html2pdf);
+      const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js';
+      sc.onload = () => ok(window.html2pdf); sc.onerror = () => { pdfLib = null; no(new Error('pdf lib')); }; document.head.appendChild(sc); }));
+    let pdfReady = null;
+    async function makePdf(w) {
+      const H = await loadPdfLib();
+      if (w === 'doc' && isMT()) await toEnglish(['who', 'where', 'day', 'time', 'concerns', 'story', 'conditions', 'meds', 'allergies'].map((id) => SID(id).answer).concat(detailLines(), allQs()));
+      const host = document.createElement('div'); host.style.cssText = 'position:fixed;left:-10000px;top:0;width:8.5in;background:#fff';
+      host.innerHTML = `<div class="paper pdf" style="width:7.5in;box-shadow:none;border:0;margin:0;padding:0;background:#fff"><div class="paper-in">${pageHtml(w)}</div></div>`;
+      document.body.appendChild(host); if (isMT()) await applyLang(host);
+      const name = (L2(...PAGE_NAME[w]) + (SID('name').answer ? ' - ' + short(SID('name').answer) : '')).replace(/[’']/g, '').replace(/[^\w\- ]+/g, '').trim() + '.pdf';
+      try {
+        const blob = await H().set({ margin: [0.5, 0.5, 0.55, 0.5], filename: name, image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, backgroundColor: '#ffffff', useCORS: true }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'], avoid: ['li', 'h2', 'tr', '.glance', '.key'] } }).from(host.firstElementChild).outputPdf('blob');
+        return new File([blob], name, { type: 'application/pdf' });
+      } finally { host.remove(); }
+    }
+    async function handPdf(file) {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: file.name }); return; }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+      showToast(L2('Saved: ' + file.name + ' is in your Downloads.', 'Enregistré : ' + file.name + ' est dans vos Téléchargements.'));
+    }
+    async function savePdf(w) {
+      const m = L2('One moment. I’m making your PDF.', 'Un instant. Je prépare votre PDF.'); showToast(m); say(m, true);
+      let file;
+      try { file = await makePdf(w); }
+      catch (e) { const f = L2('I couldn’t make the PDF here, so I’ll open the print window. Choose Save as PDF there.', 'Je n’ai pas pu faire le PDF ici, j’ouvre la fenêtre d’impression. Choisissez Enregistrer en PDF.'); showToast(f); say(f, true); setTimeout(() => printOne(w), 2500); return; }
+      pdfReady = file;
+      try { await handPdf(file); }
+      catch (e) {   // the share sheet needs a fresh tap after the wait: offer one big button
+        if (e && e.name === 'AbortError') return;   // they closed the share sheet themselves
+        const b = document.getElementById('pdfGo') || document.createElement('button');
+        b.id = 'pdfGo'; b.type = 'button';
+        b.style.cssText = 'position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:95;min-height:72px;padding:0 28px;border-radius:22px;border:0;background:#3B5E42;color:#fff;font:inherit;font-weight:800;font-size:20px;box-shadow:0 10px 28px rgba(0,0,0,.25);cursor:pointer';
+        b.textContent = '📄 ' + L2('Your PDF is ready: tap to save', 'Votre PDF est prêt : touchez pour l’enregistrer');
+        b.onclick = () => { b.remove(); handPdf(pdfReady).catch(() => {}); };
+        document.body.appendChild(b); setTimeout(() => b.remove(), 60000);
+        say(L2('Your PDF is ready. Tap the green button to save it.', 'Votre PDF est prêt. Touchez le bouton vert pour l’enregistrer.'), true);
+      }
+    }
     function sendOne(w) {
       const tmp = document.createElement('div'); tmp.innerHTML = w === 'doc' ? doctorPage() : w === 'circle' ? circlePage() : patientPage();
       const text = tmp.innerText.replace(/\n{3,}/g, '\n\n').trim(), title = L2(...PAGE_NAME[w]) + (SID('name').answer ? ' · ' + short(SID('name').answer) : '');
@@ -6508,9 +6559,10 @@
       const pick = (k) => `<button type="button" data-rp="${k}" aria-pressed="${readyPick === k}" class="tactile-btn flex-1 min-h-[56px] px-2 rounded-2xl font-extrabold text-[15px] leading-tight ${readyPick === k ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${readyPick === k ? '✓ ' : ''}${L2(...PAGE_NAME[k])}</button>`;
       const act = (k, icon, en, fr, cls) => `<button type="button" data-ra="${k}" class="tactile-btn min-h-[60px] rounded-2xl font-extrabold text-[14px] flex flex-col items-center justify-center leading-tight ${cls}"><span class="text-[19px]" aria-hidden="true">${icon}</span>${L2(en, fr)}</button>`;
       items.innerHTML = `<div class="w-full flex gap-[8px]" role="group" aria-label="${L2('Which page', 'Quelle page')}">${pick('mine')}${pick('doc')}${pick('circle')}</div>
-        <button type="button" data-ra="see" class="tactile-btn w-full min-h-[72px] rounded-[20px] bg-[#A84B2F] text-white font-extrabold text-[20px] shadow-[0_6px_16px_rgba(168,75,47,.35)] flex items-center justify-center gap-2"><span class="text-[24px]" aria-hidden="true">📄</span> ${L2('See the', 'Voir la')} ${L2(...PAGE_NAME[readyPick])}</button>
+        <button type="button" data-ra="see" class="tactile-btn w-full min-h-[72px] rounded-[20px] bg-[#A84B2F] text-white font-extrabold text-[clamp(17px,4.6vw,20px)] px-4 shadow-[0_6px_16px_rgba(168,75,47,.35)] flex items-center justify-center gap-2"><span class="text-[24px] shrink-0" aria-hidden="true">📄</span><span class="min-w-0 leading-tight">${L2('See the', 'Voir la')} ${L2(...PAGE_NAME[readyPick])}</span></button>
         <div class="grid grid-cols-3 gap-[8px]">${act('print', '🖨', 'Print', 'Imprimer', 'bg-[#1E2634] text-white')}${act('pdf', '📄', 'Save PDF', 'PDF', 'bg-[#3B5E42] text-white')}${act('send', '✉️', 'Send', 'Envoyer', 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]')}</div>
         <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-2.5 flex flex-col gap-[6px]">${rows}</div>`;
+      setTimeout(() => loadPdfLib().catch(() => {}), 800);
       $help = document.getElementById('listHelp'); if ($help) $help.textContent = L2('Pick a page, then see, print, save or send it. Tap ✎ to change anything.', 'Choisissez une page, puis voyez-la, imprimez-la, enregistrez-la ou envoyez-la. Touchez ✎ pour changer quoi que ce soit.');
     }; }
     var $help = null;
@@ -6520,7 +6572,7 @@
       const k = a.dataset.ra;
       if (k === 'see') showPage(readyPick);
       if (k === 'print') printOne(readyPick);
-      if (k === 'pdf') { const m = L2('In the print window, choose Save as PDF (on iPhone: tap Share, then Save to Files).', 'Dans la fenêtre d’impression, choisissez Enregistrer en PDF (sur iPhone : Partager, puis Enregistrer dans Fichiers).'); showToast(m); say(m); setTimeout(() => printOne(readyPick), 1800); }
+      if (k === 'pdf') savePdf(readyPick);
       if (k === 'send') sendOne(readyPick);
     });
     { const sp3 = showPage; showPage = function (w) { if (['mine', 'doc', 'circle'].includes(w)) readyPick = w; return sp3(w); }; }
