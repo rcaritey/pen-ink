@@ -4368,6 +4368,20 @@
     turn.className = 'hidden fixed inset-0 z-[100] bg-[#FAF7F0] flex flex-col items-center justify-center gap-3 p-6 text-center';
     turn.innerHTML = '<div class="text-5xl" aria-hidden="true">📱↻</div><p class="text-xl font-extrabold text-[#1E2634]">Please turn your phone upright.</p><p class="text-base font-bold text-[#425268]">WellHeard is easier to read this way.</p>';
     document.body.appendChild(turn);
+    // iPhone and iPad: Settings › Accessibility › Larger Text changes this font; websites don't follow it unless they ask
+    let sysScaleV = null;
+    function sysTextScale() {
+      if (sysScaleV !== null) return sysScaleV;
+      sysScaleV = 1;
+      try {
+        if (typeof IOS !== 'undefined' && IOS || /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+          const p = document.createElement('span'); p.style.cssText = 'font:-apple-system-body;position:absolute;visibility:hidden'; p.textContent = 'x';
+          document.body.appendChild(p); const px = parseFloat(getComputedStyle(p).fontSize) || 17; p.remove();
+          sysScaleV = Math.min(1.45, Math.max(1, px / 17));
+        }
+      } catch (e) { sysScaleV = 1; }
+      return sysScaleV;
+    }
     function sizeApp() {
       const main = document.getElementById('appContainer'), vw = window.innerWidth, vh = window.innerHeight;
       const phoneSideways = vh < 500 && vw > vh && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
@@ -4398,7 +4412,7 @@
           z = Math.min(1.5, avail / 480, (vh * 0.96) / 600); w = Math.min(640, avail / z); h = (vh * 0.96) / z;
         }
         // upright iPad: the full screen, no phone frame, text a little bigger (Rama, 24 Nov: don't make people turn it)
-        else { z = Math.min(1.45, (vh * 0.97) / 820); w = Math.min(680, (vw * 0.96) / z); h = (vh * 0.97) / z; }
+        else { z = Math.min(1.75, (vh * 0.97) / 700); w = Math.min(620, (vw * 0.96) / z); h = (vh * 0.97) / z; }
         // computer or sideways iPad: no phone-style frame (Rama, 23 Nov). With the pages beside it, a soft card.
         // borderless: one paper-coloured screen, a hairline between the questions and the pages (Rama, 23 Nov)
         main.style.borderRadius = '0'; main.style.borderWidth = '0';
@@ -4406,7 +4420,8 @@
         document.body.style.backgroundColor = '#FAF7F0';
       }
       // Text size: everything grows together; the page keeps the same place on the screen
-      const ts = [1, 1.18, 1.36][textSize] || 1; z *= ts; w /= ts; h /= ts;
+      // the app's own text size, times the device's Larger Text setting on iPhone and iPad (Rama, 24 Nov)
+      const ts = ([1, 1.18, 1.36][textSize] || 1) * sysTextScale(); z *= ts; w /= ts; h /= ts;
       document.documentElement.classList.toggle('ts-1', textSize === 1); document.documentElement.classList.toggle('ts-2', textSize === 2);
       main.classList.toggle('narrow', w < 385);
       main.classList.toggle('tiny', w < 330);   // extra-large text on a phone: Reid stands for WellHeard, Help and Settings keep their labels
