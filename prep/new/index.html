@@ -3075,7 +3075,7 @@
       if (/^(back|go back|retour|revenir)$/.test(low)) { goBack(); return; }
       if (/^(erase|undo|erase that|delete that|efface|efface ça|annuler)$/.test(low)) { undoLastWord(); return; }
       if (/^(repeat|repeat that|say that again|répète|répétez)$/.test(low)) { speakStep(); return; }
-      if (/^(stop|pause|wait|hold on|arrête|attends|attendez)$/.test(low)) { if (isListening) toggleListening(); return; }
+      if (/^(?:(?:ok|okay|reid|please|hey reid)[ ,]+)*(stop|stop listening|stop it|pause|pause listening|wait|hold on|be quiet|quiet|mute|turn (it|the mic|the microphone) off|that'?s enough|you can stop|arrête|arrête d'écouter|arrêtez|attends|attendez|silence)( please| reid)*$/.test(low)) { if (isListening) toggleListening(); return; }
       if (/^(help|help me|explain|explain this( screen| page)?|what do i do( here)?|what do i do now|aide|aidez-moi|explique|expliquez|qu'est-ce que je fais)$/.test(low)) { explainStep(); return; }
       if (step.mode === 'ideas' && /(new|more|other|different) (questions|ideas)|reid.*more|generate|nouvelles questions|d'autres questions/.test(low) && low.split(' ').length <= 8) { fetchClaudeQuestions(true); return; }
       if (/^(skip|skip (this|that|it|these)( one)?|passer|on passe)$/.test(low) && (step.id === 'detail' || /^dq\d+$/.test(step.id))) { skipDetail(step); return; }
@@ -3554,10 +3554,26 @@
       if (isMT()) await applyLang(area);
       setTimeout(() => window.print(), 50);
     }
+    function fitPageBox(box) {
+      // the page fills the screen and scrolls; a "more below" cue shows while there's more (Rama, 24 Nov:
+      // his dad saw only the top and thought the rest was missing — iPad hides scroll bars)
+      box.style.overflowY = 'auto'; box.style.maxHeight = ''; box.style.flex = '1 1 auto'; box.style.minHeight = '0'; box.scrollTop = 0;
+      box.style.webkitOverflowScrolling = 'touch';
+      let more = document.getElementById('pvMore');
+      if (!more) {
+        more = document.createElement('button'); more.type = 'button'; more.id = 'pvMore';
+        more.style.cssText = 'align-self:center;display:none;align-items:center;gap:8px;min-height:52px;padding:0 22px;border-radius:999px;border:0;background:#3B5E42;color:#fff;font:inherit;font-weight:800;font-size:17px;box-shadow:0 6px 18px rgba(0,0,0,.18);margin-top:-64px;position:relative;z-index:2;cursor:pointer';
+        box.parentNode.insertBefore(more, box.nextSibling);
+        more.addEventListener('click', () => { box.scrollBy({ top: box.clientHeight * 0.8, behavior: 'smooth' }); });
+        box.addEventListener('scroll', () => syncMore());
+      }
+      function syncMore() { const m = document.getElementById('pvMore'); if (m) { m.textContent = L2('↓ More below', '↓ La suite plus bas'); m.style.display = box.scrollHeight - box.scrollTop - box.clientHeight > 24 ? 'flex' : 'none'; } }
+      setTimeout(syncMore, 60); setTimeout(syncMore, 400);
+    }
     openFullDoctorCard = function () {
       const box = document.querySelector('#fullDoctorModal .space-y-3');
       box.innerHTML = `<div style="font-size:1.1rem;line-height:1.5">${doctorPage().replace('<h1>', '<h1 style="font-size:1.5rem;font-weight:800">')}</div>`;
-      box.style.overflowY = 'auto'; box.style.maxHeight = '80vh';
+      fitPageBox(box);
       openModal('fullDoctorModal');
     };
     function shareRecap() {
@@ -4124,11 +4140,11 @@
       const box = document.querySelector('#fullDoctorModal .space-y-3');
       const html = which === 'mine' ? patientPage() : doctorPage();
       box.innerHTML = `<div style="font-size:1.05rem;line-height:1.5">${html.replace('<h1>', '<h1 style="font-size:1.4rem;font-weight:800">')}</div>`;
-      box.style.overflowY = 'auto'; box.style.maxHeight = '80vh';
+      fitPageBox(box);
       const lab = document.getElementById('pageViewLabel'), ft = document.getElementById('pageViewFoot');
       if (lab) lab.textContent = which === 'mine' ? L2('Patient’s page · Large print', 'Page du patient · Gros caractères') : L2('Medical team’s page · Large print', 'Page de l’équipe médicale · Gros caractères');
       if (ft) ft.style.visibility = which === 'mine' ? 'hidden' : '';
-      openModal('fullDoctorModal'); applyLang(box);
+      openModal('fullDoctorModal'); applyLang(box); setTimeout(() => box.dispatchEvent(new Event('scroll')), 120);
     }
     document.getElementById('listItems').addEventListener('click', (e) => {
       const b = e.target.closest('[data-ready]'); if (!b) return;
@@ -5711,7 +5727,7 @@
     // the doctor's page and my page: age, height, weight and the goal
     { const dp = doctorPage; doctorPage = function () {
       let h = dp(); const fr = lang === 'fr', about = SID('about').answer, goal = SID('goal').answer;
-      const add = goal ? `<h2>${fr ? 'Ce que le patient espère de la visite' : 'What the patient hopes to get out of this visit'}</h2><p>${esc(docT(goal))}</p>` : '';
+      const add = goal ? `<h2>${fr ? 'Ce que le patient espère de la visite' : 'What the patient hopes to get out of this visit'}</h2><p>${esc(tidyT(goal))}</p>` : '';
       const i = h.indexOf('<h2>'); if (add && i > 0) h = h.slice(0, i) + add + h.slice(i);
       // age, height and weight go right after the medicines, where the doctor checks doses (Rama, 24 Nov)
       if (about) {
