@@ -6518,10 +6518,10 @@
       const host = document.createElement('div'); host.style.cssText = 'position:fixed;left:-10000px;top:0;width:8.5in;background:#fff';
       host.innerHTML = `<div class="paper pdf" style="width:7.5in;box-shadow:none;border:0;margin:0;padding:0;background:#fff"><div class="paper-in">${pageHtml(w)}</div></div>`;
       document.body.appendChild(host); if (isMT()) await applyLang(host);
-      // one file per visit (Rama, 24 Nov): who, which page, where, the appointment date — "Pierre Caritey - Medical team page - Foot clinic - 2026-11-24.pdf"
+      // one file per visit (Rama, 24 Nov): who, which page, where, the appointment date — "REID - Pierre Caritey - 2026-11-24 - Foot clinic - Medical team page.pdf"
       const iso = SID('day').dateISO || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
       const who = short(SID('who').answer || '').slice(0, 40);
-      const name = [SID('name').answer ? short(SID('name').answer) : '', L2(...PAGE_NAME[w]), who, iso].filter(Boolean).join(' - ')
+      const name = ['REID', SID('name').answer ? short(SID('name').answer) : '', iso, who, L2(...PAGE_NAME[w])].filter(Boolean).join(' - ')
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’']s\b/g, '').replace(/[’']/g, '').replace(/[^\w\- ]+/g, '').replace(/\s+/g, ' ').trim() + '.pdf';
       try {
         const blob = await H().set({ margin: [0.5, 0.5, 0.55, 0.5], filename: name, image: { type: 'jpeg', quality: 0.95 },
