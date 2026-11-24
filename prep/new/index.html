@@ -4311,7 +4311,7 @@
     hello.className = 'hidden absolute left-4 right-4 top-[80px] z-40 bg-white border-2 border-[#1E2634] rounded-[22px] p-3.5 flex flex-col gap-[10px] shadow-2xl';
     document.getElementById('appContainer').appendChild(hello);
     function showHello() {
-      if (steps[currentIndex].mode !== 'landing' || sessionStorage.getItem('wh-hello')) return;
+      if (steps[currentIndex].mode !== 'landing' || window.__helloDone) return;
       hello.innerHTML = `<span class="absolute -top-[9px] left-[34px] w-4 h-4 bg-white border-l-2 border-t-2 border-[#1E2634] rotate-45" aria-hidden="true"></span>
         <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Welcome to WellHeard! I'm Reid, your AI helper. Would you like me to read this page to you?</p>
         <div class="flex items-stretch"><button type="button" data-hi="yes" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">▶ Yes, read it</button>
@@ -4342,7 +4342,7 @@
     }
     hello.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-hi]'); if (!b) return;
-      ensureCtx(); hello.classList.add('hidden'); sessionStorage.setItem('wh-hello', '1');
+      ensureCtx(); hello.classList.add('hidden'); window.__helloDone = true;
       if (b.dataset.hi === 'fs') { openModal('helpSettingsModal'); setView = 'device'; spokenView = null; renderSettings(); applyLang(); return; }
       if (b.dataset.hi === 'no') { if (inSafariOnly && !sessionStorage.getItem('wh-fs')) showFS(); return; }
       greeted = true;
