@@ -349,7 +349,7 @@ export default async function handler(req, res) {
   }
   if (!fromWellHeard(req)) return res.status(403).json({ ok: false, error: 'Use this from WellHeard.' });
   const isUi = (() => { try { const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body; return !!(b && b.mode === 'ui'); } catch { return false; } })();
-  if (limited(req, isUi ? 'ui' : 'suggest', isUi ? 300 : 80)) return res.status(429).json({ ok: false, error: "That's a lot of requests in a short time. Wait a few minutes, then try again." });
+  if (limited(req, isUi ? 'ui' : 'suggest', isUi ? 300 : 300)) { console.warn('suggest rate limit', isUi ? 'ui' : 'suggest'); return res.status(429).json({ ok: false, error: "That's a lot of requests in a short time. Wait a few minutes, then try again." }); }
 
   const body = typeof req.body === 'object' && req.body ? req.body : (() => {
     try { return JSON.parse(req.body || '{}'); } catch { return {}; }

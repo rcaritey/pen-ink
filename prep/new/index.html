@@ -3793,12 +3793,17 @@
       setCompanionState('asking');
       const wait = lang === 'fr' ? 'Un instant. Reid prépare quelques questions.' : 'One moment. Reid is writing a few questions.';
       showToast(wait); say(wait);
-      try {
-        const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(Object.assign(picture(), { mode: 'clarify', details: [], asked: [] })) });
-        const d = await r.json().catch(() => ({}));
-        if (r.ok && d.ok && Array.isArray(d.questions)) detailQs = d.questions.filter((q) => q && q.q).slice(0, 5).map((q) => ({ q: q.q, label: q.label || '' }));
-      } catch (e) { console.warn('Interview unavailable', e); }
-      if (!detailQs.length) showToast(lang === 'fr' ? "Reid n'a pas pu écrire de questions. On continue." : "Reid couldn't write questions just now. Let's carry on.");
+      for (let t = 0; t < 2 && !detailQs.length; t++) {   // one quiet retry
+        if (t) await new Promise((ok) => setTimeout(ok, 1500));
+        try {
+          const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(Object.assign(picture(), { mode: 'clarify', details: [], asked: [] })) });
+          const d = await r.json().catch(() => ({}));
+          if (r.ok && d.ok && Array.isArray(d.questions)) detailQs = d.questions.filter((q) => q && q.q).slice(0, 5).map((q) => ({ q: q.q, label: q.label || '' }));
+        } catch (e) { console.warn('Interview unavailable', e); }
+      }
+      // still nothing: the questions any clinician asks about a new problem, so "yes" always leads somewhere
+      if (!detailQs.length) detailQs = (lang === 'fr' ? [['Quand est-ce que ça a commencé, et est-ce venu d’un coup ou peu à peu ?', 'Début'], ['Où exactement le sentez-vous ?', 'Endroit'], ['De 0 à 10, à quel point est-ce fort au pire ?', 'Intensité'], ['Qu’est-ce qui aide, et qu’est-ce qui empire ?', 'Ce qui aide ou empire'], ['Qu’avez-vous déjà essayé ?', 'Déjà essayé']]
+        : [['When did it start, and did it come on suddenly or slowly?', 'When it started'], ['Where exactly do you feel it?', 'Where'], ['On a scale of 0 to 10, how bad is it at its worst?', 'How bad'], ['What makes it better, and what makes it worse?', 'Better or worse'], ['What have you already tried?', 'Already tried']]).map(([q, label]) => ({ q, label }));
       spliceDetail(); saveAll();
       setCompanionState(isListening ? 'listening' : 'paused');
     }
