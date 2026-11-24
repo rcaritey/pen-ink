@@ -191,7 +191,7 @@
     @keyframes lpFlash { 0%, 35% { background: #E5EFE7; box-shadow: 0 0 0 8px #E5EFE7; } 100% { background: transparent; box-shadow: 0 0 0 8px transparent; } }
     .lp-foot { margin: 0; font-size: 14px; color: #425268; font-weight: 700; }
     @media (prefers-reduced-motion: reduce) { .lp-sec.lp-new { animation: none; background: #E5EFE7; } }
-    /* Message Rama chooser */
+    /* Chat with Rama box */
     .side-gap { margin-top: 10px; }
     .chat-pick { display: none; position: absolute; inset: 0; z-index: 60; background: rgba(30,38,52,.45); align-items: center; justify-content: center; padding: 16px; }
     .chat-pick.open { display: flex; }
@@ -204,6 +204,10 @@
     .cp-btn span { display: flex; flex-direction: column; line-height: 1.2; }
     .cp-btn b { font-weight: 800; } .cp-btn small { font-size: 13px; font-weight: 700; color: #425268; }
     .cp-num { text-align: center; font-size: 14px; font-weight: 700; color: #425268; margin: 2px 0 0; }
+    .chat-pick .cp-card { max-height: 100%; overflow-y: auto; }
+    .cp-qr { width: 160px; height: 160px; flex-shrink: 0; align-self: center; border: 1px solid #D6CFC0; border-radius: 12px; background: #fff; }
+    .cp-big { text-align: center; font-size: 18px; color: #1E2634; margin: 0; } .cp-big b { font-size: 26px; font-weight: 800; display: block; letter-spacing: .02em; }
+    .cp-note { font-size: 14px; font-weight: 700; color: #425268; background: #F0EBE1; border-radius: 14px; padding: 10px 12px; margin: 0; line-height: 1.35; }
     .cp-close { min-height: 52px; border-radius: 18px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer; }
     @keyframes csBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
     .cs-bob { display: inline-block; animation: csBob 1.4s ease-in-out infinite; }
@@ -3693,7 +3697,7 @@
           ${group(T('Your information', 'Vos renseignements'))}
           ${row('privacy', T('How your information stays private', 'Comment vos renseignements restent privés'))}
           ${group(T('Talk to a person', 'Parler à une personne'))}
-          <button type="button" data-chat class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3 text-left">${ico('chat')}<span>${T('Message Rama for help', 'Écrire à Rama pour de l’aide')}</span></button>
+          <button type="button" data-chat class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3 text-left">${ico('chat')}<span>${T('Chat with Rama for help', 'Écrire à Rama pour de l’aide')}</span></button>
           <p class="text-xs text-center text-[#425268]">416-454-5597 · hello@pen-ink.ca</p></div>`;
       } else if (setView === 'reid') {
         const it = (icon, a, b) => `<li class="flex gap-3 py-2 border-b border-[#D6CFC0] last:border-0"><span class="text-[22px] leading-none w-7 shrink-0 text-center" aria-hidden="true">${icon}</span><span><b class="block text-[16px] text-[#1E2634] leading-snug">${a}</b>${b ? `<span class="block text-[14px] text-[#425268] leading-snug">${b}</span>` : ''}</span></li>`;
@@ -4421,10 +4425,15 @@
       const body = fr ? `Bonjour Rama, j'ai besoin d'aide avec WellHeard. Je suis à : ${where}. ` : `Hi Rama, I need help with WellHeard. I'm on: ${where}. `;
       return 'sms:+14164545597?&body=' + encodeURIComponent(body);
     }
-    const canText = () => /iPhone|iPad|Android|Mac/i.test(navigator.userAgent);
-    // "Message Rama": pick text message, WhatsApp or Signal (23 Nov). Text message only where the device can send one.
+    // phones and tablets can open a text straight away; iPads report themselves as "Mac" but have touch
+    const isComputer = () => !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) && !(navigator.maxTouchPoints > 1);
+    // QR code for "SMSTO:+14164545597:WellHeard: " — a phone camera opens a text to Rama with "WellHeard: " started.
+    // Drawn here (25x25 modules) so the page makes no outside request.
+    const CHAT_QR = 'M0 0h7v1h-7zM8 0h1v1h-1zM10 0h1v1h-1zM12 0h1v1h-1zM14 0h1v1h-1zM18 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM11 1h3v1h-3zM15 1h2v1h-2zM18 1h1v1h-1zM24 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM9 2h2v1h-2zM13 2h3v1h-3zM18 2h1v1h-1zM20 2h3v1h-3zM24 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h1v1h-1zM10 3h3v1h-3zM16 3h1v1h-1zM18 3h1v1h-1zM20 3h3v1h-3zM24 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h2v1h-2zM14 4h2v1h-2zM18 4h1v1h-1zM20 4h3v1h-3zM24 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h8v1h-8zM18 5h1v1h-1zM24 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h7v1h-7zM8 7h1v1h-1zM14 7h2v1h-2zM0 8h1v1h-1zM4 8h1v1h-1zM6 8h3v1h-3zM12 8h4v1h-4zM17 8h5v1h-5zM24 8h1v1h-1zM0 9h1v1h-1zM2 9h1v1h-1zM4 9h1v1h-1zM7 9h2v1h-2zM11 9h2v1h-2zM14 9h1v1h-1zM16 9h4v1h-4zM23 9h2v1h-2zM0 10h1v1h-1zM2 10h5v1h-5zM8 10h1v1h-1zM10 10h3v1h-3zM14 10h2v1h-2zM19 10h2v1h-2zM23 10h1v1h-1zM3 11h1v1h-1zM13 11h1v1h-1zM15 11h3v1h-3zM21 11h4v1h-4zM1 12h3v1h-3zM5 12h8v1h-8zM14 12h1v1h-1zM17 12h5v1h-5zM0 13h3v1h-3zM4 13h1v1h-1zM7 13h1v1h-1zM9 13h1v1h-1zM12 13h1v1h-1zM14 13h1v1h-1zM17 13h1v1h-1zM20 13h1v1h-1zM22 13h1v1h-1zM4 14h3v1h-3zM8 14h4v1h-4zM14 14h1v1h-1zM16 14h2v1h-2zM20 14h1v1h-1zM22 14h2v1h-2zM2 15h4v1h-4zM8 15h1v1h-1zM11 15h1v1h-1zM15 15h2v1h-2zM18 15h1v1h-1zM21 15h3v1h-3zM0 16h5v1h-5zM6 16h1v1h-1zM8 16h3v1h-3zM12 16h1v1h-1zM14 16h9v1h-9zM24 16h1v1h-1zM8 17h3v1h-3zM12 17h1v1h-1zM14 17h3v1h-3zM20 17h1v1h-1zM22 17h3v1h-3zM0 18h7v1h-7zM8 18h4v1h-4zM13 18h2v1h-2zM16 18h1v1h-1zM18 18h1v1h-1zM20 18h3v1h-3zM0 19h1v1h-1zM6 19h1v1h-1zM11 19h2v1h-2zM15 19h2v1h-2zM20 19h1v1h-1zM22 19h3v1h-3zM0 20h1v1h-1zM2 20h3v1h-3zM6 20h1v1h-1zM8 20h1v1h-1zM12 20h2v1h-2zM15 20h6v1h-6zM0 21h1v1h-1zM2 21h3v1h-3zM6 21h1v1h-1zM9 21h2v1h-2zM14 21h3v1h-3zM18 21h2v1h-2zM22 21h1v1h-1zM24 21h1v1h-1zM0 22h1v1h-1zM2 22h3v1h-3zM6 22h1v1h-1zM10 22h3v1h-3zM14 22h1v1h-1zM21 22h3v1h-3zM0 23h1v1h-1zM6 23h1v1h-1zM9 23h1v1h-1zM12 23h2v1h-2zM15 23h5v1h-5zM21 23h1v1h-1zM23 23h2v1h-2zM0 24h7v1h-7zM8 24h3v1h-3zM12 24h7v1h-7zM20 24h3v1h-3zM24 24h1v1h-1z';
+    // "Chat with Rama" (24 Nov): text only. Phones/tablets get a button that opens their texting app;
+    // computers get a QR code to scan with their phone, plus the number in large print.
     function openChatPicker() {
-      const fr = lang === 'fr', body = decodeURIComponent(chatHref().split('&body=')[1] || '');
+      const fr = lang === 'fr', pc = isComputer();
       let el = document.getElementById('chatPick');
       if (!el) {
         el = document.createElement('div'); el.id = 'chatPick'; el.className = 'chat-pick';
@@ -4432,18 +4441,22 @@
         el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-cp="close"]')) closeChatPicker(); else if (e.target.closest('a')) setTimeout(closeChatPicker, 300); });
         el.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeChatPicker(); });
       }
-      const btn = (href, label, note, ext) => `<a class="cp-btn" href="${href}"${ext ? ' target="_blank" rel="noopener"' : ''}>${ico('chat')}<span><b>${label}</b>${note ? `<small>${note}</small>` : ''}</span></a>`;
+      const note = `<p class="cp-note">${fr ? 'Pour de l’aide avec l’application. Merci de ne pas envoyer de détails de santé ici.' : 'For help using the app. Please don’t send health details here.'}</p>`;
+      const body = pc
+        ? `<p class="cp-sub">${fr ? 'Écrivez-lui depuis votre téléphone : pointez l’appareil photo du téléphone vers le carré, puis touchez le lien qui apparaît.' : 'Text him from your phone: point your phone’s camera at the square, then tap the link that appears.'}</p>
+          <svg class="cp-qr" viewBox="-2 -2 29 29" role="img" aria-label="${fr ? 'Code QR pour texter Rama au 416-454-5597' : 'QR code to text Rama at 416-454-5597'}"><rect x="-2" y="-2" width="29" height="29" fill="#fff"/><path fill="#1E2634" d="${CHAT_QR}"/></svg>
+          <p class="cp-big">${fr ? 'Ou textez le' : 'Or text'} <b>416-454-5597</b></p>`
+        : `<p class="cp-sub">${fr ? 'Rama a créé WellHeard. Envoyez-lui un texto; il vous répondra par texto.' : 'Rama made WellHeard. Send him a text and he’ll text you back.'}</p>
+          <a class="cp-btn" href="${chatHref()}">${ico('chat')}<span><b>${fr ? 'Texter Rama' : 'Text Rama'}</b><small>${fr ? 'Ouvre votre application de messages' : 'Opens your messages app'}</small></span></a>
+          <p class="cp-num">${fr ? 'Ou textez ou appelez le' : 'Or text or call'} 416-454-5597</p>`;
       el.innerHTML = `<div class="cp-card" role="dialog" aria-modal="true" aria-labelledby="cpTitle" data-notr>
-          <p id="cpTitle" class="cp-title">${fr ? 'Écrire à Rama' : 'Message Rama'}</p>
-          <p class="cp-sub">${fr ? 'Rama a créé WellHeard. Choisissez comment lui écrire.' : 'Rama made WellHeard. Choose how to send your message.'}</p>
-          ${canText() ? btn(chatHref(), fr ? 'Message texte' : 'Text message', '', false) : ''}
-          ${btn('https://wa.me/14164545597?text=' + encodeURIComponent(body), 'WhatsApp', '', true)}
-          ${btn('https://signal.me/#p/+14164545597', 'Signal', fr ? 'Tapez votre message dans Signal' : 'Type your message in Signal', true)}
-          <p class="cp-num">${fr ? 'Ou appelez ou textez le' : 'Or call or text'} 416-454-5597</p>
+          <p id="cpTitle" class="cp-title">${fr ? 'Écrire à Rama' : 'Chat with Rama'}</p>
+          ${body}
+          ${note}
           <button type="button" class="cp-close" data-cp="close">${fr ? 'Fermer' : 'Close'}</button>
         </div>`;
       el.hidden = false; el.classList.add('open');
-      const first = el.querySelector('.cp-btn'); if (first) first.focus();
+      const first = el.querySelector('.cp-btn, .cp-close'); if (first) first.focus();
     }
     function closeChatPicker() { const el = document.getElementById('chatPick'); if (el) el.classList.remove('open'); }
     document.addEventListener('click', (e) => { const c = e.target.closest('[data-chat]'); if (!c) return; e.preventDefault(); e.stopPropagation(); ensureCtx(); const rm = document.getElementById('reidMenu'); if (rm) rm.classList.add('hidden'); openChatPicker(); }, true);
@@ -4647,7 +4660,7 @@
         ${onStep ? `<button type="button" data-s="explain" class="${SB}">${ico('explain')}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
         ${voice && onStep ? `<button type="button" data-s="listen" class="${SB}">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter' : 'Start listening')}</button>` : ''}
         <p class="text-xs font-extrabold uppercase tracking-wider text-[#3B5E42] px-1 side-gap">${fr ? 'Besoin d’une personne ?' : 'Need a person?'}</p>
-        <button type="button" data-chat class="${SB} bg-[#E5EFE7] border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Message Rama'}</button>`;
+        <button type="button" data-chat class="${SB} bg-[#E5EFE7] border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Chat with Rama'}</button>`;
       // the list's length changes the room the left column needs: re-fit the page (after this draw)
       clearTimeout(window.__whFitT); window.__whFitT = setTimeout(() => { if (typeof sizeApp === 'function') sizeApp(); }, 0);
     }
@@ -5236,7 +5249,7 @@
           ${onStep ? `<button type="button" data-r="repeat" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('voice')}${fr ? 'Répéter la question' : 'Repeat the question'}</button>` : ''}
           ${voice && onStep ? `<button type="button" data-r="listen" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter de nouveau' : 'Start listening')}</button>` : ''}
           <p class="text-sm font-extrabold text-[#3B5E42] px-1 side-gap">${fr ? 'Besoin d’une personne ?' : 'Need a person?'}</p>
-          <button type="button" data-chat class="${MB} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Message Rama'}</button>
+          <button type="button" data-chat class="${MB} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Chat with Rama'}</button>
           <button type="button" data-r="close" class="${MB} bg-white border border-[#D6CFC0] text-[#1E2634] justify-center">${fr ? 'Fermer' : 'Close'}</button>`;
         menu.classList.remove('hidden');
       };
