@@ -197,6 +197,12 @@
     @keyframes lpFlash { 0%, 35% { background: #E5EFE7; box-shadow: 0 0 0 8px #E5EFE7; } 100% { background: transparent; box-shadow: 0 0 0 8px transparent; } }
     .lp-foot { margin: 0; font-size: 14px; color: #425268; font-weight: 700; }
     @media (prefers-reduced-motion: reduce) { .lp-sec.lp-new { animation: none; background: #E5EFE7; } }
+    /* "Your pages are ready": compact buttons; the space between them grows when the screen has room */
+    .rdy { width: 100%; display: flex; flex-direction: column; gap: clamp(8px, calc(3vh - 12px), 24px); }
+    .rdy-row { gap: clamp(8px, 1.4vw, 16px); }
+    .rdy-act { flex-direction: column; gap: 2px; }
+    @media (min-width: 600px) { .rdy-act { flex-direction: row; gap: 8px; } }
+    .rdy-rows { gap: clamp(6px, 1vh, 10px); }
     /* Chat with Rama box */
     .side-gap { margin-top: 10px; }
     .chat-pick { display: none; position: absolute; inset: 0; z-index: 60; background: rgba(30,38,52,.45); align-items: center; justify-content: center; padding: 16px; }
@@ -6575,7 +6581,7 @@
     { const rr2 = renderReady; renderReady = function (items, foot) {
       rr2(items, foot);   // keeps the titles and the "change" rows; the layout below replaces the rest
       const rowsOf = (sel) => sel.map((k) => items.querySelector(`[data-jump="${k}"]`)).filter(Boolean).map((b) => b.outerHTML).join('');
-      const qs = chosen(), row = (id, label, val) => `<button type="button" data-jump="${id}" class="tactile-btn w-full min-h-[52px] px-3 py-1.5 rounded-xl bg-white border border-[#E6DFD0] flex items-center gap-2 text-left">
+      const qs = chosen(), row = (id, label, val) => `<button type="button" data-jump="${id}" class="tactile-btn w-full min-h-[46px] px-3 py-1 rounded-xl bg-white border border-[#E6DFD0] flex items-center gap-2 text-left">
           <span class="flex-1 min-w-0"><span class="block text-[11px] font-extrabold uppercase tracking-wide text-[#425268]">${esc(label)}</span><span class="block text-[15px] font-bold text-[#1E2634] truncate" data-notr>${esc(String(val || '').replace(/\s+/g, ' ').trim() || L2('Not given', 'Non indiqué'))}</span></span>
           <span class="text-[#3B5E42] font-extrabold text-[15px] shrink-0">✎ ${L2('Change', 'Modifier')}</span></button>`;
       const when = [SID('day').answer, SID('time').answer, SID('where').answer].filter(Boolean).map(short).join(' · ');
@@ -6585,12 +6591,12 @@
           + row('meds', L2('Medicines', 'Médicaments'), medsList.length ? medsList.map((m) => m.name).join(', ') : short(SID('meds').answer)) + row('allergies', L2('Allergies', 'Allergies'), short(SID('allergies').answer)) + row('conditions', L2('Conditions', 'Problèmes de santé'), short(SID('conditions').answer)),
         circle: row('day', L2('Appointment', 'Rendez-vous'), when) + (SID('goal').answer ? row('goal', L2('What we hope for', 'Ce qu’on espère'), tidyT(SID('goal').answer)) : '') + row('priority', L2('Top questions', 'Questions principales'), qs.length ? `${Math.min(5, qs.length)} · ${qs[0]}` : '')
       }[readyPick];
-      const pick = (k) => `<button type="button" data-rp="${k}" aria-pressed="${readyPick === k}" class="tactile-btn flex-1 min-h-[56px] px-2 rounded-2xl font-extrabold text-[15px] leading-tight ${readyPick === k ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${readyPick === k ? '✓ ' : ''}${L2(...PAGE_NAME[k])}</button>`;
-      const act = (k, icon, en, fr, cls) => `<button type="button" data-ra="${k}" class="tactile-btn min-h-[60px] rounded-2xl font-extrabold text-[14px] flex flex-col items-center justify-center leading-tight ${cls}"><span class="text-[19px]" aria-hidden="true">${icon}</span>${L2(en, fr)}</button>`;
-      items.innerHTML = `<div class="w-full flex gap-[8px]" role="group" aria-label="${L2('Which page', 'Quelle page')}">${pick('mine')}${pick('doc')}${pick('circle')}</div>
-        <button type="button" data-ra="see" class="tactile-btn w-full min-h-[72px] rounded-[20px] bg-[#A84B2F] text-white font-extrabold text-[clamp(17px,4.6vw,20px)] px-4 shadow-[0_6px_16px_rgba(168,75,47,.35)] flex items-center justify-center gap-2"><span class="text-[24px] shrink-0" aria-hidden="true">📄</span><span class="min-w-0 leading-tight">${L2('See the', 'Voir la')} ${L2(...PAGE_NAME[readyPick])}</span></button>
-        <div class="grid grid-cols-3 gap-[8px]">${act('print', '🖨', 'Print', 'Imprimer', 'bg-[#1E2634] text-white')}${act('pdf', '📄', 'Save PDF', 'PDF', 'bg-[#3B5E42] text-white')}${act('send', '✉️', 'Send', 'Envoyer', 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]')}</div>
-        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-2.5 flex flex-col gap-[6px]">${rows}</div>`;
+      const pick = (k) => `<button type="button" data-rp="${k}" aria-pressed="${readyPick === k}" class="tactile-btn flex-1 min-h-[46px] px-2 py-1 rounded-2xl font-extrabold text-[15px] leading-tight ${readyPick === k ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${readyPick === k ? '✓ ' : ''}${L2(...PAGE_NAME[k])}</button>`;
+      const act = (k, icon, en, fr, cls) => `<button type="button" data-ra="${k}" class="tactile-btn rdy-act min-h-[48px] px-2 py-1 rounded-2xl font-extrabold text-[15px] flex items-center justify-center leading-tight ${cls}"><span class="text-[18px]" aria-hidden="true">${icon}</span>${L2(en, fr)}</button>`;
+      items.innerHTML = `<div class="rdy"><div class="w-full flex rdy-row" role="group" aria-label="${L2('Which page', 'Quelle page')}">${pick('mine')}${pick('doc')}${pick('circle')}</div>
+        <button type="button" data-ra="see" class="tactile-btn w-full min-h-[54px] rounded-[18px] bg-[#A84B2F] text-white font-extrabold text-[clamp(16px,4.2vw,18px)] px-4 shadow-[0_4px_12px_rgba(168,75,47,.3)] flex items-center justify-center gap-2"><span class="text-[20px] shrink-0" aria-hidden="true">📄</span><span class="min-w-0 leading-tight">${L2('See the', 'Voir la')} ${L2(...PAGE_NAME[readyPick])}</span></button>
+        <div class="grid grid-cols-3 rdy-row">${act('print', '🖨', 'Print', 'Imprimer', 'bg-[#1E2634] text-white')}${act('pdf', '📄', 'Save PDF', 'PDF', 'bg-[#3B5E42] text-white')}${act('send', '✉️', 'Send', 'Envoyer', 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]')}</div>
+        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-2 flex flex-col rdy-rows">${rows}</div></div>`;
       setTimeout(() => loadPdfLib().catch(() => {}), 800);
       $help = document.getElementById('listHelp'); if ($help) $help.textContent = L2('Pick a page, then see, print, save or send it. Tap ✎ to change anything.', 'Choisissez une page, puis voyez-la, imprimez-la, enregistrez-la ou envoyez-la. Touchez ✎ pour changer quoi que ce soit.');
     }; }
