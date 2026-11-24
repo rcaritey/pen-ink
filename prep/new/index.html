@@ -148,6 +148,14 @@
       border-radius: 16px; cursor: pointer; background: #1E2634; color: #fff; border: 0; box-shadow: 0 6px 20px rgba(30,38,52,.25); }
     .lp-show[hidden], body.modal-open .lp-show { display: none !important; }
     .live-pages[hidden] { display: none; }
+    .live-pages.kept .lp-tabs, .live-pages.kept .lp-paper, .live-pages.kept .lp-foot, .live-pages.kept .lp-dot { display: none; }
+    #lpKept { display: none; flex: 1; min-height: 0; overflow: hidden; flex-direction: column; gap: 10px; padding: 4px 18px 8px 0; }
+    .live-pages.kept #lpKept { display: flex; }
+    #lpKept .kq { background: #E5EFE7; border: 2px solid #3B5E42; border-radius: 16px; padding: 12px 16px; font-weight: 800; font-size: 18px; line-height: 1.35; display: flex; gap: 10px; align-items: flex-start; }
+    #lpKept .kq::before { content: "\2713"; color: #3B5E42; flex: none; }
+    #lpKept .kq.new { animation: kqIn .6s ease-out; }
+    @keyframes kqIn { from { background: #C9E3CF; transform: translateY(-4px); } to { background: #E5EFE7; transform: none; } }
+    #lpKept .kmore, #lpKept .knone { font-weight: 700; font-size: 16px; color: #425268; }
     .lp-head { display: flex; align-items: center; gap: 12px; }
     .lp-head h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
     .lp-head p { margin: 2px 0 0; font-weight: 700; color: #3B5E42; font-size: 15px; }
@@ -5823,7 +5831,7 @@
     let pagesHidden = false, pagesPick = null, pagesPickAt = '';
     const PAGES_FROM = ['goalqs', 'ideas', 'detail', 'priority', 'review', 'ready', 'recap', 'nextSteps', 'shareFinish'];
     const pagesPart = () => { const s = steps[currentIndex]; return PAGES_FROM.includes(s.id) || /^dq\d+$/.test(s.id) ? 'late' : 'early'; };
-    const pagesAuto = () => true;   // hidden unless the person taps See my pages (Rama, 24 Nov: showing them added nothing)
+    const pagesAuto = () => steps[currentIndex].mode !== 'ideas';   // hidden unless asked for; on the questions screen the space shows the questions kept so far (Rama, 24 Nov)
     { const head = document.querySelector('#livePages .lp-head');
       if (head) { const b = document.createElement('button'); b.type = 'button'; b.id = 'lpHide'; b.className = 'lp-hide';
         b.addEventListener('click', () => setPagesHidden(true)); head.appendChild(b); } }
@@ -6146,6 +6154,28 @@
       } else if (yes || no) { say(L2('Say next.', 'Dites suivant.')); return true; }
       d.foodAsk = nextAsk; renderList(); applyLang(); say(FOOD_Q()); return true;
     }; }
+
+    // the questions kept so far, beside the one-at-a-time card: newest first, only as many as fit, no scrolling
+    { const kept = document.createElement('div'); kept.id = 'lpKept'; kept.setAttribute('aria-live', 'polite'); lpEl.insertBefore(kept, document.getElementById('lpPaper'));
+      let keptPrev = [];
+      const lr = lpRefresh; lpRefresh = function () {
+        const on = steps[currentIndex].mode === 'ideas'; lpEl.classList.toggle('kept', on);
+        if (!on) return lr();
+        if (lpEl.hidden) return;
+        const list = chosen().slice().reverse();
+        document.getElementById('lpH').textContent = L2('Your questions', 'Vos questions');
+        document.getElementById('lpSub').textContent = list.length ? L2(`${list.length} kept so far. Newest first.`, `${list.length} gardée(s). Les plus récentes en premier.`) : L2('The ones you keep show here.', 'Celles que vous gardez s’affichent ici.');
+        kept.innerHTML = list.length ? list.map((q) => `<div class="kq${keptPrev.includes(q) ? '' : ' new'}">${esc(q)}</div>`).join('') : `<p class="knone">${L2('None yet.', 'Aucune pour l’instant.')}</p>`;
+        const cards = [...kept.querySelectorAll('.kq')];
+        if (kept.scrollHeight > kept.clientHeight + 1) {
+          const more = document.createElement('p'); more.className = 'kmore'; kept.appendChild(more);
+          while (cards.length > 1 && kept.scrollHeight > kept.clientHeight + 1) { cards.pop().remove(); more.textContent = L2(`+ ${list.length - cards.length} more, on your pages`, `+ ${list.length - cards.length} de plus, sur vos pages`); }
+        }
+        keptPrev = list;
+      };
+      const di = decideIdea; decideIdea = function (a) { const r = di(a); lpSoon(true); return r; };
+      const ao = typeof addOwn === 'function' ? addOwn : null; if (ao) addOwn = function (t) { const r = ao(t); lpSoon(true); return r; };
+    }
 
     // Spoken "next" is caught however it arrives: "Next?", "okay next", "next please", or tacked onto
     // an answer ("myotonic dystrophy, next"): the answer is kept, then Reid moves on.
