@@ -93,7 +93,7 @@
     .reid-eyes { animation: reidBlink 5.5s infinite; }
     .reid-face .reid-lids { transform-box: view-box; transform-origin: 0 17px; transform: scaleY(0); animation: reidLid 9s infinite; }
     @keyframes reidLid { 0%, 95.5%, 99.5%, 100% { transform: scaleY(0); } 97%, 98% { transform: scaleY(1); } }   /* one slow, gentle blink every 9 s; no other movement (Rama, 24 Nov: calm) */
-    @media (prefers-reduced-motion: reduce) { .reid-face .reid-lids { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .reid-face .reid-lids, .companion-nod .reid-lids, .reid-talk .reid-waves { animation: none; } }
     @keyframes reidBlink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.12); } }
     .reid-waves, .reid-dots { opacity: 0; transition: opacity .2s; }
         .reid-talk .reid-beak { animation: reidTalk .26s ease-in-out infinite alternate; }
@@ -210,13 +210,17 @@
     @media (prefers-reduced-motion: reduce) { .cs-bob, .cs-flash { animation: none; } }
     @media (prefers-reduced-motion: reduce) { .reid-eyes, .reid-talk .reid-beak, .companion-listening .reid-waves { animation: none; } }
     /* calm for this audience (Rama, 24 Nov): a still ring shows Reid's state; nothing pulses or jumps */
-    .companion-listening { box-shadow: 0 0 0 3px rgba(59, 94, 66, 0.28); }
-    .companion-nod { }
+    /* Reid's state shows on the elephant itself, never on the circle around him (Rama, 24 Nov) */
+    .companion-listening { } .companion-nod { }
+    .companion-nod .reid-lids { animation: reidLidOnce .5s ease-in-out 1; }   /* "got it": one blink */
+    @keyframes reidLidOnce { 0%, 100% { transform: scaleY(0); } 40%, 60% { transform: scaleY(1); } }
+    .reid-talk .reid-waves { opacity: 1; animation: reidWaveSlow 2.4s ease-in-out infinite; }   /* talking: the waves by his ears fade slowly in and out */
+    @keyframes reidWaveSlow { 0%, 100% { opacity: .3; } 50% { opacity: .85; } }
     @keyframes companionAsk {
       0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.45); }
       50% { box-shadow: 0 0 0 7px rgba(217, 119, 6, 0); }
     }
-    .companion-asking { box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.35); }
+    .companion-asking { }
 
     /* Gentle voice wave animation */
     @keyframes soundWave {
@@ -6238,6 +6242,54 @@
       box.scrollTop = 0;
     }; }
     { const ofd = openFullDoctorCard; openFullDoctorCard = function () { showPage('doc'); }; }
+
+    // Your pages are ready: pick the page at the top, then see, print, save or send just that page (Rama, 24 Nov)
+    let readyPick = 'mine';
+    const PAGE_NAME = { mine: ['Patient’s page', 'Page du patient'], doc: ['Medical team’s page', 'Page de l’équipe médicale'], circle: ['Care circle’s page', 'Page du cercle d’aidants'] };
+    const pageHtml = (w) => (w === 'doc' ? `<div data-notr>${doctorPage()}</div>` : w === 'circle' ? circlePage() : patientPage());
+    async function printOne(w) {
+      const area = document.getElementById('printArea');
+      if (w === 'doc' && isMT()) { showToast(L2('Getting your page ready…', 'Préparation de votre page…')); await toEnglish(['who', 'where', 'day', 'time', 'concerns', 'story', 'conditions', 'meds', 'allergies'].map((id) => SID(id).answer).concat(detailLines(), allQs())); }
+      area.innerHTML = pageHtml(w); if (isMT()) await applyLang(area);
+      setTimeout(() => window.print(), 50);
+    }
+    function sendOne(w) {
+      const tmp = document.createElement('div'); tmp.innerHTML = w === 'doc' ? doctorPage() : w === 'circle' ? circlePage() : patientPage();
+      const text = tmp.innerText.replace(/\n{3,}/g, '\n\n').trim(), title = L2(...PAGE_NAME[w]) + (SID('name').answer ? ' · ' + short(SID('name').answer) : '');
+      if (navigator.share) navigator.share({ title, text }).catch(() => {});
+      else location.href = 'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(text);
+    }
+    { const rr2 = renderReady; renderReady = function (items, foot) {
+      rr2(items, foot);   // keeps the titles and the "change" rows; the layout below replaces the rest
+      const rowsOf = (sel) => sel.map((k) => items.querySelector(`[data-jump="${k}"]`)).filter(Boolean).map((b) => b.outerHTML).join('');
+      const qs = chosen(), row = (id, label, val) => `<button type="button" data-jump="${id}" class="tactile-btn w-full min-h-[52px] px-3 py-1.5 rounded-xl bg-white border border-[#E6DFD0] flex items-center gap-2 text-left">
+          <span class="flex-1 min-w-0"><span class="block text-[11px] font-extrabold uppercase tracking-wide text-[#425268]">${esc(label)}</span><span class="block text-[15px] font-bold text-[#1E2634] truncate" data-notr>${esc(String(val || '').replace(/\s+/g, ' ').trim() || L2('Not given', 'Non indiqué'))}</span></span>
+          <span class="text-[#3B5E42] font-extrabold text-[15px] shrink-0">✎ ${L2('Change', 'Modifier')}</span></button>`;
+      const when = [SID('day').answer, SID('time').answer, SID('where').answer].filter(Boolean).map(short).join(' · ');
+      const rows = {
+        mine: row('priority', L2('My questions', 'Mes questions'), qs.length ? `${qs.length} · ${qs[0]}` : '') + (SID('goal').answer ? row('goal', L2('What I want out of it', 'Ce que j’en attends'), tidyT(SID('goal').answer)) : '') + row('meds', L2('Medicine chart', 'Tableau des médicaments'), medsList.length ? medsList.map((m) => m.name).join(', ') : '') + row('day', L2('Appointment', 'Rendez-vous'), when),
+        doc: row('concerns', L2('Why I’m here', 'Pourquoi je viens'), tidyT(SID('concerns').answer)) + (SID('goal').answer ? row('goal', L2('What I want out of it', 'Ce que j’en attends'), tidyT(SID('goal').answer)) : '')
+          + row('meds', L2('Medicines', 'Médicaments'), medsList.length ? medsList.map((m) => m.name).join(', ') : short(SID('meds').answer)) + row('allergies', L2('Allergies', 'Allergies'), short(SID('allergies').answer)) + row('conditions', L2('Conditions', 'Problèmes de santé'), short(SID('conditions').answer)),
+        circle: row('day', L2('Appointment', 'Rendez-vous'), when) + (SID('goal').answer ? row('goal', L2('What we hope for', 'Ce qu’on espère'), tidyT(SID('goal').answer)) : '') + row('priority', L2('Top questions', 'Questions principales'), qs.length ? `${Math.min(5, qs.length)} · ${qs[0]}` : '')
+      }[readyPick];
+      const pick = (k) => `<button type="button" data-rp="${k}" aria-pressed="${readyPick === k}" class="tactile-btn flex-1 min-h-[56px] px-2 rounded-2xl font-extrabold text-[15px] leading-tight ${readyPick === k ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${readyPick === k ? '✓ ' : ''}${L2(...PAGE_NAME[k])}</button>`;
+      const act = (k, icon, en, fr, cls) => `<button type="button" data-ra="${k}" class="tactile-btn min-h-[60px] rounded-2xl font-extrabold text-[14px] flex flex-col items-center justify-center leading-tight ${cls}"><span class="text-[19px]" aria-hidden="true">${icon}</span>${L2(en, fr)}</button>`;
+      items.innerHTML = `<div class="w-full flex gap-[8px]" role="group" aria-label="${L2('Which page', 'Quelle page')}">${pick('mine')}${pick('doc')}${pick('circle')}</div>
+        <div class="grid grid-cols-4 gap-[8px]">${act('see', '👁', 'See it', 'Voir', 'bg-white border-2 border-[#1E2634] text-[#1E2634]')}${act('print', '🖨', 'Print', 'Imprimer', 'bg-[#1E2634] text-white')}${act('pdf', '📄', 'Save PDF', 'PDF', 'bg-[#3B5E42] text-white')}${act('send', '✉️', 'Send', 'Envoyer', 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]')}</div>
+        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-2.5 flex flex-col gap-[6px]">${rows}</div>`;
+      $help = document.getElementById('listHelp'); if ($help) $help.textContent = L2('Pick a page, then see, print, save or send it. Tap ✎ to change anything.', 'Choisissez une page, puis voyez-la, imprimez-la, enregistrez-la ou envoyez-la. Touchez ✎ pour changer quoi que ce soit.');
+    }; }
+    var $help = null;
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const p = e.target.closest('[data-rp]'); if (p) { readyPick = p.dataset.rp; renderList(); applyLang(); return; }
+      const a = e.target.closest('[data-ra]'); if (!a) return;
+      const k = a.dataset.ra;
+      if (k === 'see') showPage(readyPick);
+      if (k === 'print') printOne(readyPick);
+      if (k === 'pdf') { const m = L2('In the print window, choose Save as PDF (on iPhone: tap Share, then Save to Files).', 'Dans la fenêtre d’impression, choisissez Enregistrer en PDF (sur iPhone : Partager, puis Enregistrer dans Fichiers).'); showToast(m); say(m); setTimeout(() => printOne(readyPick), 1800); }
+      if (k === 'send') sendOne(readyPick);
+    });
+    { const sp3 = showPage; showPage = function (w) { if (['mine', 'doc', 'circle'].includes(w)) readyPick = w; return sp3(w); }; }
 
     // Spoken "next" is caught however it arrives: "Next?", "okay next", "next please", or tacked onto
     // an answer ("myotonic dystrophy, next"): the answer is kept, then Reid moves on.
