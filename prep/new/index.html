@@ -5894,7 +5894,7 @@
           if (LISTMODES[steps[currentIndex].mode]) renderList();
         }
       }
-      lpShow.hidden = !(pagesHidden && could);
+      lpShow.hidden = !(pagesHidden && could) || steps[currentIndex].mode === 'ready';   // the ready page has its own See my page button
       lpShow.innerHTML = '<span aria-hidden="true">📄</span> ' + L2('See my pages', 'Voir mes pages');
       const hb = document.getElementById('lpHide'); if (hb) { hb.textContent = L2('Hide', 'Masquer'); hb.setAttribute('aria-label', L2('Hide the pages', 'Masquer les pages')); }
     }; }
@@ -6275,7 +6275,8 @@
       const pick = (k) => `<button type="button" data-rp="${k}" aria-pressed="${readyPick === k}" class="tactile-btn flex-1 min-h-[56px] px-2 rounded-2xl font-extrabold text-[15px] leading-tight ${readyPick === k ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${readyPick === k ? '✓ ' : ''}${L2(...PAGE_NAME[k])}</button>`;
       const act = (k, icon, en, fr, cls) => `<button type="button" data-ra="${k}" class="tactile-btn min-h-[60px] rounded-2xl font-extrabold text-[14px] flex flex-col items-center justify-center leading-tight ${cls}"><span class="text-[19px]" aria-hidden="true">${icon}</span>${L2(en, fr)}</button>`;
       items.innerHTML = `<div class="w-full flex gap-[8px]" role="group" aria-label="${L2('Which page', 'Quelle page')}">${pick('mine')}${pick('doc')}${pick('circle')}</div>
-        <div class="grid grid-cols-4 gap-[8px]">${act('see', '👁', 'See it', 'Voir', 'bg-white border-2 border-[#1E2634] text-[#1E2634]')}${act('print', '🖨', 'Print', 'Imprimer', 'bg-[#1E2634] text-white')}${act('pdf', '📄', 'Save PDF', 'PDF', 'bg-[#3B5E42] text-white')}${act('send', '✉️', 'Send', 'Envoyer', 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]')}</div>
+        <button type="button" data-ra="see" class="tactile-btn w-full min-h-[56px] rounded-2xl bg-white border-2 border-[#1E2634] text-[#1E2634] font-extrabold text-[16px]">📄 ${L2('See the', 'Voir la')} ${L2(...PAGE_NAME[readyPick])}</button>
+        <div class="grid grid-cols-3 gap-[8px]">${act('print', '🖨', 'Print', 'Imprimer', 'bg-[#1E2634] text-white')}${act('pdf', '📄', 'Save PDF', 'PDF', 'bg-[#3B5E42] text-white')}${act('send', '✉️', 'Send', 'Envoyer', 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]')}</div>
         <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-2.5 flex flex-col gap-[6px]">${rows}</div>`;
       $help = document.getElementById('listHelp'); if ($help) $help.textContent = L2('Pick a page, then see, print, save or send it. Tap ✎ to change anything.', 'Choisissez une page, puis voyez-la, imprimez-la, enregistrez-la ou envoyez-la. Touchez ✎ pour changer quoi que ce soit.');
     }; }
@@ -6290,6 +6291,18 @@
       if (k === 'send') sendOne(readyPick);
     });
     { const sp3 = showPage; showPage = function (w) { if (['mine', 'doc', 'circle'].includes(w)) readyPick = w; return sp3(w); }; }
+
+    // "Which day?" only takes something that sounds like a day or a date; anything else (a misheard name like "Max") is checked with the person
+    const DAYISH = /\b(today|tomorrow|tonight|next|this|week|weekend|month|mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{1,2}(st|nd|rd|th)?|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|aujourd|demain|semaine|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc|prochain)/i;
+    { const hD = heard; heard = function (t) {
+      const st = steps[currentIndex], w = String(t || '').toLowerCase().replace(/[.!,?]/g, '').trim();
+      if (st && st.id === 'day' && w && !/^(next|back|go back|repeat|help|stop|pause|wait|undo|erase|suivant|retour)\b/.test(w) && !DAYISH.test(w) && w.split(/\s+/).length <= 4) {
+        say(L2(`I heard "${t.replace(/[.!]+$/, '')}". Which day is the appointment? For example, Thursday, or December 3.`, `J’ai entendu « ${t.replace(/[.!]+$/, '')} ». Quel jour est le rendez-vous ? Par exemple, jeudi, ou le 3 décembre.`)); showToast(L2('Say or tap the day of the appointment.', 'Dites ou touchez le jour du rendez-vous.')); return;
+      }
+      return hD(t);
+    }; }
+    { const gl = glance; glance = function () {   // a "day" that isn't a day stays off the pages
+      const d = SID('day'), keep = d.answer; if (keep && !DAYISH.test(keep) && !d.dateISO) { d.answer = ''; const h = gl(); d.answer = keep; return h; } return gl(); }; }
 
     // Spoken "next" is caught however it arrives: "Next?", "okay next", "next please", or tacked onto
     // an answer ("myotonic dystrophy, next"): the answer is kept, then Reid moves on.
