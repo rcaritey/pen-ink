@@ -4441,11 +4441,11 @@
         el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-cp="close"]')) closeChatPicker(); else if (e.target.closest('a')) setTimeout(closeChatPicker, 300); });
         el.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeChatPicker(); });
       }
-      const note = `<p class="cp-note">${fr ? 'Pour de l’aide avec l’application. Merci de ne pas envoyer de détails de santé ici.' : 'For help using the app. Please don’t send health details here.'}</p>`;
+      const note = `<p class="cp-note">${fr ? 'Pour de l’aide avec l’application. Si vous devez donner des détails de santé sensibles, appelez Rama plutôt que de lui écrire. Vous pouvez aussi demander à Reid s’il peut vous aider.' : 'For help using the app. If you need to include sensitive health details, please call Rama instead of sending a message. You can also ask Reid if he can help.'}</p>`;
       const body = pc
         ? `<p class="cp-sub">${fr ? 'Écrivez-lui depuis votre téléphone : pointez l’appareil photo du téléphone vers le carré, puis touchez le lien qui apparaît.' : 'Text him from your phone: point your phone’s camera at the square, then tap the link that appears.'}</p>
           <svg class="cp-qr" viewBox="-2 -2 29 29" role="img" aria-label="${fr ? 'Code QR pour texter Rama au 416-454-5597' : 'QR code to text Rama at 416-454-5597'}"><rect x="-2" y="-2" width="29" height="29" fill="#fff"/><path fill="#1E2634" d="${CHAT_QR}"/></svg>
-          <p class="cp-big">${fr ? 'Ou textez le' : 'Or text'} <b>416-454-5597</b></p>`
+          <p class="cp-big">${fr ? 'Ou textez ou appelez le' : 'Or text or call'} <b>416-454-5597</b></p>`
         : `<p class="cp-sub">${fr ? 'Rama a créé WellHeard. Envoyez-lui un texto; il vous répondra par texto.' : 'Rama made WellHeard. Send him a text and he’ll text you back.'}</p>
           <a class="cp-btn" href="${chatHref()}">${ico('chat')}<span><b>${fr ? 'Texter Rama' : 'Text Rama'}</b><small>${fr ? 'Ouvre votre application de messages' : 'Opens your messages app'}</small></span></a>
           <p class="cp-num">${fr ? 'Ou textez ou appelez le' : 'Or text or call'} 416-454-5597</p>`;
