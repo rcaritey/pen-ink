@@ -4531,9 +4531,10 @@
       const p = [];
       if (f.with) p.push(fr ? 'avec de la nourriture' : 'with food');
       if (f.empty) p.push(fr ? 'à jeun' : 'on an empty stomach');
-      if (f.before) p.push(fr ? `${minTxt(f.before)} avant de manger` : `${minTxt(f.before)} before eating`);
-      if (f.after) p.push(fr ? `${minTxt(f.after)} après avoir mangé` : `${minTxt(f.after)} after eating`);
-      let t = p.join(fr ? ' ou ' : ' or ');
+      if (f.before && f.after) p.push(fr ? `${minTxt(f.before)} avant ou ${minTxt(f.after)} après avoir mangé` : `${minTxt(f.before)} before or ${minTxt(f.after)} after eating`);
+      else if (f.before) p.push(fr ? `${minTxt(f.before)} avant de manger` : `${minTxt(f.before)} before eating`);
+      else if (f.after) p.push(fr ? `${minTxt(f.after)} après avoir mangé` : `${minTxt(f.after)} after eating`);
+      let t = f.empty && (f.before || f.after) ? (fr ? 'à jeun : ' : 'on an empty stomach: ') + p.slice(1).join('') : p.join(fr ? ' ou ' : ' or ');
       if (f.protein) t += (t ? ', ' : '') + (fr ? 'loin des protéines' : 'away from protein');
       if (f.other) t += (t ? ', ' : '') + f.other;
       return t;
@@ -4761,15 +4762,14 @@
         html += `<button type="button" data-med="prn" aria-pressed="${d.prn}" class="${CH} w-full ${d.prn ? ON : OFF}">${d.prn ? '✓ ' : ''}${L2('Also when needed', 'Aussi au besoin')}</button>`;
       }
       if (d.stage === 'food') {
-        html += `<p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268] -mb-0.5 mt-1">${L2('Meals and timing (as the label or doctor says)', 'Repas et moment (selon l’étiquette ou le médecin)')}</p>
-          ${(() => { const F = d.foodParts || (d.foodParts = blankFood()), pick = (on) => (on ? ON : OFF), CHs = `${CH} !min-h-[46px] !text-[14px] leading-tight`;
+        html += `${(() => { const F = d.foodParts || (d.foodParts = blankFood()), pick = (on) => (on ? ON : OFF), CHs = `${CH} !min-h-[46px] !text-[14px] leading-tight`;
             const mins = (k, list) => list.map((n) => `<button type="button" data-med="foodmin" data-k="${k}" data-v="${n}" aria-pressed="${F[k] === n}" class="${CHs} !px-0 ${pick(F[k] === n)}">${minTxt(n)}</button>`).join('');
             return `<div class="grid grid-cols-2 gap-[6px]">
                 <button type="button" data-med="foodflag" data-k="with" aria-pressed="${F.with}" class="${CHs} ${pick(F.with)}">${F.with ? '✓ ' : ''}${L2('With food', 'Avec de la nourriture')}</button>
                 <button type="button" data-med="foodflag" data-k="empty" aria-pressed="${F.empty}" class="${CHs} ${pick(F.empty)}">${F.empty ? '✓ ' : ''}${L2('Empty stomach', 'À jeun')}</button></div>
               <div class="flex items-center gap-[6px]"><p class="w-[92px] shrink-0 text-[13px] font-extrabold text-[#1E2634] leading-tight">${L2('Before eating', 'Avant de manger')}</p>
               <div class="flex-1 grid grid-cols-4 gap-[6px]">${mins('before', [15, 30, 45, 60])}</div></div>
-              <div class="flex items-center gap-[6px]"><p class="w-[92px] shrink-0 text-[13px] font-extrabold text-[#1E2634] leading-tight">${L2('Or after eating', 'Ou après avoir mangé')}</p>
+              <div class="flex items-center gap-[6px]"><p class="w-[92px] shrink-0 text-[13px] font-extrabold text-[#1E2634] leading-tight">${L2('After eating', 'Après avoir mangé')}</p>
               <div class="flex-1 grid grid-cols-4 gap-[6px]">${mins('after', [30, 60, 90, 120])}</div></div>
               <button type="button" data-med="foodflag" data-k="protein" aria-pressed="${F.protein}" class="${CHs} w-full ${pick(F.protein)}">${F.protein ? '✓ ' : ''}${L2('Away from protein (meat, eggs, milk)', 'Loin des protéines (viande, œufs, lait)')}</button>
               <input id="foodOther" type="text" value="${esc(F.other)}" placeholder="${L2('Other: type what the label says', 'Autre : écrivez ce que dit l’étiquette')}" aria-label="${L2('Other instructions about meals', 'Autres consignes pour les repas')}" class="w-full min-h-[46px] px-3 rounded-xl border-2 border-[#D6CFC0] bg-white text-[15px] font-bold">
@@ -6087,7 +6087,8 @@
     }
     const FOOD_Q = () => {
       const d = medDraft, F = d.foodParts || (d.foodParts = blankFood()), nm = d.name || L2('it', 'ce médicament');
-      if (d.foodAsk === 1) return L2('How long before eating? For example, 30 minutes. Or say after eating, and how long.', 'Combien de temps avant de manger ? Par exemple, 30 minutes. Ou dites après avoir mangé, et combien de temps.');
+      if (d.foodAsk === 1) return L2('How long before eating? For example, 1 hour.', 'Combien de temps avant de manger ? Par exemple, 1 heure.');
+      if (d.foodAsk === 5) return L2('And how long after eating? Or say none.', 'Et combien de temps après avoir mangé ? Ou dites aucun.');
       if (d.foodAsk === 2) return L2('Does it say to keep it away from protein, like meat, eggs or milk? Yes or no.', 'Faut-il le prendre loin des protéines, comme la viande, les œufs ou le lait ? Oui ou non.');
       if (d.foodAsk === 3) { const t = foodText(F, lang === 'fr'); return (t ? L2('Got it: ', 'Noté : ') + t + '. ' : '') + L2('Say next.', 'Dites suivant.'); }
       return L2(`Does the label say to take ${nm} with food, on an empty stomach, or neither?`, `L’étiquette dit-elle de prendre ${nm} avec de la nourriture, à jeun, ou ni l’un ni l’autre ?`);
@@ -6098,22 +6099,27 @@
       const d = medDraft; if (d.stage !== 'food') return mh(t, low);
       if (cmdOf(low) === 'next' || cmdOf(low) === 'back' || /^(next|back|go back|repeat|help|stop|pause|wait|suivant|retour)\b/.test(low)) return false;
       const F = d.foodParts || (d.foodParts = blankFood()), ask = d.foodAsk || 0, lev = LDOPA.test(d.name || '');
-      const yes = /^(yes|yeah|yep|it does|correct|oui|sí|si)\b/.test(low), no = /^(no|nope|non|it doesn't|doesn't say|neither|none|not sure|i don't know|don't know|ni l'un ni l'autre|je ne sais pas)\b/.test(low);
-      const after = (n) => { F.after = n; F.before = 0; }, before = (n) => { F.before = n; F.after = 0; };
+      const yes = /^(yes|yeah|yep|it does|correct|oui|sí|si)\b/.test(low), no = /^(no|nope|non|it doesn't|doesn't say|neither|none|nothing|aucun|not sure|i don't know|don't know|ni l'un ni l'autre|je ne sais pas)\b/.test(low);
+      const segs = low.split(/\b(?:and|or|then|et|ou|puis)\b|,/), hasB = /\bbefore|avant/.test(low), hasA = /\bafter|après/.test(low);
+      let gotB = 0, gotA = 0;
+      segs.forEach((g) => { const m = foodMins(g); if (!m) return; if (/\bbefore|avant/.test(g)) gotB = m; else if (/\bafter|après/.test(g)) gotA = m; else if (ask === 5) gotA = m; else if (ask === 1) gotB = m; });
+      if (hasB && hasA && (gotB || gotA) && !(gotB && gotA)) gotB = gotA = gotB || gotA;   // "an hour before or after"
+      if (gotB) F.before = gotB; if (gotA) F.after = gotA;
       let nextAsk = ask;
       if (/protein|protéine/.test(low) && !/\bno\b|\bnot\b|pas/.test(low)) F.protein = true;
       if (/empty stomach|à jeun|a jeun/.test(low)) { F.empty = true; F.with = false; }
       if (/with (food|meals?|a meal|breakfast|dinner|lunch)|avec (de la nourriture|le repas|les repas)/.test(low) && !/\bbefore|\bafter|avant|après/.test(low)) { F.with = true; F.empty = false; }
-      const n = foodMins(low);
-      if (/\bafter|après/.test(low) && n) after(n); else if (/\bbefore|avant/.test(low) && n) before(n); else if (ask === 1 && n) before(n);
-      if (/\bafter|après/.test(low) && !n && ask !== 0) { say(L2('How long after eating?', 'Combien de temps après avoir mangé ?')); return true; }
+      const done = lev ? 2 : 3;
       if (ask === 0) {
-        if (F.empty || F.before || F.after) nextAsk = F.before || F.after ? (lev ? 2 : 3) : 1;
-        else if (F.with || no) nextAsk = lev ? 2 : 3;
+        if (gotB && !gotA) nextAsk = 5; else if (gotA) nextAsk = done; else if (F.empty) nextAsk = 1;
+        else if (F.with || no) nextAsk = done;
         else { say(L2('Sorry, I didn’t catch that. ', 'Désolé, je n’ai pas compris. ') + FOOD_Q()); return true; }
       } else if (ask === 1) {
-        if (F.before || F.after || no) nextAsk = lev ? 2 : 3;
-        else { say(L2('Sorry, how many minutes before eating?', 'Désolé, combien de minutes avant de manger ?')); return true; }
+        if (gotB && !gotA) nextAsk = 5; else if (gotA || no) nextAsk = done;
+        else { say(L2('Sorry, how long before eating?', 'Désolé, combien de temps avant de manger ?')); return true; }
+      } else if (ask === 5) {
+        if (gotA || no) nextAsk = done;
+        else { say(L2('Sorry, how long after eating? Or say none.', 'Désolé, combien de temps après avoir mangé ? Ou dites aucun.')); return true; }
       } else if (ask === 2) {
         if (yes) F.protein = true; else if (no) F.protein = false;
         else if (!F.protein) { say(L2('Sorry, yes or no: away from protein?', 'Désolé, oui ou non : loin des protéines ?')); return true; }
