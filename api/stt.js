@@ -46,7 +46,7 @@ export default async function handler(req, res) {
   try {
     const url = `https://${region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1` +
       `?language=${lang}&format=simple&profanity=raw`;
-    const r = await fetch(url, {
+    const send = () => fetch(url, {
       method: 'POST',
       headers: {
         'Ocp-Apim-Subscription-Key': key,
@@ -56,6 +56,13 @@ export default async function handler(req, res) {
       },
       body: audio,
     });
+    let r = await send();
+    // Microsoft busy ("too many requests") or a passing hiccup: wait a moment and try twice more, so the words aren't lost
+    for (let i = 0; i < 2 && (r.status === 429 || r.status >= 500); i++) {
+      const wait = Math.min(2000, (Number(r.headers.get('retry-after')) || 0) * 1000 || 600 * (i + 1));
+      await new Promise((ok) => setTimeout(ok, wait));
+      r = await send();
+    }
     if (!r.ok) { console.error('stt upstream', r.status); return res.status(502).json({ error: 'upstream' }); }
     const d = await r.json().catch(() => ({}));
     // NoMatch / InitialSilenceTimeout: heard sound but no words. Not an error.
