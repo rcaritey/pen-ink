@@ -1174,6 +1174,19 @@
     .pg-wrap .sel button { font: inherit; font-weight: 800; font-size: 15px; min-height: 48px; padding: 6px 16px; border-radius: 14px; cursor: pointer; background: #F0EBE1; color: #1E2634; border: 1px solid #D6CFC0; }
     .pg-wrap .sel button[aria-pressed="true"] { background: #1E2634; color: #fff; border-color: #1E2634; }
     .pg-wrap .sel button:focus-visible { outline: 3px solid #D97706; outline-offset: 2px; }
+    /* The page on screen is the printed page (Rama, 24 Nov): same content, the same print styles, on a white
+       letter-size sheet with a line where page 2 starts. On a phone it reflows to the screen's width. */
+    .paper { background: #fff; color: #111; box-shadow: 0 2px 10px rgba(30,38,52,.16); border: 1px solid #DDD6C8; margin: 4px auto 80px; box-sizing: border-box; font-family: "Atkinson Hyperlegible", Arial, sans-serif; }
+    .paper.letter { width: 8.5in; min-height: 11in; padding: .5in .55in; background: repeating-linear-gradient(to bottom, #fff 0, #fff calc(11in - 8px), #E2DACB calc(11in - 8px), #E2DACB 11in); }
+    .paper.flow { width: 100%; padding: 18px 16px; }
+    .paper .pg { font-size: 12pt; line-height: 1.45; }
+    .paper.flow .pg { font-size: 16px; }
+    .paper .pg h1 { font-size: 1.5em; margin: 0 0 2pt; font-weight: 800; }
+    .paper .pg .meta { color: #444; margin: 0 0 10pt; }
+    .paper .pg .foot { font-size: .75em; color: #555; margin-top: 14pt; }
+    .paper .pg .say { font-size: 1.08em; }
+    .pg-wrap .sel { flex-wrap: nowrap; }
+    .pg-wrap .sel button { flex: 1 1 0; min-width: 0; padding: 6px 8px !important; line-height: 1.15; }
   </style>
   <script>
     // Complete 12-Step Sequential Flow (Step 0 Landing + Steps 1–11)
@@ -3563,7 +3576,7 @@
       let more = document.getElementById('pvMore');
       if (!more) {
         more = document.createElement('button'); more.type = 'button'; more.id = 'pvMore';
-        more.style.cssText = 'align-self:center;display:none;align-items:center;gap:8px;min-height:52px;padding:0 22px;border-radius:999px;border:0;background:#3B5E42;color:#fff;font:inherit;font-weight:800;font-size:17px;box-shadow:0 6px 18px rgba(0,0,0,.18);margin-top:-64px;position:relative;z-index:2;cursor:pointer';
+        more.style.cssText = 'align-self:center;display:none;align-items:center;gap:8px;min-height:52px;padding:0 22px;border-radius:999px;border:0;background:#3B5E42;color:#fff;font:inherit;font-weight:800;font-size:17px;box-shadow:0 6px 18px rgba(0,0,0,.18);margin-top:-64px;margin-bottom:14px;position:relative;z-index:2;cursor:pointer';
         box.parentNode.insertBefore(more, box.nextSibling);
         more.addEventListener('click', () => { box.scrollBy({ top: box.clientHeight * 0.8, behavior: 'smooth' }); });
         box.addEventListener('scroll', () => syncMore());
@@ -6471,6 +6484,24 @@
     });
     { const sp3 = showPage; showPage = function (w) { if (['mine', 'doc', 'circle'].includes(w)) readyPick = w; return sp3(w); }; }
 
+    { const sp4 = showPage; showPage = function (w) {
+      sp4(w);
+      const box = document.querySelector('#fullDoctorModal .space-y-3'), inner = box && box.firstElementChild; if (!inner) return;
+      const sel = inner.querySelector('.sel'), selWrap = sel ? sel.closest('.pg').outerHTML : '';
+      const k = ['mine', 'doc', 'circle'].includes(w) ? w : 'doc';
+      inner.innerHTML = selWrap + `<div class="paper"><div class="paper-in">${pageHtml(k)}</div></div>`;
+      inner.style.fontSize = ''; inner.style.lineHeight = '';
+      inner.querySelectorAll('[data-pv]').forEach((x) => x.addEventListener('click', () => showPage(x.dataset.pv)));
+      const paper = inner.querySelector('.paper'), fit = () => {
+        const bw = box.clientWidth - 8, letter = bw >= 600;
+        paper.classList.toggle('letter', letter); paper.classList.toggle('flow', !letter);
+        paper.style.zoom = letter ? String(Math.min(1.6, bw / 816)) : '';
+        box.dispatchEvent(new Event('scroll'));
+      };
+      fit(); setTimeout(fit, 80);
+      const lab = document.getElementById('pageViewLabel'); if (lab) lab.textContent = L2(...PAGE_NAME[k]) + L2(' · As printed', ' · Comme imprimée');
+      applyLang(inner); box.scrollTop = 0;
+    }; }
     // "Which day?" only takes something that sounds like a day or a date; anything else (a misheard name like "Max") is checked with the person
     const DAYISH = /\b(today|tomorrow|tonight|next|this|week|weekend|month|mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{1,2}(st|nd|rd|th)?|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|aujourd|demain|semaine|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc|prochain)/i;
     { const hD = heard; heard = function (t) {
