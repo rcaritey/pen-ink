@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <script>if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) document.querySelector('meta[name=viewport]').setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover');</script>
   <style>html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }</style>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -43,6 +44,11 @@
       padding: 0;
       -webkit-tap-highlight-color: transparent;
     }
+
+    /* iPad/iPhone: Safari zooms in when a box with text under 16px is tapped; keep boxes at 16px+ there.
+       No double-tap zoom and no bounce of the whole page; pinch-to-zoom still works. */
+    html, body { overscroll-behavior: none; touch-action: manipulation; }
+    @supports (-webkit-touch-callout: none) { input, textarea, select { font-size: max(16px, 1em) !important; } }
 
     /* Tremor-forgiving tactile button physics */
     .tactile-btn {
@@ -4442,14 +4448,12 @@
         el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-cp="close"]')) closeChatPicker(); else if (e.target.closest('a')) setTimeout(closeChatPicker, 300); });
         el.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeChatPicker(); });
       }
-      const note = `<p class="cp-note">${fr ? 'Pour de l’aide avec l’application. Si vous devez donner des détails de santé sensibles, appelez Rama plutôt que de lui écrire. Vous pouvez aussi demander à Reid s’il peut vous aider.' : 'For help using the app. If you need to include sensitive health details, please call Rama instead of sending a message. You can also ask Reid if he can help.'}</p>`;
-      // first option everywhere: "Chat with Rama", which opens a text message to him
-      const chatBtn = `<a class="cp-btn" href="${chatHref()}">${ico('chat')}<span><b>${fr ? 'Écrire à Rama' : 'Chat with Rama'}</b><small>${pc
-        ? (fr ? 'Ouvre l’application de messages de cet ordinateur, s’il en a une' : 'Opens this computer’s messages app, if it has one')
-        : (fr ? 'Envoie un texto à Rama' : 'Sends Rama a text message')}</small></span></a>`;
+      const note = `<p class="cp-note">${fr ? 'Pour de l’aide avec l’application. Si vous devez donner des détails de santé sensibles, demandez à Reid ou appelez Rama plutôt que d’envoyer un message.' : 'For help using the app. If you need to include sensitive health details, ask Reid or call Rama instead of sending a message.'}</p>`;
+      // phones and tablets: "Chat with Rama" opens a text message to him. Computers get the QR code instead —
+      // on Windows a text link only brings up a confusing "Pick an app" box.
+      const chatBtn = `<a class="cp-btn" href="${chatHref()}">${ico('chat')}<span><b>${fr ? 'Écrire à Rama' : 'Chat with Rama'}</b><small>${fr ? 'Envoie un texto à Rama' : 'Sends Rama a text message'}</small></span></a>`;
       const body = pc
-        ? `${chatBtn}
-          <p class="cp-sub">${fr ? 'Ou textez depuis votre téléphone : pointez son appareil photo vers le carré et touchez le lien qui apparaît.' : 'Or text from your phone: point its camera at the square and tap the link that appears.'}</p>
+        ? `<p class="cp-sub">${fr ? 'Textez Rama depuis votre téléphone : pointez son appareil photo vers le carré et touchez le lien qui apparaît.' : 'Text Rama from your phone: point its camera at the square and tap the link that appears.'}</p>
           <div class="cp-qrrow"><svg class="cp-qr" viewBox="-2 -2 29 29" role="img" aria-label="${fr ? 'Code QR pour texter Rama au 416-454-5597' : 'QR code to text Rama at 416-454-5597'}"><rect x="-2" y="-2" width="29" height="29" fill="#fff"/><path fill="#1E2634" d="${CHAT_QR}"/></svg>
           <p class="cp-big">${fr ? 'Ou textez ou appelez le' : 'Or text or call'} <b>416-454-5597</b></p></div>`
         : `<p class="cp-sub">${fr ? 'Rama a créé WellHeard. Envoyez-lui un texto; il vous répondra par texto.' : 'Rama made WellHeard. Send him a text and he’ll text you back.'}</p>
