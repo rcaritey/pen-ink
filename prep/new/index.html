@@ -3511,6 +3511,8 @@
     function meta() { return [SID('who').answer, SID('where').answer, SID('day').answer, SID('time').answer].filter(Boolean).map(short).map(docT).map(esc).join(' · '); }
     function allQs() { const c = chosen(); return c.length ? c : visitQuestions.map((q) => q.text).filter(Boolean); }
     const star = (q) => qPrio.includes(q) ? '★ ' : '';
+    // a key under the heading wherever a ★ shows (Rama, 24 Nov)
+    const starKey = (list) => list.some((q) => qPrio.includes(q)) ? `<p class="key" style="margin:0 0 4pt;font-size:.85em;font-weight:700;color:#8A3A06">★ = ${lang === 'fr' ? 'à poser absolument' : 'must ask'}</p>` : '';
     const qli = (q, body) => `<li${qPrio.includes(q) ? ' class="top"' : ''}>${star(q)}${body}</li>`;
     function doctorPage() {
       const name = SID('name').answer, fr = lang === 'fr';
@@ -3523,7 +3525,7 @@
         ${sec(fr ? 'Problèmes de santé' : 'Health conditions', list(items(docT(SID('conditions').answer)).map(short)))}
         ${medsList.length ? chartPrint({ doc: true, title: fr ? 'Médicaments et horaire' : 'Medications and schedule' }) : sec(fr ? 'Médicaments' : 'Medications', list(items(docT(SID('meds').answer))) || (fr ? '<p>Aucun indiqué.</p>' : '<p>None listed.</p>'))}
         ${sec(fr ? 'Allergies et précautions' : 'Allergies and cautions', list(items(docT(SID('allergies').answer)).map(short)))}
-        ${sec(fr ? 'Questions du patient' : "Patient's questions", allQs().length ? `<ol>${allQs().map((q) => qli(q, `${esc(docT(q))}<div class="ans"></div>`)).join('')}</ol>` : '')}
+        ${sec(fr ? 'Questions du patient' : "Patient's questions", allQs().length ? `${starKey(allQs())}<ol>${allQs().map((q) => qli(q, `${esc(docT(q))}<div class="ans"></div>`)).join('')}</ol>` : '')}
         ${isMT() ? `<p class="foot"><b>Translated from ${esc(LANG_EN[lang])} by computer (Claude, Anthropic).</b> The patient's own words may differ. Please confirm medicines, doses, numbers and dates with the patient or an interpreter.</p>` : ''}
         <h2>${fr ? 'Comment ce résumé a été préparé' : 'How this summary was prepared'}</h2>
         <p class="foot">${fr ? "Le patient a répondu avant la visite, avec ses propres mots. Un assistant IA (Claude, d'Anthropic) a suggéré des questions seulement. Il n'a pas posé de diagnostic. Réponses non vérifiées. Pas un dossier médical." : "The patient answered questions before the visit, in their own words. An AI assistant (Claude, by Anthropic) suggested questions only. It did not diagnose. Answers are as reported by the patient and have not been verified. Not a medical record."} pen-ink.ca/prep</p></div>`;
@@ -3536,7 +3538,7 @@
         <p>${fr ? 'Donnez le résumé au médecin. Puis demandez : « Est-ce que je peux enregistrer ce rendez-vous sur mon téléphone ? »' : 'Hand the doctor your summary. Then ask: "Is it okay if I record this appointment on my phone?"'}</p>
         ${mention.length ? `<h2>${fr ? 'À mentionner' : 'Make sure I mention'}</h2><ul>${mention.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         ${chartPrint()}
-        ${qs.length ? `<h2>${fr ? 'Mes questions' : 'My questions'}</h2><ol>${qs.map((q) => qli(q, esc(q))).join('')}</ol>` : ''}
+        ${qs.length ? `<h2>${fr ? 'Mes questions' : 'My questions'}</h2>${starKey(qs)}<ol>${qs.map((q) => qli(q, esc(q))).join('')}</ol>` : ''}
         <h2>${fr ? 'Avant de partir, demandez' : 'Before you leave, ask'}</h2><p>${fr ? '« Si j’ai des questions avant le prochain rendez-vous, qui dois-je contacter, et comment ? »' : '"If I have questions before my next appointment, who should I contact, and how?"'}</p>
         <p>${fr ? 'Qui et comment' : 'Who and how'}: ______________________ &nbsp; ${fr ? 'Prochain rendez-vous' : 'Next appointment'}: ______________</p>
         <h2>${fr ? 'Mes notes' : 'My notes: what the doctor says'}</h2><div class="ans"></div><div class="ans"></div><div class="ans"></div></div>`;
@@ -5734,7 +5736,7 @@
         ${glance()}
         ${SID('concerns').answer ? `<h2>${fr ? 'Pourquoi' : 'What it is about'}</h2><p>${esc(tidyT(SID('concerns').answer))}</p>` : ''}
         ${goal ? `<h2>${fr ? 'Ce qu’on espère' : 'What we hope to get out of it'}</h2><p>${esc(tidyT(goal))}</p>` : ''}
-        ${qs.length ? `<h2>${fr ? 'Les questions les plus importantes' : 'The most important questions'}</h2><ol>${qs.map((q) => qli(q, esc(q))).join('')}</ol>` : ''}
+        ${qs.length ? `<h2>${fr ? 'Les questions les plus importantes' : 'The most important questions'}</h2>${starKey(qs)}<ol>${qs.map((q) => qli(q, esc(q))).join('')}</ol>` : ''}
         ${chartPrint()}
         <h2>${fr ? 'Comment aider' : 'How you can help'}</h2><ul>
           <li>${fr ? 'Rappeler d’apporter les pages, ou le téléphone.' : 'Remind them to bring the pages, or their phone.'}</li>
@@ -6659,6 +6661,7 @@
         <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[18px] p-2.5 flex flex-col gap-1.5">
           <div class="flex items-baseline gap-2 px-1"><p class="flex-1 font-extrabold text-[14px] text-[#1E2634]">${L2('Your questions: tick each one once it’s answered', 'Vos questions : cochez chacune une fois répondue')}</p>
           <span class="text-[13px] font-extrabold text-[#3B5E42] shrink-0">${L2(`${done} of ${qs.length}`, `${done} sur ${qs.length}`)}</span></div>
+          ${qs.some((q) => qPrio.includes(q)) ? `<p class="text-[13px] font-extrabold text-[#8A3A06] px-1">★ = ${L2('must ask', 'à poser absolument')}</p>` : ''}
           ${qs.length ? qs.map(row).join('') : `<p class="text-[14px] font-bold text-[#425268] px-1">${L2('No questions kept yet.', 'Aucune question gardée.')}</p>`}</div>`;
     }
     document.getElementById('listItems').addEventListener('click', (e) => {
