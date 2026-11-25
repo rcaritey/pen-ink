@@ -204,6 +204,10 @@
 
     /* Color-blind-safe primary forward capsule button (distinct shape, elevation & badge) */
     /* the main forward button is the highest: a solid key edge plus a soft clay-tinted ambient shadow; pressed, it sinks onto its edge */
+    /* Next lights up once something has been picked or typed (Rama, 25 Nov): two soft pulses, then a steady ring */
+    #nextNavBtn.nx-ready { outline: 4px solid rgba(184, 74, 39, .45); outline-offset: 3px; animation: nxGlow 1.1s ease-out 2; }
+    @keyframes nxGlow { 0% { outline-color: rgba(184, 74, 39, .7); outline-offset: 0; } 70% { outline-color: rgba(184, 74, 39, 0); outline-offset: 12px; } 100% { outline-color: rgba(184, 74, 39, .45); outline-offset: 3px; } }
+    @media (prefers-reduced-motion: reduce) { #nextNavBtn.nx-ready { animation: none; } }
     .primary-capsule-btn {
       background-color: #B84A27;
       color: #FFFFFF;
@@ -583,7 +587,7 @@
     </div>
 
     <!-- 3. MAIN ZERO-SCROLL WORKSPACE -->
-    <section class="w-full flex-1 flex flex-col justify-between py-1 min-h-0 overflow-hidden" aria-live="polite">
+    <section id="stepWork" class="w-full flex-1 flex flex-col justify-between py-1 min-h-0 overflow-hidden" aria-live="polite">
 
       <!-- =========================================================
            STEP 0: LANDING / INTRO / HOW IT WORKS
@@ -4100,7 +4104,7 @@
       panel.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { setView = b.dataset.go; renderSettings(); applyLang(); }));
       panel.querySelectorAll('[data-hps]').forEach((b) => b.addEventListener('click', () => { setHelper(b.dataset.hps); saveAll(); renderSettings(); applyLang(); applyHelper(); sayT('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.', true); whMarkMet(); }));
       panel.querySelectorAll('[data-ts]').forEach((b) => b.addEventListener('click', () => { textSize = Number(b.dataset.ts); applyTextSize(); saveAll(); renderSettings(); renderCurrentStep(); }));
-      panel.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang)));
+      panel.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => { setLang(b.dataset.lang); ackLang(b.dataset.lang); }));
       panel.querySelectorAll('[data-jump]').forEach((b) => b.addEventListener('click', () => { closeModal('helpSettingsModal'); stopRec(); currentIndex = Number(b.dataset.jump); renderCurrentStep(); speakStep(); }));
       panel.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
         const on = b.dataset.v === '1';
@@ -5082,7 +5086,7 @@
       const k = b.dataset.su, on = b.dataset.v === '1';
       if (k === 'lang') { openModal('helpSettingsModal'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
       if (k === 'fs') { showFS(); return; }
-      if (k === 'pick-lang') { setLang(b.dataset.v); renderList(); applyLang(); return; }
+      if (k === 'pick-lang') { setLang(b.dataset.v); renderList(); applyLang(); ackLang(b.dataset.v); return; }
       if (k === 'ts') { textSize = Number(b.dataset.v); applyTextSize(); }
       if (k === 'mode') { setInputMode(on ? 'voice' : 'tap'); if (!on) stopRec(); }
       if (k === 'read') { readAloud = on; if (!on) hush(); }
@@ -5678,9 +5682,9 @@
             openPanel('settings'); setView = 'helper'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^(stop|turn off|end) hands[ -]?free$|^hands[ -]?free off$/.test(low)) { handsFree(false); return; }
           if (st.mode === 'setup') {
-            const part = st.part || 'lang', re2 = () => { renderList(); applyLang(); };
+            const part = st.part || 'lang', re2 = () => { renderList(); applyLang(); nudgeNext(); };
             if (part === 'lang') { const hit = LANG_LIST.find(([c, n]) => low === n.toLowerCase() || low === n.toLowerCase().split(' ')[0] || ({ english: 'en', anglais: 'en', french: 'fr', français: 'fr', francais: 'fr', spanish: 'es', italian: 'it', portuguese: 'pt', chinese: 'zh', mandarin: 'zh', cantonese: 'yue', punjabi: 'pa', arabic: 'ar', tagalog: 'tl', tamil: 'ta', urdu: 'ur', farsi: 'fa', persian: 'fa', russian: 'ru', korean: 'ko', vietnamese: 'vi', hindi: 'hi', gujarati: 'gu', polish: 'pl', ukrainian: 'uk', greek: 'el' })[low] === c);
-              if (hit) { setLang(hit[0]); re2(); return; } }
+              if (hit) { setLang(hit[0]); re2(); ackLang(hit[0]); return; } }
             if (part === 'size') { const v = /extra|très grand|tres grand|biggest/.test(low) ? 2 : /large|big|grand/.test(low) ? 1 : /normal|small|regular|petit/.test(low) ? 0 : -1;
               if (v >= 0) { textSize = v; applyTextSize(); saveAll(); re2(); sayT(['Normal.', 'Large.', 'Extra large.'][v] + ' Say next when ready.', ['Normal.', 'Grand.', 'Très grand.'][v] + ' Dites suivant quand c’est bon.', true); return; } }
             if (part === 'mode') { if (/^(speak|speak and tap|talk|voice|parler|parler et toucher)/.test(low)) { setInputMode('voice'); saveAll(); re2(); sayT('Speak and tap. Say next when ready.', 'Parler et toucher. Dites suivant.', true); return; }
@@ -5689,9 +5693,36 @@
               if (/^(no|nope|non|no thanks)/.test(low)) { readAloud = false; hush(); saveAll(); re2(); return; } }
           }
           if (st.mode === 'helperpick') { const to = /lilly|lily|woman|female|femme/.test(low) ? 'lilly-1' : /reid|man|male|homme/.test(low) ? 'reid-1' : '';
-            if (to) { setHelper(to); saveAll(); renderList(); applyLang(); sayT('Hello. My name is ' + helperName() + '. Say next when ready.', 'Bonjour. Je m’appelle ' + helperName() + '. Dites suivant.', true); whMarkMet(); return; } }
+            if (to) { setHelper(to); saveAll(); renderList(); applyLang(); nudgeNext(); sayT('Hello. My name is ' + helperName() + '. Say next when ready.', 'Bonjour. Je m’appelle ' + helperName() + '. Dites suivant.', true); whMarkMet(); return; } }
         }
-        return hG(t); }; }
+        const at = currentIndex, r = hG(t); setTimeout(() => { if (currentIndex === at && stepHasAnswer()) nudgeNext(); }, 80); return r; }; }
+
+    // Picking a language is acknowledged in that language, out loud and on screen (Rama, 25 Nov) — even when it was already picked
+    const LANG_ACK = { en: 'English it is.', fr: 'Français, c’est noté.', zh: '好的，中文。', yue: '好，廣東話。', pa: 'ਠੀਕ ਹੈ, ਪੰਜਾਬੀ।', es: 'Español, perfecto.', tl: 'Sige, Tagalog.',
+      ar: 'حسنًا، العربية.', it: 'Italiano, perfetto.', pt: 'Português, combinado.', ta: 'சரி, தமிழ்.', ur: 'ٹھیک ہے، اردو۔', fa: 'باشه، فارسی.', ru: 'Хорошо, русский.',
+      ko: '좋아요, 한국어.', vi: 'Được rồi, tiếng Việt.', hi: 'ठीक है, हिन्दी।', gu: 'સારું, ગુજરાતી.', pl: 'Dobrze, polski.', uk: 'Добре, українська.', el: 'Εντάξει, ελληνικά.' };
+    function ackLang(c) { const m = LANG_ACK[c]; if (!m) return; showToast(m); say(m, true); nudgeNext(); }
+
+    // Next lights up once something is picked or typed on this screen, so people know to press it (Rama, 25 Nov)
+    function stepHasAnswer() {
+      const st = steps[currentIndex], w = document.getElementById('stepWork'); if (!st || st.mode === 'landing') return false;
+      if (String(st.answer || '').trim()) return true;
+      if (w && [...w.querySelectorAll('[aria-pressed="true"]')].some((e) => e.offsetParent)) return true;
+      return !!(w && [...w.querySelectorAll('textarea, input[type="text"]')].some((e) => e.offsetParent && e.value.trim()));
+    }
+    let nxAt = -1;
+    function nudgeNext() {
+      const nx = document.getElementById('nextNavBtn'); if (!nx || steps[currentIndex].mode === 'landing') return;
+      nxAt = currentIndex; nx.classList.remove('nx-ready'); void nx.offsetWidth; nx.classList.add('nx-ready');
+    }
+    window.nudgeNext = nudgeNext;
+    { const w = document.getElementById('stepWork');
+      if (w) {
+        w.addEventListener('click', (e) => { if (e.target.closest('button, [role="button"], label')) setTimeout(() => { if (stepHasAnswer()) nudgeNext(); }, 60); });
+        let typeT = 0; w.addEventListener('input', () => { clearTimeout(typeT); typeT = setTimeout(() => { if (stepHasAnswer()) nudgeNext(); }, 700); });
+      }
+      setInterval(() => { const nx = document.getElementById('nextNavBtn'); if (nx && nx.classList.contains('nx-ready') && (nxAt !== currentIndex || !stepHasAnswer())) nx.classList.remove('nx-ready'); }, 300);
+    }
 
     // The progress line: an icon for each part of this phase instead of "Step 4 of 23" (Rama, 25 Nov),
     // and a well done from the helper when a part is finished.
