@@ -51,6 +51,7 @@
     /* ===== Lighter look (Rama, 24 Nov) — same contrast, less weight. Shadows kept. ===== */
     .reid-pop { background: #FAF7F0; border: 2px solid #3B5E42; border-radius: 22px; box-shadow: 0 12px 32px rgba(30,38,52,.22); }
     .reid-pop::before { content: ""; position: absolute; top: -12px; left: 26px; width: 20px; height: 20px; background: #FAF7F0; border-left: 2px solid #3B5E42; border-top: 2px solid #3B5E42; transform: rotate(45deg); border-radius: 4px 0 0 0; }
+    #landingCard { display: none !important; }   /* Rama, 24 Nov: no box on the first page; Reid's bubble says it */
     .rp-hi { margin: 2px 4px 2px; font-size: 20px; font-weight: 700; line-height: 1.25; color: #1E2634; }
     .rp-say { margin: 0 4px; font-size: 15px; line-height: 1.4; color: #425268; }
     .hp-wrap { display: flex; flex-direction: column; gap: 10px; width: 100%; }
@@ -2799,7 +2800,7 @@
 
     // ---------- French ----------
     const FR = {
-      'Get ready for your appointment': 'Préparez votre rendez-vous', 'Welcome to WellHeard': 'Bienvenue sur WellHeard', 'Ever left the doctor’s and remembered what you forgot to ask?': 'Déjà sorti de chez le médecin en vous rappelant ce que vous avez oublié de demander ?', 'You’re not alone. Much of what the doctor says is forgotten right away, and almost half of what we remember is wrong.': 'Vous n’êtes pas seul. On oublie vite une bonne partie de ce que dit le médecin, et près de la moitié de ce qu’on retient est faux.', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what was said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce qui a été dit.', 'Reid is talking': 'Reid parle', 'Reid, your AI helper, will:': 'Reid, votre assistant IA, va :', 'Help you get ready, one question at a time': 'Vous aider à vous préparer, une question à la fois', 'Make a clear page for your doctor': 'Faire une page claire pour votre médecin', 'Write down what the doctor said': 'Noter ce que le médecin a dit', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what the doctor said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce que le médecin a dit.', 'Your AI helper': 'Votre assistant IA', "Welcome to WellHeard! My name is Reid. I’m your AI helper. Would you like me to read this page to you?": "Bienvenue sur WellHeard ! Je suis Reid, votre assistant IA. Voulez-vous que je vous lise cette page ?", "Welcome to WellHeard. My name is Reid. I’m your AI helper.": "Bienvenue sur WellHeard. Je m’appelle Reid. Je suis votre assistant IA.", "I'll help you get ready, make a clear page for your doctor, and write down what was said. You can speak or tap with me.": "Je vous aide à vous préparer, je fais une page claire pour votre médecin et je note ce qui a été dit. Vous pouvez me parler ou toucher l'écran.", 'How it works': 'Comment ça marche',
+      'Get ready for your appointment': 'Préparez votre rendez-vous', 'Welcome to WellHeard': 'Bienvenue sur WellHeard', 'Ever left the doctor’s and remembered what you forgot to ask?': 'Déjà sorti de chez le médecin en vous rappelant ce que vous avez oublié de demander ?', 'You’re not alone. Much of what the doctor says is forgotten right away, and almost half of what we remember is wrong.': 'Vous n’êtes pas seul. On oublie vite une bonne partie de ce que dit le médecin, et près de la moitié de ce qu’on retient est faux.', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what was said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce qui a été dit.', 'Reid is talking': 'Reid parle', 'Reid, your AI helper, will:': 'Reid, votre assistant IA, va :', 'Help you get ready, one question at a time': 'Vous aider à vous préparer, une question à la fois', 'Make a clear page for your doctor': 'Faire une page claire pour votre médecin', 'Write down what the doctor said': 'Noter ce que le médecin a dit', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what the doctor said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce que le médecin a dit.', 'Your AI helper': 'Votre assistant IA', "Welcome to WellHeard! My name is Reid. I’m your AI helper. I get you ready, make a clear page for your doctor, and write down what the doctor said. Would you like me to read this page to you?": "Bienvenue sur WellHeard ! Je m’appelle Reid. Je suis votre assistant IA. Je vous aide à vous préparer, je fais une page claire pour votre médecin, et je note ce que le médecin a dit. Voulez-vous que je vous lise cette page ?", "Welcome to WellHeard. My name is Reid. I’m your AI helper.": "Bienvenue sur WellHeard. Je m’appelle Reid. Je suis votre assistant IA.", "I'll help you get ready, make a clear page for your doctor, and write down what was said. You can speak or tap with me.": "Je vous aide à vous préparer, je fais une page claire pour votre médecin et je note ce qui a été dit. Vous pouvez me parler ou toucher l'écran.", 'How it works': 'Comment ça marche',
       'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
       'Private: your answers are saved only on this device.': 'Privé : vos réponses sont gardées seulement sur cet appareil.',
@@ -3142,7 +3143,10 @@
     CanadaRec.talkingNow = (start) => !!(start && speaking && performance.now() - speakStart < 900);
     CanadaRec.talkOver = () => {
       if (!speaking || !audioEl || performance.now() - speakStart < 900) return;
-      cutAt = performance.now(); hush(false);   // the person started talking: Reid stops at once (Rama, 24 Nov), no turning down and waiting
+      // the person started talking: Reid goes silent at once (Rama, 24 Nov). If the words turn out to be his own voice
+      // coming back through the speaker, he carries on; anything else stops him for good.
+      audioEl.volume = 0; ducked = true; clearTimeout(duckTimer);
+      duckTimer = setTimeout(() => { if (ducked && audioEl) hush(false); }, 2500);
     };
     // stop Reid now (new page, the person spoke, or a new thing to say)
     // play Reid's voice through the shared sound system; resolves true once played (or stopped), false if it couldn't
@@ -4049,7 +4053,7 @@
       panel.innerHTML = body;
       speakSettings(panel);
       panel.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { setView = b.dataset.go; renderSettings(); applyLang(); }));
-      panel.querySelectorAll('[data-hps]').forEach((b) => b.addEventListener('click', () => { setHelper(b.dataset.hps); saveAll(); renderSettings(); applyLang(); applyHelper(); say(L2('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.'), true); }));
+      panel.querySelectorAll('[data-hps]').forEach((b) => b.addEventListener('click', () => { setHelper(b.dataset.hps); saveAll(); renderSettings(); applyLang(); applyHelper(); sayT('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.', true); }));
       panel.querySelectorAll('[data-ts]').forEach((b) => b.addEventListener('click', () => { textSize = Number(b.dataset.ts); applyTextSize(); saveAll(); renderSettings(); renderCurrentStep(); }));
       panel.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang)));
       panel.querySelectorAll('[data-jump]').forEach((b) => b.addEventListener('click', () => { closeModal('helpSettingsModal'); stopRec(); currentIndex = Number(b.dataset.jump); renderCurrentStep(); speakStep(); }));
@@ -4707,12 +4711,12 @@
     // His hello is written; tapping "Yes, read it" is the tap that lets him speak.
     var greeted = false;
     const hello = document.createElement('div'); hello.id = 'reidHello';
-    hello.className = 'hidden absolute left-4 right-4 top-[80px] z-40 bg-white border-2 border-[#1E2634] rounded-[22px] p-3.5 flex flex-col gap-[10px] shadow-2xl';
+    hello.className = 'hidden absolute left-4 right-4 top-[80px] z-40 bg-white border-2 border-[#3B5E42] rounded-[22px] p-3.5 flex flex-col gap-[10px] shadow-2xl';
     document.getElementById('appContainer').appendChild(hello);
     function showHello() {
       if (steps[currentIndex].mode !== 'landing' || window.__helloDone) return;
-      hello.innerHTML = `<span class="absolute -top-[9px] left-[34px] w-4 h-4 bg-white border-l-2 border-t-2 border-[#1E2634] rotate-45" aria-hidden="true"></span>
-        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Welcome to WellHeard! My name is Reid. I’m your AI helper. Would you like me to read this page to you?</p>
+      hello.innerHTML = `<span class="absolute -top-[9px] left-[34px] w-4 h-4 bg-white border-l-2 border-t-2 border-[#3B5E42] rotate-45" aria-hidden="true"></span>
+        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Welcome to WellHeard! My name is Reid. I’m your AI helper. I get you ready, make a clear page for your doctor, and write down what the doctor said. Would you like me to read this page to you?</p>
         <div class="flex items-stretch"><button type="button" data-hi="yes" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">▶ Yes, read it</button>
         <div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-hi="no" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">No thanks</button></div>
 `;
@@ -5002,7 +5006,7 @@
     }
     document.getElementById('listItems').addEventListener('click', (e) => {
       const hp = e.target.closest('[data-hp]');
-      if (hp) { setHelper(hp.dataset.hp); renderList(); applyLang(); applyHelper(); say(L2('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.'), true); return; }
+      if (hp) { setHelper(hp.dataset.hp); renderList(); applyLang(); applyHelper(); sayT('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.', true); return; }
       const b = e.target.closest('[data-su]'); if (!b) return; ensureCtx();
       const k = b.dataset.su, on = b.dataset.v === '1';
       if (k === 'lang') { openModal('helpSettingsModal'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
@@ -5531,7 +5535,7 @@
           <button type="button" data-r="can" class="${MB} bg-white border border-[#D6CFC0] text-[#3B5E42]">${ico('explain')}${fr ? 'Que peut faire ' + nm + ' ?' : 'What can ' + nm + ' do?'}</button>
           <button type="button" data-chat class="${MB} bg-white border border-[#D6CFC0] text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Chat with Rama'}</button>
           <button type="button" data-r="close" class="${MB} bg-white border border-[#D6CFC0] text-[#1E2634] justify-center">${fr ? 'Fermer' : 'Close'}</button>`;
-        say(fr ? 'Bonjour, je suis ' + nm + '. Comment puis-je vous aider ?' : 'Hello. My name is ' + nm + '. How can I help?', true);
+        applyLang(); sayT('Hello. My name is ' + nm + '. How can I help?', 'Bonjour. Je m’appelle ' + nm + '. Comment puis-je vous aider ?', true);
         { const r = emb.getBoundingClientRect(), z = parseFloat(getComputedStyle(document.getElementById('appContainer')).zoom) || 1, vw = document.documentElement.clientWidth, w = Math.min(340, vw / z - 24);   // the app can be zoomed for bigger text
           menu.style.position = 'fixed'; menu.style.width = w + 'px'; menu.style.left = Math.max(12, Math.min(r.left, vw - w * z - 12)) / z + 'px'; menu.style.top = (r.bottom + 14) / z + 'px'; menu.style.maxHeight = Math.max(240, innerHeight - r.bottom - 28) / z + 'px'; }
         menu.classList.remove('hidden');
@@ -5558,10 +5562,12 @@
 
 
     // Hands-free (Rama, 24 Nov): the helper reads aloud and listens; the person runs everything by voice.
+    // say something written in English (and French): other languages get it translated first
+    async function sayT(en, fr, raw) { const g = sayGen; let t = lang === 'fr' ? fr : en; if (isMT()) { try { t = await mt(en); } catch (e) { console.warn('translate', e); } if (g !== sayGen) return; } return say(t, raw); }
     function handsFree(on) {
       hush(false);
       if (on) { readAloud = true; setInputMode('voice'); if (!isListening) toggleListening(); saveAll();
-        say(L2('Hands-free is on. Just talk to me. Say “help” any time, or “stop” to pause.', 'Mains libres activé. Parlez-moi. Dites « aide » à tout moment, ou « arrête » pour faire une pause.'), true); }
+        sayT('Hands-free is on. Just talk to me. Say “help” any time, or “stop” to pause.', 'Mains libres activé. Parlez-moi. Dites « aide » à tout moment, ou « arrête » pour faire une pause.', true); }
       else { if (isListening) toggleListening(); setInputMode('tap'); saveAll(); showToast(L2('Hands-free is off.', 'Mains libres désactivé.')); }
     }
     let clearAskAt = 0;
@@ -5569,20 +5575,20 @@
         const low = (t || '').toLowerCase().replace(/[.!,?。！，？、؟،]/g, '').replace(/^(ok|okay|hey|please|reid|lilly)[ ,]+/g, '').trim();
         const st = steps[currentIndex];
         if (st && st.mode !== 'landing') {
-          if (clearAskAt && Date.now() - clearAskAt < 10000 && /^(yes|yeah|yep|ok|okay|sure|clear it|yes clear it|oui|d'accord)$/.test(low)) { clearAskAt = 0; clearScreen(); say(L2('Cleared.', 'Effacé.'), true); return; }
-          if (clearAskAt && /^(no|nope|don't|cancel|non|annuler)$/.test(low)) { clearAskAt = 0; say(L2('OK, I kept it.', 'D’accord, je garde tout.'), true); return; }
+          if (clearAskAt && Date.now() - clearAskAt < 10000 && /^(yes|yeah|yep|ok|okay|sure|clear it|yes clear it|oui|d'accord)$/.test(low)) { clearAskAt = 0; clearScreen(); sayT('Cleared.', 'Effacé.', true); return; }
+          if (clearAskAt && /^(no|nope|don't|cancel|non|annuler)$/.test(low)) { clearAskAt = 0; sayT('OK, I kept it.', 'D’accord, je garde tout.', true); return; }
           if (/^(clear|erase|delete) (this|the) (screen|page|answer)|^start this (screen|page|question) over$|^efface(r|z)? (cet|l')écran$/.test(low)) {
-            if (!canClear()) { say(L2('There’s nothing to clear on this screen.', 'Rien à effacer sur cet écran.'), true); return; }
-            clearAskAt = Date.now(); say(L2('Clear everything on this screen? Say yes to clear it, or no to keep it.', 'Effacer tout cet écran ? Dites oui pour effacer, ou non pour garder.'), true); return; }
+            if (!canClear()) { sayT('There’s nothing to clear on this screen.', 'Rien à effacer sur cet écran.', true); return; }
+            clearAskAt = Date.now(); sayT('Clear everything on this screen? Say yes to clear it, or no to keep it.', 'Effacer tout cet écran ? Dites oui pour effacer, ou non pour garder.', true); return; }
           if (/^((open|show|go to) )?(the )?(settings|réglages|paramètres)$/.test(low)) { openPanel('settings'); setView = 'menu'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^((open|show) )?(the )?help( page)?$|^(open|ouvre) (l')?aide$/.test(low) && !/^help$/.test(low)) { openPanel('help'); setView = 'menu'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^(close|close (it|that|this|the settings|help)|ferme|fermer)$/.test(low)) { closeModal('helpSettingsModal'); return; }
-          if (/(bigger|larger) (text|letters|writing)|make (it|the text|the letters) bigger|^bigger$|plus grand/.test(low)) { textSize = Math.min(2, textSize + 1); applyTextSize(); saveAll(); say(L2('Bigger.', 'Plus grand.'), true); return; }
-          if (/smaller (text|letters|writing)|make (it|the text|the letters) smaller|^smaller$|plus petit/.test(low)) { textSize = Math.max(0, textSize - 1); applyTextSize(); saveAll(); say(L2('Smaller.', 'Plus petit.'), true); return; }
+          if (/(bigger|larger) (text|letters|writing)|make (it|the text|the letters) bigger|^bigger$|plus grand/.test(low)) { textSize = Math.min(2, textSize + 1); applyTextSize(); saveAll(); sayT('Bigger.', 'Plus grand.', true); return; }
+          if (/smaller (text|letters|writing)|make (it|the text|the letters) smaller|^smaller$|plus petit/.test(low)) { textSize = Math.max(0, textSize - 1); applyTextSize(); saveAll(); sayT('Smaller.', 'Plus petit.', true); return; }
           if (/^(change|switch) (the )?(language|langue)$|^(change|changer) (de )?langue$/.test(low)) { openPanel('settings'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^(change|switch) (the )?(helper|assistant|voice)$|^(switch to|change to) (reid|lilly)$/.test(low)) {
             const to = /lilly/.test(low) ? 'lilly-1' : /reid/.test(low) ? 'reid-1' : '';
-            if (to) { setHelper(to); saveAll(); say(L2('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.'), true); renderCurrentStep(); return; }
+            if (to) { setHelper(to); saveAll(); sayT('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.', true); renderCurrentStep(); return; }
             openPanel('settings'); setView = 'helper'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^(stop|turn off|end) hands[ -]?free$|^hands[ -]?free off$/.test(low)) { handsFree(false); return; }
           if (st.mode === 'setup') {
@@ -5590,14 +5596,14 @@
             if (part === 'lang') { const hit = LANG_LIST.find(([c, n]) => low === n.toLowerCase() || low === n.toLowerCase().split(' ')[0] || ({ english: 'en', anglais: 'en', french: 'fr', français: 'fr', francais: 'fr', spanish: 'es', italian: 'it', portuguese: 'pt', chinese: 'zh', mandarin: 'zh', cantonese: 'yue', punjabi: 'pa', arabic: 'ar', tagalog: 'tl', tamil: 'ta', urdu: 'ur', farsi: 'fa', persian: 'fa', russian: 'ru', korean: 'ko', vietnamese: 'vi', hindi: 'hi', gujarati: 'gu', polish: 'pl', ukrainian: 'uk', greek: 'el' })[low] === c);
               if (hit) { setLang(hit[0]); re2(); return; } }
             if (part === 'size') { const v = /extra|très grand|tres grand|biggest/.test(low) ? 2 : /large|big|grand/.test(low) ? 1 : /normal|small|regular|petit/.test(low) ? 0 : -1;
-              if (v >= 0) { textSize = v; applyTextSize(); saveAll(); re2(); say(['Normal.', 'Large.', 'Extra large.'][v] + L2(' Say next when ready.', ' Dites suivant quand c’est bon.'), true); return; } }
-            if (part === 'mode') { if (/^(speak|speak and tap|talk|voice|parler|parler et toucher)/.test(low)) { setInputMode('voice'); saveAll(); re2(); say(L2('Speak and tap. Say next when ready.', 'Parler et toucher. Dites suivant.'), true); return; }
+              if (v >= 0) { textSize = v; applyTextSize(); saveAll(); re2(); sayT(['Normal.', 'Large.', 'Extra large.'][v] + ' Say next when ready.', ['Normal.', 'Grand.', 'Très grand.'][v] + ' Dites suivant quand c’est bon.', true); return; } }
+            if (part === 'mode') { if (/^(speak|speak and tap|talk|voice|parler|parler et toucher)/.test(low)) { setInputMode('voice'); saveAll(); re2(); sayT('Speak and tap. Say next when ready.', 'Parler et toucher. Dites suivant.', true); return; }
               if (/^(tap|type|tap and type|toucher|écrire)/.test(low)) { setInputMode('tap'); saveAll(); re2(); return; } }
-            if (part === 'read') { if (/^(yes|yeah|yep|sure|ok|okay|read them|oui)/.test(low)) { readAloud = true; saveAll(); re2(); say(L2('Yes, I’ll read them. Say next when ready.', 'Oui, je les lirai. Dites suivant.'), true); return; }
+            if (part === 'read') { if (/^(yes|yeah|yep|sure|ok|okay|read them|oui)/.test(low)) { readAloud = true; saveAll(); re2(); sayT('Yes, I’ll read them. Say next when ready.', 'Oui, je les lirai. Dites suivant.', true); return; }
               if (/^(no|nope|non|no thanks)/.test(low)) { readAloud = false; hush(); saveAll(); re2(); return; } }
           }
           if (st.mode === 'helperpick') { const to = /lilly|lily|woman|female|femme/.test(low) ? 'lilly-1' : /reid|man|male|homme/.test(low) ? 'reid-1' : '';
-            if (to) { setHelper(to); saveAll(); renderList(); applyLang(); say(L2('Hello. My name is ' + helperName() + '. Say next when ready.', 'Bonjour. Je m’appelle ' + helperName() + '. Dites suivant.'), true); return; } }
+            if (to) { setHelper(to); saveAll(); renderList(); applyLang(); sayT('Hello. My name is ' + helperName() + '. Say next when ready.', 'Bonjour. Je m’appelle ' + helperName() + '. Dites suivant.', true); return; } }
         }
         return hG(t); }; }
 
