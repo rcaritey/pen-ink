@@ -18,6 +18,9 @@
   window.WHI = (k, s) => `<svg class="whi" width="${s || 20}" height="${s || 20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${WHI_P[k] || ''}</svg>`;</script>
   <style>
     /* ===== Lighter look (Rama, 24 Nov) — same contrast, less weight. Shadows kept. ===== */
+    .pk-list { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+    .pk-hours { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; }
+    @media (min-width: 700px) { .pk-days, .pk-mins { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .pk-hours { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
     .whi { display: inline-block; vertical-align: -0.2em; flex-shrink: 0; }
     /* a selected choice: pale sage tint, dark text, green edge and the ✓ (not solid navy) */
     button[aria-pressed="true"][class*="bg-[#1E2634]"], .wait-btn[class*="bg-[#1E2634]"], .lp-tabs button[aria-selected="true"], .pg-wrap .sel button[aria-pressed="true"] {
@@ -3365,7 +3368,7 @@
         if (st && st.id === 'time' && st.mode === 'voice' && low && !cmdOf(low.replace(/[.!?,]/g, '')) && !/^(next|back|go back|repeat|help|stop|pause|wait|undo|erase|suivant|retour)\b/.test(low)) {
           if (/not sure|don'?t know|pas sûr|sais pas/.test(low)) { st.time24 = ''; setPick(st, L2('Not sure of the time', 'Heure pas sûre')); say(L2('That’s fine. Say next.', 'Pas de souci. Dites suivant.'), true); return; }
           const p = parseSpokenTime(low);
-          if (p) { st.time24 = `${p.h}:${String(p.m).padStart(2, '0')}`; const said = hourStr(p.h, p.m); setPick(st, said); flashPick(); { const s2 = said.replace(/\.$/, ''); say(L2(s2 + '. Got it. Say next, or change it.', s2 + '. C’est noté. Dites suivant, ou changez-la.'), true); }; return; }
+          if (p) { st.time24 = `${p.h}:${String(p.m).padStart(2, '0')}`; pickHour = p.h; const said = hourStr(p.h, p.m); setPick(st, said); flashPick(); { const s2 = said.replace(/\.$/, ''); say(L2(s2 + '. Got it. Say next, or change it.', s2 + '. C’est noté. Dites suivant, ou changez-la.'), true); }; return; }
           if (low.split(/\s+/).length <= 8 && !/\?$/.test(low)) { const m = L2('Sorry, I didn’t get the time. Say it like 2:30 PM, or tap the hour.', 'Désolé, je n’ai pas compris l’heure. Dites par exemple 14 h 30, ou touchez l’heure.'); showToast(m); say(m, true); return; }
         }
         return hT(t); }; }
@@ -5534,6 +5537,7 @@
     const pickHost = document.createElement('div'); pickHost.id = 'pickHost'; pickHost.className = 'hidden w-full flex flex-col gap-[8px] shrink-0';
     const dayStr = (d) => d.toLocaleDateString(LOC[lang] || 'en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
     const hourStr = (h, m) => { const d = new Date(2000, 0, 1, h, m); return d.toLocaleTimeString(LOC[lang] || 'en-CA', { hour: 'numeric', minute: '2-digit' }); };
+    let pickWeek = null, pickHour = null, pickBrowse = false, pickFor = null;   // two-tap picker state, reset on each new step
     const CELL = 'tactile-btn h-[40px] rounded-xl font-extrabold text-[18px] flex items-center justify-center';
     const PILL = 'tactile-btn min-h-[52px] rounded-2xl font-extrabold text-[17px] flex items-center justify-center';
     const wideNow = () => document.getElementById('appContainer').classList.contains('wide');
@@ -5541,8 +5545,27 @@
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const fr = lang === 'fr', notSure = /^(not booked|not sure|pas encore|pas sûr)/i.test(step.answer || '');
       let html = '';
+      // Two big taps (Rama, 24 Nov, for Parkinson's): pick the week, then the day / pick the hour, then the minutes.
+      // No small calendar cells or month arrows unless the person chooses "Later"; every button is full words and at least 56px tall.
+      const SEL = 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]', OFFB = 'bg-white border border-[#D6CFC0] text-[#1E2634]';
+      const BIG = 'tactile-btn w-full min-h-[60px] px-4 rounded-2xl font-extrabold text-[18px] flex items-center justify-between gap-2 text-left';
+      const backBtn = (act, en, f) => `<button type="button" data-pk="${act}" class="tactile-btn self-start min-h-[48px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[16px]">‹ ${L2(en, f)}</button>`;
       if (step.id === 'day') {
-        if (!calMonth) { const iso = step.dateISO ? new Date(step.dateISO + 'T00:00') : today; calMonth = new Date(iso.getFullYear(), iso.getMonth(), 1); }
+        const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const monOf = (d) => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+        const weekStart = (w) => { const x = monOf(today); x.setDate(x.getDate() + 7 * w); return x; };
+        const weekOf = (iso) => { const d = new Date(iso + 'T00:00'); for (let w = 0; w < 3; w++) { const s0 = weekStart(w), e0 = new Date(s0); e0.setDate(e0.getDate() + 7); if (d >= s0 && d < e0) return w; } return 'cal'; };
+        if (pickWeek === null && !pickBrowse && step.dateISO && !notSure) pickWeek = weekOf(step.dateISO);
+        const notBtn = `<button type="button" data-unsure="day" class="${BIG} ${notSure ? SEL : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}"><span>${notSure ? '✓ ' : ''}${L2('Not booked yet', 'Pas encore fixé')}</span></button>`;
+        if (pickWeek === null) {
+          const rng = (w) => { const s0 = w === 0 ? today : weekStart(w), e0 = new Date(weekStart(w)); e0.setDate(e0.getDate() + 6);
+            const f = (d) => d.toLocaleDateString(LOC[lang] || 'en-CA', { month: 'short', day: 'numeric' }); return `${f(s0)} – ${f(e0)}`; };
+          const wk = (w, en, f) => `<button type="button" data-wk="${w}" class="${BIG} ${OFFB}"><span>${L2(en, f)}</span><span class="text-[15px] font-normal text-[#425268]" data-notr>${rng(w)}</span></button>`;
+          html += `<div class="pk-list">${wk(0, 'This week', 'Cette semaine')}${wk(1, 'Next week', 'La semaine prochaine')}${wk(2, 'In 2 weeks', 'Dans 2 semaines')}
+            <button type="button" data-wk="cal" class="${BIG} ${OFFB}"><span>${L2('Later', 'Plus tard')}</span><span class="text-[15px] font-normal text-[#425268]">${L2('See the calendar', 'Voir le calendrier')}</span></button>${notBtn}</div>`;
+        } else if (pickWeek === 'cal') {
+          if (!calMonth) { const iso = step.dateISO ? new Date(step.dateISO + 'T00:00') : today; calMonth = new Date(iso.getFullYear(), iso.getMonth(), 1); }
+          html += backBtn('weeks', 'Pick a week instead', 'Choisir une semaine');
         const y = calMonth.getFullYear(), m = calMonth.getMonth(), first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
         const wk = [...Array(7)].map((_, i) => new Date(2023, 0, 1 + i).toLocaleDateString(LOC[lang] || 'en-CA', { weekday: 'narrow' }));
         const notBtn = `<button type="button" data-unsure="day" class="${PILL} ${wideNow() ? 'px-4' : 'w-full'} ${notSure ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${notSure ? '✓ ' : ''}${L2('Not booked yet', 'Pas encore fixé')}</button>`;
@@ -5550,27 +5573,41 @@
         html += `<div class="flex items-stretch gap-[10px]">
             <button type="button" data-cal="-1" ${canBack ? '' : 'disabled'} aria-label="${L2('Previous month', 'Mois précédent')}" class="${PILL} w-[56px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] ${canBack ? '' : 'opacity-30'}">◀</button>
             <div class="flex-1 flex items-center justify-center font-extrabold text-[18px] text-[#1E2634]" data-notr>${calMonth.toLocaleDateString(LOC[lang] || 'en-CA', { month: 'long', year: 'numeric' })}</div>
-            <button type="button" data-cal="1" aria-label="${L2('Next month', 'Mois suivant')}" class="${PILL} w-[56px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">▶</button>${wideNow() ? notBtn : ''}</div>
+            <button type="button" data-cal="1" aria-label="${L2('Next month', 'Mois suivant')}" class="${PILL} w-[56px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">▶</button></div>
           <div class="grid grid-cols-7 gap-[6px] text-center text-[12px] font-extrabold text-[#425268]" data-notr>${wk.map((d) => `<span>${d}</span>`).join('')}</div>
           <div class="grid grid-cols-7 gap-[6px]" data-notr>${'<span></span>'.repeat(first)}${[...Array(days)].map((_, i) => {
             const d = new Date(y, m, i + 1), iso = `${y}-${String(m + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
             const past = d < today, on = step.dateISO === iso && !notSure, isToday = d.getTime() === today.getTime();
             return `<button type="button" data-day="${iso}" aria-pressed="${on}" ${past ? 'disabled' : ''} aria-label="${dayStr(d)}" class="${CELL} ${on ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : past ? 'text-[#425268]/35' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} ${isToday && !on ? 'ring-2 ring-[#3B5E42]' : ''}">${i + 1}</button>`;
           }).join('')}</div>
-          ${wideNow() ? '' : notBtn}`;
+          `;
+        } else {
+          const s0 = weekStart(pickWeek), tmr = new Date(today); tmr.setDate(tmr.getDate() + 1);
+          const days = [...Array(7)].map((_, i) => { const d = new Date(s0); d.setDate(d.getDate() + i); return d; }).filter((d) => d >= today);
+          const lab = (d) => d.toLocaleDateString(LOC[lang] || 'en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+          html += backBtn('weeks', 'Pick a different week', 'Choisir une autre semaine') + `<div class="pk-list pk-days" data-notr>${days.map((d) => {
+            const iso = isoOf(d), on = step.dateISO === iso && !notSure, tag = d.getTime() === today.getTime() ? L2('Today', 'Aujourd’hui') : d.getTime() === tmr.getTime() ? L2('Tomorrow', 'Demain') : '';
+            return `<button type="button" data-day="${iso}" aria-pressed="${on}" class="${BIG} ${on ? SEL : OFFB}"><span>${on ? '✓ ' : ''}${lab(d)}</span>${tag ? `<span class="text-[15px] font-normal text-[#425268]">${tag}</span>` : ''}</button>`;
+          }).join('')}</div>`;
+        }
       } else {
-        const hours = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
         const t = /^(\d{1,2}):(\d{2})/.exec(step.time24 || '') || null, H = t ? +t[1] : null, M = t ? +t[2] : null;
-        html += `<p class="text-[12px] font-extrabold uppercase tracking-wider text-[#425268]">${L2('Hour', 'Heure')}</p>
-          <div class="grid grid-cols-4 gap-[8px]" data-notr>${hours.map((h) => `<button type="button" data-hour="${h}" aria-pressed="${H === h && !notSure}" class="${PILL} ${H === h && !notSure ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${H === h && !notSure ? '✓ ' : ''}${hourStr(h, 0).replace(/:00/, '')}</button>`).join('')}</div>
-          <p class="text-[12px] font-extrabold uppercase tracking-wider text-[#425268] mt-1">${L2('Minutes', 'Minutes')}</p>
-          <div class="grid grid-cols-4 gap-[8px]" data-notr>${[0, 15, 30, 45].map((mm) => `<button type="button" data-min="${mm}" aria-pressed="${M === mm && H !== null && !notSure}" ${H === null ? 'disabled' : ''} class="${PILL} ${M === mm && H !== null && !notSure ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} ${H === null ? 'opacity-40' : ''}">${M === mm && H !== null && !notSure ? '✓ ' : ''}:${String(mm).padStart(2, '0')}</button>`).join('')}</div>
-          <button type="button" data-unsure="time" class="${PILL} w-full ${notSure ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${notSure ? '✓ ' : ''}${L2('Not sure of the time', 'Heure pas sûre')}</button>`;
+        if (pickHour === null && !pickBrowse && H !== null && !notSure) pickHour = H;
+        if (pickHour === null) {
+          const hours = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+          html += `<div class="pk-hours" data-notr>${hours.map((h) => `<button type="button" data-hour="${h}" class="${PILL} min-h-[60px] text-[18px] ${OFFB}">${hourStr(h, 0).replace(/:00/, '')}</button>`).join('')}</div>
+            <button type="button" data-unsure="time" class="${BIG} justify-center ${notSure ? SEL : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}"><span>${notSure ? '✓ ' : ''}${L2('Not sure of the time', 'Heure pas sûre')}</span></button>`;
+        } else {
+          html += backBtn('hours', 'Change the hour', 'Changer l’heure') + `<div class="pk-list pk-mins" data-notr>${[0, 15, 30, 45].map((mm) => {
+            const on = H === pickHour && M === mm && !notSure;
+            return `<button type="button" data-min="${mm}" aria-pressed="${on}" class="${BIG} justify-center ${on ? SEL : OFFB}"><span>${on ? '✓ ' : ''}${hourStr(pickHour, mm)}</span></button>`;
+          }).join('')}</div>`;
+        }
       }
       const chosen = (step.answer || '').trim(), help = document.getElementById('screenHelperText');
       help.classList.remove('hidden');
       help.innerHTML = chosen ? `<span class="inline-block mt-1 px-4 py-1.5 rounded-xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634] text-[20px] font-extrabold" data-notr>✓ ${esc(chosen)}</span>`
-        : esc(tr(step.id === 'day' ? 'Tap the day, or say it.' : 'Tap the hour, then the minutes, or say it.'));
+        : esc(step.id === 'day' ? (pickWeek === null ? L2('Which week? Tap it, or say the day.', 'Quelle semaine ? Touchez-la, ou dites le jour.') : L2('Tap the day, or say it.', 'Touchez le jour, ou dites-le.')) : (pickHour === null ? L2('Tap the hour, or say the time.', 'Touchez l’heure, ou dites-la.') : L2('Now tap the exact time.', 'Touchez maintenant l’heure exacte.')));
       pickHost.innerHTML = html;
     }
     function setPick(step, text) {
@@ -5579,10 +5616,13 @@
     }
     pickHost.addEventListener('click', (e) => {
       const step = steps[currentIndex], b = e.target.closest('button'); if (!b || b.disabled) return;
+      if (b.dataset.wk) { pickWeek = b.dataset.wk === 'cal' ? 'cal' : Number(b.dataset.wk); pickBrowse = true; renderPicker(step); applyLang(); return; }
+      if (b.dataset.pk === 'weeks') { pickWeek = null; pickBrowse = true; renderPicker(step); applyLang(); return; }
+      if (b.dataset.pk === 'hours') { pickHour = null; pickBrowse = true; renderPicker(step); applyLang(); return; }
       if (b.dataset.cal) { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + Number(b.dataset.cal), 1); renderPicker(step); applyLang(); return; }
       if (b.dataset.day) { step.dateISO = b.dataset.day; const d = new Date(b.dataset.day + 'T00:00'); setPick(step, dayStr(d)); say(dayStr(d), true); return; }
-      if (b.dataset.hour) { const h = Number(b.dataset.hour), mm = step.time24 ? Number(step.time24.split(':')[1]) : 0; step.time24 = `${h}:${String(mm).padStart(2, '0')}`; setPick(step, hourStr(h, mm)); return; }
-      if (b.dataset.min !== undefined) { const h = Number((step.time24 || '9:00').split(':')[0]), mm = Number(b.dataset.min); step.time24 = `${h}:${String(mm).padStart(2, '0')}`; setPick(step, hourStr(h, mm)); say(hourStr(h, mm), true); return; }
+      if (b.dataset.hour) { const h = Number(b.dataset.hour), mm = 0; pickHour = h; step.time24 = `${h}:${String(mm).padStart(2, '0')}`; setPick(step, hourStr(h, mm)); return; }
+      if (b.dataset.min !== undefined) { const h = pickHour !== null ? pickHour : Number((step.time24 || '9:00').split(':')[0]), mm = Number(b.dataset.min); step.time24 = `${h}:${String(mm).padStart(2, '0')}`; setPick(step, hourStr(h, mm)); say(hourStr(h, mm), true); return; }
       if (b.dataset.unsure) { step.dateISO = step.id === 'day' ? '' : step.dateISO; step.time24 = step.id === 'time' ? '' : step.time24; setPick(step, step.id === 'day' ? L2('Not booked yet', 'Pas encore fixé') : L2('Not sure of the time', 'Heure pas sûre')); }
     });
     function placePicker(step) {
@@ -5590,7 +5630,7 @@
       const scr = document.getElementById('voiceCaptureScreen'), box = document.getElementById('answerBoxWrapper'), chips = document.getElementById('quickChipsGrid');
       if (on && pickHost.parentNode !== scr) scr.insertBefore(pickHost, box);
       pickHost.classList.toggle('hidden', !on); box.classList.toggle('hidden', on); chips.classList.toggle('hidden', on);
-      if (on) { if (step.id === 'day') calMonth = calMonth || null; renderPicker(step); }
+      if (on) { if (step.id === 'day') calMonth = calMonth || null; if (pickFor !== step) { pickFor = step; pickWeek = null; pickHour = null; pickBrowse = false; } renderPicker(step); }
     }
 
     // ---------- tie everything into the prototype's own flow ----------
