@@ -4412,6 +4412,7 @@
       document.getElementById('listItems').classList.remove('overflow-y-auto');
       if (step.mode === 'consent') { renderConsent(items, foot); return; }
       if (step.mode === 'setup') { renderSetup(items, foot); return; }
+      if (step.mode === 'helperpick') { renderHelperPick(items, foot); return; }
       if (step.mode === 'ready') { renderReady(items, foot); return; }
       if (step.mode === 'meds') { renderMeds(items, foot); return; }
       if (step.mode === 'ideas') {
@@ -4939,6 +4940,17 @@
     // ---------- "Before we start": language, text size, how you answer, Reid's voice, full screen ----------
     steps.splice(1, 0, { id: 'setup', phaseIndex: 0, mode: 'setup', topic: 'Before we start', question: 'Before we start', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] });
     LISTMODES.setup = 1;
+    // Language and text size come first, so everything after is readable; the helper gets a screen of its own (Rama, 24 Nov)
+    steps.splice(2, 0, { id: 'helper', phaseIndex: 0, mode: 'helperpick', topic: 'Your helper', question: 'Your helper', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] });
+    LISTMODES.helperpick = 1;
+    function renderHelperPick(items, foot) {
+      const $ = (id) => document.getElementById(id);
+      $('listTitle').textContent = L2('Who would you like to help you?', 'Qui voulez-vous pour vous aider ?');
+      $('listHelp').textContent = L2('Tap a picture. You can change this later in Settings.', 'Touchez une image. Vous pourrez changer plus tard dans Réglages.');
+      $('listCounter').classList.add('hidden');
+      items.innerHTML = helperPicker('data-hp');
+      items.classList.add('overflow-y-auto'); foot.innerHTML = '';
+    }
     // Choose your helper: 4 Reid looks and 4 Lilly looks, big round pictures (Rama, 24 Nov)
     function helperPicker(attr) {
       const one = (h) => { const on = h === whHelper, nm = h.indexOf('lilly') === 0 ? 'Lilly' : 'Reid';
@@ -4954,8 +4966,7 @@
       const lab = (t) => `<p class="text-[12px] font-extrabold uppercase tracking-wider text-[#425268] -mb-1">${t}</p>`;
       const ON = 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]', OFF = 'bg-white border border-[#D6CFC0] text-[#1E2634]';
       const two = (k, a, b, onA) => `<div class="flex items-stretch"><button type="button" data-su="${k}" data-v="1" class="tactile-btn flex-1 min-h-[54px] rounded-2xl font-extrabold text-[16px] ${onA ? ON : OFF}">${onA ? '✓ ' : ''}${a}</button><div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-su="${k}" data-v="0" class="tactile-btn flex-1 min-h-[54px] rounded-2xl font-extrabold text-[16px] ${!onA ? ON : OFF}">${!onA ? '✓ ' : ''}${b}</button></div>`;
-      items.innerHTML = `${lab(L2('Your helper', 'Votre assistant'))}${helperPicker('data-hp')}
-        ${lab(L2('Language', 'Langue'))}
+      items.innerHTML = `${lab(L2('Language', 'Langue'))}
         <button type="button" data-su="lang" class="tactile-btn w-full min-h-[54px] px-4 rounded-2xl ${OFF} font-extrabold text-[16px] flex items-center justify-between"><span>${WHI('globe')} <span data-notr>${esc(langName(lang))}</span></span><span class="text-[#425268]">${L2('Change', 'Changer')} ›</span></button>
         ${lab(L2('Text size', 'Taille du texte'))}
         <div class="flex items-stretch gap-[10px]">${[[0, L2('Normal', 'Normal')], [1, L2('Large', 'Grand')], [2, L2('Extra large', 'Très grand')]].map(([v, t]) => `<button type="button" data-su="ts" data-v="${v}" class="tactile-btn flex-1 min-h-[58px] rounded-2xl ${textSize === v ? ON : OFF} font-extrabold flex flex-col items-center justify-center leading-none"><span style="font-size:${16 + v * 6}px">A</span><span class="text-[12px] mt-1">${t}</span></button>`).join('')}</div>
@@ -5849,7 +5860,7 @@
     KEEP.push('about');
     LISTMODES.basicsCheck = 1; LISTMODES.goalqs = 1;
     // the order of Prepare; the doctor-style questions (dq0, dq1, …) always follow "detail"
-    const PREP_ORDER = ['consent', 'setup', 'name', 'basicsCheck', 'about', 'conditions', 'meds', 'allergies', 'who', 'day', 'time', 'where',
+    const PREP_ORDER = ['setup', 'helper', 'consent', 'name', 'basicsCheck', 'about', 'conditions', 'meds', 'allergies', 'who', 'day', 'time', 'where',
       'concerns', 'story', 'goal', 'ideas', 'detail', 'priority', 'review', 'ready'];
     function orderPrep() {
       const prep = steps.filter((s) => s.phaseIndex === 0), dq = prep.filter((s) => /^dq\d+$/.test(s.id));
