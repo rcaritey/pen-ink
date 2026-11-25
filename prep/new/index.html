@@ -5895,7 +5895,7 @@
       if (phCelebrated.has(ph)) return; phCelebrated.add(ph);
       const nm = ((SID('name') && SID('name').answer) || '').trim().split(/\s+/)[0] || '';
       const T3 = [['You’ve completed the appointment prep.', 'Vous avez terminé la préparation du rendez-vous.', 'Your pages are ready to print, save or send.', 'Vos pages sont prêtes à imprimer, enregistrer ou envoyer.'],
-        ['You’ve made it through the visit.', 'Vous avez fait toute la visite.', 'Next: a clear summary of what the doctor said.', 'Ensuite : un résumé clair de ce que le médecin a dit.'],
+        ['You’ve made it through the visit.', 'Vous avez fait toute la visite.', 'Your summary and next steps are ready to print, save and send.', 'Votre résumé et vos prochaines étapes sont prêts à imprimer, enregistrer et envoyer.'],
         ['You’re all done.', 'Vous avez tout terminé.', 'Everything is saved on your pages.', 'Tout est enregistré dans vos pages.']][ph] || ['Section done.', 'Section terminée.', '', ''];
       const big = L2('Outstanding' + (nm ? ', ' + nm : '') + '!', 'Bravo' + (nm ? ', ' + nm : '') + ' !');
       const ov = document.createElement('div'); ov.className = 'ph-done'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-live', 'assertive');
