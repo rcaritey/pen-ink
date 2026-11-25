@@ -3189,6 +3189,8 @@
         if (ic === 'yes') { decideIdea('yes'); return; }
         if (ic === 'no') { decideIdea('no'); return; }
         if (ic === 'star') { decideIdea('star'); return; }
+        if (/^(look again|try again|more|more please|chercher encore|encore|d'autres|d’autres)$/.test(low) && !curIdea()) { decideIdea('yes'); return; }
+        if (/^(go on|continue|continuer)$/.test(low) && !curIdea()) { decideIdea('no'); return; }
         if (/^(keep|keep it|keep that|keep this one|garder|garde|gardez|gardez-la|yes|yeah|yep|sure|ok|okay|add it|yes please|oui|ajoute|sí|si|sì|sim|da|tak|так|да|네|vâng|có|haan|ہاں|بله|نعم|是|好|係)$/.test(low)) { decideIdea('yes'); return; }
         if (/^(leave out|leave it out|leave it|leave that out|drop it|laisser|laisse|laissez|laissez-la|no|nope|skip|no thanks|pass|non|passer|não|nie|нет|ні|아니|không|nahin|نہیں|نه|لا|不|不要|唔要)$/.test(low)) { decideIdea('no'); return; }
         if (/(must ask|must|must-ask|have to ask|most important|very important|important|top|très important|importante?|absolument|à poser absolument|muy importante|molto importante)$/.test(low)) { decideIdea('star'); return; }
@@ -4097,7 +4099,7 @@
     };
     function goTo(i) { stopRec(); currentIndex = i; renderCurrentStep(); speakStep(); }
 
-    var aiTags = {}, aiBusy = false;
+    var aiTags = {}, aiBusy = false, ideasOut = false;   // ideasOut: Reid asked for more and nothing new came back
     async function askClaudeQs(focus, asked) {
       const body = Object.assign(picture(), { asked: asked.slice(-80) }); if (focus) body.focus = focus;
       const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -4125,7 +4127,8 @@
       aiBusy = aiLoading = false;
       // nothing new came back (all repeats): try once more before saying there are no more
       if (more && !added.length && !(tries > 0)) return fetchClaudeQuestions(true, quiet, 1);
-      if (quiet) { if (steps[currentIndex].mode === 'ideas') { const was = qShown[0]; renderList(); applyLang(); if (!was && curIdea()) say(L2('Here’s another. ', 'En voici une autre. ') + stop(curIdea())); } saveAll(); return; }
+      if (more) ideasOut = !added.length;
+      if (quiet) { if (steps[currentIndex].mode === 'ideas') { const was = qShown[0]; renderList(); applyLang(); if (!was && curIdea()) say(L2('Here’s another. ', 'En voici une autre. ') + stop(curIdea())); else if (!was && ideasOut) say(L2('Reid has no more questions for this visit.', 'Reid n’a plus d’autres questions pour cette visite.')); } saveAll(); return; }
       if (LISTMODES[steps[currentIndex].mode]) {
         if (more && added.length) { const ix = ideaPool().indexOf(added[0]); if (ix > 0) { qStarts = [0, ix]; qPage = 1; } }
         renderList(); applyLang();
@@ -4309,10 +4312,10 @@
       if (step.mode === 'ideas') {
         const pool = ideaPool(), cur = curIdea(), done = pool.filter((q) => qPicked.includes(q) || qSkipped.includes(q)).length;
         qShown = cur ? [cur] : [];
-        $('listTitle').textContent = cur ? L2('Ask the doctor this?', 'Poser cette question au médecin ?') : aiBusy ? L2('Finding more questions…', 'Je cherche d’autres questions…') : L2('That’s all my suggestions', 'C’est tout pour mes suggestions');
+        $('listTitle').textContent = cur ? L2('Ask the doctor this?', 'Poser cette question au médecin ?') : !ideasOut ? L2('Finding more questions…', 'Je cherche d’autres questions…') : L2('That’s all my suggestions', 'C’est tout pour mes suggestions');
         // built from separate pieces so each fixed sentence uses its checked translation and the numbers stay as they are
         const helpBits = aiLoading && !cur ? [L2('Reid is thinking of questions for your visit…', 'Reid réfléchit à des questions pour votre visite…')]
-          : cur ? [L2('Must ask, if there’s time, or leave it out?', 'À poser absolument, si on a le temps, ou la laisser ?')].concat(aiLoading ? [L2('Reid is finding more…', 'Reid en cherche d’autres…')] : []) : [L2('Say yes for more, or no to go on.', 'Dites oui pour d’autres, ou non pour continuer.')];
+          : cur ? [L2('Must ask, if there’s time, or leave it out?', 'À poser absolument, si on a le temps, ou la laisser ?')].concat(aiLoading ? [L2('Reid is finding more…', 'Reid en cherche d’autres…')] : []) : (ideasOut ? [L2('Tap Go on, or Look again.', 'Touchez Continuer, ou Chercher encore.')] : []);
         if (isMT()) helpBits.push('⚠ Translated by computer: check with the doctor.');
         $('listHelp').innerHTML = (cur ? `<span data-notr>${done + 1} / ${pool.length} · </span>` : '') + helpBits.map((b) => `<span>${esc(b)}</span>`).join(' ');
         $('listCounter').textContent = L2(`${qPicked.length} added`, `${qPicked.length} ajoutée(s)`);
@@ -4328,10 +4331,16 @@
               <div class="w-[16px] shrink-0" aria-hidden="true"></div>
               <button type="button" data-idea="no" class="tactile-btn flex-1 min-h-[68px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xl">✕ ${L2('Leave out', 'Laisser')}</button></div>`;
         } else {
-          items.innerHTML = `<div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[22px] p-4 text-[16px] font-bold text-[#1E2634] leading-snug">${qPicked.length ? L2(`You added ${qPicked.length}. They're on your pages.`, `Vous en avez ajouté ${qPicked.length}. Elles sont sur vos pages.`) : L2('You haven’t added any. That’s fine.', 'Vous n’en avez ajouté aucune. Pas de souci.')}
-              <span class="block mt-2 text-[19px] font-extrabold">${L2('Would you like me to suggest more?', 'Voulez-vous que j’en suggère d’autres ?')}</span></div>
-            <button type="button" data-idea="yes" ${aiBusy ? 'disabled' : ''} class="tactile-btn w-full min-h-[60px] rounded-[18px] bg-[#3B5E42] text-white font-extrabold text-lg ${aiBusy ? 'opacity-60' : ''}">${aiBusy ? L2('Reid is thinking…', 'Reid réfléchit…') : L2('✨ Yes, suggest more', '✨ Oui, d’autres')}</button>
-            <button type="button" data-idea="no" class="tactile-btn w-full min-h-[56px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${L2('No, go on', 'Non, continuer')} ›</button>`;
+          // out of suggestions: Reid fetches more on his own (Rama, 24 Nov: offer more, don't ask), and says so on screen when there are none
+          if (!aiBusy && !ideasOut) { if (aiPool.length >= 60) ideasOut = true; else setTimeout(() => fetchClaudeQuestions(true, true), 0); }
+          const busy = !ideasOut;
+          const addedLine = qPicked.length ? L2(`You added ${qPicked.length}. They're on your pages.`, `Vous en avez ajouté ${qPicked.length}. Elles sont sur vos pages.`) : L2('You haven’t added any. That’s fine.', 'Vous n’en avez ajouté aucune. Pas de souci.');
+          items.innerHTML = busy
+            ? `<div class="w-full bg-white border border-[#D6CFC0] rounded-[22px] p-4 text-[17px] text-[#1E2634] leading-snug" role="status"><span class="block text-[19px] font-extrabold">${L2('Reid is finding more questions…', 'Reid cherche d’autres questions…')}</span><span class="block mt-1">${L2('This takes a few seconds.', 'Cela prend quelques secondes.')} ${addedLine}</span></div>
+            <button type="button" data-idea="no" class="tactile-btn w-full min-h-[56px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${L2('Skip, go on', 'Passer, continuer')} ›</button>`
+            : `<div class="w-full bg-white border border-[#D6CFC0] rounded-[22px] p-4 text-[17px] text-[#1E2634] leading-snug" role="status"><span class="block text-[19px] font-extrabold">${L2('Reid has no more questions for this visit.', 'Reid n’a plus d’autres questions pour cette visite.')}</span><span class="block mt-1">${addedLine}</span></div>
+            <button type="button" data-idea="no" class="tactile-btn w-full min-h-[60px] rounded-[18px] bg-[#E5EFE7] wh-quiet font-extrabold text-lg">${L2('Go on', 'Continuer')} ›</button>
+            <button type="button" data-idea="yes" class="tactile-btn w-full min-h-[56px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${WHI('search')} ${L2('Look again', 'Chercher encore')}</button>`;
         }
         const gap = '<div class="w-[10px] shrink-0" aria-hidden="true"></div>';
         foot.innerHTML = qAdding ? footHtml(1, '') : `${ideaHist.length ? `<button type="button" data-idea="undo" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">‹ ${L2('Previous', 'Précédente')}</button>${gap}` : ''}<button type="button" data-foot="add" class="${B_FOOT} bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634]">+ ${L2('Your own', 'La vôtre')}</button>${gap}<button type="button" data-foot="gen" ${aiBusy ? 'disabled' : ''} class="${B_FOOT} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] ${aiBusy ? 'opacity-60' : ''}">${aiBusy ? L2('Thinking…', 'Un instant…') : L2('✨ Reid: more', '✨ Reid : plus')}</button>`;
@@ -4399,7 +4408,7 @@
         qPicked = qPicked.filter((x) => x !== last); qPrio = qPrio.filter((x) => x !== last); qSkipped = qSkipped.filter((x) => x !== last);
       } else {
         const q = curIdea();
-        if (!q) { if (act === 'yes' || act === 'star') fetchClaudeQuestions(true); else if (act === 'no') goNext(); return; }
+        if (!q) { if (act === 'yes' || act === 'star') { ideasOut = false; fetchClaudeQuestions(true); } else if (act === 'no') goNext(); return; }
         if (act === 'no') qSkipped.push(q); else { qPicked.push(q); if (act === 'star' && !qPrio.includes(q)) qPrio.push(q); }
         ideaHist.push(q);
         setCompanionState('captured');
@@ -4408,7 +4417,7 @@
       renderList(); applyLang(); saveAll();
       const next = curIdea();
       if (!next && aiBusy) { say(L2('One moment. Reid is finding more questions.', 'Un instant. Reid cherche d’autres questions.')); return; }
-      say(next ? (act === 'undo' ? '' : act === 'no' ? '' : L2('Added. ', 'Ajoutée. ')) + stop(next) : L2('That’s all my suggestions. Would you like me to suggest more?', 'C’est tout. Voulez-vous que j’en suggère d’autres ?'));
+      say(next ? (act === 'undo' ? '' : act === 'no' ? '' : L2('Added. ', 'Ajoutée. ')) + stop(next) : L2('One moment. Reid is finding more questions.', 'Un instant. Reid cherche d’autres questions.'));
     }
     document.getElementById('listItems').addEventListener('click', (e) => { const b = e.target.closest('[data-idea]'); if (b) decideIdea(b.dataset.idea); });
     document.getElementById('listFoot').addEventListener('click', (e) => { const b = e.target.closest('[data-idea]'); if (b) decideIdea(b.dataset.idea); });
@@ -4478,7 +4487,7 @@
         + L2('You can send it to family, or print it.', 'Vous pouvez l’envoyer à la famille, ou l’imprimer.')
     };
     const SPEAK = {
-      ideas: () => curIdea() ? L2('Ask the doctor: ', 'Demander au médecin : ') + stop(curIdea()) + L2(' Must ask, if there’s time, or leave it out?', ' À poser absolument, si on a le temps, ou la laisser ?') : L2('That’s all my suggestions. Would you like me to suggest more?', 'C’est tout. Voulez-vous que j’en suggère d’autres ?'),
+      ideas: () => curIdea() ? L2('Ask the doctor: ', 'Demander au médecin : ') + stop(curIdea()) + L2(' Must ask, if there’s time, or leave it out?', ' À poser absolument, si on a le temps, ou la laisser ?') : ideasOut ? L2('Reid has no more questions for this visit. Say go on, or look again.', 'Reid n’a plus d’autres questions pour cette visite. Dites continuer, ou chercher encore.') : L2('One moment. Reid is finding more questions.', 'Un instant. Reid cherche d’autres questions.'),
       priority: () => chosen().length ? L2('Your questions. ', 'Vos questions. ') + readList() + L2(' Say a number to add or take off its star.', ' Dites un numéro pour ajouter ou enlever l’étoile.') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       review: () => L2('Does everything look right?', 'Est-ce que tout est correct ?'),
       ready: () => L2('You’re ready. Your pages are ready to print, save or send. Tap Change to fix anything. Then tap Next.', 'Vous êtes prêt. Vos pages sont prêtes à imprimer, enregistrer ou envoyer. Touchez Modifier pour corriger. Puis Suivant.'),
