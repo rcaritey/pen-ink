@@ -49,6 +49,10 @@
   window.WHI = (k, s) => `<svg class="whi" width="${s || 20}" height="${s || 20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${WHI_P[k] || ''}</svg>`;</script>
   <style>
     /* ===== Lighter look (Rama, 24 Nov) — same contrast, less weight. Shadows kept. ===== */
+    .reid-pop { background: #FAF7F0; border: 2px solid #3B5E42; border-radius: 22px; box-shadow: 0 12px 32px rgba(30,38,52,.22); }
+    .reid-pop::before { content: ""; position: absolute; top: -12px; left: 26px; width: 20px; height: 20px; background: #FAF7F0; border-left: 2px solid #3B5E42; border-top: 2px solid #3B5E42; transform: rotate(45deg); border-radius: 4px 0 0 0; }
+    .rp-hi { margin: 2px 4px 2px; font-size: 20px; font-weight: 700; line-height: 1.25; color: #1E2634; }
+    .rp-say { margin: 0 4px; font-size: 15px; line-height: 1.4; color: #425268; }
     .hp-wrap { display: flex; flex-direction: column; gap: 10px; width: 100%; }
     .hp-name { margin: 0 0 4px; font-weight: 700; font-size: 18px; color: #1E2634; } .hp-sub { font-weight: 400; font-size: 15px; color: #425268; }
     .hp-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
@@ -3133,13 +3137,12 @@
     // coming back, so it's ignored. A voice that starts later turns Reid down at once; if the words
     // aren't Reid's own, he stops and listens.
     const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    let speakStart = 0, talkWords = new Set(), ducked = false, duckTimer = null, sayGen = 0;
+    let speakStart = 0, talkWords = new Set(), ducked = false, duckTimer = null, sayGen = 0, cutAt = 0;
     const vwords = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/).filter((w) => w.length > 1);
     CanadaRec.talkingNow = (start) => !!(start && speaking && performance.now() - speakStart < 900);
     CanadaRec.talkOver = () => {
       if (!speaking || !audioEl || performance.now() - speakStart < 900) return;
-      audioEl.volume = 0.15; ducked = true; clearTimeout(duckTimer);
-      duckTimer = setTimeout(() => { if (ducked && audioEl) { audioEl.volume = 1; ducked = false; } }, 3000);
+      cutAt = performance.now(); hush(false);   // the person started talking: Reid stops at once (Rama, 24 Nov), no turning down and waiting
     };
     // stop Reid now (new page, the person spoke, or a new thing to say)
     // play Reid's voice through the shared sound system; resolves true once played (or stopped), false if it couldn't
@@ -3286,6 +3289,7 @@
       if (!t) return;
       const cmdOnly = /^(next|next please|back|go back|stop|pause|suivant|retour)$/.test(t.toLowerCase().replace(/[.!,?]/g, '').trim());
       if (speaking || ducked) { if (!cmdOnly && isEcho(t)) { if (audioEl) audioEl.volume = 1; ducked = false; return; } hush(true); }
+      else if (cutAt && performance.now() - cutAt < 6000 && !cmdOnly && isEcho(t)) { cutAt = 0; return; }   // it was only Reid's own voice coming back: ignore it
       heard(t);
     }
     function startRec() {
@@ -4959,7 +4963,7 @@
       const one = (h) => { const on = h === whHelper, nm = h.indexOf('lilly') === 0 ? 'Lilly' : 'Reid';
         return `<button type="button" ${attr}="${h}" aria-pressed="${on}" aria-label="${nm} ${h.slice(-1)}" class="hp-btn${on ? ' hp-on' : ''}"><img src="${helperSrc(h)}" alt="" width="96" height="96">${on ? '<span class="hp-tick" aria-hidden="true">✓</span>' : ''}</button>`; };
       const row = (nm, sub, hs) => `<div class="hp-row"><p class="hp-name"><span data-notr>${nm}</span> <span class="hp-sub">${sub}</span></p><div class="hp-grid">${hs.map(one).join('')}</div></div>`;
-      return `<div class="hp-wrap">${row('Reid', L2('(he)', '(il)'), WH_HELPERS.slice(0, 4))}${row('Lilly', L2('(she)', '(elle)'), WH_HELPERS.slice(4))}</div>`;
+      return `<div class="hp-wrap">${row('Reid', '', WH_HELPERS.slice(0, 4))}${row('Lilly', '', WH_HELPERS.slice(4))}</div>`;
     }
     // One question per screen (Rama, 24 Nov): language, text size, how you answer, reading aloud — each its own step, big buttons
     function renderSetup(items, foot) {
@@ -5503,25 +5507,31 @@
       if (!wrap) return;
       wrap.style.cursor = 'pointer'; wrap.setAttribute('role', 'button'); wrap.setAttribute('aria-label', 'Reid: options'); wrap.setAttribute('aria-haspopup', 'true');
       const menu = document.createElement('div'); menu.id = 'reidMenu';
-      menu.className = 'hidden absolute left-4 top-[78px] z-40 w-[270px] bg-[#FAF7F0] border-2 border-[#1E2634] rounded-[20px] p-3 flex flex-col gap-[10px] shadow-2xl';
+      menu.className = 'hidden absolute left-4 top-[84px] z-40 w-[310px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-110px)] overflow-y-auto reid-pop p-3 flex flex-col gap-[10px]';
       document.getElementById('appContainer').appendChild(menu);
       const MB = 'tactile-btn w-full min-h-[52px] px-3 rounded-2xl font-extrabold text-base flex items-center gap-3 text-left';
       const open = () => {
-        const fr = lang === 'fr', voice = inputPreference === 'voice', onStep = steps[currentIndex].mode !== 'landing';
-        menu.innerHTML = `<p class="text-sm font-extrabold text-[#3B5E42] px-1">${fr ? 'Reid, votre aide IA' : 'Reid, your AI helper'}</p>
-          ${onStep ? `<button type="button" data-r="explain" class="${MB} bg-[#1E2634] text-white">${ico('explain', 1)}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
-          <button type="button" data-r="read" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('pages')}${fr ? 'Lire ce qui est à l’écran' : 'Read what’s on this screen'}</button>
+        const fr = lang === 'fr', voice = inputPreference === 'voice', onStep = steps[currentIndex].mode !== 'landing', nm = helperName(), hf = voice && isListening;
+        menu.innerHTML = `<p class="rp-hi">${fr ? 'Bonjour, je suis ' + nm + '. Comment puis-je vous aider ?' : 'Hi, I’m ' + nm + '. How can I help?'}</p>
+          <button type="button" data-r="handsfree" class="${MB} min-h-[64px] ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}">${ico('say', !hf)}<span class="flex-1"><span class="block">${hf ? (fr ? '✓ Mains libres : activé' : '✓ Hands-free is on') : (fr ? 'Passer en mains libres' : 'Go hands-free')}</span><span class="block text-[14px] font-normal ${hf ? 'text-[#425268]' : 'text-white/90'}">${hf ? (fr ? 'Touchez pour arrêter' : 'Tap to turn it off') : (fr ? 'Parlez-moi, je fais le reste' : 'Just talk. I’ll listen and do it.')}</span></span></button>
+          <p class="rp-say">${fr ? 'Vous pouvez dire : « suivant », « retour », « explique », « lis l’écran », « texte plus grand », « réglages », « efface cet écran », ou me poser une question.' : 'You can say: “next”, “go back”, “explain”, “read the screen”, “bigger text”, “settings”, “clear this screen”, or ask me a question.'}</p>
+          ${onStep ? `<button type="button" data-r="explain" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('explain')}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
+          <button type="button" data-r="read" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('voice')}${fr ? 'Lire ce qui est à l’écran' : 'Read what’s on this screen'}</button>
+          ${onStep ? `<button type="button" data-r="back" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]"><span class="w-9 h-9 shrink-0 flex items-center justify-center text-[22px]" aria-hidden="true">‹</span>${fr ? 'Revenir en arrière' : 'Go back'}</button>` : ''}
           ${onStep ? `<button type="button" data-r="clear" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]"><span class="w-8 h-8 shrink-0 flex items-center justify-center">${CLEAR_ICO}</span><span data-cl>${fr ? 'Effacer cet écran' : 'Clear this screen'}</span></button>` : ''}
-          <button type="button" data-r="can" class="${MB} bg-white border border-[#D6CFC0] text-[#3B5E42]">${ico('explain')}${fr ? 'Que peut faire Reid ?' : 'What can Reid do?'}</button>
-          ${onStep ? `<button type="button" data-r="repeat" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('voice')}${fr ? 'Répéter la question' : 'Repeat the question'}</button>` : ''}
-          ${voice && onStep ? `<button type="button" data-r="listen" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter de nouveau' : 'Start listening')}</button>` : ''}
-          <p class="text-sm font-extrabold text-[#3B5E42] px-1 side-gap">${fr ? 'Besoin d’une personne ?' : 'Need a person?'}</p>
-          <button type="button" data-chat class="${MB} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Chat with Rama'}</button>
+          <button type="button" data-r="settings" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('textsize')}${fr ? 'Réglages' : 'Settings'}</button>
+          <button type="button" data-r="can" class="${MB} bg-white border border-[#D6CFC0] text-[#3B5E42]">${ico('explain')}${fr ? 'Que peut faire ' + nm + ' ?' : 'What can ' + nm + ' do?'}</button>
+          <button type="button" data-chat class="${MB} bg-white border border-[#D6CFC0] text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Chat with Rama'}</button>
           <button type="button" data-r="close" class="${MB} bg-white border border-[#D6CFC0] text-[#1E2634] justify-center">${fr ? 'Fermer' : 'Close'}</button>`;
+        say(fr ? 'Bonjour, je suis ' + nm + '. Comment puis-je vous aider ?' : 'Hi, I’m ' + nm + '. How can I help?', true);
+        { const r = emb.getBoundingClientRect(), z = parseFloat(getComputedStyle(document.getElementById('appContainer')).zoom) || 1, vw = document.documentElement.clientWidth, w = Math.min(340, vw / z - 24);   // the app can be zoomed for bigger text
+          menu.style.position = 'fixed'; menu.style.width = w + 'px'; menu.style.left = Math.max(12, Math.min(r.left, vw - w * z - 12)) / z + 'px'; menu.style.top = (r.bottom + 14) / z + 'px'; menu.style.maxHeight = Math.max(240, innerHeight - r.bottom - 28) / z + 'px'; }
         menu.classList.remove('hidden');
       };
       const close = () => menu.classList.add('hidden');
-      wrap.addEventListener('click', (e) => { e.stopPropagation(); ensureCtx(); if (menu.classList.contains('hidden')) open(); else close(); });
+      // the picture moves into the side panel on computers, so listen on the page and check where the tap landed
+      document.addEventListener('click', (e) => { if (!e.target.closest('#companionEmblem') || e.target.closest('#reidMenu')) return; e.stopPropagation(); ensureCtx(); if (menu.classList.contains('hidden')) open(); else close(); }, true);
+      emb.style.cursor = 'pointer';
       menu.addEventListener('click', (e) => {
         e.stopPropagation(); const b = e.target.closest('[data-r]'); if (!b) return;
         if (b.dataset.r === 'clear') { if (Date.now() - clearArm < 4000 || !canClear()) close(); clearTap(b); return; }
@@ -5531,10 +5541,44 @@
         if (b.dataset.r === 'read') forceSay(readScreen);
         if (b.dataset.r === 'can') { openReidCan(); }
         if (b.dataset.r === 'listen') toggleListening();
+        if (b.dataset.r === 'handsfree') handsFree(!(inputPreference === 'voice' && isListening));
+        if (b.dataset.r === 'back') goBack();
+        if (b.dataset.r === 'settings') { openPanel('settings'); setView = 'menu'; spokenView = null; renderSettings(); applyLang(); }
       });
-      document.addEventListener('click', (e) => { if (!menu.contains(e.target)) close(); });
+      document.addEventListener('click', (e) => { if (!menu.contains(e.target) && !e.target.closest('#companionEmblem')) close(); });
     })();
 
+
+    // Hands-free (Rama, 24 Nov): the helper reads aloud and listens; the person runs everything by voice.
+    function handsFree(on) {
+      hush(false);
+      if (on) { readAloud = true; setInputMode('voice'); if (!isListening) toggleListening(); saveAll();
+        say(L2('Hands-free is on. Just talk to me. Say “help” any time, or “stop” to pause.', 'Mains libres activé. Parlez-moi. Dites « aide » à tout moment, ou « arrête » pour faire une pause.'), true); }
+      else { if (isListening) toggleListening(); setInputMode('tap'); saveAll(); showToast(L2('Hands-free is off.', 'Mains libres désactivé.')); }
+    }
+    let clearAskAt = 0;
+    { const hG = heard; heard = function (t) {
+        const low = (t || '').toLowerCase().replace(/[.!,?。！，？、؟،]/g, '').replace(/^(ok|okay|hey|please|reid|lilly)[ ,]+/g, '').trim();
+        const st = steps[currentIndex];
+        if (st && st.mode !== 'landing') {
+          if (clearAskAt && Date.now() - clearAskAt < 10000 && /^(yes|yeah|yep|ok|okay|sure|clear it|yes clear it|oui|d'accord)$/.test(low)) { clearAskAt = 0; clearScreen(); say(L2('Cleared.', 'Effacé.'), true); return; }
+          if (clearAskAt && /^(no|nope|don't|cancel|non|annuler)$/.test(low)) { clearAskAt = 0; say(L2('OK, I kept it.', 'D’accord, je garde tout.'), true); return; }
+          if (/^(clear|erase|delete) (this|the) (screen|page|answer)|^start this (screen|page|question) over$|^efface(r|z)? (cet|l')écran$/.test(low)) {
+            if (!canClear()) { say(L2('There’s nothing to clear on this screen.', 'Rien à effacer sur cet écran.'), true); return; }
+            clearAskAt = Date.now(); say(L2('Clear everything on this screen? Say yes to clear it, or no to keep it.', 'Effacer tout cet écran ? Dites oui pour effacer, ou non pour garder.'), true); return; }
+          if (/^((open|show|go to) )?(the )?(settings|réglages|paramètres)$/.test(low)) { openPanel('settings'); setView = 'menu'; spokenView = null; renderSettings(); applyLang(); return; }
+          if (/^((open|show) )?(the )?help( page)?$|^(open|ouvre) (l')?aide$/.test(low) && !/^help$/.test(low)) { openPanel('help'); setView = 'menu'; spokenView = null; renderSettings(); applyLang(); return; }
+          if (/^(close|close (it|that|this|the settings|help)|ferme|fermer)$/.test(low)) { closeModal('helpSettingsModal'); return; }
+          if (/(bigger|larger) (text|letters|writing)|make (it|the text|the letters) bigger|^bigger$|plus grand/.test(low)) { textSize = Math.min(2, textSize + 1); applyTextSize(); saveAll(); say(L2('Bigger.', 'Plus grand.'), true); return; }
+          if (/smaller (text|letters|writing)|make (it|the text|the letters) smaller|^smaller$|plus petit/.test(low)) { textSize = Math.max(0, textSize - 1); applyTextSize(); saveAll(); say(L2('Smaller.', 'Plus petit.'), true); return; }
+          if (/^(change|switch) (the )?(language|langue)$|^(change|changer) (de )?langue$/.test(low)) { openPanel('settings'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
+          if (/^(change|switch) (the )?(helper|assistant|voice)$|^(switch to|change to) (reid|lilly)$/.test(low)) {
+            const to = /lilly/.test(low) ? 'lilly-1' : /reid/.test(low) ? 'reid-1' : '';
+            if (to) { setHelper(to); saveAll(); say(L2('Hi, I’m ' + helperName() + '.', 'Bonjour, je suis ' + helperName() + '.'), true); renderCurrentStep(); return; }
+            openPanel('settings'); setView = 'helper'; spokenView = null; renderSettings(); applyLang(); return; }
+          if (/^(stop|turn off|end) hands[ -]?free$|^hands[ -]?free off$/.test(low)) { handsFree(false); return; }
+        }
+        return hG(t); }; }
 
     // =====================================================================
     // After the visit: hear the doctor's own words for each recap point, and
@@ -7092,7 +7136,7 @@
     renderCurrentStep();
     // Reopened part-way through: ask how they want to answer (this tap is also what lets the microphone start)
     (function welcomeBack() {
-      const st = steps[currentIndex]; if (!st || st.mode === 'landing') return;
+      const st = steps[currentIndex]; if (!st || st.mode === 'landing' || st.mode === 'setup' || st.mode === 'helperpick') return;
       const fr = lang === 'fr', box = document.createElement('div'); box.id = 'welcomeBack';
       box.className = 'fixed inset-0 z-[85] bg-black/45 flex items-end sm:items-center justify-center p-3';
       box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'wbTitle');
