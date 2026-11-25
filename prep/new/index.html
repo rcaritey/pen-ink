@@ -5943,7 +5943,7 @@
       const key = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
       const close = () => { if (!ov.isConnected) return; ov.remove(); document.removeEventListener('keydown', key, true); window.__phClose = null; if (emb) emb.classList.remove('reid-happy', 'reid-grin'); hush(); if (readAloud) speakStep(); };
       document.addEventListener('keydown', key, true); go.addEventListener('click', close); window.__phClose = close;
-      const nextSaid = NEXT.length ? L2(' Here’s what’s next. ', ' Et ensuite. ') + NEXT.map((n, i) => L2(['First', 'Then', 'And'][i] + ', ', ['D’abord', 'Puis', 'Et'][i] + ', ') + L2(n[0], n[1])).join(' ') : '';
+      const nextSaid = NEXT.length ? L2(' Here’s what’s next. ', ' Et ensuite. ') + NEXT.map((n, i) => { const t = L2(n[0], n[1]); return L2(['First', 'Then', 'And'][i] + ', ', ['D’abord', 'Puis', 'Et'][i] + ', ') + (/^(WellHeard|Reid|Lilly)/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1)); }).join(' ') : '';
       const line = L2(big + ' ' + T3[0] + (T3[2] ? ' ' + T3[2] : ''), big + ' ' + T3[1] + (T3[3] ? ' ' + T3[3] : '')) + nextSaid;
       chime().then(() => {   // then the helper says it, warmly, even when read-aloud is off (it's the one moment worth hearing)
         if (!ov.isConnected) return;
