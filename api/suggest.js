@@ -31,6 +31,7 @@ Rules:
 - You may name a possible condition, but only inside a question for the doctor to answer ("Could this be plantar fasciitis, and how would you check?"). Never state or imply that it is that condition. At most one or two such questions, each naming one common, reasonable possibility, and never a frightening one (such as cancer or stroke) unless the patient raised it themselves.
 - Use the whole picture. Connect the appointment to their other conditions and medications where it matters (for example, interactions, side effects, or how one condition affects another), always phrased as a question for the doctor.
 - Fit the doctor they are seeing (see "Seeing"). Every question must be one this doctor can reasonably answer at this visit. When another condition is looked after by a specialist (for example a neurologist for Parkinson's, or a neuromuscular clinic for myotonic dystrophy), do not ask this doctor specialist-level questions about it: no rare complications, genetics, specialist tests or treatments for a condition this doctor does not manage. At most one question may link the concern to such a condition, kept simple, for example "Could this be related to my Parkinson's, and should I tell my neurologist?". If "Seeing" is that specialist, specialist questions about their own condition are fine.
+- If "Past visits" are listed, use them: at most one or two questions that follow up on them when it matters for this visit, for example the result of a test that was ordered, or whether a change the doctor suggested has helped. Never repeat a question they already asked last time unless it seems unanswered.
 - Most important and most likely first. Prefer practical questions about the common causes, what to do, and what to watch for over rare or technical ones. If you are unsure a question would matter at this visit, leave it out: fewer, better questions.
 - Do not repeat questions they already have, even in other words. The app already offers these common questions, so never suggest them or close versions of them: what is my main problem, what do I need to do and why, do I really need this test or treatment, what are the downsides, is there a simpler or safer option, what happens if I wait or do nothing, which medicines are being started, stopped or changed and why, how will I know the medicine works and which side effects to watch for, do I need tests and when is my next visit, who do I contact before then, may I record this. Each of your questions must ask something different from the others. Do not ask generic questions unless they matter here.
 - Plain language, written as the patient would say it to the doctor. No jargon; if a medical word is needed, keep it simple.
@@ -92,6 +93,8 @@ function buildPrompt(p) {
   add('What they plan to tell the doctor', p.tell.length ? p.tell.map((t) => `- ${t}`).join('\n') : '');
   add('Questions they already have', p.ask.length ? p.ask.map((t) => `- ${t}`).join('\n') : '');
   add('Questions already asked', p.asked.length ? p.asked.map((t) => `- ${t}`).join('\n') : '');
+  add('Past visits (newest first)', (p.history || []).map((h) => [`- ${h.when || 'Earlier'}${h.who ? ', with ' + h.who : ''}${h.about ? ': ' + h.about : ''}`,
+    h.said ? `  What the doctor said: ${h.said}` : '', h.todo ? `  Next steps they were given: ${h.todo}` : '', h.asked ? `  Questions they asked then: ${h.asked}` : ''].filter(Boolean).join('\n')).join('\n'));
   return lines.join('\n\n');
 }
 
@@ -565,6 +568,9 @@ export default async function handler(req, res) {
       tell: cleanList(body.tell),
       ask: cleanList(body.ask),
       asked: cleanList(body.asked, 80),   // everything already shown, so each new batch is different
+      // the last few visits saved on their device (Rama, 25 Nov), so Reid can follow up on them
+      history: Array.isArray(body.history) ? body.history.slice(0, 3).map((h) => ({ when: clean(h && h.when, 60), who: clean(h && h.who, 120), about: clean(h && h.about, 300),
+        said: clean(h && h.said, 700), todo: clean(h && h.todo, 400), asked: clean(h && h.asked, 600) })).filter((h) => h.about || h.said || h.todo) : [],
       details: Array.isArray(body.details)
         ? body.details.slice(0, LIMITS.list).map((v) => clean(v, LIMITS.detail)).filter(Boolean)
         : [],

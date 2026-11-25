@@ -80,6 +80,23 @@
     .reid-grin .hf-grin { opacity: 1; transform: scale(1); } .reid-grin .hf-mouth { opacity: 0; }
     .ph-done { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(30, 38, 52, .28); animation: phIn .3s ease-out; }
     .ph-card { max-width: 520px; width: 100%; background: #FAF7F0; border: 3px solid #3B5E42; border-radius: 28px; padding: 26px 24px 20px; text-align: center; box-shadow: 0 20px 60px rgba(30, 38, 52, .3); }
+    /* My appointments (Rama, 25 Nov) */
+    .ap-note { font-size: 15px; color: #425268; line-height: 1.4; margin: 0; }
+    .ap-sec { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #3B5E42; margin: 8px 0 -2px; }
+    .ap-card { background: #fff; border: 1px solid #D6CFC0; border-radius: 18px; }
+    .ap-card.ap-cur { border: 2px solid #3B5E42; }
+    .ap-card > summary { list-style: none; cursor: pointer; min-height: 60px; padding: 12px 44px 12px 14px; position: relative; display: flex; flex-direction: column; gap: 2px; }
+    .ap-card > summary::-webkit-details-marker { display: none; }
+    .ap-card > summary::after { content: '›'; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 26px; font-weight: 800; color: #3B5E42; transition: transform .15s; }
+    .ap-card[open] > summary::after { transform: translateY(-50%) rotate(90deg); }
+    .ap-date { font-size: 17px; font-weight: 800; color: #1E2634; } .ap-who { font-size: 15px; color: #425268; line-height: 1.35; }
+    .ap-tag { align-self: flex-start; margin-top: 4px; font-size: 12px; font-weight: 800; color: #1E4627; background: #E5EFE7; border-radius: 999px; padding: 2px 10px; }
+    .ap-body { padding: 0 14px 14px; border-top: 1px solid #EFE9DE; }
+    .ap-h { margin: 12px 0 4px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #3B5E42; }
+    .ap-p, .ap-meta { margin: 8px 0 0; font-size: 16px; color: #1E2634; line-height: 1.4; } .ap-meta { color: #425268; }
+    .ap-ul { margin: 0; padding-left: 1.3em; list-style: disc; } .ap-ul li { font-size: 16px; color: #1E2634; line-height: 1.4; margin: 3px 0; }
+    .ap-del { margin-top: 14px; width: 100%; min-height: 48px; border-radius: 14px; background: #fff; border: 1px solid #D6CFC0; color: #8A2E1C; font-weight: 800; font-size: 15px; }
+    .ts-1 .ap-date { font-size: 20px; } .ts-1 .ap-who, .ts-1 .ap-ul li, .ts-1 .ap-p { font-size: 19px; } .ts-2 .ap-date { font-size: 23px; } .ts-2 .ap-who, .ts-2 .ap-ul li, .ts-2 .ap-p { font-size: 22px; }
     .ph-face-wrap { position: relative; width: 132px; margin: 0 auto 10px; }
     .ph-face { width: 132px; height: 132px; border-radius: 999px; overflow: hidden; background: #E5EFE7; animation: hfHop .6s ease-out 1; }
     .ph-thumb { position: absolute; right: -14px; bottom: -4px; width: 54px; height: 54px; border-radius: 999px; background: #3B5E42; color: #fff; display: flex; align-items: center; justify-content: center; border: 3px solid #FAF7F0; box-shadow: 0 4px 12px rgba(30, 38, 52, .2); }
@@ -5964,6 +5981,136 @@
     // After the visit: hear the doctor's own words for each recap point, and
     // a warning on anything that is easy to mishear (medicines, doses, numbers,
     // dates, "not"). The sound stays on this device only.
+    // =====================================================================
+    // My appointments (Rama, 25 Nov): every finished visit is kept on this device, newest first, and Reid reads a short
+    // summary of the last few when he suggests questions. Moving to another device: one file, sent by AirDrop, Messages
+    // or email. Nothing is stored on a WellHeard server.
+    // =====================================================================
+    const VKEY = 'wellheard-visits';
+    let visits = []; try { visits = JSON.parse(localStorage.getItem(VKEY) || '[]') || []; } catch (e) { visits = []; }
+    const saveVisits = () => { try { localStorage.setItem(VKEY, JSON.stringify(visits)); } catch (e) { /* full */ } };
+    function visitNow() {
+      const sel = nextStepTasks.filter((t) => t && t.selected && t.text).map((t) => t.text), nx = (document.getElementById('customTaskInput') || {}).value || '';
+      return { at: Date.now(), dayISO: SID('day').dateISO || '', day: (SID('day').answer || '').trim(), time: (SID('time').answer || '').trim(), who: (SID('who').answer || '').trim(),
+        where: (SID('where').answer || '').trim(), about: (SID('concerns').answer || '').trim(), goal: (SID('goal') && SID('goal').answer || '').trim(),
+        qs: chosen().map((q) => ({ q, star: qPrio.includes(q) })), said: (SID('recap').answer || '').trim(), todo: sel, next: nx.trim() };
+    }
+    const hasVisit = (v) => !!(v.who || v.day || v.about || v.qs.length || v.said);
+    { const snv0 = startNewVisit; startNewVisit = function () {   // keep the visit that's ending before starting a new one
+        try { const v = visitNow(); if (hasVisit(v)) { v.id = 'v' + Date.now(); visits.unshift(v); visits = visits.slice(0, 60); saveVisits(); } } catch (e) { console.warn('Visit not kept', e); }
+        return snv0.apply(this, arguments); }; }
+    const vWhen = (v) => v.dayISO || new Date(v.at).toISOString().slice(0, 10);
+    // what Reid gets: the last 3 visits, short (the patient's name is removed before anything leaves the device)
+    { const pic2 = picture; picture = function () {
+        const p = pic2();
+        p.history = visits.slice().sort((a, b) => (vWhen(b) > vWhen(a) ? 1 : -1)).slice(0, 3).map((v) => ({ when: v.day || new Date(v.at).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' }), who: v.who, about: v.about,
+          said: (v.said || '').replace(/\s+/g, ' ').slice(0, 700), todo: (v.todo || []).slice(0, 4).join('; ') + (v.next ? (v.todo && v.todo.length ? '; ' : '') + v.next : ''),
+          asked: (v.qs || []).slice(0, 6).map((q) => q.q).join(' | ') }));
+        return p; }; }
+
+    // the list, in Settings (and a button beside the questions on computers)
+    let apDelArm = '';
+    function renderAppts() {
+      const panel = document.querySelector('#helpSettingsModal > div'); if (!panel) return;
+      const today = new Date(); const tISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const card = (v, cur) => {
+        const qs = (v.qs || []), said = String(v.said || '').split('\n').map((x) => x.trim()).filter(Boolean);
+        const list = (arr) => `<ul class="ap-ul">${arr.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+        const inner = [
+          v.time || v.where ? `<p class="ap-meta">${esc([v.time, v.where].filter(Boolean).join(' · '))}</p>` : '',
+          v.goal ? `<p class="ap-h">${L2('What you wanted from it', 'Ce que vous vouliez')}</p><p class="ap-p">${esc(v.goal)}</p>` : '',
+          qs.length ? `<p class="ap-h">${L2('Your questions', 'Vos questions')}</p>${list(qs.map((q) => (q.star ? '★ ' : '') + esc(q.q)))}` : '',
+          said.length ? `<p class="ap-h">${L2('What the doctor said', 'Ce que le médecin a dit')}</p>${list(said.map(esc))}` : '',
+          (v.todo && v.todo.length) || v.next ? `<p class="ap-h">${L2('Next steps', 'Prochaines étapes')}</p>${list((v.todo || []).map(esc).concat(v.next ? [esc(v.next)] : []))}` : '',
+          cur ? '' : `<button type="button" data-apdel="${v.id}" class="tactile-btn ap-del">${apDelArm === v.id ? L2('Tap again to delete it', 'Touchez encore pour la supprimer') : L2('Delete this visit', 'Supprimer cette visite')}</button>`
+        ].join('');
+        return `<details class="ap-card${cur ? ' ap-cur' : ''}"><summary><span class="ap-date">${esc(v.day || L2('Day not set', 'Jour non fixé'))}</span>
+          <span class="ap-who">${esc([v.who, v.about].filter(Boolean).join(' · ') || L2('No details yet', 'Pas encore de détails'))}</span>${cur ? `<span class="ap-tag">${L2('This visit', 'Cette visite')}</span>` : ''}</summary>
+          <div class="ap-body" data-notr>${inner || `<p class="ap-p">${L2('Nothing saved yet.', 'Rien d’enregistré.')}</p>`}</div></details>`;
+      };
+      const now = visitNow(), up = visits.filter((v) => v.dayISO && v.dayISO >= tISO), past = visits.filter((v) => !(v.dayISO && v.dayISO >= tISO));
+      const sec = (t, arr) => arr.length ? `<p class="ap-sec">${t}</p>${arr.join('')}` : '';
+      panel.innerHTML = `<div class="sticky -top-5 -mx-5 -mt-5 px-5 pt-5 pb-2 bg-[#FAF7F0] z-10 flex items-center justify-between gap-2">
+          <button type="button" data-apback class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">‹ ${L2('Back', 'Retour')}</button>
+          <p class="font-extrabold text-lg text-[#1E2634] flex-1 text-center">${L2('My appointments', 'Mes rendez-vous')}</p>
+          <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm">${L2('Done', 'Terminé')}</button></div>
+        <div class="flex flex-col gap-[10px]">
+          <p class="ap-note">${L2(helperName() + ' looks at your last few visits when suggesting questions. They are kept on this device only. Tap one to see it.', helperName() + ' regarde vos dernières visites pour suggérer des questions. Elles restent sur cet appareil seulement. Touchez-en une pour la voir.')}</p>
+          ${hasVisit(now) ? card(now, true) : ''}
+          ${sec(L2('Coming up', 'À venir'), up.map((v) => card(v)))}
+          ${sec(L2('Past visits', 'Visites passées'), past.map((v) => card(v)))}
+          ${!visits.length ? `<p class="ap-p">${L2('When you start a new visit, this one is kept here.', 'Quand vous commencez une nouvelle visite, celle-ci est gardée ici.')}</p>` : ''}
+          <button type="button" data-apmove class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base">${L2('Move to my other device', 'Passer à mon autre appareil')} ›</button></div>`;
+      panel.querySelector('[data-apback]').addEventListener('click', () => { setView = 'menu'; menuKind = 'settings'; renderSettings(); applyLang(); });
+      panel.querySelector('[data-apmove]').addEventListener('click', () => { setView = 'device'; renderSettings(); applyLang(); });
+      panel.querySelectorAll('[data-apdel]').forEach((b) => b.addEventListener('click', () => {
+        const id = b.dataset.apdel;
+        if (apDelArm !== id) { apDelArm = id; renderAppts(); applyLang(); const d = panel.querySelector(`[data-apdel="${id}"]`); if (d) { d.closest('details').open = true; d.focus(); } setTimeout(() => { if (apDelArm === id) { apDelArm = ''; } }, 5000); return; }
+        apDelArm = ''; visits = visits.filter((v) => v.id !== id); saveVisits(); renderAppts(); applyLang(); showToast(L2('Visit deleted.', 'Visite supprimée.'));
+      }));
+    }
+    window.openAppts = () => { ensureCtx(); openPanel('settings'); setView = 'appts'; renderSettings(); applyLang(); };
+    { const rS = renderSettings; renderSettings = function () {
+        if (setView === 'appts') { menuKind = 'settings'; renderAppts(); return; }
+        rS.apply(this, arguments);
+        const panel = document.querySelector('#helpSettingsModal > div'); if (!panel) return;
+        if (setView === 'menu' && menuKind === 'settings') {   // a row near the top of Settings
+          const anchor = panel.querySelector('[data-go="pages"]'); if (anchor && !panel.querySelector('[data-go="appts"]')) {
+            const b = document.createElement('button'); b.type = 'button'; b.dataset.go = 'appts'; b.className = anchor.className;
+            b.innerHTML = `<span class="flex items-center gap-3">${WHI('calendar', 22)}<span>${L2('My appointments', 'Mes rendez-vous')}</span></span><span class="flex items-center gap-2 text-[#425268] font-bold text-sm">${visits.length || ''} ›</span>`;
+            b.addEventListener('click', () => { setView = 'appts'; renderSettings(); applyLang(); }); anchor.before(b);
+          }
+        }
+        if (setView === 'device') {   // "other devices" now moves everything, and says how
+          const bk = panel.querySelector('[data-act="backup"]'); if (bk) { bk.textContent = L2('Send to my other device', 'Envoyer à mon autre appareil'); const c = bk.closest('div.bg-\\[\\#F0EBE1\\]'); const sub = c && c.querySelector('p.text-sm'); if (sub) sub.textContent = L2('Your appointments, answers and settings go into one file. Send it by AirDrop, Messages or email. Nothing is kept online.', 'Vos rendez-vous, réponses et réglages vont dans un seul fichier. Envoyez-le par AirDrop, Messages ou courriel. Rien n’est gardé en ligne.'); const h = c && c.querySelector('p.font-extrabold'); if (h) h.textContent = L2('1. On this device', '1. Sur cet appareil'); }
+        }
+      }; }
+    // the file: everything that makes this device yours
+    function moveBundle() {
+      saveAll(); const get = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+      return JSON.stringify({ wellheard: 2, at: new Date().toISOString(), store: get(STORE), visits: get(VKEY), about: get('wellheard-about'), helper: get('wellheard-helper'), pace: get('wellheard-pace'), met: get('wellheard-met') });
+    }
+    async function sendToOtherDevice() {
+      const name = 'WellHeard - ' + new Date().toISOString().slice(0, 10) + '.json', blob = new Blob([moveBundle()], { type: 'application/json' });
+      try {
+        const file = new File([blob], name, { type: 'application/json' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'WellHeard' }); return; }
+      } catch (e) { if (e && e.name === 'AbortError') return; }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      showToast(L2('Saved. Now send the file to your other device.', 'Enregistré. Envoyez maintenant le fichier à votre autre appareil.'));
+    }
+    function openFromOtherDevice(txt) {
+      const d = JSON.parse(txt), set = (k, v) => { if (typeof v === 'string') localStorage.setItem(k, v); };
+      // from here until the page reloads, this page's own (older) answers must not be saved over the ones just opened
+      const keys = [STORE, VKEY, 'wellheard-about', 'wellheard-helper', 'wellheard-pace', 'wellheard-met'], real = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) { if (window.__wlLock && keys.includes(k)) return; return real.call(this, k, v); };
+      window.__wlLock = false;
+      if (d && d.wellheard) {
+        set(STORE, d.store); set('wellheard-about', d.about); set('wellheard-helper', d.helper); set('wellheard-pace', d.pace); set('wellheard-met', d.met);
+        if (typeof d.visits === 'string') {   // add the other device's visits to the ones here, without doubles
+          let theirs = []; try { theirs = JSON.parse(d.visits) || []; } catch (e) { theirs = []; }
+          const mine = visits.slice(); theirs.forEach((v) => { if (v && !mine.some((m) => m.id === v.id)) mine.push(v); });
+          localStorage.setItem(VKEY, JSON.stringify(mine.sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 60)));
+        }
+      } else localStorage.setItem(STORE, txt);   // an older backup file: just the visit
+      window.__wlLock = true;
+    }
+    document.addEventListener('click', (e) => { if (!e.target.closest('#helpSettingsModal [data-act="backup"]')) return; e.stopImmediatePropagation(); e.preventDefault(); sendToOtherDevice(); }, true);
+    document.addEventListener('change', async (e) => {
+      const inp = e.target.closest && e.target.closest('#helpSettingsModal [data-act="open"]'); if (!inp) return; e.stopImmediatePropagation();
+      const f = inp.files && inp.files[0]; if (!f) return;
+      try { openFromOtherDevice(await f.text()); showToast(L2('Done. Opening your visits…', 'C’est fait. Ouverture de vos visites…')); setTimeout(() => location.reload(), 900); }
+      catch (err) { showToast(L2('That file can’t be opened. Make sure it’s the WellHeard file.', 'Ce fichier ne peut pas être ouvert. Vérifiez que c’est le fichier WellHeard.')); }
+    }, true);
+    // on computers: "My appointments" under "See my pages" in the left column
+    { const rsA = renderSide; renderSide = function () { rsA.apply(this, arguments);
+        const side = document.getElementById('sideReid'); if (!side || side.querySelector('[data-myappts]')) return;
+        const b = document.createElement('button'); b.type = 'button'; b.dataset.myappts = '1';
+        b.className = 'tactile-btn w-full min-h-[52px] px-3 rounded-2xl font-extrabold text-[15px] flex items-center gap-3 text-left bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]';
+        b.innerHTML = `${WHI('calendar', 22)}<span>${L2('My appointments', 'Mes rendez-vous')}</span>`; b.addEventListener('click', () => openAppts());
+        const show = document.getElementById('lpShow'); if (show && show.parentElement === side) side.insertBefore(b, show); else side.appendChild(b);
+      }; }
+
     // =====================================================================
     var recapSrc = {};
     const clipDB = (() => {
