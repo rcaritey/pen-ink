@@ -101,6 +101,11 @@
     .hp-btn:focus-visible { outline: 3px solid #D97706; outline-offset: 3px; }
     .hp-tick { position: absolute; right: -2px; bottom: -2px; width: 30px; height: 30px; border-radius: 999px; background: #3B5E42; color: #fff; font-weight: 700; font-size: 17px; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
     .pk-heard { display: block; margin-top: 6px; padding: 12px 18px; border-radius: 18px; background: #E5EFE7; border: 3px solid #3B5E42; box-shadow: var(--wh-lift-sage); }
+    .pk-edit { width: 100%; text-align: left; cursor: pointer; font: inherit; position: relative; padding-right: 130px !important; }
+    .pk-edit:hover { background: #DCEADF; }
+    .pk-edit-ic { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 12px;
+      background: #fff; border: 1px solid #B9CBA7; color: #1E4627; font-size: 15px; font-weight: 800; }
+    .pk-editing { display: flex !important; flex-direction: column; gap: 8px; }
     .pk-heard-lab { display: block; font-size: 16px; font-weight: 400; color: #1E4627; }
     .pk-heard-val { display: block; font-size: clamp(24px, 6vw, 32px); font-weight: 700; line-height: 1.2; color: #1E2634; }
     .pk-list { display: flex; flex-direction: column; gap: 10px; width: 100%; }
@@ -6019,13 +6024,44 @@
       }
       const chosen = (step.answer || '').trim(), help = document.getElementById('screenHelperText');
       help.classList.remove('hidden');
-      help.innerHTML = chosen ? `<span class="pk-heard" role="status"><span class="pk-heard-lab">✓ ${step.id === 'day' ? L2('Appointment day', 'Jour du rendez-vous') : L2('Appointment time', 'Heure du rendez-vous')}</span><span class="pk-heard-val" data-notr>${esc(chosen.replace(/\.$/, ''))}</span></span>`
+      help.innerHTML = chosen ? `<button type="button" data-pkedit class="pk-heard pk-edit" aria-label="${esc(L2('Change it: ', 'Modifier : ') + chosen)}"><span class="pk-heard-lab">✓ ${step.id === 'day' ? L2('Appointment day', 'Jour du rendez-vous') : L2('Appointment time', 'Heure du rendez-vous')}</span><span class="pk-heard-val" data-notr>${esc(chosen.replace(/\.$/, ''))}</span><span class="pk-edit-ic">${WHI('pencil', 16)} ${L2('Change', 'Modifier')}</span></button>`
         : esc(step.id === 'day' ? L2('Tap the year, month and day — or say the date.', 'Touchez l’année, le mois et le jour — ou dites la date.') : L2('Tap the hour, minutes and AM or PM — or say the time.', 'Touchez l’heure, les minutes et matin ou après-midi — ou dites l’heure.'));
       pickHost.innerHTML = html;
       if (pickHost.querySelector('.dp-cols')) requestAnimationFrame(() => { pickHost.scrollTop = 0; });   // keep the Year / Month / Day headings in view
       // each date column shows its chosen item (or today's month) without the person hunting for it
       pickHost.querySelectorAll('.dp-list').forEach((l) => { const on = l.querySelector('[aria-pressed="true"]') || l.querySelector('button:not([disabled])'); if (on) l.scrollTop = Math.max(0, on.offsetTop - l.offsetTop - l.clientHeight / 2 + on.offsetHeight / 2); });
     }
+    // The green date/time card can be typed into (Rama, 25 Nov): tap it, type the date or time any way, press Enter or Save.
+    // What's typed goes through the same reader as speech, so "June 24 2027", "2027-06-24", "6/24/2027", "2:30 pm" all work.
+    function pkTypedDate(t) {
+      let m;
+      if ((m = /^\s*(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})\s*$/.exec(t))) return `${new Date(2024, +m[2] - 1, 1).toLocaleDateString('en-CA', { month: 'long' })} ${+m[3]} ${m[1]}`;
+      if ((m = /^\s*(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})\s*$/.exec(t))) { const a = +m[1], b = +m[2], mo = lang === 'fr' || a > 12 ? b : a, d = lang === 'fr' || a > 12 ? a : b;
+        return `${new Date(2024, mo - 1, 1).toLocaleDateString('en-CA', { month: 'long' })} ${d} ${m[3]}`; }
+      return t;
+    }
+    document.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-pkedit]'); if (!card) return;
+      const step = steps[currentIndex], help = document.getElementById('screenHelperText'), fr = lang === 'fr', isDay = step.id === 'day';
+      help.innerHTML = `<form data-pkform class="pk-heard pk-editing"><label class="pk-heard-lab" for="pkEditBox">${isDay ? L2('Type the date', 'Tapez la date') : L2('Type the time', 'Tapez l’heure')}</label>
+        <div class="flex flex-wrap items-stretch gap-[8px]"><input id="pkEditBox" type="text" autocomplete="off" value="${esc((step.answer || '').replace(/\.$/, ''))}" placeholder="${isDay ? L2('For example: June 24, 2027', 'Par exemple : 24 juin 2027') : L2('For example: 2:30 pm', 'Par exemple : 14 h 30')}"
+          class="flex-1 min-w-[180px] min-h-[52px] px-3 rounded-xl border-2 border-[#3B5E42] bg-white text-[20px] font-extrabold text-[#1E2634]">
+        <button type="submit" class="tactile-btn min-h-[52px] px-5 rounded-xl bg-[#3B5E42] text-white font-extrabold text-[17px]">${L2('Save', 'Enregistrer')}</button>
+        <button type="button" data-pkcancel class="tactile-btn min-h-[52px] px-4 rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[16px]">${L2('Cancel', 'Annuler')}</button></div></form>`;
+      const box = document.getElementById('pkEditBox'); box.focus(); box.select();
+    });
+    document.addEventListener('click', (e) => { if (e.target.closest('[data-pkcancel]')) renderPicker(steps[currentIndex]); });
+    document.addEventListener('submit', (e) => {
+      const f = e.target.closest('[data-pkform]'); if (!f) return; e.preventDefault();
+      const step = steps[currentIndex], raw = (document.getElementById('pkEditBox').value || '').trim(); if (!raw) { renderPicker(step); return; }
+      const before = step.id === 'day' ? step.dateISO + '|' + step.answer : step.time24 + '|' + step.answer;
+      const t = step.id === 'day' ? pkTypedDate(raw) : raw;
+      if (step.id === 'day' && !/not (booked|sure)|pas encore|pas sûr/i.test(t) && !parseSpokenDate(t.toLowerCase())) {
+        const m = L2('Sorry, I couldn’t read that date. Type it like June 24, 2027.', 'Désolé, je n’ai pas compris la date. Tapez par exemple 24 juin 2027.'); showToast(m); say(m, true); document.getElementById('pkEditBox').focus(); return; }
+      window.__typedToReid = true; try { heard(t); } finally { window.__typedToReid = false; }
+      const after = step.id === 'day' ? step.dateISO + '|' + step.answer : step.time24 + '|' + step.answer;
+      if (after === before) renderPicker(step);   // unchanged or not understood: show the card again
+    });
     function setPick(step, text) {
       step.answer = text; step.customActive = true; document.getElementById('answerInput').value = text;
       setCompanionState('captured'); renderPicker(step); applyLang(); saveAll();
