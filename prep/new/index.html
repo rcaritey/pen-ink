@@ -76,6 +76,7 @@
     .pg-ic.done { background: #E5EFE7; border-color: #3B5E42; color: #3B5E42; }
     .pg-ic.now { width: 34px; height: 34px; background: #3B5E42; border-color: #3B5E42; color: #fff; }
     .pg-name { margin-left: 4px; font-weight: 700; color: #1E2634; }
+    .comic-tail { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; z-index: 1; }
     .hp-wrap { display: flex; flex-direction: column; gap: 10px; width: 100%; }
     .hp-name { margin: 0 0 4px; font-weight: 700; font-size: 18px; color: #1E2634; } .hp-sub { font-weight: 400; font-size: 15px; color: #425268; }
     .hp-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
@@ -4746,6 +4747,28 @@
     // Phones only allow sound after a tap, so Reid can't speak the moment the page opens.
     // His hello is written; tapping "Yes, read it" is the tap that lets him speak.
     var greeted = false;
+    // Comic-style tail (Rama, 25 Nov): from the bubble's edge straight to the helper's face, however far away he is
+    function pointTail(bub, bg) {
+      if (!bub || bub.classList.contains('hidden')) return;
+      const face = [...document.querySelectorAll('#companionEmblem')].find((e) => e.getBoundingClientRect().width > 0); if (!face) return;
+      const app = document.getElementById('appContainer'), z = parseFloat(getComputedStyle(app).zoom) || 1;
+      const b = bub.getBoundingClientRect(), f = face.getBoundingClientRect(), bw = 2;
+      const W = b.width / z - 2 * bw, H = b.height / z - 2 * bw;
+      const fx = (f.left + f.width / 2 - b.left) / z - bw, fy = (f.top + f.height / 2 - b.top) / z - bw, fr = f.width / z / 2;
+      let b1, b2, e1, e2;   // base corners just inside the border, and on the border line
+      if (fy < 0) { const x = Math.max(22, Math.min(W - 22, fx)); b1 = [x - 10, 1]; b2 = [x + 10, 1]; e1 = [x - 10, -bw]; e2 = [x + 10, -bw]; }
+      else if (fx < 0) { const y = Math.max(18, Math.min(H - 18, fy)); b1 = [1, y - 9]; b2 = [1, y + 9]; e1 = [-bw, y - 9]; e2 = [-bw, y + 9]; }
+      else if (fx > W) { const y = Math.max(18, Math.min(H - 18, fy)); b1 = [W - 1, y - 9]; b2 = [W - 1, y + 9]; e1 = [W + bw, y - 9]; e2 = [W + bw, y + 9]; }
+      else { const x = Math.max(22, Math.min(W - 22, fx)); b1 = [x - 10, H - 1]; b2 = [x + 10, H - 1]; e1 = [x - 10, H + bw]; e2 = [x + 10, H + bw]; }
+      const mx = (b1[0] + b2[0]) / 2, my = (b1[1] + b2[1]) / 2, dx = fx - mx, dy = fy - my, d = Math.hypot(dx, dy) || 1, stop = Math.max(0, d - fr - 5);
+      const tip = [mx + dx / d * stop, my + dy / d * stop];
+      let t = bub.querySelector(':scope > .comic-tail');
+      if (!t) { t = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); t.setAttribute('class', 'comic-tail'); t.setAttribute('aria-hidden', 'true'); bub.appendChild(t); }
+      const P = (p) => p[0].toFixed(1) + ',' + p[1].toFixed(1);
+      t.innerHTML = `<polygon points="${P(b1)} ${P(tip)} ${P(b2)}" fill="${bg}"/><polyline points="${P(e1)} ${P(tip)} ${P(e2)}" fill="none" stroke="#3B5E42" stroke-width="2" stroke-linejoin="round"/><polygon points="${P(b1)} ${P(b2)} ${P([b2[0], b2[1] + (b1[1] === b2[1] ? 0 : 0)])}" fill="${bg}"/>`;
+    }
+    window.addEventListener('resize', () => setTimeout(() => { pointTail(document.getElementById('reidHello'), '#fff'); pointTail(document.getElementById('reidMenu'), '#FAF7F0'); }, 200));
+
     // ---------- first page: Reid's bubble says exactly what he says (Rama, 25 Nov) ----------
     // Phones only allow sound after a tap: "Yes, read it" is that tap. The bubble stays on the page the whole time:
     // asking first, then showing he's reading, then the last thing he said. He reads the bubble, then the page as written.
@@ -4766,10 +4789,14 @@
         : helloState === 'reading'
         ? `<button type="button" data-hi="stop" class="${B} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">■ ${L('Stop reading', 'Arrêter la lecture')}</button>`
         : `<p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">${L(END_EN, END_FR)}</p><button type="button" data-hi="yes" class="${B} bg-white border border-[#D6CFC0] text-[#1E2634]">▶ ${L('Read it again', 'Relire')}</button>`;
-      hello.innerHTML = `<span class="absolute -top-[9px] left-[34px] w-4 h-4 bg-white border-l-2 border-t-2 border-[#3B5E42] rotate-45" aria-hidden="true"></span>
-        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">${L(HELLO_EN, HELLO_FR)}${helloState === 'ask' ? ' ' + L(ASK_EN, ASK_FR) : ''}</p>${foot}`;
+      hello.innerHTML = `<p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">${L(HELLO_EN, HELLO_FR)}${helloState === 'ask' ? ' ' + L(ASK_EN, ASK_FR) : ''}</p>${foot}`;
+      // computers: the bubble sits right under Reid in the left column, so its tail reaches him; phones: at the top of the page
+      const sd = document.getElementById('sideReid'), bd = document.getElementById('reidBadge'), sl = document.getElementById('screenLanding');
+      if (document.getElementById('appContainer').classList.contains('wide') && sd && sd.offsetWidth && bd && bd.parentElement === sd) { if (hello.previousElementSibling !== bd) bd.after(hello); hello.style.marginTop = '14px'; }
+      else if (hello.parentElement !== sl) { sl.insertBefore(hello, sl.firstChild); hello.style.marginTop = ''; }
       hello.classList.remove('hidden'); applyLang(hello);
       if (typeof fitLanding === 'function') fitLanding();
+      requestAnimationFrame(() => pointTail(hello, '#fff'));
     }
     function readLanding() { return ''; }   // kept for older callers: the page is now read as written, below
     // Reid reads exactly what's on the page: his bubble, then the page's own words, then the last line (shown in the bubble)
@@ -5566,7 +5593,7 @@
           <p class="rp-say">${hf ? (fr ? 'Je vous écoute. Dites « suivant », « retour », « explique », « réglages », ou posez-moi une question.' : 'I’m listening. Say “next”, “go back”, “explain”, “settings”, or ask me a question.')
             : (fr ? 'En mains libres, vous me parlez et je fais le reste.' : 'Go hands-free and just talk to me. I’ll do the rest.')}</p>
           <div class="flex flex-col gap-[10px]"><button type="button" data-r="handsfree" class="${MB} min-h-[56px] text-[17px] justify-center ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}">${WHI('mic', 22)}${hf ? (fr ? 'Arrêter' : 'Turn off hands-free') : (fr ? 'Mains libres' : 'Go hands-free')}</button>
-          <button type="button" data-r="close" class="${MB} justify-center bg-white border border-[#D6CFC0] text-[#1E2634]">${fr ? 'Pas maintenant' : 'Not now'}</button></div>${reidTail('#FAF7F0')}`;
+          <button type="button" data-r="close" class="${MB} justify-center bg-white border border-[#D6CFC0] text-[#1E2634]">${fr ? 'Pas maintenant' : 'Not now'}</button></div>`;
         menu.classList.remove('hidden');
         applyLang(); sayT('Hello. My name is ' + nm + '. How can I help?', 'Bonjour. Je m’appelle ' + nm + '. Comment puis-je vous aider ?', true);
         // beside the face, to the right, with the curved tail back to it (the same shape as the helper's notes)
@@ -5574,7 +5601,7 @@
         const r = face.getBoundingClientRect(), z = parseFloat(getComputedStyle(document.getElementById('appContainer')).zoom) || 1, vw = document.documentElement.clientWidth;
         const left = r.right + 34, w = Math.min(380, vw - left - 12);
         menu.style.position = 'fixed'; menu.style.width = Math.max(220, w) / z + 'px'; menu.style.left = left / z + 'px'; menu.style.top = (r.top - 4) / z + 'px'; menu.style.maxHeight = '';
-        menu.style.setProperty('--tailY', Math.max(10, r.height / z / 2 - 10) + 'px');
+        requestAnimationFrame(() => pointTail(menu, '#FAF7F0'));
       };
       const close = () => menu.classList.add('hidden');
       // the picture moves into the side panel on computers, so listen on the page and check where the tap landed
