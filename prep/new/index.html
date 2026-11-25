@@ -80,6 +80,15 @@
     .pg-ic { width: 28px; height: 28px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid #D6CFC0; color: #8A93A0; background: #fff; flex-shrink: 0; }
     .pg-ic.done { background: #E5EFE7; border-color: #3B5E42; color: #3B5E42; }
     .pg-ic.now { width: 34px; height: 34px; background: #3B5E42; border-color: #3B5E42; color: #fff; }
+    /* road map icons (Rama, 25 Nov): say what they are on hover, and take you to that part when tapped */
+    button.pg-ic { position: relative; cursor: pointer; padding: 0; font: inherit; transition: transform .12s ease, box-shadow .12s ease; }
+    button.pg-ic::before { content: ''; position: absolute; inset: -8px; }   /* a bigger target than the circle */
+    button.pg-ic:hover, button.pg-ic:focus-visible { transform: scale(1.08); box-shadow: 0 0 0 3px #C9DCCB; }
+    .pg-tip { position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%); z-index: 80; white-space: nowrap; pointer-events: none;
+      background: #1E2634; color: #fff; font-size: 14px; font-weight: 700; line-height: 1.2; padding: 7px 11px; border-radius: 10px; opacity: 0; transition: opacity .12s ease; }
+    .pg-tip::after { content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-bottom-color: #1E2634; }
+    button.pg-ic:hover .pg-tip, button.pg-ic:focus-visible .pg-tip { opacity: 1; }
+    @media (hover: none) { button.pg-ic:hover .pg-tip { opacity: 0; } }
     .pg-name { margin-left: 4px; font-weight: 700; color: #1E2634; }
     .comic-tail { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; z-index: 1; }
     .hp-wrap { display: flex; flex-direction: column; gap: 10px; width: 100%; }
@@ -5775,9 +5784,17 @@
       const el = document.getElementById('stepSubtitle'), here = partOf(step); if (!el || !here) return;
       const inPhase = PARTS.filter((p) => steps.some((x) => x.phaseIndex === step.phaseIndex && partOf(x) === p));
       const at = inPhase.indexOf(here);
-      el.innerHTML = `<span class="pg-row" role="img" aria-label="${esc(L2('Part ', 'Partie ') + (at + 1) + L2(' of ', ' sur ') + inPhase.length + ': ' + L2(here.en, here.fr))}">${inPhase.map((p, i) =>
-        `<span class="pg-ic ${i < at ? 'done' : i === at ? 'now' : ''}" aria-hidden="true">${WHI(i < at ? 'check' : p.icon, i === at ? 18 : 15)}</span>`).join('')}<span class="pg-name" aria-hidden="true">${L2(here.en, here.fr)}</span></span>`;
+      el.innerHTML = `<span class="pg-row" role="group" aria-label="${esc(L2('Part ', 'Partie ') + (at + 1) + L2(' of ', ' sur ') + inPhase.length + ': ' + L2(here.en, here.fr))}">${inPhase.map((p, i) =>
+        `<button type="button" data-part="${p.k}" class="pg-ic ${i < at ? 'done' : i === at ? 'now' : ''}" aria-label="${esc(L2('Go to ', 'Aller à ') + L2(p.en, p.fr))}"${i === at ? ' aria-current="step"' : ''}>${WHI(i < at ? 'check' : p.icon, i === at ? 18 : 15)}<span class="pg-tip">${L2(p.en, p.fr)}</span></button>`).join('')}<span class="pg-name" aria-hidden="true">${L2(here.en, here.fr)}</span></span>`;
     }
+    // tapping a road map icon goes to the first screen of that part, in this phase
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('#stepSubtitle [data-part]'); if (!b) return;
+      const ph = steps[currentIndex].phaseIndex, p = PARTS.find((x) => x.k === b.dataset.part); if (!p) return;
+      const i = steps.findIndex((x) => x.phaseIndex === ph && partOf(x) === p);
+      if (i < 0 || i === currentIndex) return;
+      ensureCtx(); hush(); goTo(i);
+    });
     function cheer(pa, pb) {
       const nm = ((SID('name') && SID('name').answer) || '').trim().split(/\s+/)[0] || '';
       const en = `Well done${nm ? ', ' + nm : ''}! You’ve finished ${pa.den}. Now on to ${pb.den}.`;
