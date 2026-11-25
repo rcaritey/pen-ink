@@ -18,6 +18,9 @@
   window.WHI = (k, s) => `<svg class="whi" width="${s || 20}" height="${s || 20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${WHI_P[k] || ''}</svg>`;</script>
   <style>
     /* ===== Lighter look (Rama, 24 Nov) — same contrast, less weight. Shadows kept. ===== */
+    .pk-heard { display: block; margin-top: 6px; padding: 12px 18px; border-radius: 18px; background: #E5EFE7; border: 3px solid #3B5E42; box-shadow: var(--wh-lift-sage); }
+    .pk-heard-lab { display: block; font-size: 16px; font-weight: 400; color: #1E4627; }
+    .pk-heard-val { display: block; font-size: clamp(24px, 6vw, 32px); font-weight: 700; line-height: 1.2; color: #1E2634; }
     .pk-list { display: flex; flex-direction: column; gap: 10px; width: 100%; }
     .pk-hours { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; }
     @media (min-width: 700px) { .pk-days, .pk-mins { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .pk-hours { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
@@ -3372,6 +3375,65 @@
           if (low.split(/\s+/).length <= 8 && !/\?$/.test(low)) { const m = L2('Sorry, I didn’t get the time. Say it like 2:30 PM, or tap the hour.', 'Désolé, je n’ai pas compris l’heure. Dites par exemple 14 h 30, ou touchez l’heure.'); showToast(m); say(m, true); return; }
         }
         return hT(t); }; }
+    // Spoken appointment dates (Rama, 24 Nov: "June 24th, 2027" only kept "2027"). Reads the month, day and year anywhere in
+    // what was said; a year said on its own right after a date (speech often arrives in two pieces) is added to that date.
+    const MON_W = { january: 0, jan: 0, janvier: 0, february: 1, feb: 1, 'février': 1, fevrier: 1, march: 2, mars: 2, april: 3, apr: 3, avril: 3, may: 4, mai: 4,
+      june: 5, jun: 5, juin: 5, july: 6, jul: 6, juillet: 6, august: 7, aug: 7, 'août': 7, aout: 7, september: 8, sep: 8, septembre: 8,
+      october: 9, oct: 9, octobre: 9, november: 10, nov: 10, novembre: 10, december: 11, dec: 11, 'décembre': 11, decembre: 11 };
+    const WDAY_W = { sunday: 0, dimanche: 0, monday: 1, lundi: 1, tuesday: 2, mardi: 2, wednesday: 3, mercredi: 3, thursday: 4, jeudi: 4, friday: 5, vendredi: 5, saturday: 6, samedi: 6 };
+    const ORD_W = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth',
+      'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth', 'twentieth'];
+    let lastDayHeard = null;
+    function parseSpokenDate(raw) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      let t = ' ' + raw.toLowerCase().replace(/[.,!?]/g, ' ').replace(/-/g, ' ') + ' ';
+      t = t.replace(/\btwenty (\w+)\b/g, (m0, w) => { const i = ORD_W.indexOf(w); return i >= 0 && i < 9 ? ' ' + (21 + i) + ' ' : m0; }).replace(/\bthirtieth\b/g, ' 30 ').replace(/\bthirty first\b/g, ' 31 ');
+      ORD_W.forEach((w, i) => { t = t.replace(new RegExp('\\b' + w + '\\b', 'g'), ' ' + (i + 1) + ' '); });
+      t = t.replace(/\b(\d{1,2})(st|nd|rd|th|er|e)\b/g, '$1').replace(/\bpremier\b/g, ' 1 ');
+      const yM = /\b(20\d{2})\b/.exec(t), year = yM ? +yM[1] : null;
+      const mKey = Object.keys(MON_W).sort((a, b) => b.length - a.length).find((k) => new RegExp('\\b' + k + '\\b').test(t));
+      const mk = (y, mo, d) => { const x = new Date(y, mo, d); return x.getMonth() === mo && x.getDate() === d ? x : null; };
+      if (/\b(today|aujourd'?hui|aujourd’hui)\b/.test(t)) return { date: today };
+      if (/\b(day after tomorrow|après demain|apres demain)\b/.test(t)) { const d = new Date(today); d.setDate(d.getDate() + 2); return { date: d }; }
+      if (/\b(tomorrow|demain)\b/.test(t)) { const d = new Date(today); d.setDate(d.getDate() + 1); return { date: d }; }
+      if (mKey) {
+        const mo = MON_W[mKey], rest = t.replace(new RegExp('\\b' + mKey + '\\b'), ' ').replace(/\b20\d{2}\b/, ' ');
+        const dM = /\b([1-9]|[12]\d|3[01])\b/.exec(rest);
+        if (!dM) { let y = year || today.getFullYear(); if (!year && mo < today.getMonth()) y++; return { month: new Date(y, mo, 1) }; }
+        const d = +dM[1];
+        if (year) return { date: mk(year, mo, d) };
+        let x = mk(today.getFullYear(), mo, d); if (x && x < today) x = mk(today.getFullYear() + 1, mo, d);
+        return { date: x };
+      }
+      const wKey = Object.keys(WDAY_W).find((k) => new RegExp('\\b' + k + '\\b').test(t));
+      if (wKey) { const d = new Date(today); let n = (WDAY_W[wKey] - d.getDay() + 7) % 7 || 7; d.setDate(d.getDate() + n); return { date: d }; }
+      if (year && t.trim() === String(year)) return { year };
+      return null;
+    }
+    { const hD = heard; heard = function (t) {
+        const st = steps[currentIndex], low = (t || '').toLowerCase().trim();
+        if (st && st.id === 'day' && st.mode === 'voice' && low && !cmdOf(low.replace(/[.!?,]/g, '')) && !/^(next|back|go back|repeat|help|stop|pause|wait|undo|erase|suivant|retour)\b/.test(low)) {
+          if (/not (booked|sure)|don'?t know|pas encore|pas sûr|sais pas/.test(low)) { st.dateISO = ''; setPick(st, L2('Not booked yet', 'Pas encore fixé')); say(L2('That’s fine. Say next.', 'Pas de souci. Dites suivant.'), true); return; }
+          let p = parseSpokenDate(low);
+          if (p && p.year) {
+            if (lastDayHeard && Date.now() - lastDayHeard.at < 20000) { const o = lastDayHeard.date; p = o.day ? { date: new Date(p.year, o.month, o.day) } : { month: new Date(p.year, o.month, 1) }; }
+            else { const m = L2('Which day in ' + p.year + '? Say it like June 24, ' + p.year + '.', 'Quel jour en ' + p.year + ' ? Dites par exemple 24 juin ' + p.year + '.'); showToast(m); say(m, true); return; }
+          }
+          if (p && p.date) {
+            const d = p.date, iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            lastDayHeard = { at: Date.now(), date: { month: d.getMonth(), day: d.getDate() } };
+            st.dateISO = iso; pickWeek = null; pickMonth = null; pickBrowse = false; setPick(st, dayStr(d)); flashPick();
+            say(L2(dayStr(d) + '. Got it. Say next, or change it.', dayStr(d) + '. C’est noté. Dites suivant, ou changez-la.'), true); return;
+          }
+          if (p && p.month) {
+            const mName = p.month.toLocaleDateString(LOC[lang] || 'en-CA', { month: 'long', year: 'numeric' });
+            lastDayHeard = { at: Date.now(), date: { month: p.month.getMonth() } };
+            st.dateISO = ''; pickWeek = 'month'; pickMonth = p.month; pickBrowse = true; setPick(st, mName); flashPick();
+            say(L2(mName + '. Got it. Say the day if you know it, or say next.', mName + '. C’est noté. Dites le jour si vous le savez, ou dites suivant.'), true); return;
+          }
+          if (low.split(/\s+/).length <= 8 && !/\?$/.test(low)) { const m = L2('Sorry, I didn’t get the date. Say it like June 24, 2027, or tap below.', 'Désolé, je n’ai pas compris la date. Dites par exemple 24 juin 2027, ou touchez ci-dessous.'); showToast(m); say(m, true); return; }
+        }
+        return hD(t); }; }
     function flashPick() {
       const help = document.getElementById('screenHelperText'); if (!help) return;
       help.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 600, easing: 'ease-out' });
@@ -5608,7 +5670,7 @@
       }
       const chosen = (step.answer || '').trim(), help = document.getElementById('screenHelperText');
       help.classList.remove('hidden');
-      help.innerHTML = chosen ? `<span class="inline-block mt-1 px-4 py-1.5 rounded-xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634] text-[20px] font-extrabold" data-notr>✓ ${esc(chosen)}</span>`
+      help.innerHTML = chosen ? `<span class="pk-heard" role="status"><span class="pk-heard-lab">✓ ${step.id === 'day' ? L2('Appointment day', 'Jour du rendez-vous') : L2('Appointment time', 'Heure du rendez-vous')}</span><span class="pk-heard-val" data-notr>${esc(chosen.replace(/\.$/, ''))}</span></span>`
         : esc(step.id === 'day' ? (pickWeek === null ? L2('When is it? Tap one, or say the date.', 'C’est quand ? Touchez, ou dites la date.') : pickWeek === 'months' ? L2('Which month?', 'Quel mois ?') : pickWeek === 'month' ? L2('Which week in ', 'Quelle semaine en ') + pickMonth.toLocaleDateString(LOC[lang] || 'en-CA', { month: 'long', year: 'numeric' }) + '?' : L2('Tap the day, or say it.', 'Touchez le jour, ou dites-le.')) : (pickHour === null ? L2('Tap the hour, or say the time.', 'Touchez l’heure, ou dites-la.') : L2('Now tap the exact time.', 'Touchez maintenant l’heure exacte.')));
       pickHost.innerHTML = html;
     }
