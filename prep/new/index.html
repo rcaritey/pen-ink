@@ -204,6 +204,9 @@
 
     /* Color-blind-safe primary forward capsule button (distinct shape, elevation & badge) */
     /* the main forward button is the highest: a solid key edge plus a soft clay-tinted ambient shadow; pressed, it sinks onto its edge */
+    /* gender on the About you screen (Rama, 25 Nov): 2 × 2 on phones, one row of 4 on wider screens */
+    .ab-sex { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
+    @media (min-width: 700px) { .ab-sex { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
     /* Next lights up once something has been picked or typed (Rama, 25 Nov): two soft pulses, then a steady ring */
     #nextNavBtn.nx-ready { outline: 4px solid rgba(184, 74, 39, .45); outline-offset: 3px; animation: nxGlow 1.1s ease-out 2; }
     @keyframes nxGlow { 0% { outline-color: rgba(184, 74, 39, .7); outline-offset: 0; } 70% { outline-color: rgba(184, 74, 39, 0); outline-offset: 12px; } 100% { outline-color: rgba(184, 74, 39, .45); outline-offset: 3px; } }
@@ -6097,7 +6100,7 @@
     const ND = (e) => Object.assign({ phaseIndex: 0, mode: 'voice', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] }, e);
     steps.splice(steps.findIndex((x) => x.id === 'name') + 1, 0,
       ND({ id: 'basicsCheck', mode: 'basicsCheck', topic: 'Your basics', question: 'Has anything changed since last time?' }),
-      ND({ id: 'about', topic: 'About you', question: 'Your age, height and weight?', helperText: 'Optional. It helps the doctor with doses. For example: 78, 5 ft 9 in, 160 lb.',
+      ND({ id: 'about', topic: 'About you', question: 'Your age, gender, height and weight?', helperText: 'Optional. It helps the doctor with doses. For example: 78, female, 5 ft 9 in, 160 lb.',
         presets: ['Skip for now'], defaultPlaceholder: 'Say or type your age, height and weight...', customPlaceholder: 'Say or type your age, height and weight...' }));
     steps.splice(steps.findIndex((x) => x.id === 'story') + 1, 0,
       ND({ id: 'goal', topic: 'Your goal', question: 'What do you want to get out of this appointment?', helperText: 'Tap all that apply, or say it in your own words.',
@@ -6124,7 +6127,7 @@
       helperText: "Reid will ask you about 5 questions a doctor would likely ask, one at a time, so your answers are ready. Answer in your own words, or skip any. He can't diagnose." });
     SID('ideas').topic = 'Questions for the doctor';
     Object.assign(FR, {
-      'Your age, height and weight?': 'Votre âge, votre taille et votre poids ?',
+      'Your age, gender, height and weight?': 'Votre âge, genre, taille et poids ?',
       'Optional. It helps the doctor with doses. For example: 78, 5 ft 9 in, 160 lb.': 'Facultatif. Cela aide le médecin pour les doses. Par exemple : 78 ans, 1 m 75, 72 kg.',
       'Say or type your age, height and weight...': 'Dites ou écrivez votre âge, taille et poids...',
       'What do you want to get out of this appointment?': 'Qu’aimeriez-vous obtenir de ce rendez-vous ?',
@@ -6158,7 +6161,7 @@
       items.innerHTML = `<button type="button" data-basics="same" class="tactile-btn w-full min-h-[60px] rounded-[18px] bg-[#3B5E42] text-white font-extrabold text-lg">✓ ${L2('All the same', 'Tout pareil')}</button>
         <button type="button" data-basics="change" class="tactile-btn w-full min-h-[56px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${L2('Something changed', 'Quelque chose a changé')}</button>
         <div class="w-full flex flex-col gap-[6px]">
-          ${row(L2('Name', 'Nom'), SID('name').answer)}${row(L2('Age, height, weight', 'Âge, taille, poids'), SID('about').answer)}
+          ${row(L2('Name', 'Nom'), SID('name').answer)}${row(L2('Age, gender, height, weight', 'Âge, genre, taille, poids'), SID('about').answer)}
           ${row(L2('Health conditions', 'Problèmes de santé'), SID('conditions').answer)}
           ${row(L2('Medicines', 'Médicaments'), medsList.length ? medsList.map((m) => m.name).join(', ') : SID('meds').answer)}
           ${row(L2('Allergies', 'Allergies'), SID('allergies').answer)}</div>`;
@@ -6349,7 +6352,7 @@
       const i = h.indexOf('<h2>'); if (add && i > 0) h = h.slice(0, i) + add + h.slice(i);
       // age, height and weight go right after the medicines, where the doctor checks doses (Rama, 24 Nov)
       if (about) {
-        const ab = `<h2>${fr ? 'Âge, taille, poids' : 'Age, height, weight'}</h2><p>${esc(docT(about))}</p>`;
+        const ab = `<h2>${fr ? 'Âge, genre, taille, poids' : 'Age, gender, height, weight'}</h2><p>${esc(docT(about))}</p>`;
         const after = ['Allergies et précautions', 'Allergies and cautions', 'Questions du patient', "Patient's questions", 'Comment ce résumé', 'How this summary'].map((t) => h.indexOf('<h2>' + t)).filter((x) => x > 0);
         const at = after.length ? Math.min(...after) : h.lastIndexOf('</div>');
         h = h.slice(0, at) + ab + h.slice(at);
@@ -6467,11 +6470,14 @@
     // Age, height and weight: big number boxes with − and + (no fine typing needed), units to match how people think
     // =====================================================================
     const about = SID('about'); about.mode = 'about'; LISTMODES.about = 1;
-    let AB = { age: '', ft: '', inch: '', cm: '', lb: '', kg: '', hu: lang === 'fr' ? 'cm' : 'ft', wu: lang === 'fr' ? 'kg' : 'lb' };
+    let AB = { age: '', sex: '', sexOther: '', ft: '', inch: '', cm: '', lb: '', kg: '', hu: lang === 'fr' ? 'cm' : 'ft', wu: lang === 'fr' ? 'kg' : 'lb' };
     try { const a = JSON.parse(localStorage.getItem('wellheard-about') || 'null'); if (a) AB = Object.assign(AB, a); } catch (e) { /* fresh */ }
+    const AB_SEX = { female: ['Female', 'Femme'], male: ['Male', 'Homme'], other: ['Another gender', 'Autre genre'], none: ['Prefer not to say', 'Préfère ne pas le dire'] };
+    const abSexLabel = () => (AB.sex === 'other' && AB.sexOther.trim() ? AB.sexOther.trim() : AB.sex ? L2(...AB_SEX[AB.sex]) : '');
     const abFmt = () => {
       const fr = lang === 'fr', p = [];
       if (AB.age) p.push(AB.age + (fr ? ' ans' : ' years old'));
+      if (AB.sex && AB.sex !== 'none') p.push(abSexLabel());
       if (AB.hu === 'ft' && AB.ft) p.push(AB.ft + ' ft' + (AB.inch ? ' ' + AB.inch + ' in' : ''));
       if (AB.hu === 'cm' && AB.cm) p.push(AB.cm + ' cm');
       if (AB.wu === 'lb' && AB.lb) p.push(AB.lb + ' lb');
@@ -6500,7 +6506,7 @@
     }
     function renderAbout(items, foot) {
       const $ = (id) => document.getElementById(id);
-      $('listTitle').textContent = L2('Your age, height and weight', 'Votre âge, votre taille et votre poids');
+      $('listTitle').textContent = L2('Your age, gender, height and weight', 'Votre âge, genre, taille et poids');
       $('listHelp').textContent = about.fromLast && about.answer ? L2('From your last visit. Still right?', 'De votre dernière visite. Toujours exact ?')
         : L2('Optional. It helps with doses. Tap, type or say it.', 'Facultatif. Aide pour les doses. Touchez, écrivez ou dites-le.');
       $('listCounter').classList.add('hidden');
@@ -6520,10 +6526,12 @@
           <div class="inline-flex rounded-xl border border-[#D6CFC0] overflow-hidden" role="group" aria-label="${L2('Units', 'Unités')}">${unitBtn('ft', 'ft · lb')}${unitBtn('cm', 'cm · kg')}</div></div>
         <div class="w-full bg-white border border-[#E6DFD0] rounded-[18px] px-3 py-1 flex flex-col divide-y divide-[#EFE9DE]">
           ${row(L2('Age', 'Âge'), num('age', L2('Age in years', 'Âge en années'), L2('yrs', 'ans')))}
+          ${`<div class="w-full flex flex-col gap-[8px] py-2"><span class="font-extrabold text-[17px] text-[#1E2634]">${L2('Gender', 'Genre')}</span><div class="ab-sex" role="group" aria-label="${L2('Gender', 'Genre')}">${['female', 'male', 'other', 'none'].map((g) => `<button type="button" data-absex="${g}" aria-pressed="${AB.sex === g}" class="tactile-btn min-h-[52px] px-2 rounded-xl font-extrabold text-[16px] leading-tight ${AB.sex === g ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${AB.sex === g ? '✓ ' : ''}${L2(...AB_SEX[g])}</button>`).join('')}</div>${AB.sex === 'other' ? `<input data-absexo type="text" maxlength="40" value="${esc(AB.sexOther)}" placeholder="${L2('Your words (optional)', 'Vos mots (facultatif)')}" aria-label="${L2('Gender, in your words', 'Genre, avec vos mots')}" class="w-full min-h-[48px] px-3 rounded-xl border-2 border-[#5E7A63] bg-white text-[17px] text-[#1E2634]">` : ''}</div>`}
           ${row(L2('Height', 'Taille'), metric ? num('cm', L2('Height in centimetres', 'Taille en centimètres'), 'cm')
             : num('ft', L2('Height, feet', 'Taille, pieds'), 'ft') + num('inch', L2('Height, inches', 'Taille, pouces'), 'in'))}
           ${row(L2('Weight', 'Poids'), metric ? num('kg', L2('Weight in kilograms', 'Poids en kilos'), 'kg') : num('lb', L2('Weight in pounds', 'Poids en livres'), 'lb'))}</div>`;
       foot.innerHTML = '';
+      { const o = items.querySelector('[data-absexo]'); if (o) o.addEventListener('input', () => { AB.sexOther = o.value; abSave(); }); }
       items.querySelectorAll('[data-abin]').forEach((inp) => {
         inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(0, 3); AB[inp.dataset.abin] = inp.value; abSave(); });
         inp.addEventListener('focus', () => inp.select());
@@ -6540,10 +6548,13 @@
       });
       ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => list.addEventListener(ev, stop));
       list.addEventListener('click', (e) => {
+        const g = e.target.closest('[data-absex]');
+        if (g) { AB.sex = AB.sex === g.dataset.absex ? '' : g.dataset.absex; if (AB.sex !== 'other') AB.sexOther = ''; abSave(); renderList(); applyLang();
+          if (AB.sex === 'other') { const o = list.querySelector('[data-absexo]'); if (o) o.focus(); } return; }
         const b = e.target.closest('[data-ab],[data-abu]'); if (!b) return;
         if (b.dataset.held) { delete b.dataset.held; return; }   // a long press already counted
         if (b.dataset.abu) { const m = b.dataset.u === 'cm'; abSwitch('h', m ? 'cm' : 'ft'); abSwitch('w', m ? 'kg' : 'lb'); renderList(); applyLang(); return; }
-        if (b.dataset.ab === 'skip') { AB = Object.assign(AB, { age: '', ft: '', inch: '', cm: '', lb: '', kg: '' }); abSave(); goNext(); return; }
+        if (b.dataset.ab === 'skip') { AB = Object.assign(AB, { age: '', sex: '', sexOther: '', ft: '', inch: '', cm: '', lb: '', kg: '' }); abSave(); goNext(); return; }
         abStep(b.dataset.k, b.dataset.ab === 'plus' ? 1 : -1);
         const i = list.querySelector(`[data-abin="${b.dataset.k}"]`); if (i) i.value = AB[b.dataset.k];
       });
@@ -6560,7 +6571,12 @@
       else if ((m = s.match(/(\d{2,3})\s*(?:cm|centim)/))) { AB.hu = 'cm'; AB.cm = m[1]; hit = true; }
       if ((m = s.match(/(\d{2,3})\s*(?:pounds?|lbs?|livres?)/))) { AB.wu = 'lb'; AB.lb = m[1]; hit = true; }
       else if ((m = s.match(/(\d{2,3})\s*(?:kilos?|kg|kilograms?|kilogrammes?)/))) { AB.wu = 'kg'; AB.kg = m[1]; hit = true; }
-      if ((m = s.match(/(\d{1,3})\s*(?:years?|yrs?|ans|an)\b/)) || (m = s.match(/^\s*(?:i'm|i am|j'ai)?\s*(\d{2,3})\b(?!\s*(?:feet|foot|ft|cm|m\b|pounds?|lbs?|kilos?|kg|livres?))/))) { const a = +m[1]; if (a > 0 && a <= 120) { AB.age = String(a); hit = true; } }
+      const sa = s.replace(/\b(?:(?:a|an|une?)\s+)?(?:man|woman|male|female|homme|femme|non[- ]?binary)\b/g, ' ').replace(/\s+/g, ' ');   // "I'm a man, 86" → the age still counts
+      if ((m = sa.match(/(\d{1,3})\s*(?:years?|yrs?|ans|an)\b/)) || (m = sa.match(/^\s*(?:i'm|i am|j'ai|je suis)?\s*(\d{2,3})\b(?!\s*(?:feet|foot|ft|cm|m\b|pounds?|lbs?|kilos?|kg|livres?))/))) { const a = +m[1]; if (a > 0 && a <= 120) { AB.age = String(a); hit = true; } }
+      if (/\b(prefer not|rather not|don'?t want to say|préfère ne pas|pas le dire)\b/.test(s)) { AB.sex = 'none'; AB.sexOther = ''; hit = true; }
+      else if ((m = s.match(/\b(non[- ]?binary|non[- ]?binaire|two[- ]spirit|bispirituel|trans(?:gender)? (?:man|woman)|another gender|other|autre)\b/))) { AB.sex = 'other'; AB.sexOther = /other|autre|another/.test(m[1]) ? '' : m[1].replace(/\b\w/g, (c) => c.toUpperCase()); hit = true; }
+      else if (/\b(female|woman|femme|girl|lady)\b/.test(s)) { AB.sex = 'female'; AB.sexOther = ''; hit = true; }
+      else if (/\b(male|man|homme|boy|guy)\b/.test(s)) { AB.sex = 'male'; AB.sexOther = ''; hit = true; }
       if (hit) { abSave(); renderList(); applyLang(); if (!quiet) say(L2('Got it: ', 'Noté : ') + abFmt() + L2('. Say next when you’re done.', '. Dites suivant quand c’est fini.')); }
       return hit;
     }
@@ -6750,30 +6766,31 @@
     // =====================================================================
     // Age, height and weight by voice: one question at a time, then Reid waits for the answer
     // =====================================================================
-    let abAsk = 0;   // 0 age, 1 height, 2 weight, 3 done
+    let abAsk = 0;   // 0 age, 1 gender, 2 height, 3 weight, 4 done
     const AB_Q = [
       () => L2('How old are you?', 'Quel âge avez-vous ?'),
+      () => L2('Female, male, or another gender? You can also say prefer not to say.', 'Femme, homme, ou autre genre ? Vous pouvez aussi dire préfère ne pas le dire.'),
       () => AB.hu === 'cm' ? L2('How tall are you, in centimetres? For example, 170.', 'Combien mesurez-vous, en centimètres ? Par exemple, 170.') : L2('How tall are you? For example: five foot eight.', 'Combien mesurez-vous ? Par exemple : cinq pieds huit.'),
       () => AB.wu === 'kg' ? L2('About how much do you weigh, in kilos?', 'Environ combien pesez-vous, en kilos ?') : L2('About how much do you weigh, in pounds?', 'Environ combien pesez-vous, en livres ?')
     ];
-    const abFirstEmpty = () => (!AB.age ? 0 : !(AB.hu === 'cm' ? AB.cm : AB.ft) ? 1 : !(AB.wu === 'kg' ? AB.kg : AB.lb) ? 2 : 3);
+    const abFirstEmpty = () => (!AB.age ? 0 : !AB.sex ? 1 : !(AB.hu === 'cm' ? AB.cm : AB.ft) ? 2 : !(AB.wu === 'kg' ? AB.kg : AB.lb) ? 3 : 4);
     function abNums(t) {
       const W = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11 };
       return lc(t).replace(/[,.]/g, ' ').split(/\s+/).map((w) => (W[w] != null ? W[w] : /^\d+$/.test(w) ? +w : null)).filter((n) => n != null);
     }
     function abAskNext() {
       abAsk = abFirstEmpty(); renderList(); applyLang();
-      if (abAsk < 3) say(AB_Q[abAsk]());
+      if (abAsk < 4) say(AB_Q[abAsk]());
       else say(L2('Thank you. ', 'Merci. ') + abFmt() + L2('. Say next, or change any number.', '. Dites suivant, ou changez un chiffre.'));
     }
-    SPEAK.about = () => { abAsk = abFirstEmpty(); return abAsk < 3 ? L2('This one is optional. ', 'Celle-ci est facultative. ') + AB_Q[abAsk]() : L2('Here is what I have: ', 'Voici ce que j’ai : ') + abFmt() + L2('. Say next, or change any number.', '. Dites suivant, ou changez un chiffre.'); };
+    SPEAK.about = () => { abAsk = abFirstEmpty(); return abAsk < 4 ? L2('This one is optional. ', 'Celle-ci est facultative. ') + AB_Q[abAsk]() : L2('Here is what I have: ', 'Voici ce que j’ai : ') + abFmt() + L2('. Say next, or change any number.', '. Dites suivant, ou changez un chiffre.'); };
     { const h2 = heard; heard = function (t) {
       const s = steps[currentIndex], w = lc(String(t || '').trim());
       if (!(s && s.mode === 'about') || !w) return h2(t);
       if (/^(next|suivant|back|retour|go back)\b/.test(w)) return h2(t);
       if (/\b(skip|pass|passer|don'?t know|not sure|je ne sais pas)\b/.test(w)) {   // leave this one blank and go on
-        const k = abAsk; abAsk = Math.min(3, k + 1);
-        if (abAsk < 3) { say(AB_Q[abAsk]()); } else say(L2('Okay. Say next when you’re ready.', 'D’accord. Dites suivant quand vous êtes prêt.'));
+        const k = abAsk; abAsk = Math.min(4, k + 1);
+        if (abAsk < 4) { say(AB_Q[abAsk]()); } else say(L2('Okay. Say next when you’re ready.', 'D’accord. Dites suivant quand vous êtes prêt.'));
         return;
       }
       if (abHeard(t, true)) { abAskNext(); return; }   // said with units: may fill several at once
@@ -6781,12 +6798,12 @@
       if (!n.length) return h2(t);
       let ok = false;
       if (abAsk === 0 && n[0] > 0 && n[0] <= 120) { AB.age = String(n[0]); ok = true; }
-      if (abAsk === 1) {
+      if (abAsk === 2) {
         if (n[0] >= 100 && n[0] <= 230) { AB.hu = 'cm'; AB.cm = String(n[0]); ok = true; }
         else if (n[0] >= 3 && n[0] <= 7) { AB.hu = 'ft'; AB.ft = String(n[0]); AB.inch = n[1] != null && n[1] < 12 ? String(n[1]) : '0'; ok = true; }
       }
-      if (abAsk === 2 && n[0] >= 20 && n[0] <= 500) { if (AB.wu === 'kg') AB.kg = String(n[0]); else AB.lb = String(n[0]); ok = true; }
-      if (!ok) { say(L2('Sorry, I didn’t catch the number. ', 'Désolé, je n’ai pas compris le chiffre. ') + AB_Q[Math.min(abAsk, 2)]()); return; }
+      if (abAsk === 3 && n[0] >= 20 && n[0] <= 500) { if (AB.wu === 'kg') AB.kg = String(n[0]); else AB.lb = String(n[0]); ok = true; }
+      if (!ok) { say(L2('Sorry, I didn’t catch the number. ', 'Désolé, je n’ai pas compris le chiffre. ') + AB_Q[Math.min(abAsk, 3)]()); return; }
       abSave(); abAskNext();
     }; }
     // the row Reid is asking about is highlighted
@@ -6857,7 +6874,7 @@
     function clearScreen() {
       const st = steps[currentIndex], d = medDraft;
       if (st.mode === 'voice') { st.answer = ''; st.customActive = false; st.fromLast = false; document.getElementById('answerInput').value = ''; }
-      if (st.mode === 'about') { Object.assign(AB, { age: '', ft: '', inch: '', cm: '', lb: '', kg: '' }); abSave(); abAsk = 0; }
+      if (st.mode === 'about') { Object.assign(AB, { age: '', sex: '', sexOther: '', ft: '', inch: '', cm: '', lb: '', kg: '' }); abSave(); abAsk = 0; }
       if (st.mode === 'priority') qPrio = [];
       if (st.mode === 'goalqs') { qPicked = qPicked.filter((q) => !goalPool.includes(q)); ownQs = []; }
       if (st.mode === 'meds') {
