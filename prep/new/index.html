@@ -49,8 +49,7 @@
   window.WHI = (k, s) => `<svg class="whi" width="${s || 20}" height="${s || 20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${WHI_P[k] || ''}</svg>`;</script>
   <style>
     /* ===== Lighter look (Rama, 24 Nov) — same contrast, less weight. Shadows kept. ===== */
-    .reid-pop { background: #FAF7F0; border: 2px solid #3B5E42; border-radius: 22px; box-shadow: 0 12px 32px rgba(30,38,52,.22); }
-    .reid-pop::before { content: ""; position: absolute; top: -12px; left: 26px; width: 20px; height: 20px; background: #FAF7F0; border-left: 2px solid #3B5E42; border-top: 2px solid #3B5E42; transform: rotate(45deg); border-radius: 4px 0 0 0; }
+    .reid-pop { background: #FAF7F0; border: 2px solid #3B5E42; border-radius: 18px; box-shadow: 0 2px 6px rgba(51,72,47,.18), 0 10px 24px rgba(51,72,47,.18); }
     #landingCard { display: none !important; }   /* Rama, 24 Nov: no box on the first page; Reid's bubble says it */
     .rp-hi { margin: 2px 4px 2px; font-size: 20px; font-weight: 700; line-height: 1.25; color: #1E2634; }
     .rp-say { margin: 0 4px; font-size: 15px; line-height: 1.4; color: #425268; }
@@ -5519,26 +5518,26 @@
       if (!wrap) return;
       wrap.style.cursor = 'pointer'; wrap.setAttribute('role', 'button'); wrap.setAttribute('aria-label', 'Reid: options'); wrap.setAttribute('aria-haspopup', 'true');
       const menu = document.createElement('div'); menu.id = 'reidMenu';
-      menu.className = 'hidden absolute left-4 top-[84px] z-40 w-[310px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-110px)] overflow-y-auto reid-pop p-3 flex flex-col gap-[10px]';
+      menu.className = 'hidden absolute z-40 reid-pop p-3 flex flex-col gap-[10px]';
       document.getElementById('appContainer').appendChild(menu);
       const MB = 'tactile-btn w-full min-h-[52px] px-3 rounded-2xl font-extrabold text-base flex items-center gap-3 text-left';
+      // Tapping the helper: just a speech bubble beside the face (Rama, 24 Nov) — the greeting and hands-free, nothing else
       const open = () => {
-        const fr = lang === 'fr', voice = inputPreference === 'voice', onStep = steps[currentIndex].mode !== 'landing', nm = helperName(), hf = voice && isListening;
-        menu.innerHTML = `<p class="rp-hi">${fr ? 'Bonjour, je suis ' + nm + '. Comment puis-je vous aider ?' : 'Hello. My name is ' + nm + '. How can I help?'}</p>
-          <button type="button" data-r="handsfree" class="${MB} min-h-[64px] ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}">${ico('say', !hf)}<span class="flex-1"><span class="block">${hf ? (fr ? '✓ Mains libres : activé' : '✓ Hands-free is on') : (fr ? 'Passer en mains libres' : 'Go hands-free')}</span><span class="block text-[14px] font-normal ${hf ? 'text-[#425268]' : 'text-white/90'}">${hf ? (fr ? 'Touchez pour arrêter' : 'Tap to turn it off') : (fr ? 'Parlez-moi, je fais le reste' : 'Just talk. I’ll listen and do it.')}</span></span></button>
-          <p class="rp-say">${fr ? 'Vous pouvez dire : « suivant », « retour », « explique », « lis l’écran », « texte plus grand », « réglages », « efface cet écran », ou me poser une question.' : 'You can say: “next”, “go back”, “explain”, “read the screen”, “bigger text”, “settings”, “clear this screen”, or ask me a question.'}</p>
-          ${onStep ? `<button type="button" data-r="explain" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('explain')}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
-          <button type="button" data-r="read" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('voice')}${fr ? 'Lire ce qui est à l’écran' : 'Read what’s on this screen'}</button>
-          ${onStep ? `<button type="button" data-r="back" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]"><span class="w-9 h-9 shrink-0 flex items-center justify-center text-[22px]" aria-hidden="true">‹</span>${fr ? 'Revenir en arrière' : 'Go back'}</button>` : ''}
-          ${onStep ? `<button type="button" data-r="clear" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]"><span class="w-8 h-8 shrink-0 flex items-center justify-center">${CLEAR_ICO}</span><span data-cl>${fr ? 'Effacer cet écran' : 'Clear this screen'}</span></button>` : ''}
-          <button type="button" data-r="settings" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('textsize')}${fr ? 'Réglages' : 'Settings'}</button>
-          <button type="button" data-r="can" class="${MB} bg-white border border-[#D6CFC0] text-[#3B5E42]">${ico('explain')}${fr ? 'Que peut faire ' + nm + ' ?' : 'What can ' + nm + ' do?'}</button>
-          <button type="button" data-chat class="${MB} bg-white border border-[#D6CFC0] text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Chat with Rama'}</button>
-          <button type="button" data-r="close" class="${MB} bg-white border border-[#D6CFC0] text-[#1E2634] justify-center">${fr ? 'Fermer' : 'Close'}</button>`;
-        applyLang(); sayT('Hello. My name is ' + nm + '. How can I help?', 'Bonjour. Je m’appelle ' + nm + '. Comment puis-je vous aider ?', true);
-        { const r = emb.getBoundingClientRect(), z = parseFloat(getComputedStyle(document.getElementById('appContainer')).zoom) || 1, vw = document.documentElement.clientWidth, w = Math.min(340, vw / z - 24);   // the app can be zoomed for bigger text
-          menu.style.position = 'fixed'; menu.style.width = w + 'px'; menu.style.left = Math.max(12, Math.min(r.left, vw - w * z - 12)) / z + 'px'; menu.style.top = (r.bottom + 14) / z + 'px'; menu.style.maxHeight = Math.max(240, innerHeight - r.bottom - 28) / z + 'px'; }
+        const fr = lang === 'fr', nm = helperName(), hf = inputPreference === 'voice' && isListening;
+        const tb = document.getElementById('toastBanner'); if (tb) { tb.classList.remove('opacity-100'); tb.classList.add('opacity-0'); }
+        menu.innerHTML = `<p class="rp-hi">${fr ? 'Bonjour. Je m’appelle ' + nm + '. Comment puis-je vous aider ?' : 'Hello. My name is ' + nm + '. How can I help?'}</p>
+          <p class="rp-say">${hf ? (fr ? 'Je vous écoute. Dites « suivant », « retour », « explique », « réglages », ou posez-moi une question.' : 'I’m listening. Say “next”, “go back”, “explain”, “settings”, or ask me a question.')
+            : (fr ? 'En mains libres, vous me parlez et je fais le reste.' : 'Go hands-free and just talk to me. I’ll do the rest.')}</p>
+          <div class="flex flex-col gap-[10px]"><button type="button" data-r="handsfree" class="${MB} min-h-[56px] text-[17px] justify-center ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}">${WHI('mic', 22)}${hf ? (fr ? 'Arrêter' : 'Turn off hands-free') : (fr ? 'Mains libres' : 'Go hands-free')}</button>
+          <button type="button" data-r="close" class="${MB} justify-center bg-white border border-[#D6CFC0] text-[#1E2634]">${fr ? 'Pas maintenant' : 'Not now'}</button></div>${reidTail('#FAF7F0')}`;
         menu.classList.remove('hidden');
+        applyLang(); sayT('Hello. My name is ' + nm + '. How can I help?', 'Bonjour. Je m’appelle ' + nm + '. Comment puis-je vous aider ?', true);
+        // beside the face, to the right, with the curved tail back to it (the same shape as the helper's notes)
+        const face = [...document.querySelectorAll('#companionEmblem')].find((e) => e.getBoundingClientRect().width > 0) || emb;
+        const r = face.getBoundingClientRect(), z = parseFloat(getComputedStyle(document.getElementById('appContainer')).zoom) || 1, vw = document.documentElement.clientWidth;
+        const left = r.right + 34, w = Math.min(380, vw - left - 12);
+        menu.style.position = 'fixed'; menu.style.width = Math.max(220, w) / z + 'px'; menu.style.left = left / z + 'px'; menu.style.top = (r.top - 4) / z + 'px'; menu.style.maxHeight = '';
+        menu.style.setProperty('--tailY', Math.max(10, r.height / z / 2 - 10) + 'px');
       };
       const close = () => menu.classList.add('hidden');
       // the picture moves into the side panel on computers, so listen on the page and check where the tap landed
