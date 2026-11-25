@@ -13,6 +13,33 @@
   <link rel="manifest" href="/prep/new/manifest.webmanifest" />
   <title>WellHeard</title>
   <link rel="stylesheet" href="/prep/new/tw.css">
+  <script>/* WellHeard line icons, same style as the Help and Settings icons (Rama, 24 Nov: no emoji) */
+  window.WHI_P = {"hand": "<path d=\"M18 11V6a2 2 0 0 0-4 0v1\"/><path d=\"M14 10V4a2 2 0 0 0-4 0v2\"/><path d=\"M10 10.5V6a2 2 0 0 0-4 0v8\"/><path d=\"M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15\"/>", "print": "<polyline points=\"6 9 6 2 18 2 18 9\"/><path d=\"M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2\"/><rect x=\"6\" y=\"14\" width=\"12\" height=\"8\"/>", "file": "<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><polyline points=\"14 2 14 8 20 8\"/><line x1=\"16\" y1=\"13\" x2=\"8\" y2=\"13\"/><line x1=\"16\" y1=\"17\" x2=\"8\" y2=\"17\"/>", "mail": "<rect x=\"2\" y=\"4\" width=\"20\" height=\"16\" rx=\"2\"/><path d=\"m22 7-10 6L2 7\"/>", "pencil": "<path d=\"M12 20h9\"/><path d=\"M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z\"/>", "mic": "<path d=\"M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z\"/><path d=\"M19 10v2a7 7 0 0 1-14 0v-2\"/><line x1=\"12\" y1=\"19\" x2=\"12\" y2=\"22\"/>", "speak": "<path d=\"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"/>", "pill": "<path d=\"m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7z\"/><path d=\"m8.5 8.5 7 7\"/>", "help": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3\"/><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"/>", "check": "<path d=\"M22 11.08V12a10 10 0 1 1-5.93-9.14\"/><polyline points=\"22 4 12 14.01 9 11.01\"/>", "note": "<rect x=\"8\" y=\"2\" width=\"8\" height=\"4\" rx=\"1\"/><path d=\"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2\"/><path d=\"M9 12h6\"/><path d=\"M9 16h6\"/>", "calendar": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/>", "volume": "<polygon points=\"11 5 6 9 2 9 2 15 6 15 11 19 11 5\"/><path d=\"M15.54 8.46a5 5 0 0 1 0 7.07\"/><path d=\"M19.07 4.93a10 10 0 0 1 0 14.14\"/>", "globe": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"/><path d=\"M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\"/>", "alert": "<path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"/><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"/><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"/>", "steth": "<path d=\"M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 12 0V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3\"/><path d=\"M8 15v1a6 6 0 0 0 12 0v-4\"/><circle cx=\"20\" cy=\"10\" r=\"2\"/>", "search": "<circle cx=\"11\" cy=\"11\" r=\"8\"/><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/>", "phone": "<path d=\"M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z\"/>", "users": "<path d=\"M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M23 21v-2a4 4 0 0 0-3-3.87\"/><path d=\"M16 3.13a4 4 0 0 1 0 7.75\"/>"};
+  window.WHI = (k, s) => `<svg class="whi" width="${s || 20}" height="${s || 20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${WHI_P[k] || ''}</svg>`;</script>
+  <style>
+    /* ===== Lighter look (Rama, 24 Nov) — same contrast, less weight. Shadows kept. ===== */
+    .whi { display: inline-block; vertical-align: -0.2em; flex-shrink: 0; }
+    /* a selected choice: pale sage tint, dark text, green edge and the ✓ (not solid navy) */
+    button[aria-pressed="true"][class*="bg-[#1E2634]"], .lp-tabs button[aria-selected="true"], .pg-wrap .sel button[aria-pressed="true"] {
+      background: #E5EFE7 !important; color: #1E2634 !important; border: 2px solid #3B5E42 !important; box-shadow: var(--wh-lift-sage) !important; }
+    /* one main button per screen: secondary actions are outlined or tinted, never a second solid colour */
+    .wh-outline { background: #FFFFFF; color: #8E3A20; border: 2px solid #A84B2F; }
+    .wh-quiet { color: #1E2634; border: 1px solid #B9CBA7; }
+    .wh-quiet .whi, .wh-outline .whi { color: inherit; }
+    .wh-quiet .whi { color: #3B5E42; }
+    /* "Your pages are ready" list: no outer panel, rows separated by thin lines */
+    .rdy-list { background: transparent; border: 0; padding: 0; gap: 0 !important; }
+    .rdy-item { width: 100%; min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 8px 4px; text-align: left; background: transparent; border: 0; border-bottom: 1px solid #DDD5C6; cursor: pointer; }
+    .rdy-item:first-child { border-top: 1px solid #DDD5C6; }
+    .rdy-item:focus-visible { outline: 3px solid #D97706; outline-offset: 2px; border-radius: 8px; }
+    .rdy-lab { display: block; font-size: 14px; font-weight: 400; color: #425268; line-height: 1.25; }
+    .rdy-val { display: block; font-size: 16px; font-weight: 400; color: #1E2634; line-height: 1.3; }
+    .rdy-ch { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 12px; background: #E5EFE7; border: 1px solid #B9CBA7; color: #1E4627; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+    /* reading text is regular weight; bold is kept for titles and buttons */
+    .rv-lab { font-size: 14px !important; font-weight: 400 !important; text-transform: none !important; }
+    .rv-go { font-size: 14px !important; font-weight: 700 !important; text-transform: none !important; }
+    .rv-val { font-weight: 400 !important; font-size: 16px !important; }
+  </style>
   <meta name="theme-color" content="#FAF7F0">
   <style>
     @font-face { font-family: "Atkinson Hyperlegible"; font-weight: 400; font-display: swap; src: url(/prep/fonts/atkinson-hyperlegible-latin-400-normal.woff2) format("woff2"); }
@@ -159,7 +186,7 @@
        too far above everything else, and the rest was smaller than it needed to be.
        Computers and sideways iPads only: phones keep their earlier sizes (Rama, 23 Nov 22:07). */
     :is(#appContainer.with-pages, #appContainer.wide) #screenQuestion, :is(#appContainer.with-pages, #appContainer.wide) #listTitle { font-size: 24px !important; line-height: 1.2 !important; letter-spacing: -.015em; }
-    :is(#appContainer.with-pages, #appContainer.wide) #screenHelperText, :is(#appContainer.with-pages, #appContainer.wide) #listHelp { font-size: 17px !important; line-height: 1.35 !important; font-weight: 600 !important; color: #425268 !important; }
+    :is(#appContainer.with-pages, #appContainer.wide) #screenHelperText, :is(#appContainer.with-pages, #appContainer.wide) #listHelp { font-size: 17px !important; line-height: 1.35 !important; font-weight: 400 !important; color: #425268 !important; }
     :is(#appContainer.with-pages, #appContainer.wide) .font-serif.text-\[1\.6rem\] { font-size: 19px !important; }
     :is(#appContainer.with-pages, #appContainer.wide) header .text-\[1\.25rem\] { font-size: 18px !important; }
     :is(#appContainer.with-pages, #appContainer.wide) #listItems .text-\[15px\] { font-size: 17px !important; line-height: 1.45 !important; }
@@ -498,9 +525,9 @@
           <p id="landingIntro" class="text-[15px] leading-snug text-[#1E2634] font-extrabold">Reid, your AI helper, will:</p>
           <p id="landingShort" class="hidden text-[15px] leading-snug text-[#1E2634] font-medium">Reid, your AI helper, gets you ready, makes a clear page for your doctor, and writes down what the doctor said.</p>
           <ul id="landingList" class="mt-2.5 flex flex-col gap-2.5 text-[15px] leading-snug text-[#1E2634] font-medium">
-            <li class="flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-white border border-[#EBD3B8] flex items-center justify-center text-[18px] shrink-0" aria-hidden="true">📝</span><span>Help you get ready, one question at a time</span></li>
-            <li class="flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-white border border-[#EBD3B8] flex items-center justify-center text-[18px] shrink-0" aria-hidden="true">📄</span><span>Make a clear page for your doctor</span></li>
-            <li class="flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-white border border-[#EBD3B8] flex items-center justify-center text-[18px] shrink-0" aria-hidden="true">🎙️</span><span>Write down what the doctor said</span></li>
+            <li class="flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-white border border-[#EBD3B8] flex items-center justify-center text-[18px] text-[#3B5E42] shrink-0" aria-hidden="true"><svg class="whi" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg></span><span>Help you get ready, one question at a time</span></li>
+            <li class="flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-white border border-[#EBD3B8] flex items-center justify-center text-[18px] text-[#3B5E42] shrink-0" aria-hidden="true"><svg class="whi" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span>Make a clear page for your doctor</span></li>
+            <li class="flex items-center gap-3"><span class="w-9 h-9 rounded-full bg-white border border-[#EBD3B8] flex items-center justify-center text-[18px] text-[#3B5E42] shrink-0" aria-hidden="true"><svg class="whi" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></span><span>Write down what the doctor said</span></li>
           </ul>
         </div>
 
@@ -554,7 +581,7 @@
           <h1 id="screenQuestion" class="w-full text-[1.5rem] leading-tight font-extrabold text-[#1E2634] tracking-tight">
             What is your name?
           </h1>
-          <p id="screenHelperText" class="hidden text-xs text-[#425268] mt-0.5 font-bold"></p>
+          <p id="screenHelperText" class="hidden text-xs text-[#425268] mt-0.5 font-normal"></p>
         </div>
 
         <!-- Preset Choice Grid (Rounded-Rectangle 16px Cards + 14px Dead-Zone Gaps) -->
@@ -778,7 +805,7 @@
         <div class="w-full flex items-start justify-between gap-2 shrink-0">
           <div class="min-w-0">
             <h1 id="listTitle" class="text-[1.38rem] leading-tight font-extrabold text-[#1E2634] tracking-tight"></h1>
-            <p id="listHelp" class="text-[13px] text-[#425268] font-bold mt-1 leading-snug"></p>
+            <p id="listHelp" class="text-[13px] text-[#425268] font-normal mt-1 leading-snug"></p>
           </div>
           <span id="listCounter" class="px-2.5 py-1 rounded-full bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xs shrink-0"></span>
         </div>
@@ -3783,31 +3810,31 @@
           <button type="button" data-chat class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base flex items-center gap-3 text-left">${ico('chat')}<span>${T('Chat with Rama for help', 'Écrire à Rama pour de l’aide')}</span></button>
           <p class="text-xs text-center text-[#425268]">416-454-5597 · hello@pen-ink.ca</p></div>`;
       } else if (setView === 'reid') {
-        const it = (icon, a, b) => `<li class="flex gap-3 py-2 border-b border-[#D6CFC0] last:border-0"><span class="text-[22px] leading-none w-7 shrink-0 text-center" aria-hidden="true">${icon}</span><span><b class="block text-[16px] text-[#1E2634] leading-snug">${a}</b>${b ? `<span class="block text-[14px] text-[#425268] leading-snug">${b}</span>` : ''}</span></li>`;
+        const it = (icon, a, b) => `<li class="flex gap-3 py-2 border-b border-[#D6CFC0] last:border-0"><span class="leading-none w-7 shrink-0 text-center text-[#3B5E42] pt-0.5" aria-hidden="true">${icon}</span><span><b class="block text-[16px] text-[#1E2634] leading-snug">${a}</b>${b ? `<span class="block text-[14px] text-[#425268] leading-snug">${b}</span>` : ''}</span></li>`;
         const sec = (h, items) => card(h, `<ul>${items.join('')}</ul>`);
         body = head(T('What Reid can do', 'Ce que Reid peut faire'), 1) + `<div class="flex flex-col gap-[12px]" id="reidCanList">
           <p class="text-[16px] font-bold text-[#1E2634] leading-snug">${T('Reid is WellHeard’s AI helper. He helps you get ready, keep track during the visit, and remember what was said.', 'Reid est l’assistant IA de WellHeard. Il vous aide à vous préparer, à suivre la visite et à vous souvenir de ce qui a été dit.')}</p>
           <button type="button" data-act="readreid" class="tactile-btn w-full min-h-[52px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base flex items-center justify-center gap-2">${ico('pages', 1)}${T('Read this to me', 'Lisez-le-moi')}</button>
           ${sec(T('1. Before your appointment', '1. Avant le rendez-vous'), [
-            it('🗣️', T('Asks one question at a time', 'Pose une question à la fois'), T('You can talk, tap or type. Take your time.', 'Vous pouvez parler, toucher ou écrire. Prenez votre temps.')),
-            it('💊', T('Lists your medicines and when you take them', 'Liste vos médicaments et quand vous les prenez'), ''),
-            it('❓', T('Suggests questions to ask', 'Suggère des questions à poser'), T('For what you want out of the visit, and ones you may not have thought of. You choose which to keep.', 'Pour ce que vous voulez de la visite, et d’autres auxquelles vous n’auriez pas pensé. Vous choisissez.')),
-            it('📄', T('Makes your pages', 'Prépare vos pages'), T('One for the doctor, one for you, one for your care circle. Print, save or send them.', 'Une pour le médecin, une pour vous, une pour vos aidants. À imprimer, enregistrer ou envoyer.'))])}
+            it(WHI('speak', 22), T('Asks one question at a time', 'Pose une question à la fois'), T('You can talk, tap or type. Take your time.', 'Vous pouvez parler, toucher ou écrire. Prenez votre temps.')),
+            it(WHI('pill', 22), T('Lists your medicines and when you take them', 'Liste vos médicaments et quand vous les prenez'), ''),
+            it(WHI('help', 22), T('Suggests questions to ask', 'Suggère des questions à poser'), T('For what you want out of the visit, and ones you may not have thought of. You choose which to keep.', 'Pour ce que vous voulez de la visite, et d’autres auxquelles vous n’auriez pas pensé. Vous choisissez.')),
+            it(WHI('file', 22), T('Makes your pages', 'Prépare vos pages'), T('One for the doctor, one for you, one for your care circle. Print, save or send them.', 'Une pour le médecin, une pour vous, une pour vos aidants. À imprimer, enregistrer ou envoyer.'))])}
           ${sec(T('2. At the appointment', '2. Au rendez-vous'), [
-            it('🎙️', T('Records the visit', 'Enregistre la visite'), T('Only after you confirm everyone agreed.', 'Seulement après avoir confirmé que tout le monde est d’accord.')),
-            it('✅', T('Helps you go through your questions', 'Vous aide à passer vos questions'), T('Tick each one off as it’s answered.', 'Cochez chacune quand elle a une réponse.'))])}
+            it(WHI('mic', 22), T('Records the visit', 'Enregistre la visite'), T('Only after you confirm everyone agreed.', 'Seulement après avoir confirmé que tout le monde est d’accord.')),
+            it(WHI('check', 22), T('Helps you go through your questions', 'Vous aide à passer vos questions'), T('Tick each one off as it’s answered.', 'Cochez chacune quand elle a une réponse.'))])}
           ${sec(T('3. After', '3. Après'), [
-            it('📝', T('Writes a summary and next steps', 'Écrit un résumé et les prochaines étapes'), T('From the recording. Check it and change anything.', 'À partir de l’enregistrement. Vérifiez et corrigez.')),
-            it('📅', T('Adds your next appointment to your calendar', 'Ajoute le prochain rendez-vous à votre calendrier'), ''),
-            it('✉️', T('Sends the summary to your care circle', 'Envoie le résumé à vos aidants'), '')])}
+            it(WHI('note', 22), T('Writes a summary and next steps', 'Écrit un résumé et les prochaines étapes'), T('From the recording. Check it and change anything.', 'À partir de l’enregistrement. Vérifiez et corrigez.')),
+            it(WHI('calendar', 22), T('Adds your next appointment to your calendar', 'Ajoute le prochain rendez-vous à votre calendrier'), ''),
+            it(WHI('mail', 22), T('Sends the summary to your care circle', 'Envoie le résumé à vos aidants'), '')])}
           ${sec(T('Any time', 'À tout moment'), [
-            it('🔊', T('Reads the screen, explains it, or repeats the question', 'Lit l’écran, l’explique, ou répète la question'), T('Tap Reid, or the buttons under him.', 'Touchez Reid, ou les boutons sous lui.')),
-            it('🌐', T('Works in many languages', 'Fonctionne en plusieurs langues'), T('Translated by computer: check medicines, doses and dates.', 'Traduit par ordinateur : vérifiez médicaments, doses et dates.')),
-            it('⚠️', T('Warns you if something sounds urgent', 'Vous avertit si quelque chose semble urgent'), T('And tells you who to call.', 'Et vous dit qui appeler.'))])}
+            it(WHI('volume', 22), T('Reads the screen, explains it, or repeats the question', 'Lit l’écran, l’explique, ou répète la question'), T('Tap Reid, or the buttons under him.', 'Touchez Reid, ou les boutons sous lui.')),
+            it(WHI('globe', 22), T('Works in many languages', 'Fonctionne en plusieurs langues'), T('Translated by computer: check medicines, doses and dates.', 'Traduit par ordinateur : vérifiez médicaments, doses et dates.')),
+            it(WHI('alert', 22), T('Warns you if something sounds urgent', 'Vous avertit si quelque chose semble urgent'), T('And tells you who to call.', 'Et vous dit qui appeler.'))])}
           ${sec(T('What Reid can’t do', 'Ce que Reid ne peut pas faire'), [
-            it('🩺', T('He isn’t a doctor', 'Il n’est pas médecin'), T('He never diagnoses or gives medical advice. Your doctor decides.', 'Il ne pose jamais de diagnostic et ne donne pas de conseil médical. Votre médecin décide.')),
-            it('🔍', T('He can make mistakes', 'Il peut se tromper'), T('Check anything important with your doctor.', 'Vérifiez tout ce qui est important avec votre médecin.')),
-            it('🚑', T('He can’t call for help', 'Il ne peut pas appeler à l’aide'), T('In an emergency, call 911.', 'En cas d’urgence, appelez le 911.'))])}</div>`;
+            it(WHI('steth', 22), T('He isn’t a doctor', 'Il n’est pas médecin'), T('He never diagnoses or gives medical advice. Your doctor decides.', 'Il ne pose jamais de diagnostic et ne donne pas de conseil médical. Votre médecin décide.')),
+            it(WHI('search', 22), T('He can make mistakes', 'Il peut se tromper'), T('Check anything important with your doctor.', 'Vérifiez tout ce qui est important avec votre médecin.')),
+            it(WHI('phone', 22), T('He can’t call for help', 'Il ne peut pas appeler à l’aide'), T('In an emergency, call 911.', 'En cas d’urgence, appelez le 911.'))])}</div>`;
       } else if (setView === 'say') {
         const li = (a, b) => `<li class="flex justify-between gap-3 py-1.5 border-b border-[#D6CFC0]"><b class="text-[#1E2634]">${a}</b><span class="text-[#425268] text-right">${b}</span></li>`;
         body = head(T('What you can say', 'Ce que vous pouvez dire'), 1) + card(T('Say any of these, any time', 'Dites-les à tout moment'), `<ul class="text-sm">
@@ -3833,8 +3860,8 @@
           <p class="text-sm text-[#425268] leading-snug">${T('Everything on the screen grows together.', 'Tout l’écran grandit ensemble.')}</p></div>`;
       } else if (setView === 'answermode') {
         body = head(T('How you answer', 'Comment vous répondez'), 1) + `<div class="flex flex-col gap-[12px]">
-          ${[['1', '🗣️', T('Talk and tap', 'Parler et toucher'), T('Reid reads each question aloud and listens for your answer. You can still tap or type any time.', 'Reid lit chaque question à voix haute et écoute votre réponse. Vous pouvez toujours toucher ou écrire.'), inputPreference === 'voice'],
-             ['0', '👆', T('Tap and type only', 'Toucher et écrire seulement'), T('Reid stays quiet and doesn’t listen. You tap the choices or type your answers. Read this screen still works.', 'Reid reste silencieux et n’écoute pas. Vous touchez les choix ou écrivez vos réponses. « Lire l’écran » fonctionne toujours.'), inputPreference !== 'voice']]
+          ${[['1', WHI('mic', 22), T('Talk and tap', 'Parler et toucher'), T('Reid reads each question aloud and listens for your answer. You can still tap or type any time.', 'Reid lit chaque question à voix haute et écoute votre réponse. Vous pouvez toujours toucher ou écrire.'), inputPreference === 'voice'],
+             ['0', WHI('hand', 22), T('Tap and type only', 'Toucher et écrire seulement'), T('Reid stays quiet and doesn’t listen. You tap the choices or type your answers. Read this screen still works.', 'Reid reste silencieux et n’écoute pas. Vous touchez les choix ou écrivez vos réponses. « Lire l’écran » fonctionne toujours.'), inputPreference !== 'voice']]
             .map(([v, icon, title, sub, on]) => `<button type="button" data-set="mode" data-v="${v}" aria-pressed="${on}" class="tactile-btn w-full min-h-[96px] px-4 py-3 rounded-2xl border-2 ${on ? 'border-[#3B5E42] bg-[#E5EFE7]' : 'border-[#D6CFC0] bg-white'} flex items-start gap-3 text-left">
                 <span class="w-8 h-8 shrink-0 rounded-full border-2 ${on ? 'border-[#3B5E42] bg-[#3B5E42] text-white' : 'border-[#9AA3AF] bg-white'} flex items-center justify-center font-extrabold mt-0.5" aria-hidden="true">${on ? '✓' : ''}</span>
                 <span class="min-w-0"><span class="block text-[18px] font-extrabold text-[#1E2634]"><span aria-hidden="true">${icon}</span> ${title}${on ? ` <span class="text-[13px] text-[#3B5E42]">· ${T('now on', 'actif')}</span>` : ''}</span>
@@ -3845,9 +3872,9 @@
           <div class="grid grid-cols-2 gap-[10px]">${steps.map((st, i) => st.phaseIndex === ph ? `<button type="button" data-jump="${i}" class="tactile-btn min-h-[48px] px-2 rounded-xl ${i === currentIndex ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-sm">${i === currentIndex ? '✓ ' : ''}${tr(st.topic)}</button>` : '').join('')}</div>`).join('')}</div>`;
       } else if (setView === 'pages') {
         body = head(T('Print or share', 'Imprimer ou partager'), 1) + `<div class="flex flex-col gap-[12px]">
-          <button type="button" data-act="print-doc" class="${B}">🖨 ${T("Print the doctor's page and My page", 'Imprimer la page du médecin et Ma page')}</button>
+          <button type="button" data-act="print-doc" class="${B}">${WHI('print')} ${T("Print the doctor's page and My page", 'Imprimer la page du médecin et Ma page')}</button>
           <button type="button" data-act="show-doc" class="${B}">${T("Show the doctor's page on screen", 'Montrer la page du médecin à l’écran')}</button>
-          <button type="button" data-act="print-recap" class="${B}">🖨 ${T('Print the visit recap', 'Imprimer le résumé de la visite')}</button>
+          <button type="button" data-act="print-recap" class="${B}">${WHI('print')} ${T('Print the visit recap', 'Imprimer le résumé de la visite')}</button>
           <button type="button" data-act="share" class="${B}">${T('Send the recap to family', 'Envoyer le résumé à la famille')}</button>
           <p class="text-sm text-[#425268] leading-snug">${T('To save as a PDF instead of printing, choose Save as PDF (or Save to Files) in the print window.', 'Pour un PDF, choisissez Enregistrer en PDF dans la fenêtre d’impression.')}</p></div>`;
       } else if (setView === 'translate') {
@@ -4296,8 +4323,8 @@
           items.innerHTML = `<div class="w-full bg-white border-2 border-[#1E2634] rounded-[22px] p-4 flex flex-col gap-2">
               <span class="text-[11px] font-extrabold uppercase tracking-wide ${aiTags[cur] === 'd' ? 'text-[#B84A27]' : 'text-[#425268]'}">${esc(tag)}</span>
               ${qText(cur, 'font-extrabold text-[21px] leading-snug text-[#1E2634]')}</div>
-            <button type="button" data-idea="star" class="tactile-btn w-full min-h-[68px] rounded-[18px] bg-[#A84B2F] text-white font-extrabold text-xl">★ ${L2('Must ask', 'À poser absolument')}</button>
-            <div class="flex items-stretch"><button type="button" data-idea="yes" class="tactile-btn flex-1 min-h-[68px] rounded-[18px] bg-[#3B5E42] text-white font-extrabold text-xl">✓ ${L2('If there’s time', 'Si on a le temps')}</button>
+            <button type="button" data-idea="star" class="tactile-btn wh-outline bg-white w-full min-h-[68px] rounded-[18px] font-extrabold text-xl">★ ${L2('Must ask', 'À poser absolument')}</button>
+            <div class="flex items-stretch"><button type="button" data-idea="yes" class="tactile-btn flex-1 min-h-[68px] rounded-[18px] bg-[#E5EFE7] wh-quiet font-extrabold text-xl">✓ ${L2('If there’s time', 'Si on a le temps')}</button>
               <div class="w-[16px] shrink-0" aria-hidden="true"></div>
               <button type="button" data-idea="no" class="tactile-btn flex-1 min-h-[68px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xl">✕ ${L2('Leave out', 'Laisser')}</button></div>`;
         } else {
@@ -4355,7 +4382,7 @@
         items.innerHTML = `<div class="grid grid-cols-2 gap-[10px]">${tiles.map(([h, v, id]) => `<button type="button" data-jump="${id}" aria-label="${esc(h)}: ${esc(v || L2('Not filled in', 'Pas rempli'))}. ${L2('Change', 'Changer')}" class="tactile-btn min-h-[62px] px-3 py-2 rounded-[16px] bg-[#F0EBE1] border border-[#D6CFC0] text-left flex flex-col justify-center min-w-0 hover:bg-[#E6DFD0]">
             <span class="rv-row"><span class="rv-lab">${esc(h)}</span><span class="rv-go" aria-hidden="true"><span class="rv-ch">${L2('Change', 'Changer')} </span>›</span></span>
             <span class="rv-val font-extrabold leading-snug ${v ? 'text-[#1E2634]' : 'text-[#B84A27]'} truncate w-full">${esc(v || L2('Not filled in', 'Pas rempli'))}</span></button>`).join('')}</div>`;
-        foot.innerHTML = `<button type="button" data-foot="print" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">🖨 ${L2('Print my pages', 'Imprimer mes pages')}</button>`;
+        foot.innerHTML = `<button type="button" data-foot="print" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${WHI('print')} ${L2('Print my pages', 'Imprimer mes pages')}</button>`;
       }
       if (qAdding) { const inp = document.getElementById('listAddInput'); if (inp) { inp.focus(); inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') listAdd(); }); } }
     }
@@ -5873,10 +5900,10 @@
       rr(items, foot);
       const card = document.createElement('div');
       card.className = 'w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-2.5 flex flex-col gap-[6px]';
-      card.innerHTML = `<div class="flex items-center justify-between gap-2 px-1"><span class="font-extrabold text-[16px] text-[#1E2634]"><span aria-hidden="true">👪</span> ${L2('Care circle page', 'Page du cercle d’aidants')}</span>
+      card.innerHTML = `<div class="flex items-center justify-between gap-2 px-1"><span class="font-extrabold text-[16px] text-[#1E2634]">${WHI('users')} ${L2('Care circle page', 'Page du cercle d’aidants')}</span>
           <button type="button" data-ready="circle" class="tactile-btn min-h-[40px] px-3 rounded-xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[13px]">${L2('See it', 'Voir')} ›</button></div>
         <p class="px-1 text-[14px] font-bold text-[#425268]">${L2('For family and helpers: the visit, the goal, the top questions and the medicine chart.', 'Pour la famille et les aidants : la visite, l’objectif, les questions principales et les médicaments.')}</p>
-        <button type="button" data-ready="sendcircle" class="tactile-btn w-full min-h-[52px] rounded-xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-[15px]">✉️ ${L2('Send to my care circle', 'Envoyer à mon cercle d’aidants')}</button>`;
+        <button type="button" data-ready="sendcircle" class="tactile-btn w-full min-h-[52px] rounded-xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-[15px]">${WHI('mail')} ${L2('Send to my care circle', 'Envoyer à mon cercle d’aidants')}</button>`;
       items.appendChild(card);
       // the pages' rows: the goal goes with "why I'm here"
       const why = items.querySelector('[data-jump="concerns"]'); if (why && SID('goal').answer) {
@@ -5925,11 +5952,11 @@
           <div class="min-w-0"><p class="font-extrabold text-[16px] text-[#1E2634] leading-tight"><span aria-hidden="true">${icon}</span> ${title}</p><p class="text-[13px] font-bold text-[#425268] leading-snug">${body}</p></div></div>
           ${btn ? `<button type="button" data-visit="${act}" class="tactile-btn w-full min-h-[46px] rounded-xl ${on ? 'bg-[#3B5E42] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-[15px]">${btn}</button>` : ''}</div>`;
       items.innerHTML = `<div class="w-full flex flex-col gap-[6px]">
-        ${st(1, '🎙️', L2('Ask to record', 'Demandez pour enregistrer'), L2('"Is it okay if I record this on my phone, so I remember?"', '« Est-ce que je peux enregistrer sur mon téléphone, pour m’en souvenir ? »'),
+        ${st(1, WHI('mic'), L2('Ask to record', 'Demandez pour enregistrer'), L2('"Is it okay if I record this on my phone, so I remember?"', '« Est-ce que je peux enregistrer sur mon téléphone, pour m’en souvenir ? »'),
           isRecording ? L2('● Recording. Tap to pause', '● Enregistrement. Toucher pour arrêter') : L2('Ask, then start recording', 'Demander, puis enregistrer'), 'rec', isRecording)}
-        ${st(2, '📄', L2('Hand over the doctor’s page', 'Donnez la page du médecin'), L2('Give the printed page, or show it on your phone.', 'Donnez la page imprimée, ou montrez-la sur votre téléphone.'), L2('Show it on my phone', 'La montrer sur mon téléphone'), 'doc')}
-        ${st(3, '📝', L2('Keep your page as a guide', 'Gardez votre page comme guide'), L2('Your questions, most important first, and space for notes.', 'Vos questions, les plus importantes en premier, et de la place pour des notes.'), L2('See my page', 'Voir ma page'), 'mine')}
-        ${st(4, '🗣️', L2('Ask to go through your questions', 'Demandez à passer vos questions'), L2('"I have a few questions. May I go through them?" Then tick each one below once it’s answered.', '« J’ai quelques questions. Est-ce que je peux les passer ? » Puis cochez chacune ci-dessous une fois répondue.'))}${visitExtras()}</div>`;
+        ${st(2, WHI('file'), L2('Hand over the doctor’s page', 'Donnez la page du médecin'), L2('Give the printed page, or show it on your phone.', 'Donnez la page imprimée, ou montrez-la sur votre téléphone.'), L2('Show it on my phone', 'La montrer sur mon téléphone'), 'doc')}
+        ${st(3, WHI('note'), L2('Keep your page as a guide', 'Gardez votre page comme guide'), L2('Your questions, most important first, and space for notes.', 'Vos questions, les plus importantes en premier, et de la place pour des notes.'), L2('See my page', 'Voir ma page'), 'mine')}
+        ${st(4, WHI('speak'), L2('Ask to go through your questions', 'Demandez à passer vos questions'), L2('"I have a few questions. May I go through them?" Then tick each one below once it’s answered.', '« J’ai quelques questions. Est-ce que je peux les passer ? » Puis cochez chacune ci-dessous une fois répondue.'))}${visitExtras()}</div>`;
       foot.innerHTML = '';
     }
     { const rl2 = renderList; renderList = function () {
@@ -6240,7 +6267,7 @@
         }
       }
       lpShow.hidden = !(pagesHidden && could) || steps[currentIndex].mode === 'ready';   // the ready page has its own See my page button
-      lpShow.innerHTML = '<span aria-hidden="true">📄</span> ' + L2('See my pages', 'Voir mes pages');
+      lpShow.innerHTML = WHI('file') + ' ' + L2('See my pages', 'Voir mes pages');
       const hb = document.getElementById('lpHide'); if (hb) { hb.textContent = L2('Hide', 'Masquer'); hb.setAttribute('aria-label', L2('Hide the pages', 'Masquer les pages')); }
     }; }
     window.addEventListener('resize', () => { /* sizeApp already listens; this keeps the Show button in step */ });
@@ -6652,7 +6679,7 @@
         const b = document.getElementById('pdfGo') || document.createElement('button');
         b.id = 'pdfGo'; b.type = 'button';
         b.style.cssText = 'position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:95;min-height:72px;padding:0 28px;border-radius:22px;border:0;background:#3B5E42;color:#fff;font:inherit;font-weight:800;font-size:20px;box-shadow:0 10px 28px rgba(0,0,0,.25);cursor:pointer';
-        b.textContent = '📄 ' + L2('Your PDF is ready: tap to save', 'Votre PDF est prêt : touchez pour l’enregistrer');
+        b.innerHTML = WHI('file', 22) + ' ' + L2('Your PDF is ready: tap to save', 'Votre PDF est prêt : touchez pour l’enregistrer');
         b.onclick = () => { b.remove(); handPdf(pdfReady).catch(() => {}); };
         document.body.appendChild(b); setTimeout(() => b.remove(), 60000);
         say(L2('Your PDF is ready. Tap the green button to save it.', 'Votre PDF est prêt. Touchez le bouton vert pour l’enregistrer.'), true);
@@ -6667,9 +6694,9 @@
     { const rr2 = renderReady; renderReady = function (items, foot) {
       rr2(items, foot);   // keeps the titles and the "change" rows; the layout below replaces the rest
       const rowsOf = (sel) => sel.map((k) => items.querySelector(`[data-jump="${k}"]`)).filter(Boolean).map((b) => b.outerHTML).join('');
-      const qs = chosen(), row = (id, label, val) => `<button type="button" data-jump="${id}" class="tactile-btn w-full min-h-[46px] px-3 py-1 rounded-xl bg-white border border-[#E6DFD0] flex items-center gap-2 text-left">
-          <span class="flex-1 min-w-0"><span class="block text-[11px] font-extrabold uppercase tracking-wide text-[#425268]">${esc(label)}</span><span class="block text-[15px] font-bold text-[#1E2634] truncate" data-notr>${esc(String(val || '').replace(/\s+/g, ' ').trim() || L2('Not given', 'Non indiqué'))}</span></span>
-          <span class="text-[#3B5E42] font-extrabold text-[15px] shrink-0">✎ ${L2('Change', 'Modifier')}</span></button>`;
+      const qs = chosen(), row = (id, label, val) => `<button type="button" data-jump="${id}" class="rdy-item">
+          <span class="flex-1 min-w-0"><span class="rdy-lab">${esc(label)}</span><span class="rdy-val truncate" data-notr>${esc(String(val || '').replace(/\s+/g, ' ').trim() || L2('Not given', 'Non indiqué'))}</span></span>
+          <span class="rdy-ch">${WHI('pencil', 18)}${L2('Change', 'Modifier')}</span></button>`;
       const when = [SID('day').answer, SID('time').answer, SID('where').answer].filter(Boolean).map(short).join(' · ');
       const rows = {
         mine: row('priority', L2('My questions', 'Mes questions'), qs.length ? `${qs.length} · ${qs[0]}` : '') + (SID('goal').answer ? row('goal', L2('What I want out of it', 'Ce que j’en attends'), tidyT(SID('goal').answer)) : '') + row('meds', L2('Medicine chart', 'Tableau des médicaments'), medsList.length ? medsList.map((m) => m.name).join(', ') : '') + row('day', L2('Appointment', 'Rendez-vous'), when),
@@ -6677,14 +6704,14 @@
           + row('meds', L2('Medicines', 'Médicaments'), medsList.length ? medsList.map((m) => m.name).join(', ') : short(SID('meds').answer)) + row('allergies', L2('Allergies', 'Allergies'), short(SID('allergies').answer)) + row('conditions', L2('Conditions', 'Problèmes de santé'), short(SID('conditions').answer)),
         circle: row('day', L2('Appointment', 'Rendez-vous'), when) + (SID('goal').answer ? row('goal', L2('What we hope for', 'Ce qu’on espère'), tidyT(SID('goal').answer)) : '') + row('priority', L2('Top questions', 'Questions principales'), qs.length ? `${Math.min(5, qs.length)} · ${qs[0]}` : '')
       }[readyPick];
-      const pick = (k) => `<button type="button" data-rp="${k}" aria-pressed="${readyPick === k}" class="tactile-btn flex-1 min-h-[46px] px-2 py-1 rounded-2xl font-extrabold text-[15px] leading-tight ${readyPick === k ? 'bg-[#1E2634] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${readyPick === k ? '✓ ' : ''}${L2(...PAGE_NAME[k])}</button>`;
-      const act = (k, icon, en, fr, cls) => `<button type="button" data-ra="${k}" class="tactile-btn rdy-act min-h-[48px] px-2 py-1 rounded-2xl font-extrabold text-[15px] flex items-center justify-center leading-tight ${cls}"><span class="text-[18px]" aria-hidden="true">${icon}</span>${L2(en, fr)}</button>`;
+      const pick = (k) => `<button type="button" data-rp="${k}" aria-pressed="${readyPick === k}" class="tactile-btn flex-1 min-h-[46px] px-2 py-1 rounded-2xl font-extrabold text-[15px] leading-tight ${readyPick === k ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${readyPick === k ? '✓ ' : ''}${L2(...PAGE_NAME[k])}</button>`;
+      const act = (k, icon, en, fr, cls) => `<button type="button" data-ra="${k}" class="tactile-btn rdy-act min-h-[48px] px-2 py-1 rounded-2xl font-extrabold text-[15px] flex items-center justify-center leading-tight ${cls}">${WHI(icon)}${L2(en, fr)}</button>`;
       items.innerHTML = `<div class="rdy-wrap"><div class="rdy"><div class="w-full flex rdy-row" role="group" aria-label="${L2('Which page', 'Quelle page')}">${pick('mine')}${pick('doc')}${pick('circle')}</div>
-        <button type="button" data-ra="see" class="tactile-btn w-full min-h-[54px] rounded-[18px] bg-[#A84B2F] text-white font-extrabold text-[clamp(16px,4.2vw,18px)] px-4 shadow-[0_4px_12px_rgba(168,75,47,.3)] flex items-center justify-center gap-2"><span class="text-[20px] shrink-0" aria-hidden="true">📄</span><span class="min-w-0 leading-tight">${L2('See the', 'Voir la')} ${L2(...PAGE_NAME[readyPick])}</span></button>
-        <div class="grid grid-cols-3 rdy-row">${act('print', '🖨', 'Print', 'Imprimer', 'bg-[#1E2634] text-white')}${act('pdf', '📄', 'Save PDF', 'PDF', 'bg-[#3B5E42] text-white')}${act('send', '✉️', 'Send', 'Envoyer', 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]')}</div>
-        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[20px] p-2 flex flex-col rdy-rows rdy-box">${rows}</div></div></div>`;
+        <button type="button" data-ra="see" class="tactile-btn wh-outline bg-white w-full min-h-[54px] rounded-[18px] font-extrabold text-[clamp(16px,4.2vw,18px)] px-4 flex items-center justify-center gap-2">${WHI('file', 22)}<span class="min-w-0 leading-tight">${L2('See the', 'Voir la')} ${L2(...PAGE_NAME[readyPick])}</span></button>
+        <div class="grid grid-cols-3 rdy-row">${act('print', 'print', 'Print', 'Imprimer', 'bg-[#E5EFE7] wh-quiet')}${act('pdf', 'file', 'Save PDF', 'PDF', 'bg-[#E5EFE7] wh-quiet')}${act('send', 'mail', 'Send', 'Envoyer', 'bg-[#E5EFE7] wh-quiet')}</div>
+        <div class="w-full flex flex-col rdy-rows rdy-box rdy-list">${rows}</div></div></div>`;
       setTimeout(() => loadPdfLib().catch(() => {}), 800);
-      $help = document.getElementById('listHelp'); if ($help) $help.textContent = L2('Pick a page, then see, print, save or send it. Tap ✎ to change anything.', 'Choisissez une page, puis voyez-la, imprimez-la, enregistrez-la ou envoyez-la. Touchez ✎ pour changer quoi que ce soit.');
+      $help = document.getElementById('listHelp'); if ($help) $help.textContent = L2('Pick a page, then see, print, save or send it. Tap Change to fix anything.', 'Choisissez une page, puis voyez-la, imprimez-la, enregistrez-la ou envoyez-la. Touchez Modifier pour corriger quoi que ce soit.');
     }; }
     var $help = null;
     document.getElementById('listItems').addEventListener('click', (e) => {
@@ -6879,13 +6906,13 @@
       box.className = 'fixed inset-0 z-[85] bg-black/45 flex items-end sm:items-center justify-center p-3';
       box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'wbTitle');
       const opt = (v, icon, t, sub, on) => `<button type="button" data-wb="${v}" class="tactile-btn w-full min-h-[92px] px-4 py-3 rounded-2xl border-2 ${on ? 'border-[#3B5E42] bg-[#E5EFE7]' : 'border-[#D6CFC0] bg-white'} flex items-start gap-3 text-left">
-          <span class="text-[28px] leading-none mt-0.5" aria-hidden="true">${icon}</span><span><span class="block text-[19px] font-extrabold text-[#1E2634]">${t}</span><span class="block text-[15px] font-bold text-[#425268] leading-snug mt-1">${sub}</span></span></button>`;
+          <span class="leading-none mt-0.5 text-[#3B5E42]" aria-hidden="true">${icon}</span><span><span class="block text-[19px] font-extrabold text-[#1E2634]">${t}</span><span class="block text-[16px] font-normal text-[#425268] leading-snug mt-1">${sub}</span></span></button>`;
       box.innerHTML = `<div id="wbCard" class="w-full max-w-md bg-[#FAF7F1] rounded-3xl p-5 space-y-3 shadow-2xl">
           <p class="text-[13px] font-extrabold uppercase tracking-wide text-[#3B5E42]">${fr ? 'Bon retour' : 'Welcome back'}</p>
           <h2 id="wbTitle" class="text-[23px] font-extrabold text-[#1E2634] leading-tight">${fr ? 'Comment voulez-vous répondre ?' : 'How would you like to answer?'}</h2>
-          <p class="text-[15px] font-bold text-[#425268]">${fr ? 'Vous reprenez où vous étiez.' : 'You’ll pick up where you left off.'}</p>
-          ${opt('voice', '🗣️', fr ? 'Parler et toucher' : 'Talk and tap', fr ? 'Reid lit les questions et écoute vos réponses.' : 'Reid reads the questions and listens to your answers.', inputPreference === 'voice')}
-          ${opt('tap', '👆', fr ? 'Toucher et écrire' : 'Tap and type', fr ? 'Reid reste silencieux. Vous touchez ou écrivez.' : 'Reid stays quiet. You tap or type.', inputPreference !== 'voice')}</div>`;
+          <p class="text-[16px] font-normal text-[#425268]">${fr ? 'Vous reprenez où vous étiez.' : 'You’ll pick up where you left off.'}</p>
+          ${opt('voice', WHI('mic', 28), fr ? 'Parler et toucher' : 'Talk and tap', fr ? 'Reid lit les questions et écoute vos réponses.' : 'Reid reads the questions and listens to your answers.', inputPreference === 'voice')}
+          ${opt('tap', WHI('hand', 28), fr ? 'Toucher et écrire' : 'Tap and type', fr ? 'Reid reste silencieux. Vous touchez ou écrivez.' : 'Reid stays quiet. You tap or type.', inputPreference !== 'voice')}</div>`;
       document.body.appendChild(box); document.body.classList.add('modal-open');
       // a speech bubble from Reid (Rama, 24 Nov): the card sits under his face with a tail pointing at him,
       // and a copy of his face stays lit above the dimmed screen so it's clear he's the one asking
