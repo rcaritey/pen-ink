@@ -4938,9 +4938,12 @@
 
 
     // ---------- "Before we start": language, text size, how you answer, Reid's voice, full screen ----------
-    steps.splice(1, 0, { id: 'setup', phaseIndex: 0, mode: 'setup', topic: 'Before we start', question: 'Before we start', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] });
+    steps.splice(1, 0, { id: 'setup', phaseIndex: 0, mode: 'setup', topic: 'Language', question: 'Language', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] });
     LISTMODES.setup = 1;
     // Language and text size come first, so everything after is readable; the helper gets a screen of its own (Rama, 24 Nov)
+    steps.find((x) => x.id === 'setup').part = 'lang';
+    [['setupSize', 'size', 'Text size'], ['setupMode', 'mode', 'How you answer'], ['setupRead', 'read', 'Reading aloud']].forEach(([id, part, topic]) =>
+      steps.splice(2, 0, { id, part, phaseIndex: 0, mode: 'setup', topic, question: topic, answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] }));
     steps.splice(2, 0, { id: 'helper', phaseIndex: 0, mode: 'helperpick', topic: 'Your helper', question: 'Your helper', answer: '', customActive: false, customOptionLabel: null, nextLabel: 'Next', presets: [] });
     LISTMODES.helperpick = 1;
     function renderHelperPick(items, foot) {
@@ -4958,23 +4961,31 @@
       const row = (nm, sub, hs) => `<div class="hp-row"><p class="hp-name"><span data-notr>${nm}</span> <span class="hp-sub">${sub}</span></p><div class="hp-grid">${hs.map(one).join('')}</div></div>`;
       return `<div class="hp-wrap">${row('Reid', L2('(he)', '(il)'), WH_HELPERS.slice(0, 4))}${row('Lilly', L2('(she)', '(elle)'), WH_HELPERS.slice(4))}</div>`;
     }
+    // One question per screen (Rama, 24 Nov): language, text size, how you answer, reading aloud — each its own step, big buttons
     function renderSetup(items, foot) {
-      const $ = (id) => document.getElementById(id), fr = lang === 'fr';
-      $('listTitle').textContent = L2('Before we start', 'Avant de commencer');
-      $('listHelp').textContent = L2('Change anything you like. You can change these later in Help / Settings.', 'Changez ce que vous voulez. Vous pourrez les changer plus tard dans Aide / Réglages.');
+      const $ = (id) => document.getElementById(id), part = steps[currentIndex].part || 'lang', nm = helperName();
       $('listCounter').classList.add('hidden');
-      const lab = (t) => `<p class="text-[12px] font-extrabold uppercase tracking-wider text-[#425268] -mb-1">${t}</p>`;
-      const ON = 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]', OFF = 'bg-white border border-[#D6CFC0] text-[#1E2634]';
-      const two = (k, a, b, onA) => `<div class="flex items-stretch"><button type="button" data-su="${k}" data-v="1" class="tactile-btn flex-1 min-h-[54px] rounded-2xl font-extrabold text-[16px] ${onA ? ON : OFF}">${onA ? '✓ ' : ''}${a}</button><div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-su="${k}" data-v="0" class="tactile-btn flex-1 min-h-[54px] rounded-2xl font-extrabold text-[16px] ${!onA ? ON : OFF}">${!onA ? '✓ ' : ''}${b}</button></div>`;
-      items.innerHTML = `${lab(L2('Language', 'Langue'))}
-        <button type="button" data-su="lang" class="tactile-btn w-full min-h-[54px] px-4 rounded-2xl ${OFF} font-extrabold text-[16px] flex items-center justify-between"><span>${WHI('globe')} <span data-notr>${esc(langName(lang))}</span></span><span class="text-[#425268]">${L2('Change', 'Changer')} ›</span></button>
-        ${lab(L2('Text size', 'Taille du texte'))}
-        <div class="flex items-stretch gap-[10px]">${[[0, L2('Normal', 'Normal')], [1, L2('Large', 'Grand')], [2, L2('Extra large', 'Très grand')]].map(([v, t]) => `<button type="button" data-su="ts" data-v="${v}" class="tactile-btn flex-1 min-h-[58px] rounded-2xl ${textSize === v ? ON : OFF} font-extrabold flex flex-col items-center justify-center leading-none"><span style="font-size:${16 + v * 6}px">A</span><span class="text-[12px] mt-1">${t}</span></button>`).join('')}</div>
-        ${lab(L2('How you answer', 'Comment vous répondez'))}
-        ${two('mode', L2('Speak + tap', 'Parler + toucher'), L2('Tap + type', 'Toucher + écrire'), inputPreference === 'voice')}
-        ${lab(L2(helperName() + ' reads questions aloud', helperName() + ' lit les questions'))}
-        ${two('read', L2('On', 'Oui'), L2('Off', 'Non'), readAloud)}
-        ${inSafariOnly ? `<button type="button" data-su="fs" class="tactile-btn w-full min-h-[54px] px-4 rounded-2xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-[16px] flex items-center justify-between mt-1"><span>⛶ ${L2('Make it full screen', 'Mettre en plein écran')}</span><span>›</span></button>` : ''}`;
+      const SEL = 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]', OFF = 'bg-white border border-[#D6CFC0] text-[#1E2634]';
+      const BIG = 'tactile-btn w-full min-h-[68px] px-5 py-3 rounded-2xl font-extrabold text-[19px] flex items-center gap-3 text-left';
+      const opt = (k, v, on, title, sub, icon) => `<button type="button" data-su="${k}" data-v="${v}" aria-pressed="${on}" class="${BIG} ${on ? SEL : OFF}">${icon ? `<span class="text-[#3B5E42]">${icon}</span>` : ''}<span class="flex-1"><span class="block">${on ? '✓ ' : ''}${title}</span>${sub ? `<span class="block text-[16px] font-normal text-[#425268] mt-0.5">${sub}</span>` : ''}</span></button>`;
+      const T = (t, h) => { $('listTitle').textContent = t; $('listHelp').textContent = h; };
+      if (part === 'lang') {
+        T(L2('Which language?', 'Quelle langue ?'), L2('Tap the language you read best. You can change it later in Settings.', 'Touchez la langue que vous lisez le mieux. Vous pourrez la changer plus tard dans Réglages.'));
+        items.innerHTML = `<div class="pk-list pk-days" data-notr>${LANG_LIST.map(([c, n]) => `<button type="button" data-su="pick-lang" data-v="${c}" aria-pressed="${c === lang}" class="${BIG} ${c === lang ? SEL : OFF}" lang="${c}"><span>${c === lang ? '✓ ' : ''}${esc(n)}</span></button>`).join('')}</div>`;
+      } else if (part === 'size') {
+        T(L2('Which text size is easiest to read?', 'Quelle taille de texte est la plus facile à lire ?'), L2('Everything on the screen grows together.', 'Tout l’écran grandit ensemble.'));
+        items.innerHTML = `<div class="pk-list">${[[0, L2('Normal', 'Normal'), 18], [1, L2('Large', 'Grand'), 24], [2, L2('Extra large', 'Très grand'), 30]].map(([v, t, px]) =>
+          `<button type="button" data-su="ts" data-v="${v}" aria-pressed="${textSize === v}" class="${BIG} ${textSize === v ? SEL : OFF}"><span class="w-[44px] text-center" style="font-size:${px}px" aria-hidden="true">A</span><span class="flex-1">${textSize === v ? '✓ ' : ''}${t}</span></button>`).join('')}</div>`;
+      } else if (part === 'mode') {
+        T(L2('How would you like to answer?', 'Comment voulez-vous répondre ?'), L2('You can change this any time.', 'Vous pouvez changer à tout moment.'));
+        items.innerHTML = `<div class="pk-list">${opt('mode', 1, inputPreference === 'voice', L2('Speak and tap', 'Parler et toucher'), L2(nm + ' listens to you. You can still tap or type.', nm + ' vous écoute. Vous pouvez aussi toucher ou écrire.'), WHI('mic', 26))}
+          ${opt('mode', 0, inputPreference !== 'voice', L2('Tap and type only', 'Toucher et écrire seulement'), L2(nm + ' doesn’t listen. You tap or type your answers.', nm + ' n’écoute pas. Vous touchez ou écrivez.'), WHI('hand', 26))}</div>`;
+      } else {
+        T(L2('Should ' + nm + ' read the questions aloud?', nm + ' lit-il les questions à voix haute ?'), L2('You can turn this on or off any time.', 'Vous pouvez l’activer ou le désactiver à tout moment.'));
+        items.innerHTML = `<div class="pk-list">${opt('read', 1, readAloud, L2('Yes, read them aloud', 'Oui, à voix haute'), '', WHI('volume', 26))}
+          ${opt('read', 0, !readAloud, L2('No, I’ll read them', 'Non, je vais les lire'), '', '')}
+          ${inSafariOnly ? `<button type="button" data-su="fs" class="tactile-btn w-full min-h-[54px] px-4 rounded-2xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-[16px] flex items-center justify-between mt-1"><span>⛶ ${L2('Make it full screen', 'Mettre en plein écran')}</span><span>›</span></button>` : ''}</div>`;
+      }
       items.classList.add('overflow-y-auto'); foot.innerHTML = '';
     }
     document.getElementById('listItems').addEventListener('click', (e) => {
@@ -4984,6 +4995,7 @@
       const k = b.dataset.su, on = b.dataset.v === '1';
       if (k === 'lang') { openModal('helpSettingsModal'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
       if (k === 'fs') { showFS(); return; }
+      if (k === 'pick-lang') { setLang(b.dataset.v); renderList(); applyLang(); return; }
       if (k === 'ts') { textSize = Number(b.dataset.v); applyTextSize(); }
       if (k === 'mode') { setInputMode(on ? 'voice' : 'tap'); if (!on) stopRec(); }
       if (k === 'read') { readAloud = on; if (!on) hush(); }
@@ -5860,7 +5872,7 @@
     KEEP.push('about');
     LISTMODES.basicsCheck = 1; LISTMODES.goalqs = 1;
     // the order of Prepare; the doctor-style questions (dq0, dq1, …) always follow "detail"
-    const PREP_ORDER = ['setup', 'helper', 'consent', 'name', 'basicsCheck', 'about', 'conditions', 'meds', 'allergies', 'who', 'day', 'time', 'where',
+    const PREP_ORDER = ['setup', 'setupSize', 'helper', 'setupMode', 'setupRead', 'consent', 'name', 'basicsCheck', 'about', 'conditions', 'meds', 'allergies', 'who', 'day', 'time', 'where',
       'concerns', 'story', 'goal', 'ideas', 'detail', 'priority', 'review', 'ready'];
     function orderPrep() {
       const prep = steps.filter((s) => s.phaseIndex === 0), dq = prep.filter((s) => /^dq\d+$/.test(s.id));
