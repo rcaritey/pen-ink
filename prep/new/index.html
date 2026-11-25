@@ -41,7 +41,9 @@
     const lid = (x, y) => `<ellipse class="hf-lid" cx="${x}" cy="${y}" rx="1.3" ry="1" fill="${f.f}"/>`;
     const happy = (x, y) => `<ellipse cx="${x}" cy="${y}" rx="1.45" ry="1.15" fill="${f.f}"/><path d="M${x - 1.1} ${y + 0.45} Q${x} ${y - 0.85} ${x + 1.1} ${y + 0.45}" fill="none" stroke="#2b1d18" stroke-width=".5" stroke-linecap="round"/>`;
     return `<image class="helper-img" href="${helperSrc(h)}" x="0" y="0" width="40" height="40"/>${lid(x1, y1)}${lid(x2, y2)}
-      <ellipse class="hf-mouth" cx="${mx}" cy="${my}" rx="0.85" ry="0.62" fill="#2b1d18"/><g class="hf-happy">${happy(x1, y1)}${happy(x2, y2)}</g>`; };
+      <ellipse class="hf-mouth" cx="${mx}" cy="${my}" rx="0.85" ry="0.62" fill="#2b1d18"/><g class="hf-happy">${happy(x1, y1)}${happy(x2, y2)}</g>
+      <path class="hf-grin" d="M${mx - 3.4} ${my - 0.9} Q${mx} ${my - 0.2} ${mx + 3.4} ${my - 0.9} Q${mx} ${my + 4.2} ${mx - 3.4} ${my - 0.9} Z" fill="#3a1f1a" stroke="#2b1d18" stroke-width=".35" stroke-linejoin="round"/>
+      <path class="hf-grin" d="M${mx - 1.6} ${my + 1.5} Q${mx} ${my + 0.7} ${mx + 1.6} ${my + 1.5} Q${mx} ${my + 2.9} ${mx - 1.6} ${my + 1.5} Z" fill="#c96a6a"/>`; };
   window.applyHelper = () => { document.querySelectorAll('.reid-head').forEach((g) => { g.innerHTML = faceSvg(whHelper); }); renameIn(document.body); };
   /* Rama (25 Nov): the helper says his name once — the first time — never again on this device */
   window.whMet = (nm) => { try { return (JSON.parse(localStorage.getItem('wellheard-met') || '[]') || []).includes(nm || helperName()); } catch (e) { return false; } };
@@ -73,6 +75,17 @@
     .hf-mouth { transform: scaleY(var(--mouth, 0)); }
     .hf-happy { opacity: 0; transition: opacity .2s; }
     .reid-happy .hf-happy { opacity: 1; } .reid-happy .hf-lid { animation: none; }
+    /* the big smile (Rama, 25 Nov): when a whole section is done */
+    .hf-grin { opacity: 0; transform-box: fill-box; transform-origin: center top; transform: scale(.3); transition: opacity .25s, transform .35s cubic-bezier(.3, 1.6, .5, 1); }
+    .reid-grin .hf-grin { opacity: 1; transform: scale(1); } .reid-grin .hf-mouth { opacity: 0; }
+    .ph-done { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(30, 38, 52, .28); animation: phIn .3s ease-out; }
+    .ph-card { max-width: 520px; width: 100%; background: #FAF7F0; border: 3px solid #3B5E42; border-radius: 28px; padding: 26px 24px 20px; text-align: center; box-shadow: 0 20px 60px rgba(30, 38, 52, .3); }
+    .ph-face { width: 132px; height: 132px; margin: 0 auto 10px; border-radius: 999px; overflow: hidden; background: #E5EFE7; animation: hfHop .55s ease-out 3; }
+    .ph-face svg { width: 132px; height: 132px; display: block; }
+    .ph-big { font-size: 30px; font-weight: 800; color: #1E4627; line-height: 1.15; margin: 4px 0 6px; }
+    .ph-sub { font-size: 19px; color: #1E2634; line-height: 1.35; margin: 0 0 18px; }
+    @keyframes phIn { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .ph-face, .ph-done { animation: none; } .hf-grin { transition: none; } }
     #companionEmblem.reid-happy { animation: hfHop .55s ease-out 2; }
     @keyframes hfHop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-5px); } }
     @media (prefers-reduced-motion: reduce) { .hf-lid { animation: none; } #companionEmblem.reid-happy { animation: none; } }
@@ -5850,8 +5863,52 @@
     { const gnC = goNext; goNext = function () {
         const a = currentIndex, pa = partOf(steps[a]); const r = gnC.apply(this, arguments);
         const b = currentIndex, pb = partOf(steps[b]);
-        if (b > a && pa && pb && pa !== pb && pa.k !== 'start') cheer(pa, pb);
+        if (b > a && pa && pb && pa !== pb && pa.k !== 'start' && !phaseEndAt(b)) cheer(pa, pb);
+        if (b > a && phaseEndAt(b) && steps[a].phaseIndex === steps[b].phaseIndex) celebratePhase(steps[b].phaseIndex);
         return r; }; }
+
+    // A whole section done (Rama, 25 Nov): "Outstanding!", clapping, and the helper's big smile. Once per section per visit.
+    function phaseEndAt(i) { const st = steps[i]; if (!st) return false; let last = -1; steps.forEach((x, j) => { if (x.phaseIndex === st.phaseIndex) last = j; }); return last === i; }
+    const phCelebrated = new Set();
+    function clapping() {
+      try {
+        ensureCtx(); const ctx = sharedCtx; if (!ctx) return;
+        const len = Math.floor(ctx.sampleRate * 0.05), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+        const out = ctx.createGain(); out.gain.value = 0.55; out.connect(ctx.destination);
+        const t0 = ctx.currentTime + 0.05, dur = 2.6;
+        for (let p = 0; p < 6; p++) {   // six people clapping, each at their own pace
+          let t = t0 + Math.random() * 0.15; const gap = 0.2 + Math.random() * 0.08;
+          while (t < t0 + dur) {
+            const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+            src.buffer = buf; src.playbackRate.value = 0.85 + Math.random() * 0.4; bp.type = 'bandpass'; bp.frequency.value = 1100 + Math.random() * 900; bp.Q.value = 0.9;
+            const fade = Math.max(0, 1 - Math.max(0, t - t0 - dur * 0.6) / (dur * 0.4));
+            g.gain.value = (0.35 + Math.random() * 0.3) * fade;
+            src.connect(bp); bp.connect(g); g.connect(out); src.start(t);
+            t += gap + (Math.random() - 0.5) * 0.06;
+          }
+        }
+      } catch (e) { console.warn('Clapping could not play', e); }
+    }
+    function celebratePhase(ph) {
+      if (phCelebrated.has(ph)) return; phCelebrated.add(ph);
+      const nm = ((SID('name') && SID('name').answer) || '').trim().split(/\s+/)[0] || '';
+      const T3 = [['You’ve completed the appointment prep.', 'Vous avez terminé la préparation du rendez-vous.', 'Your pages are ready to print, save or send.', 'Vos pages sont prêtes à imprimer, enregistrer ou envoyer.'],
+        ['You’ve made it through the visit.', 'Vous avez fait toute la visite.', 'Next: a clear summary of what the doctor said.', 'Ensuite : un résumé clair de ce que le médecin a dit.'],
+        ['You’re all done.', 'Vous avez tout terminé.', 'Everything is saved on your pages.', 'Tout est enregistré dans vos pages.']][ph] || ['Section done.', 'Section terminée.', '', ''];
+      const big = L2('Outstanding' + (nm ? ', ' + nm : '') + '!', 'Bravo' + (nm ? ', ' + nm : '') + ' !');
+      const ov = document.createElement('div'); ov.className = 'ph-done'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-live', 'assertive');
+      ov.innerHTML = `<div class="ph-card"><div class="ph-face reid-happy reid-grin"><svg viewBox="0 0 40 40" aria-hidden="true">${faceSvg(whHelper)}</svg></div>
+        <p class="ph-big">${esc(big)}</p><p class="ph-sub">${esc(L2(T3[0], T3[1]))}${T3[2] ? '<br>' + esc(L2(T3[2], T3[3])) : ''}</p>
+        <button type="button" class="tactile-btn primary-capsule-btn w-full min-h-[56px] font-extrabold text-[18px] text-white">${L2('Continue', 'Continuer')}</button></div>`;
+      document.body.appendChild(ov); applyLang();
+      const emb = document.getElementById('companionEmblem'); if (emb) emb.classList.add('reid-happy', 'reid-grin');
+      const close = () => { if (!ov.isConnected) return; ov.remove(); if (emb) emb.classList.remove('reid-happy', 'reid-grin'); };
+      ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('button')) { close(); if (readAloud) speakStep(); } });
+      setTimeout(close, 9000);
+      clapping();
+      setTimeout(() => sayT(big.replace(/!$/, '') + '! ' + T3[0], (big.replace(/ !$/, '')) + ' ! ' + T3[1], true), 900);
+    }
 
     // =====================================================================
     // After the visit: hear the doctor's own words for each recap point, and
