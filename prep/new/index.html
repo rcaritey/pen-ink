@@ -60,6 +60,7 @@
     #landingCard { display: none !important; }
     #screenLanding { overflow-y: auto; }   /* on a short screen nothing is cut off: the page scrolls */   /* Rama, 24 Nov: no box on the first page; Reid's bubble says it */
     .rp-hi { margin: 2px 4px 2px; font-size: 20px; font-weight: 700; line-height: 1.25; color: #1E2634; }
+    .rp-type { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
     .rp-say { margin: 0 4px; font-size: 15px; line-height: 1.4; color: #425268; }
     .hf-lid, .hf-mouth { transform-box: fill-box; transform-origin: center; }
     .hf-lid { transform: scaleY(0); animation: hfBlink 5.3s infinite; }
@@ -3302,6 +3303,7 @@
       if (/^(skip|skip (this|that|it|these)( one)?|passer|on passe)$/.test(low) && (step.id === 'detail' || /^dq\d+$/.test(step.id))) { skipDetail(step); return; }
       if (step.id === 'detail' && /^(yes|yeah|yes please|sure|ok|okay|oui|d'accord|allez-y)$/.test(low)) { selectPreset('Yes, ask me'); return; }
       if (/^(?:(?:sorry|pardon|oh|um|uh|reid)[ ,]+)*((sorry|pardon|what|huh|eh)( me)?|come again|say (it|that) again( please)?|(can|could) you (say|repeat) (it|that)( again)?( please)?|(once|one) more time|again( please)?|i didn'?t (hear|catch|get) (it|that|you)|what did you say|what was (the|that) question|louder( please)?)( reid)?$/.test(low)) { speakStep(); return; }
+      if (window.__typedToReid) { understand(t); return; }   // typed in Reid's bubble: a message to him, never an answer
       if (step.mode !== 'voice') { if (!listHeard(step, low)) understand(t); return; }
       if (low.split(' ').length <= 14 && !step.big && ((/\?\s*$/.test(t) || QWORD.test(low)) || REQ.test(low))) { understand(t, () => addAnswer(t)); return; }
       addAnswer(t);
@@ -5595,7 +5597,10 @@
           <p class="rp-say">${hf ? (fr ? 'Je vous écoute. Dites « suivant », « retour », « explique », « réglages », ou posez-moi une question.' : 'I’m listening. Say “next”, “go back”, “explain”, “settings”, or ask me a question.')
             : (fr ? 'En mains libres, vous me parlez et je fais le reste.' : 'Go hands-free and just talk to me. I’ll do the rest.')}</p>
           <div class="flex flex-col gap-[10px]"><button type="button" data-r="handsfree" class="${MB} min-h-[56px] text-[17px] justify-center ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}">${WHI('mic', 22)}${hf ? (fr ? 'Arrêter' : 'Turn off hands-free') : (fr ? 'Mains libres' : 'Go hands-free')}</button>
-          <button type="button" data-r="close" class="${MB} justify-center bg-white border border-[#D6CFC0] text-[#1E2634]">${fr ? 'Pas maintenant' : 'Not now'}</button></div>`;
+          <button type="button" data-r="close" class="${MB} justify-center bg-white border border-[#D6CFC0] text-[#1E2634]">${fr ? 'Pas maintenant' : 'Not now'}</button></div>
+          <form class="rp-type" data-rtype><label class="rp-say" for="reidTypeBox">${fr ? 'Ou écrivez-moi :' : 'Or type to me:'}</label>
+            <div class="flex items-stretch gap-[8px]"><input id="reidTypeBox" type="text" autocomplete="off" placeholder="${fr ? 'Par exemple : texte plus grand' : 'For example: bigger text'}" class="flex-1 min-w-0 min-h-[52px] px-3 rounded-2xl bg-white text-[17px] text-[#1E2634]" style="border: 2px solid #5E7A63">
+            <button type="submit" class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#3B5E42] text-white font-extrabold text-base">${fr ? 'Envoyer' : 'Send'}</button></div></form>`;
         menu.classList.remove('hidden');
         applyLang(); sayT('Hello. My name is ' + nm + '. How can I help?', 'Bonjour. Je m’appelle ' + nm + '. Comment puis-je vous aider ?', true);
         // beside the face, to the right, with the curved tail back to it (the same shape as the helper's notes)
@@ -5609,6 +5614,12 @@
       // the picture moves into the side panel on computers, so listen on the page and check where the tap landed
       document.addEventListener('click', (e) => { if (!e.target.closest('#companionEmblem') || e.target.closest('#reidMenu')) return; e.stopPropagation(); ensureCtx(); if (menu.classList.contains('hidden')) open(); else close(); }, true);
       emb.style.cursor = 'pointer';
+      menu.addEventListener('submit', (e) => {
+        e.preventDefault(); const box = menu.querySelector('#reidTypeBox'), t = box && box.value.trim(); if (!t) { if (box) box.focus(); return; }
+        close(); hush();
+        if (steps[currentIndex].mode === 'landing') { understand(t); return; }
+        window.__typedToReid = true; try { heard(t); } finally { window.__typedToReid = false; }
+      });
       menu.addEventListener('click', (e) => {
         e.stopPropagation(); const b = e.target.closest('[data-r]'); if (!b) return;
         if (b.dataset.r === 'clear') { if (Date.now() - clearArm < 4000 || !canClear()) close(); clearTap(b); return; }
