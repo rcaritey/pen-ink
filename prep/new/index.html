@@ -86,7 +86,12 @@
     .ts-1 .ph-big { font-size: 36px; } .ts-1 .ph-sub { font-size: 22px; } .ts-2 .ph-big { font-size: 42px; } .ts-2 .ph-sub { font-size: 26px; } .ts-1 .ph-card, .ts-2 .ph-card { max-width: 640px; }
     .ph-face svg { width: 132px; height: 132px; display: block; }
     .ph-big { font-size: 30px; font-weight: 800; color: #1E4627; line-height: 1.15; margin: 4px 0 6px; }
-    .ph-sub { font-size: 19px; color: #1E2634; line-height: 1.35; margin: 0 0 18px; }
+    .ph-sub { font-size: 19px; color: #1E2634; line-height: 1.35; margin: 0 0 14px; }
+    .ph-next { text-align: left; background: #fff; border: 1px solid #E2DACB; border-radius: 18px; padding: 12px 16px 12px 14px; margin: 0 0 16px; }
+    .ph-next-h { margin: 0 0 6px; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #3B5E42; }
+    .ph-next ol { margin: 0; padding-left: 1.5em; list-style: decimal; } .ph-next li { font-size: 18px; line-height: 1.35; color: #1E2634; margin: 4px 0; }
+    .ph-card { max-height: calc(100vh - 32px); overflow-y: auto; }
+    .ts-1 .ph-next li { font-size: 21px; } .ts-2 .ph-next li { font-size: 24px; }
     @keyframes phIn { from { opacity: 0; } to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { .ph-face, .ph-done { animation: none; } .hf-grin { transition: none; } }
     #companionEmblem.reid-happy { animation: hfHop .55s ease-out 2; }
@@ -1397,6 +1402,7 @@
       .pg .ans { border-bottom: 1px solid #bbb; height: 22pt; } .pg .foot { font-size: 9pt; color: #555; margin-top: 14pt; }
       .pg .say { font-size: 13pt; font-weight: 700; }
       .pg h2 { border-bottom: none !important; }
+      .pg h2 { break-after: avoid; page-break-after: avoid; } .pg li, .pg tr, .pg p, .pg .glance, .pg .key, .pg .sec.keep { break-inside: avoid; page-break-inside: avoid; }
     }
     /* All three pages: easy to scan. A box with when / with / where at the top, clear section bars, short lines, top questions in bold. */
     .pg .glance { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; border: 2px solid #1E2634; border-radius: 10px; padding: 10px 14px; margin: 8px 0 4px; }
@@ -3928,7 +3934,7 @@
         showToast(L2('Getting your pages ready…', 'Préparation de vos pages…'));
         await toEnglish(['who', 'where', 'day', 'time', 'concerns', 'story', 'conditions', 'meds', 'allergies'].map((id) => SID(id).answer).concat(detailLines(), allQs()));
       }
-      area.innerHTML = which === 'recap' ? recapPage() : `<div data-notr>${doctorPage()}</div>` + patientPage();
+      area.innerHTML = which === 'recap' ? recapPage() : `<div data-notr>${doctorPage()}</div>` + patientPage(); if (typeof sectionize === 'function') sectionize(area);
       if (isMT()) await applyLang(area);
       setTimeout(() => window.print(), 50);
     }
@@ -5914,11 +5920,22 @@
         ['You’ve made it through the visit.', 'Vous avez fait toute la visite.', '', ''],
         ['You’re all done.', 'Vous avez tout terminé.', 'Your summary and next steps are ready to print, save and send.', 'Votre résumé et vos prochaines étapes sont prêts à imprimer, enregistrer et envoyer.']][ph] || ['Section done.', 'Section terminée.', '', ''];
       const big = L2('Outstanding' + (nm ? ', ' + nm : '') + '!', 'Bravo' + (nm ? ', ' + nm : '') + ' !');
+      // what comes next, laid out right after the congratulations (Rama, 25 Nov)
+      const NEXT = [[['Print or save your pages, or send them to your care circle.', 'Imprimez ou enregistrez vos pages, ou envoyez-les à votre cercle de soins.'],
+          ['Bring them to your appointment.', 'Apportez-les à votre rendez-vous.'],
+          ['At the visit, open WellHeard: ' + helperName() + ' helps you record and go through your questions.', 'À la visite, ouvrez WellHeard : ' + helperName() + ' vous aide à enregistrer et à passer vos questions.']],
+        [[helperName() + ' writes a summary of what the doctor said.', helperName() + ' écrit un résumé de ce que le médecin a dit.'],
+          ['Check it, and fix anything that isn’t right.', 'Vérifiez-le, et corrigez ce qui n’est pas juste.'],
+          ['Send it to your care circle and add dates to your calendar.', 'Envoyez-le à votre cercle de soins et ajoutez les dates à votre calendrier.']],
+        [['Send your summary to your care circle.', 'Envoyez votre résumé à votre cercle de soins.'],
+          ['Add your next appointment to your calendar.', 'Ajoutez votre prochain rendez-vous à votre calendrier.'],
+          ['For your next visit, start a new one: your basics are kept.', 'Pour votre prochaine visite, commencez-en une nouvelle : vos informations de base sont gardées.']]][ph] || [];
       // Accessible for older users (Rama, 25 Nov): no timer, only the Continue button (or Esc, or saying "next") closes it,
       // the button is ready for the keyboard, the text follows the text-size setting, and the voice waits for the chime.
       const ov = document.createElement('div'); ov.className = 'ph-done'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'phBig');
       ov.innerHTML = `<div class="ph-card"><div class="ph-face-wrap"><div class="ph-face reid-happy reid-grin"><svg viewBox="0 0 40 40" aria-hidden="true">${faceSvg(whHelper)}</svg></div><span class="ph-thumb">${THUMB}</span></div>
         <p class="ph-big" id="phBig">${esc(big)}</p><p class="ph-sub">${esc(L2(T3[0], T3[1]))}${T3[2] ? '<br>' + esc(L2(T3[2], T3[3])) : ''}</p>
+        ${NEXT.length ? `<div class="ph-next"><p class="ph-next-h">${L2('What’s next', 'Et ensuite')}</p><ol>${NEXT.map((n) => `<li>${esc(L2(n[0], n[1]))}</li>`).join('')}</ol></div>` : ''}
         <button type="button" data-phgo class="tactile-btn primary-capsule-btn w-full min-h-[60px] font-extrabold text-[20px] text-white">${L2('Continue', 'Continuer')}</button></div>`;
       document.body.appendChild(ov); applyLang();
       const emb = document.getElementById('companionEmblem'); if (emb) emb.classList.add('reid-happy', 'reid-grin');
@@ -5926,7 +5943,8 @@
       const key = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
       const close = () => { if (!ov.isConnected) return; ov.remove(); document.removeEventListener('keydown', key, true); window.__phClose = null; if (emb) emb.classList.remove('reid-happy', 'reid-grin'); hush(); if (readAloud) speakStep(); };
       document.addEventListener('keydown', key, true); go.addEventListener('click', close); window.__phClose = close;
-      const line = L2(big + ' ' + T3[0] + (T3[2] ? ' ' + T3[2] : ''), big + ' ' + T3[1] + (T3[3] ? ' ' + T3[3] : ''));
+      const nextSaid = NEXT.length ? L2(' Here’s what’s next. ', ' Et ensuite. ') + NEXT.map((n, i) => L2(['First', 'Then', 'And'][i] + ', ', ['D’abord', 'Puis', 'Et'][i] + ', ') + L2(n[0], n[1])).join(' ') : '';
+      const line = L2(big + ' ' + T3[0] + (T3[2] ? ' ' + T3[2] : ''), big + ' ' + T3[1] + (T3[3] ? ' ' + T3[3] : '')) + nextSaid;
       chime().then(() => {   // then the helper says it, warmly, even when read-aloud is off (it's the one moment worth hearing)
         if (!ov.isConnected) return;
         const was = [inputPreference, readAloud]; inputPreference = 'voice'; readAloud = true; window.__ttsMood = 'happy';
@@ -7283,7 +7301,7 @@
       const H = await loadPdfLib();
       if (w === 'doc' && isMT()) await toEnglish(['who', 'where', 'day', 'time', 'concerns', 'story', 'conditions', 'meds', 'allergies'].map((id) => SID(id).answer).concat(detailLines(), allQs()));
       const host = document.createElement('div'); host.style.cssText = 'position:fixed;left:-10000px;top:0;width:8.5in;background:#fff';
-      host.innerHTML = `<div class="paper pdf" style="width:7.5in;box-shadow:none;border:0;margin:0;padding:0;background:#fff"><div class="paper-in">${pageHtml(w)}</div></div>`;
+      host.innerHTML = `<div class="paper pdf" style="width:7.5in;box-shadow:none;border:0;margin:0;padding:0;background:#fff"><div class="paper-in">${pageHtml(w)}</div></div>`; sectionize(host);
       document.body.appendChild(host); if (isMT()) await applyLang(host);
       // one file per visit (Rama, 24 Nov): who, which page, where, the appointment date — "REID - Pierre Caritey - 2026-11-24 - Foot clinic - Medical team page.pdf"
       const iso = SID('day').dateISO || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -7293,7 +7311,7 @@
       try {
         const blob = await H().set({ margin: [0.5, 0.5, 0.55, 0.5], filename: name, image: { type: 'jpeg', quality: 0.95 },
           html2canvas: { scale: 2, backgroundColor: '#ffffff', useCORS: true }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'], avoid: ['li', 'h2', 'tr', '.glance', '.key'] } }).from(host.firstElementChild).outputPdf('blob');
+          pagebreak: { mode: ['css', 'legacy'], avoid: ['li', 'h2', 'tr', '.glance', '.key', '.sec.keep', 'p'] } }).from(host.firstElementChild).outputPdf('blob');
         return new File([blob], name, { type: 'application/pdf' });
       } finally { host.remove(); }
     }
@@ -7361,6 +7379,46 @@
     });
     { const sp3 = showPage; showPage = function (w) { if (['mine', 'doc', 'circle'].includes(w)) readyPick = w; return sp3(w); }; }
 
+    // Pages split cleanly (Rama, 25 Nov): each section (heading + what follows) is grouped; a short section moves whole
+    // to the next page rather than split; a long one may split, but never through a line, and a heading never sits alone.
+    function sectionize(root) {
+      root.querySelectorAll('.pg').forEach((pg) => {
+        if (pg.dataset.sect) return; pg.dataset.sect = '1';
+        [...pg.querySelectorAll(':scope > h2')].forEach((h) => {
+          const wrap = document.createElement('div'); wrap.className = 'sec'; h.before(wrap);
+          let n = h; const parts = []; while (n && !(n.nodeType === 1 && (n.tagName === 'H2' && n !== h || n.classList.contains('foot')))) { parts.push(n); n = n.nextSibling; }
+          parts.forEach((x) => wrap.appendChild(x));
+          const lines = wrap.querySelectorAll('li, tr, p').length;
+          if (lines <= 6) wrap.classList.add('keep');
+        });
+      });
+    }
+    // the on-screen letter view: push whatever would cross a page edge down to the next page
+    function paginate(paper) {
+      paper.querySelectorAll('.pg-push').forEach((x) => x.remove());
+      if (!paper.classList.contains('letter')) return;
+      const PX = 96, PAGE = 11 * PX, M = 0.5 * PX;
+      // the page may be zoomed by itself and by the app: measure in the page's own units (screen size ÷ its layout size)
+      const z = paper.getBoundingClientRect().height / (paper.offsetHeight || 1) || 1;
+      const top0 = () => paper.getBoundingClientRect().top / z;
+      const blocks = [];
+      paper.querySelectorAll('.pg').forEach((pg) => [...pg.children].forEach((c) => {
+        if (c.classList.contains('sec') && !c.classList.contains('keep')) { [...c.children].forEach((x) => (x.matches('ol, ul, table') ? blocks.push(...x.querySelectorAll(':scope > li, tr')) : blocks.push(x))); }
+        else blocks.push(c);
+      }));
+      for (let i = 0; i < blocks.length; i++) {
+        const b = blocks[i]; if (!b.isConnected) continue;
+        const r = b.getBoundingClientRect(), t = r.top / z - top0(), h = r.height / z; if (h <= 0 || h > PAGE - 2 * M) continue;
+        const k = Math.floor(t / PAGE), end = (k + 1) * PAGE - M;
+        // a heading needs room for itself and the first thing under it
+        let need = t + h; if (b.tagName === 'H2' && blocks[i + 1]) need = blocks[i + 1].getBoundingClientRect().bottom / z - top0();
+        if (need > end) {
+          const sp = document.createElement(b.tagName === 'LI' ? 'li' : b.tagName === 'TR' ? 'tr' : 'div'); sp.className = 'pg-push'; sp.setAttribute('aria-hidden', 'true');
+          sp.style.cssText = `display:block;height:${Math.max(0, (k + 1) * PAGE + M - t)}px;list-style:none;counter-increment:none;margin:0;padding:0;border:0`;   // block, so a list doesn't count it as a line
+          b.before(sp);
+        }
+      }
+    }
     { const sp4 = showPage; showPage = function (w) {
       sp4(w);
       const box = document.querySelector('#fullDoctorModal .space-y-3'), inner = box && box.firstElementChild; if (!inner) return;
@@ -7369,10 +7427,12 @@
       inner.innerHTML = selWrap + `<div class="paper"><div class="paper-in">${pageHtml(k)}</div></div>`;
       inner.style.fontSize = ''; inner.style.lineHeight = '';
       inner.querySelectorAll('[data-pv]').forEach((x) => x.addEventListener('click', () => showPage(x.dataset.pv)));
-      const paper = inner.querySelector('.paper'), fit = () => {
+      const paper = inner.querySelector('.paper'); sectionize(paper);
+      const fit = () => {
         const bw = box.clientWidth - 8, letter = bw >= 600;
         paper.classList.toggle('letter', letter); paper.classList.toggle('flow', !letter);
         paper.style.zoom = letter ? String(Math.min(1.6, bw / 816)) : '';
+        paginate(paper);
         box.dispatchEvent(new Event('scroll'));
       };
       fit(); setTimeout(fit, 80);
