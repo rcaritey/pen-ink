@@ -5537,7 +5537,7 @@
     const pickHost = document.createElement('div'); pickHost.id = 'pickHost'; pickHost.className = 'hidden w-full flex flex-col gap-[8px] shrink-0';
     const dayStr = (d) => d.toLocaleDateString(LOC[lang] || 'en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
     const hourStr = (h, m) => { const d = new Date(2000, 0, 1, h, m); return d.toLocaleTimeString(LOC[lang] || 'en-CA', { hour: 'numeric', minute: '2-digit' }); };
-    let pickWeek = null, pickHour = null, pickBrowse = false, pickFor = null;   // two-tap picker state, reset on each new step
+    let pickWeek = null, pickHour = null, pickBrowse = false, pickFor = null, pickMonth = null, pickPage = 0;   // two-tap picker state, reset on each new step
     const CELL = 'tactile-btn h-[40px] rounded-xl font-extrabold text-[18px] flex items-center justify-center';
     const PILL = 'tactile-btn min-h-[52px] rounded-2xl font-extrabold text-[17px] flex items-center justify-center';
     const wideNow = () => document.getElementById('appContainer').classList.contains('wide');
@@ -5551,41 +5551,43 @@
       const BIG = 'tactile-btn w-full min-h-[60px] px-4 rounded-2xl font-extrabold text-[18px] flex items-center justify-between gap-2 text-left';
       const backBtn = (act, en, f) => `<button type="button" data-pk="${act}" class="tactile-btn self-start min-h-[48px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[16px]">‹ ${L2(en, f)}</button>`;
       if (step.id === 'day') {
+        // Appointments can be months or years away (Rama, 24 Nov): week buttons for the next 3 weeks, or month → week → day for anything later.
         const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        const monOf = (d) => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+        const monOf = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
         const weekStart = (w) => { const x = monOf(today); x.setDate(x.getDate() + 7 * w); return x; };
-        const weekOf = (iso) => { const d = new Date(iso + 'T00:00'); for (let w = 0; w < 3; w++) { const s0 = weekStart(w), e0 = new Date(s0); e0.setDate(e0.getDate() + 7); if (d >= s0 && d < e0) return w; } return 'cal'; };
-        if (pickWeek === null && !pickBrowse && step.dateISO && !notSure) pickWeek = weekOf(step.dateISO);
+        const weekOf = (iso) => Math.round((monOf(new Date(iso + 'T00:00')) - monOf(today)) / 6048e5);
+        const fmt = (d, o) => d.toLocaleDateString(LOC[lang] || 'en-CA', o);
+        const short = { month: 'short', day: 'numeric' };
+        const rng = (w) => { const s0 = w === 0 ? today : weekStart(w), e0 = new Date(weekStart(w)); e0.setDate(e0.getDate() + 6); return `${fmt(s0, short)} – ${fmt(e0, short)}`; };
+        const monthOnly = /^[^\d]*\d{4}$/.test((step.answer || '').trim()) && !step.dateISO;
+        if (pickWeek === null && !pickBrowse && step.dateISO && !notSure) { pickWeek = weekOf(step.dateISO); const d = new Date(step.dateISO + 'T00:00'); if (pickWeek > 2) pickMonth = new Date(d.getFullYear(), d.getMonth(), 1); }
         const notBtn = `<button type="button" data-unsure="day" class="${BIG} ${notSure ? SEL : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}"><span>${notSure ? '✓ ' : ''}${L2('Not booked yet', 'Pas encore fixé')}</span></button>`;
         if (pickWeek === null) {
-          const rng = (w) => { const s0 = w === 0 ? today : weekStart(w), e0 = new Date(weekStart(w)); e0.setDate(e0.getDate() + 6);
-            const f = (d) => d.toLocaleDateString(LOC[lang] || 'en-CA', { month: 'short', day: 'numeric' }); return `${f(s0)} – ${f(e0)}`; };
           const wk = (w, en, f) => `<button type="button" data-wk="${w}" class="${BIG} ${OFFB}"><span>${L2(en, f)}</span><span class="text-[15px] font-normal text-[#425268]" data-notr>${rng(w)}</span></button>`;
           html += `<div class="pk-list">${wk(0, 'This week', 'Cette semaine')}${wk(1, 'Next week', 'La semaine prochaine')}${wk(2, 'In 2 weeks', 'Dans 2 semaines')}
-            <button type="button" data-wk="cal" class="${BIG} ${OFFB}"><span>${L2('Later', 'Plus tard')}</span><span class="text-[15px] font-normal text-[#425268]">${L2('See the calendar', 'Voir le calendrier')}</span></button>${notBtn}</div>`;
-        } else if (pickWeek === 'cal') {
-          if (!calMonth) { const iso = step.dateISO ? new Date(step.dateISO + 'T00:00') : today; calMonth = new Date(iso.getFullYear(), iso.getMonth(), 1); }
-          html += backBtn('weeks', 'Pick a week instead', 'Choisir une semaine');
-        const y = calMonth.getFullYear(), m = calMonth.getMonth(), first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
-        const wk = [...Array(7)].map((_, i) => new Date(2023, 0, 1 + i).toLocaleDateString(LOC[lang] || 'en-CA', { weekday: 'narrow' }));
-        const notBtn = `<button type="button" data-unsure="day" class="${PILL} ${wideNow() ? 'px-4' : 'w-full'} ${notSure ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${notSure ? '✓ ' : ''}${L2('Not booked yet', 'Pas encore fixé')}</button>`;
-        const canBack = y > today.getFullYear() || (y === today.getFullYear() && m > today.getMonth());
-        html += `<div class="flex items-stretch gap-[10px]">
-            <button type="button" data-cal="-1" ${canBack ? '' : 'disabled'} aria-label="${L2('Previous month', 'Mois précédent')}" class="${PILL} w-[56px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] ${canBack ? '' : 'opacity-30'}">◀</button>
-            <div class="flex-1 flex items-center justify-center font-extrabold text-[18px] text-[#1E2634]" data-notr>${calMonth.toLocaleDateString(LOC[lang] || 'en-CA', { month: 'long', year: 'numeric' })}</div>
-            <button type="button" data-cal="1" aria-label="${L2('Next month', 'Mois suivant')}" class="${PILL} w-[56px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">▶</button></div>
-          <div class="grid grid-cols-7 gap-[6px] text-center text-[12px] font-extrabold text-[#425268]" data-notr>${wk.map((d) => `<span>${d}</span>`).join('')}</div>
-          <div class="grid grid-cols-7 gap-[6px]" data-notr>${'<span></span>'.repeat(first)}${[...Array(days)].map((_, i) => {
-            const d = new Date(y, m, i + 1), iso = `${y}-${String(m + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
-            const past = d < today, on = step.dateISO === iso && !notSure, isToday = d.getTime() === today.getTime();
-            return `<button type="button" data-day="${iso}" aria-pressed="${on}" ${past ? 'disabled' : ''} aria-label="${dayStr(d)}" class="${CELL} ${on ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : past ? 'text-[#425268]/35' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} ${isToday && !on ? 'ring-2 ring-[#3B5E42]' : ''}">${i + 1}</button>`;
-          }).join('')}</div>
-          `;
+            <button type="button" data-wk="months" class="${BIG} ${OFFB}"><span>${L2('Later', 'Plus tard')}</span><span class="text-[15px] font-normal text-[#425268]">${L2('Pick the month', 'Choisir le mois')}</span></button>${notBtn}</div>`;
+        } else if (pickWeek === 'months') {
+          const first = new Date(today.getFullYear(), today.getMonth() + 12 * pickPage, 1);
+          const months = [...Array(12)].map((_, i) => new Date(first.getFullYear(), first.getMonth() + i, 1));
+          html += backBtn('weeks', 'Back to the weeks', 'Retour aux semaines') + `<div class="pk-list pk-days" data-notr>${months.map((d) => {
+            const on = pickMonth && d.getTime() === pickMonth.getTime();
+            return `<button type="button" data-mon="${isoOf(d)}" class="${BIG} ${on ? SEL : OFFB}"><span>${on ? '✓ ' : ''}${fmt(d, { month: 'long', year: 'numeric' })}</span></button>`; }).join('')}</div>
+            <div class="flex gap-[10px] w-full">${pickPage > 0 ? `<button type="button" data-pg="-1" class="${BIG} justify-center bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]"><span>‹ ${L2('Earlier months', 'Mois précédents')}</span></button>` : ''}
+            <button type="button" data-pg="1" class="${BIG} justify-center bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]"><span>${L2('Even later', 'Encore plus tard')} ›</span></button></div>`;
+        } else if (pickWeek === 'month') {
+          const m0 = pickMonth, mEnd = new Date(m0.getFullYear(), m0.getMonth() + 1, 0), w0 = Math.max(0, weekOf(isoOf(m0))), w1 = weekOf(isoOf(mEnd));
+          const mName = fmt(m0, { month: 'long', year: 'numeric' }), onlyOn = monthOnly && (step.answer || '').trim() === mName;
+          html += backBtn('months', 'Pick a different month', 'Choisir un autre mois') + `<div class="pk-list pk-days" data-notr>${[...Array(w1 - w0 + 1)].map((_, i) => {
+            const w = w0 + i, s0 = w === 0 ? today : weekStart(w), e0 = new Date(weekStart(w)); e0.setDate(e0.getDate() + 6);
+            const a0 = s0 < m0 ? m0 : s0, b0 = e0 > mEnd ? mEnd : e0;
+            return `<button type="button" data-wk="${w}" class="${BIG} ${OFFB}"><span>${fmt(a0, short)} – ${fmt(b0, short)}</span></button>`; }).join('')}</div>
+            <button type="button" data-monly="${mName}" class="${BIG} ${onlyOn ? SEL : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}"><span>${onlyOn ? '✓ ' : ''}${L2('I only know the month', 'Je connais seulement le mois')}</span></button>`;
         } else {
           const s0 = weekStart(pickWeek), tmr = new Date(today); tmr.setDate(tmr.getDate() + 1);
-          const days = [...Array(7)].map((_, i) => { const d = new Date(s0); d.setDate(d.getDate() + i); return d; }).filter((d) => d >= today);
-          const lab = (d) => d.toLocaleDateString(LOC[lang] || 'en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
-          html += backBtn('weeks', 'Pick a different week', 'Choisir une autre semaine') + `<div class="pk-list pk-days" data-notr>${days.map((d) => {
+          const days = [...Array(7)].map((_, i) => { const d = new Date(s0); d.setDate(d.getDate() + i); return d; }).filter((d) => d >= today && (!pickMonth || d.getMonth() === pickMonth.getMonth()));
+          const withYear = s0.getFullYear() !== today.getFullYear() || weekStart(pickWeek + 1).getFullYear() !== today.getFullYear();
+          const lab = (d) => fmt(d, withYear ? { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' } : { weekday: 'long', month: 'long', day: 'numeric' });
+          html += backBtn(pickMonth ? 'month' : 'weeks', pickMonth ? 'Pick a different week' : 'Pick a different week', 'Choisir une autre semaine') + `<div class="pk-list pk-days" data-notr>${days.map((d) => {
             const iso = isoOf(d), on = step.dateISO === iso && !notSure, tag = d.getTime() === today.getTime() ? L2('Today', 'Aujourd’hui') : d.getTime() === tmr.getTime() ? L2('Tomorrow', 'Demain') : '';
             return `<button type="button" data-day="${iso}" aria-pressed="${on}" class="${BIG} ${on ? SEL : OFFB}"><span>${on ? '✓ ' : ''}${lab(d)}</span>${tag ? `<span class="text-[15px] font-normal text-[#425268]">${tag}</span>` : ''}</button>`;
           }).join('')}</div>`;
@@ -5607,7 +5609,7 @@
       const chosen = (step.answer || '').trim(), help = document.getElementById('screenHelperText');
       help.classList.remove('hidden');
       help.innerHTML = chosen ? `<span class="inline-block mt-1 px-4 py-1.5 rounded-xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634] text-[20px] font-extrabold" data-notr>✓ ${esc(chosen)}</span>`
-        : esc(step.id === 'day' ? (pickWeek === null ? L2('Which week? Tap it, or say the day.', 'Quelle semaine ? Touchez-la, ou dites le jour.') : L2('Tap the day, or say it.', 'Touchez le jour, ou dites-le.')) : (pickHour === null ? L2('Tap the hour, or say the time.', 'Touchez l’heure, ou dites-la.') : L2('Now tap the exact time.', 'Touchez maintenant l’heure exacte.')));
+        : esc(step.id === 'day' ? (pickWeek === null ? L2('When is it? Tap one, or say the date.', 'C’est quand ? Touchez, ou dites la date.') : pickWeek === 'months' ? L2('Which month?', 'Quel mois ?') : pickWeek === 'month' ? L2('Which week in ', 'Quelle semaine en ') + pickMonth.toLocaleDateString(LOC[lang] || 'en-CA', { month: 'long', year: 'numeric' }) + '?' : L2('Tap the day, or say it.', 'Touchez le jour, ou dites-le.')) : (pickHour === null ? L2('Tap the hour, or say the time.', 'Touchez l’heure, ou dites-la.') : L2('Now tap the exact time.', 'Touchez maintenant l’heure exacte.')));
       pickHost.innerHTML = html;
     }
     function setPick(step, text) {
@@ -5616,8 +5618,13 @@
     }
     pickHost.addEventListener('click', (e) => {
       const step = steps[currentIndex], b = e.target.closest('button'); if (!b || b.disabled) return;
-      if (b.dataset.wk) { pickWeek = b.dataset.wk === 'cal' ? 'cal' : Number(b.dataset.wk); pickBrowse = true; renderPicker(step); applyLang(); return; }
-      if (b.dataset.pk === 'weeks') { pickWeek = null; pickBrowse = true; renderPicker(step); applyLang(); return; }
+      if (b.dataset.wk) { if (b.dataset.wk === 'months') { pickWeek = 'months'; } else { pickWeek = Number(b.dataset.wk); if (pickWeek <= 2 && !b.closest('.pk-days')) pickMonth = null; } pickBrowse = true; renderPicker(step); applyLang(); return; }
+      if (b.dataset.mon) { pickMonth = new Date(b.dataset.mon + 'T00:00'); pickWeek = 'month'; pickBrowse = true; renderPicker(step); applyLang(); return; }
+      if (b.dataset.pg) { pickPage = Math.max(0, pickPage + Number(b.dataset.pg)); renderPicker(step); applyLang(); return; }
+      if (b.dataset.monly) { step.dateISO = ''; setPick(step, b.dataset.monly); say(b.dataset.monly, true); return; }
+      if (b.dataset.pk === 'weeks') { pickWeek = null; pickMonth = null; pickBrowse = true; renderPicker(step); applyLang(); return; }
+      if (b.dataset.pk === 'months') { pickWeek = 'months'; pickBrowse = true; renderPicker(step); applyLang(); return; }
+      if (b.dataset.pk === 'month') { pickWeek = 'month'; pickBrowse = true; renderPicker(step); applyLang(); return; }
       if (b.dataset.pk === 'hours') { pickHour = null; pickBrowse = true; renderPicker(step); applyLang(); return; }
       if (b.dataset.cal) { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + Number(b.dataset.cal), 1); renderPicker(step); applyLang(); return; }
       if (b.dataset.day) { step.dateISO = b.dataset.day; const d = new Date(b.dataset.day + 'T00:00'); setPick(step, dayStr(d)); say(dayStr(d), true); return; }
@@ -5630,7 +5637,7 @@
       const scr = document.getElementById('voiceCaptureScreen'), box = document.getElementById('answerBoxWrapper'), chips = document.getElementById('quickChipsGrid');
       if (on && pickHost.parentNode !== scr) scr.insertBefore(pickHost, box);
       pickHost.classList.toggle('hidden', !on); box.classList.toggle('hidden', on); chips.classList.toggle('hidden', on);
-      if (on) { if (step.id === 'day') calMonth = calMonth || null; if (pickFor !== step) { pickFor = step; pickWeek = null; pickHour = null; pickBrowse = false; } renderPicker(step); }
+      if (on) { if (step.id === 'day') calMonth = calMonth || null; if (pickFor !== step) { pickFor = step; pickWeek = null; pickHour = null; pickBrowse = false; pickMonth = null; pickPage = 0; } renderPicker(step); }
     }
 
     // ---------- tie everything into the prototype's own flow ----------
