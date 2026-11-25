@@ -4384,6 +4384,7 @@
     // Large text on a phone: the suggestion card shrinks step by step until Yes / Most important / No all fit
     function fitIdeas(items) {
       const over = () => items.scrollHeight > items.clientHeight + 1;
+      if (items.querySelector('.idea-row3') && !over()) return;
       if (!items.clientHeight || !over()) return;
       const q = items.querySelector('.text-\\[21px\\]'), card = items.firstElementChild, tag = card && card.querySelector('span');
       const steps2 = [
@@ -4392,17 +4393,19 @@
         () => { items.querySelectorAll('[data-idea]').forEach((b) => { b.style.minHeight = '50px'; }); if (card) card.style.padding = '12px'; },
         () => { if (tag) tag.style.display = 'none'; },
         () => { document.getElementById('listTitle').textContent = L2('Ask the doctor this?', 'Le demander au médecin ?'); },
-        () => {   // Yes, Most important and No side by side
-          const yes = items.querySelector('[data-idea="yes"]'), row = items.querySelector('[data-idea="star"]') && items.querySelector('[data-idea="star"]').parentElement;
-          if (!yes || !row) return;
-          yes.textContent = '✓ ' + L2('Yes', 'Oui'); yes.classList.remove('w-full'); yes.classList.add('flex-1');
-          row.querySelector('[data-idea="star"]').textContent = '★ ' + L2('Top', 'Clé'); row.querySelector('[data-idea="no"]').textContent = L2('No', 'Non');
-          const sp = document.createElement('div'); sp.className = 'w-[12px] shrink-0'; row.prepend(sp); row.prepend(yes);
+        () => {   // short screens: the three choices side by side, labels kept in full (Rama, 25 Nov: always Must ask / If there's time / Leave out)
+          const star = items.querySelector('[data-idea="star"]'), yes = items.querySelector('[data-idea="yes"]'), no = items.querySelector('[data-idea="no"]');
+          if (!star || !yes || !no || star.parentElement.classList.contains('idea-row3')) return;
+          const row = document.createElement('div'); row.className = 'idea-row3 w-full grid grid-cols-3 gap-[12px]';
+          star.parentElement.insertBefore(row, star); const old = yes.parentElement; row.append(star, yes, no); if (old && old !== items && !old.querySelector('button')) old.remove();
+          [star, yes, no].forEach((x) => { x.classList.remove('w-full', 'flex-1', 'text-xl'); x.style.fontSize = '17px'; x.style.lineHeight = '1.2'; x.style.padding = '4px 8px'; x.style.minHeight = '56px'; });
         },
         () => { if (q) q.style.fontSize = '16px'; }
       ];
       for (const f of steps2) { f(); if (!over()) return; }
-      items.classList.add('overflow-y-auto');   // last resort: it scrolls, nothing is cut off
+      // last resort (Rama, 25 Nov): the question card scrolls inside itself, so the three choices always stay in view
+      if (card) { card.style.flex = '1 1 auto'; card.style.minHeight = '72px'; card.style.overflowY = 'auto'; [...items.children].forEach((c) => { if (c !== card) c.style.flexShrink = '0'; }); }
+      if (over()) items.classList.add('overflow-y-auto');
     }
     // ---------- end of preparing: the pages, ready to print, save or send, and every part can be changed ----------
     function renderReady(items, foot) {
@@ -4555,7 +4558,7 @@
         }
         const gap = '<div class="w-[10px] shrink-0" aria-hidden="true"></div>';
         foot.innerHTML = qAdding ? footHtml(1, '') : `${ideaHist.length ? `<button type="button" data-idea="undo" class="${B_FOOT} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">‹ ${L2('Previous', 'Précédente')}</button>${gap}` : ''}<button type="button" data-foot="add" class="${B_FOOT} bg-[#F0EBE1] border-2 border-dashed border-[#1E2634]/45 text-[#1E2634]">+ ${L2('Your own', 'La vôtre')}</button>${gap}<button type="button" data-foot="gen" ${aiBusy ? 'disabled' : ''} class="${B_FOOT} bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] ${aiBusy ? 'opacity-60' : ''}">${aiBusy ? L2('Thinking…', 'Un instant…') : L2('✨ Reid: more', '✨ Reid : plus')}</button>`;
-        fitIdeas(items);
+        fitIdeas(items); requestAnimationFrame(() => requestAnimationFrame(() => { if (steps[currentIndex].mode === 'ideas') fitIdeas(items); }));   // again once the page has its final size
       } else if (step.mode === 'priority') {
         const all = chosen(), wide = window.innerWidth >= 900, pg = wide ? { items: all, n: 1 } : pageOf(all); qShown = pg.items;
         $('listTitle').textContent = L2('Your questions', 'Vos questions');
