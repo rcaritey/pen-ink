@@ -50,7 +50,8 @@
   <style>
     /* ===== Lighter look (Rama, 24 Nov) — same contrast, less weight. Shadows kept. ===== */
     .reid-pop { background: #FAF7F0; border: 2px solid #3B5E42; border-radius: 18px; box-shadow: 0 2px 6px rgba(51,72,47,.18), 0 10px 24px rgba(51,72,47,.18); }
-    #landingCard { display: none !important; }   /* Rama, 24 Nov: no box on the first page; Reid's bubble says it */
+    #landingCard { display: none !important; }
+    #screenLanding { overflow-y: auto; }   /* on a short screen nothing is cut off: the page scrolls */   /* Rama, 24 Nov: no box on the first page; Reid's bubble says it */
     .rp-hi { margin: 2px 4px 2px; font-size: 20px; font-weight: 700; line-height: 1.25; color: #1E2634; }
     .rp-say { margin: 0 4px; font-size: 15px; line-height: 1.4; color: #425268; }
     .hp-wrap { display: flex; flex-direction: column; gap: 10px; width: 100%; }
@@ -407,7 +408,7 @@
     #appContainer.wide > #progressHeader { grid-column: 2 / span 2; grid-row: 2; align-self: center; justify-self: stretch; width: 100%; margin: 0 !important; }
     #appContainer.wide > section { grid-column: 2 / span 2; grid-row: 3; }
     #appContainer.wide > footer { grid-column: 2 / span 2; grid-row: 4; }
-    #appContainer.wide #reidHello { right: auto; width: 330px; top: 140px; }
+
     /* "Welcome back, how would you like to answer?" as a bubble from Reid (24 Nov) */
     #welcomeBack .wb-face { position: fixed; border-radius: 9999px; background: #FAF7F0; box-shadow: 0 0 0 4px #FAF7F1, 0 4px 14px rgba(0,0,0,.25); overflow: hidden; }
     #welcomeBack .wb-bubble { border: 2px solid #3B5E42; }
@@ -2799,7 +2800,7 @@
 
     // ---------- French ----------
     const FR = {
-      'Get ready for your appointment': 'Préparez votre rendez-vous', 'Welcome to WellHeard': 'Bienvenue sur WellHeard', 'Ever left the doctor’s and remembered what you forgot to ask?': 'Déjà sorti de chez le médecin en vous rappelant ce que vous avez oublié de demander ?', 'You’re not alone. Much of what the doctor says is forgotten right away, and almost half of what we remember is wrong.': 'Vous n’êtes pas seul. On oublie vite une bonne partie de ce que dit le médecin, et près de la moitié de ce qu’on retient est faux.', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what was said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce qui a été dit.', 'Reid is talking': 'Reid parle', 'Reid, your AI helper, will:': 'Reid, votre assistant IA, va :', 'Help you get ready, one question at a time': 'Vous aider à vous préparer, une question à la fois', 'Make a clear page for your doctor': 'Faire une page claire pour votre médecin', 'Write down what the doctor said': 'Noter ce que le médecin a dit', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what the doctor said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce que le médecin a dit.', 'Your AI helper': 'Votre assistant IA', "Welcome to WellHeard! My name is Reid. I’m your AI helper. I get you ready, make a clear page for your doctor, and write down what the doctor said. Would you like me to read this page to you?": "Bienvenue sur WellHeard ! Je m’appelle Reid. Je suis votre assistant IA. Je vous aide à vous préparer, je fais une page claire pour votre médecin, et je note ce que le médecin a dit. Voulez-vous que je vous lise cette page ?", "Welcome to WellHeard. My name is Reid. I’m your AI helper.": "Bienvenue sur WellHeard. Je m’appelle Reid. Je suis votre assistant IA.", "I'll help you get ready, make a clear page for your doctor, and write down what was said. You can speak or tap with me.": "Je vous aide à vous préparer, je fais une page claire pour votre médecin et je note ce qui a été dit. Vous pouvez me parler ou toucher l'écran.", 'How it works': 'Comment ça marche',
+      'Get ready for your appointment': 'Préparez votre rendez-vous', 'Welcome to WellHeard': 'Bienvenue sur WellHeard', 'Ever left the doctor’s and remembered what you forgot to ask?': 'Déjà sorti de chez le médecin en vous rappelant ce que vous avez oublié de demander ?', 'You’re not alone. Much of what the doctor says is forgotten right away, and almost half of what we remember is wrong.': 'Vous n’êtes pas seul. On oublie vite une bonne partie de ce que dit le médecin, et près de la moitié de ce qu’on retient est faux.', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what was said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce qui a été dit.', 'Reid is talking': 'Reid parle', 'Reid, your AI helper, will:': 'Reid, votre assistant IA, va :', 'Help you get ready, one question at a time': 'Vous aider à vous préparer, une question à la fois', 'Make a clear page for your doctor': 'Faire une page claire pour votre médecin', 'Write down what the doctor said': 'Noter ce que le médecin a dit', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what the doctor said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce que le médecin a dit.', 'Your AI helper': 'Votre assistant IA', "Welcome! My name is Reid, your AI helper. I help you arrive prepared, with your questions and health information for your doctor. I can also record the visit, so you leave with a clear summary and next steps. Shall I read this page to you?": "Bienvenue ! Je m’appelle Reid, votre assistant IA. Je vous aide à arriver préparé, avec vos questions et vos renseignements de santé pour votre médecin. Je peux aussi enregistrer la visite, pour que vous repartiez avec un résumé clair et les prochaines étapes. Voulez-vous que je vous lise cette page ?", "Welcome to WellHeard. My name is Reid. I’m your AI helper.": "Bienvenue sur WellHeard. Je m’appelle Reid. Je suis votre assistant IA.", "I'll help you get ready, make a clear page for your doctor, and write down what was said. You can speak or tap with me.": "Je vous aide à vous préparer, je fais une page claire pour votre médecin et je note ce qui a été dit. Vous pouvez me parler ou toucher l'écran.", 'How it works': 'Comment ça marche',
       'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
       'Private: your answers are saved only on this device.': 'Privé : vos réponses sont gardées seulement sur cet appareil.',
@@ -4710,21 +4711,18 @@
     // His hello is written; tapping "Yes, read it" is the tap that lets him speak.
     var greeted = false;
     const hello = document.createElement('div'); hello.id = 'reidHello';
-    hello.className = 'hidden absolute left-4 right-4 top-[80px] z-40 bg-white border-2 border-[#3B5E42] rounded-[22px] p-3.5 flex flex-col gap-[10px] shadow-2xl';
-    document.getElementById('appContainer').appendChild(hello);
+    hello.className = 'hidden relative w-full shrink-0 mt-3 mb-1 bg-white border-2 border-[#3B5E42] rounded-[22px] p-3.5 flex flex-col gap-[10px] shadow-md';
+    { const sl = document.getElementById('screenLanding'); sl.insertBefore(hello, sl.firstChild); }   // in the page, above the headline: nothing hidden behind it (Rama, 25 Nov)
     function showHello() {
       if (steps[currentIndex].mode !== 'landing' || window.__helloDone) return;
       hello.innerHTML = `<span class="absolute -top-[9px] left-[34px] w-4 h-4 bg-white border-l-2 border-t-2 border-[#3B5E42] rotate-45" aria-hidden="true"></span>
-        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Welcome to WellHeard! My name is Reid. I’m your AI helper. I get you ready, make a clear page for your doctor, and write down what the doctor said. Would you like me to read this page to you?</p>
+        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Welcome! My name is Reid, your AI helper. I help you arrive prepared, with your questions and health information for your doctor. I can also record the visit, so you leave with a clear summary and next steps. Shall I read this page to you?</p>
         <div class="flex items-stretch"><button type="button" data-hi="yes" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">▶ Yes, read it</button>
         <div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-hi="no" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">No thanks</button></div>
 `;
       hello.classList.remove('hidden'); applyLang();
       // computers: the bubble stays over the left column instead of covering the headline
-      const sd = document.getElementById('sideReid'), mn = document.getElementById('appContainer');
-      if (mn.classList.contains('wide') && sd && sd.offsetWidth) { const r = sd.getBoundingClientRect(), m = mn.getBoundingClientRect(), z = parseFloat(mn.style.zoom) || 1;
-        hello.style.left = ((r.left - m.left) / z) + 'px'; hello.style.right = 'auto'; hello.style.width = (sd.offsetWidth) + 'px'; }
-      else { hello.style.left = ''; hello.style.right = ''; hello.style.width = ''; }
+      if (typeof fitLanding === 'function') fitLanding();
     }
     function readLanding() {
       // what's on the first page, in the language it's showing, without the buttons' small print
@@ -4749,7 +4747,7 @@
     }
     hello.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-hi]'); if (!b) return;
-      ensureCtx(); hello.classList.add('hidden'); window.__helloDone = true;
+      ensureCtx(); hello.classList.add('hidden'); window.__helloDone = true; if (typeof fitLanding === 'function') fitLanding();
       if (b.dataset.hi === 'fs') { openModal('helpSettingsModal'); setView = 'device'; spokenView = null; renderSettings(); applyLang(); return; }
       if (b.dataset.hi === 'no') { if (inSafariOnly && !sessionStorage.getItem('wh-fs')) showFS(); return; }
       greeted = true;
