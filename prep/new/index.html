@@ -207,10 +207,23 @@
     /* gender on the About you screen (Rama, 25 Nov): 2 × 2 on phones, one row of 4 on wider screens */
     .ab-sex { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
     @media (min-width: 700px) { .ab-sex { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-    /* Next lights up once something has been picked or typed (Rama, 25 Nov): two soft pulses, then a steady ring */
-    #nextNavBtn.nx-ready { outline: 4px solid rgba(184, 74, 39, .45); outline-offset: 3px; animation: nxGlow 1.1s ease-out 2; }
-    @keyframes nxGlow { 0% { outline-color: rgba(184, 74, 39, .7); outline-offset: 0; } 70% { outline-color: rgba(184, 74, 39, 0); outline-offset: 12px; } 100% { outline-color: rgba(184, 74, 39, .45); outline-offset: 3px; } }
-    @media (prefers-reduced-motion: reduce) { #nextNavBtn.nx-ready { animation: none; } }
+    /* Once something is picked or typed, Next says so in words (Rama, 25 Nov): "Press Next when done" under the label */
+    #nextNavHint { display: none; font-size: 14px; font-weight: 700; line-height: 1.15; opacity: .95; }
+    #nextNavBtn.nx-ready #nextNavHint { display: block; animation: nxIn .35s ease-out; }
+    @keyframes nxIn { from { opacity: 0; transform: translateY(3px); } to { opacity: .95; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { #nextNavBtn.nx-ready #nextNavHint { animation: none; } }
+    /* day and time: the choices scroll inside their space, so the listening bar below is never cut off (Rama, 25 Nov) */
+    /* short screens (a laptop browser window): the chosen date/time card goes on one line, and the choices get a little shorter, so they still show */
+    @media (max-height: 760px) {
+      .pk-heard { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 6px 16px; margin-top: 4px; }
+      .pk-heard-val { display: inline; font-size: 22px; }
+      #pickHost .tactile-btn.min-h-\[60px\] { min-height: 50px !important; }
+      #pickHost [data-pk] { min-height: 42px !important; }
+      #voiceCaptureScreen:has(#pickHost:not(.hidden)) #speakToggleBtn { min-height: 44px !important; padding-top: 4px; padding-bottom: 4px; }
+    }
+    @media (max-height: 760px) and (min-width: 700px) { #pickHost .pk-mins { grid-template-columns: repeat(4, minmax(0, 1fr)); } #pickHost .pk-hours { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+    @media (max-width: 480px) { #nextNavHint { font-size: 13px; } }
+    #voiceCaptureScreen #pickHost:not(.hidden) { flex: 1 1 auto !important; flex-shrink: 1 !important; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 4px; }
     .primary-capsule-btn {
       background-color: #B84A27;
       color: #FFFFFF;
@@ -5722,6 +5735,13 @@
     let nxAt = -1;
     function nudgeNext() {
       const nx = document.getElementById('nextNavBtn'); if (!nx || steps[currentIndex].mode === 'landing') return;
+      let h = document.getElementById('nextNavHint');
+      if (!h) {   // "Next" with a small line under it
+        const lab = document.getElementById('nextNavLabel'), col = document.createElement('span'); col.className = 'flex flex-col min-w-0 text-left';
+        lab.parentNode.insertBefore(col, lab); col.appendChild(lab); h = document.createElement('span'); h.id = 'nextNavHint'; h.className = 'truncate'; col.appendChild(h);
+      }
+      const narrow = window.innerWidth < 480;   // phones: shorter, so it isn't cut off
+      h.textContent = lang === 'fr' ? (narrow ? 'quand c’est fini' : 'Touchez Suivant quand c’est fini') : tr(narrow ? 'when done' : 'Press Next when done');
       nxAt = currentIndex; nx.classList.remove('nx-ready'); void nx.offsetWidth; nx.classList.add('nx-ready');
     }
     window.nudgeNext = nudgeNext;
