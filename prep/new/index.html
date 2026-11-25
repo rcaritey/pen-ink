@@ -560,6 +560,29 @@
     #appContainer.wide.tall > #progressHeader { grid-column: 2 / span 2; grid-row: 2; width: auto !important; margin: 0 28px 0 32px !important; box-sizing: border-box; min-width: 0; }
     #appContainer.wide.tall > section { grid-column: 2 / span 2; grid-row: 3; padding-left: 32px; padding-right: 28px; min-width: 0; }
     #appContainer.wide.tall > footer { grid-column: 2 / span 2; grid-row: 4; padding: 0 28px 24px 32px; }
+    /* Help & Settings on tablets and computers (Rama, 25 Nov: "don't look good"): a centred card, not a sheet stretched edge to edge */
+    #appContainer.wide #helpSettingsModal { justify-content: center; align-items: center; padding: 28px; }
+    #appContainer.wide #helpSettingsModal > div { max-width: 620px; border-radius: 28px; border: 0; max-height: 92%; padding: 24px 28px;
+      box-shadow: 0 4px 10px rgba(30,38,52,.12), 0 24px 60px rgba(30,38,52,.28); }
+    #helpSettingsModal [data-go]:not([data-go="menu"]):not([data-go="lang"].x) { background: #fff; }
+    /* upright iPad rail: a little wider, every tile the same size, no stray ›; the part name sits under the road map */
+    #appContainer.wide.tall { grid-template-columns: 196px 1fr auto; }
+    #appContainer.wide.tall #sideReid > button { min-height: 88px; font-size: 15px !important; }
+    #appContainer.wide.tall #sideReid > button[data-reidcan] { min-height: 52px; background: transparent; border-color: #3B5E42; justify-content: center; }
+    #appContainer.wide.tall #sideReid > button[data-reidcan] > span[aria-hidden] { display: none; }
+    #appContainer.wide .pg-name { flex-basis: 100%; margin: 2px 0 0; font-size: 17px; }
+    #appContainer.wide.tall .pg-row { gap: 8px; } #appContainer.wide.tall button.pg-ic::before { inset: -6px -4px; }
+    /* wide + bigger text: road map up in the top row beside the logo, the question gets the height (Rama, 25 Nov) */
+    #appContainer.wide.big:not(.tall) { grid-template-columns: 236px minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr) auto; column-gap: 28px; row-gap: 14px; }
+    #appContainer.wide.big:not(.tall) #wideLogo { grid-column: 1; grid-row: 1; }
+    #appContainer.wide.big:not(.tall) #wideLogo .wl-word { font-size: 24px; }
+    #appContainer.wide.big:not(.tall) > #progressHeader { grid-column: 2; grid-row: 1; padding: 10px 16px !important; }
+    #appContainer.wide.big:not(.tall) > header > div:last-child { grid-column: 3; grid-row: 1; }
+    #appContainer.wide.big:not(.tall) > #sideReid { grid-row: 2 / span 2; overflow-y: auto; }
+    #appContainer.wide.big:not(.tall) > section { grid-column: 2 / span 2; grid-row: 2; overflow-y: auto; min-height: 0; }
+    #appContainer.wide.big:not(.tall) > footer { grid-column: 2 / span 2; grid-row: 3; }
+    #appContainer.wide.big:not(.tall) .pg-name { flex-basis: auto; margin-left: 6px; }
+    #appContainer.wide.big:not(.tall) #reidBadge #companionEmblem, #appContainer.wide.big:not(.tall) #reidBadge #companionEmblem svg { width: 64px; height: 64px; }
     #wideLogo { display: none; }
     .wl-word { font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: #1E2634; line-height: 1; white-space: nowrap; }
     .wl-word span { color: #3B5E42; }
@@ -4016,7 +4039,7 @@
       translate: '<path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/>',
       erase: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>'
     };
-    const ico = (k, dark) => `<span class="w-9 h-9 rounded-xl ${dark ? 'bg-white/15 text-white' : 'bg-white border border-[#D6CFC0] text-[#3B5E42]'} flex items-center justify-center shrink-0" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ''}</svg></span>`;
+    const ico = (k, dark) => (k === 'helper' || k === 'reid') ? `<span class="w-9 h-9 rounded-xl overflow-hidden bg-[#D9E4DA] border border-[#D6CFC0] shrink-0" aria-hidden="true"><img src="${helperSrc()}" alt="" class="w-full h-full object-cover"></span>` : `<span class="w-9 h-9 rounded-xl ${dark ? 'bg-white/15 text-white' : 'bg-white border border-[#D6CFC0] text-[#3B5E42]'} flex items-center justify-center shrink-0" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ''}</svg></span>`;
     // Reid reads each Help & Settings page aloud when it opens
     function speakSettings(panel) {
       if (spokenView === setView) return; spokenView = setView;
@@ -4042,7 +4065,7 @@
       // one row of the main menu: big, icon-free, label on the left, current setting and › on the right
       const row = (k, label, val) => `<button type="button" data-go="${k}" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base flex items-center justify-between gap-2 text-left"><span class="flex items-center gap-3">${ico(k)}<span>${label}</span></span><span class="text-sm text-[#425268] font-bold shrink-0">${val || ''} ›</span></button>`;
       const head = (title, back) => `<div class="sticky -top-5 -mx-5 -mt-5 px-5 pt-5 pb-2 bg-[#FAF7F0] z-10 flex items-center justify-between gap-2">${back ? `<button type="button" data-go="${typeof back === 'string' ? back : 'menu'}" class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">‹ ${T('Back', 'Retour')}</button>` : ''}<h2 id="settingsTitle" class="text-xl font-extrabold text-[#1E2634] flex-1 ${back ? 'text-center' : ''}">${title}</h2>
-          <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm">${T('Done', 'Terminé')}</button></div>`;
+          <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-white border-2 border-[#1E2634] text-[#1E2634] font-extrabold text-base">${T('Done', 'Terminé')}</button></div>`;
       const onStep = steps[currentIndex].mode !== 'landing';
       if (setView === 'answer') setView = 'lang';
       if (VIEW_HOME[setView]) menuKind = VIEW_HOME[setView];
@@ -4057,14 +4080,14 @@
           ${row('helper', T('Your helper', 'Votre assistant'), `<span data-notr>${helperName()}</span>`)}
           ${row('voice', T("Reid's voice", 'La voix de Reid'), (readAloud ? T('On', 'Oui') : T('Off', 'Non')) + ' · ' + (slowVoice ? T('Slower', 'Lente') : T('Normal', 'Normale')))}
           ${row('answermode', T('How you answer', 'Comment vous répondez'), inputPreference === 'voice' ? T('Talk + tap', 'Parler + toucher') : T('Tap + type', 'Toucher + écrire'))}
-          ${group(T('Your pages and phone', 'Vos pages et votre téléphone'))}
+          ${group(T('Your pages and devices', 'Vos pages et vos appareils'))}
           ${row('pages', T('Print or share my pages', 'Imprimer ou partager'))}
           ${row('device', T('Full screen & other devices', 'Plein écran et autres appareils'))}
           ${row('privacy', T('Sharing with Reid’s helpers', 'Partage avec les services de Reid'), consent && consent.choice === 'yes' ? T('On', 'Oui') : T('Off', 'Non'))}
           <button type="button" data-act="erase" class="tactile-btn w-full min-h-[52px] px-4 mt-2 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm flex items-center justify-center gap-2">${ico('erase')}${T('Erase my answers', 'Effacer mes réponses')}</button></div>`;
       } else if (setView === 'menu') {
         body = head(T('Help', 'Aide')) + `<div class="flex flex-col gap-[10px]">
-          ${onStep ? `<button type="button" data-act="explain" class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#1E2634] text-white font-extrabold text-base flex items-center justify-center gap-3">${ico('explain', 1)}${T('Explain this screen', 'Expliquer cet écran')}</button>` : ''}
+          ${onStep ? `<button type="button" data-act="explain" class="tactile-btn w-full min-h-[56px] px-3 rounded-2xl bg-[#3B5E42] text-white font-extrabold text-base flex items-center justify-center gap-3">${ico('explain', 1)}${T('Explain this screen', 'Expliquer cet écran')}</button>` : ''}
           ${group(T('Using WellHeard', 'Utiliser WellHeard'))}
           ${row('reid', T('What Reid can do', 'Ce que Reid peut faire'))}
           ${row('say', T('What you can say', 'Ce que vous pouvez dire'))}
@@ -6050,7 +6073,7 @@
       panel.innerHTML = `<div class="sticky -top-5 -mx-5 -mt-5 px-5 pt-5 pb-2 bg-[#FAF7F0] z-10 flex items-center justify-between gap-2">
           <button type="button" data-apback class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">‹ ${L2('Back', 'Retour')}</button>
           <p class="font-extrabold text-lg text-[#1E2634] flex-1 text-center">${L2('My appointments', 'Mes rendez-vous')}</p>
-          <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-[#1E2634] text-white font-extrabold text-sm">${L2('Done', 'Terminé')}</button></div>
+          <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-white border-2 border-[#1E2634] text-[#1E2634] font-extrabold text-base">${L2('Done', 'Terminé')}</button></div>
         <div class="flex flex-col gap-[10px]">
           <p class="ap-note">${L2(helperName() + ' looks at your last few visits when suggesting questions. They are kept on this device only. Tap one to see it.', helperName() + ' regarde vos dernières visites pour suggérer des questions. Elles restent sur cet appareil seulement. Touchez-en une pour la voir.')}</p>
           ${hasVisit(now) ? card(now, true) : ''}
@@ -6074,7 +6097,7 @@
         if (setView === 'menu' && menuKind === 'settings') {   // a row near the top of Settings
           const anchor = panel.querySelector('[data-go="pages"]'); if (anchor && !panel.querySelector('[data-go="appts"]')) {
             const b = document.createElement('button'); b.type = 'button'; b.dataset.go = 'appts'; b.className = anchor.className;
-            b.innerHTML = `<span class="flex items-center gap-3">${WHI('calendar', 22)}<span>${L2('My appointments', 'Mes rendez-vous')}</span></span><span class="flex items-center gap-2 text-[#425268] font-bold text-sm">${visits.length || ''} ›</span>`;
+            b.innerHTML = `<span class="flex items-center gap-3"><span class="w-9 h-9 rounded-xl bg-white border border-[#D6CFC0] text-[#3B5E42] flex items-center justify-center shrink-0" aria-hidden="true">${WHI('calendar', 20)}</span><span>${L2('My appointments', 'Mes rendez-vous')}</span></span><span class="flex items-center gap-2 text-[#425268] font-bold text-sm">${visits.length || ''} ›</span>`;
             b.addEventListener('click', () => { setView = 'appts'; renderSettings(); applyLang(); }); anchor.before(b);
           }
         }
@@ -6124,7 +6147,7 @@
         const side = document.getElementById('sideReid'); if (!side || side.querySelector('[data-myappts]')) return;
         const b = document.createElement('button'); b.type = 'button'; b.dataset.myappts = '1';
         b.className = 'tactile-btn w-full min-h-[52px] px-3 rounded-2xl font-extrabold text-[15px] flex items-center gap-3 text-left bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]';
-        b.innerHTML = `${WHI('calendar', 22)}<span>${L2('My appointments', 'Mes rendez-vous')}</span>`; b.addEventListener('click', () => openAppts());
+        b.innerHTML = `<span class="w-9 h-9 rounded-xl bg-white border border-[#D6CFC0] text-[#3B5E42] flex items-center justify-center shrink-0" aria-hidden="true">${WHI('calendar', 20)}</span><span>${L2('My appointments', 'Mes rendez-vous')}</span>`; b.addEventListener('click', () => openAppts());
         const show = document.getElementById('lpShow'); if (show && show.parentElement === side) side.insertBefore(b, show); else side.appendChild(b);
       }; }
 
@@ -7821,6 +7844,19 @@
         saveAll(); renderCurrentStep(); if (typeof sizeApp === 'function') sizeApp();
       });
     })();
+    // Sideways iPad / computer with Large or Extra large text (Rama, 25 Nov, iPad photos): everything grew, so the answers were cut off
+    // under the road map. With bigger text the road map moves up beside the logo, the question gets the full height,
+    // and the page is never made so big that fewer than 580 points are left to work in; anything longer scrolls.
+    { const saBig = sizeApp; sizeApp = function () {
+        saBig.apply(this, arguments);
+        const main = document.getElementById('appContainer'); if (!main) return;
+        const on = main.classList.contains('wide') && !main.classList.contains('tall') && !main.classList.contains('with-pages')
+          && (textSize > 0 || sysTextScale() > 1.05);
+        main.classList.toggle('big', on); if (!on) return;
+        const vh = window.innerHeight, z = parseFloat(main.style.zoom) || 1, h = parseFloat(main.style.height) || vh, w = parseFloat(main.style.width) || 1000;
+        const zMax = (vh * 0.97) / 580;
+        if (z > zMax) { const vis = h * z, visW = w * z; main.style.zoom = zMax; main.style.height = (vis / zMax) + 'px'; main.style.width = (visW / zMax) + 'px'; }
+      }; window.addEventListener('resize', () => sizeApp()); sizeApp(); }
   </script>
 </body>
 </html>
