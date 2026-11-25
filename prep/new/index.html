@@ -81,6 +81,7 @@
     .hp-name { margin: 0 0 4px; font-weight: 700; font-size: 18px; color: #1E2634; } .hp-sub { font-weight: 400; font-size: 15px; color: #425268; }
     .hp-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
     .hp-btn { position: relative; aspect-ratio: 1; max-width: 110px; width: 100%; padding: 0; border-radius: 999px; border: 3px solid transparent; background: transparent; cursor: pointer; box-shadow: var(--wh-lift-pale); }
+    #appContainer.wide .hp-wrap { flex-direction: row; gap: 22px; flex-wrap: wrap; } #appContainer.wide .hp-btn { max-width: 64px; } #appContainer.wide .hp-grid { grid-template-columns: repeat(4, 64px); gap: 8px; }
     .hp-btn img { width: 100%; height: 100%; border-radius: 999px; display: block; }
     .hp-btn.hp-on { border-color: #3B5E42; box-shadow: 0 0 0 3px #E5EFE7, var(--wh-lift-sage); }
     .hp-btn:focus-visible { outline: 3px solid #D97706; outline-offset: 3px; }
@@ -461,8 +462,9 @@
     .wl-word { font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: #1E2634; line-height: 1; white-space: nowrap; }
     .wl-word span { color: #3B5E42; }
     #reidBadge { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #fff; border: 1px solid #E2DBD0; border-radius: 18px; margin-bottom: 6px; }
-    #reidBadge #companionEmblem { width: 64px; height: 64px; }
-    #reidBadge #companionEmblem svg { width: 64px; height: 64px; }
+    #reidBadge #companionEmblem { width: 86px; height: 86px; }   /* a little bigger (Rama, 25 Nov) */
+    #reidBadge #companionEmblem svg { width: 86px; height: 86px; }
+    #appContainer:not(.wide) header #companionEmblem, #appContainer:not(.wide) header #companionEmblem svg { width: 58px; height: 58px; }
     #companionEmblem > svg.reid-face { width: 100%; height: 100%; overflow: visible; }
     #reidBadge .rb-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
     #reidBadge .rb-name { font-weight: 800; font-size: 16px; color: #1E2634; line-height: 1.2; }
@@ -4652,7 +4654,7 @@
         size: L2('Which text size is easiest to read? Normal, large, or extra large?', 'Quelle taille de texte est la plus facile à lire ? Normal, grand, ou très grand ?'),
         mode: L2('How would you like to answer? Speak and tap, or tap and type only?', 'Comment voulez-vous répondre ? Parler et toucher, ou toucher et écrire seulement ?'),
         read: L2('Should I read the questions aloud? Yes, or no?', 'Est-ce que je lis les questions à voix haute ? Oui, ou non ?') })[steps[currentIndex].part || 'lang'],
-      helperpick: () => L2('Who would you like to help you? Tap a picture.', 'Qui voulez-vous pour vous aider ? Touchez une image.'),
+      helperpick: () => L2('Who would you like to help you? Tap the helper you prefer.', 'Qui voulez-vous pour vous aider ? Touchez l’assistant que vous préférez.'),
       doctorSummary: () => L2('Would you like to print the summary for your doctor?', 'Voulez-vous imprimer le résumé pour votre médecin ?'),
       visitQuestions: () => chosen().length ? L2('Which questions has the doctor answered? ', 'À quelles questions le médecin a-t-il répondu ? ') + visitQuestions.slice(vStarts[vPage] || 0, vStarts[vPage + 1] || QP()).map((q, i) => `${i + 1}. ${stop(q.text)}`).join(' ') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       nextSteps: () => L2('What happens next?', 'Et ensuite ?'),
@@ -5027,7 +5029,7 @@
     function renderHelperPick(items, foot) {
       const $ = (id) => document.getElementById(id);
       $('listTitle').textContent = L2('Who would you like to help you?', 'Qui voulez-vous pour vous aider ?');
-      $('listHelp').textContent = L2('Tap a picture. You can change this later in Settings.', 'Touchez une image. Vous pourrez changer plus tard dans Réglages.');
+      $('listHelp').textContent = L2('Tap the helper you prefer. You can change this anytime in Settings.', 'Touchez l’assistant que vous préférez. Vous pourrez le changer à tout moment dans Réglages.');
       $('listCounter').classList.add('hidden');
       items.innerHTML = helperPicker('data-hp');
       items.classList.add('overflow-y-auto'); foot.innerHTML = '';
