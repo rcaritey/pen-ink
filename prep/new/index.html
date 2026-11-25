@@ -3464,7 +3464,7 @@
       if (typeof showToast === 'function') showToast(lang === 'fr' ? 'Reid lit…' : 'Reid is reading…');
     }
     async function say(text, raw) {
-      if (typeof text === 'string') text = helperText(text);
+      if (typeof text === 'string' && !window.__keepNames) text = helperText(text);   // the helper-choice screen names both helpers as they are
       if (text) window.__lastSaid = String(text).slice(0, 400);
       if (!text || inputPreference !== 'voice' || !readAloud) return;
       hush(); const g = sayGen; speaking = true; speakStart = performance.now(); talkFace(true);
@@ -4956,6 +4956,14 @@
       return out.join(' ').replace(/\s+\./g, '.');
     }
     function readScreen() { hush(); if (steps[currentIndex].mode === 'landing') { const was = inputPreference; inputPreference = 'voice'; readFirstPage().then(() => { inputPreference = was; }); return; } const st = steps[currentIndex];
+      if (st.mode === 'helperpick') {   // Rama, 25 Nov: it said "Reid, Reid" — both names, and what each one is
+        const on = helperName();
+        window.__keepNames = true;
+        try { say(L2(`Who would you like to help you? Tap the helper you prefer. Reid has four looks, and a man's voice. Lilly has four looks, and a woman's voice. ${on} is chosen now. You can change this anytime in Settings. Then say next.`,
+          `Qui aimeriez-vous pour vous aider ? Touchez l’assistant que vous préférez. Reid a quatre visages, et une voix d’homme. Lilly a quatre visages, et une voix de femme. ${on} est choisi pour l’instant. Vous pourrez changer dans Réglages. Puis dites suivant.`), lang === 'fr'); }
+        finally { setTimeout(() => { window.__keepNames = false; }, 0); }
+        return;
+      }
       if (st.mode === 'ideas') { say(document.getElementById('listTitle').textContent + ' ' + (curIdea() ? stop(curIdea()) + ' ' : '') + document.getElementById('listHelp').textContent, lang === 'fr'); return; }
       if (st.mode === 'priority') {   // numbered, so the person can answer with a number
         const t = document.getElementById('listTitle').textContent + '. ' + document.getElementById('listHelp').textContent + ' '
