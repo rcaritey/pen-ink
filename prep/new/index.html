@@ -80,7 +80,10 @@
     .reid-grin .hf-grin { opacity: 1; transform: scale(1); } .reid-grin .hf-mouth { opacity: 0; }
     .ph-done { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(30, 38, 52, .28); animation: phIn .3s ease-out; }
     .ph-card { max-width: 520px; width: 100%; background: #FAF7F0; border: 3px solid #3B5E42; border-radius: 28px; padding: 26px 24px 20px; text-align: center; box-shadow: 0 20px 60px rgba(30, 38, 52, .3); }
-    .ph-face { width: 132px; height: 132px; margin: 0 auto 10px; border-radius: 999px; overflow: hidden; background: #E5EFE7; animation: hfHop .55s ease-out 3; }
+    .ph-face-wrap { position: relative; width: 132px; margin: 0 auto 10px; }
+    .ph-face { width: 132px; height: 132px; border-radius: 999px; overflow: hidden; background: #E5EFE7; animation: hfHop .6s ease-out 1; }
+    .ph-thumb { position: absolute; right: -14px; bottom: -4px; width: 54px; height: 54px; border-radius: 999px; background: #3B5E42; color: #fff; display: flex; align-items: center; justify-content: center; border: 3px solid #FAF7F0; box-shadow: 0 4px 12px rgba(30, 38, 52, .2); }
+    .ts-1 .ph-big { font-size: 36px; } .ts-1 .ph-sub { font-size: 22px; } .ts-2 .ph-big { font-size: 42px; } .ts-2 .ph-sub { font-size: 26px; } .ts-1 .ph-card, .ts-2 .ph-card { max-width: 640px; }
     .ph-face svg { width: 132px; height: 132px; display: block; }
     .ph-big { font-size: 30px; font-weight: 800; color: #1E4627; line-height: 1.15; margin: 4px 0 6px; }
     .ph-sub { font-size: 19px; color: #1E2634; line-height: 1.35; margin: 0 0 18px; }
@@ -3095,7 +3098,17 @@
       const rate = this._ctx.sampleRate, step = rate / 16000;
       // voice activity: a phrase starts when the sound rises well above the room's noise, and ends after a pause
       let zeroMs = 0, noise = 0.002, speaking = false, quietMs = 0, loudMs = 0, buf = [], pre = [], lvlT = 0, deadMs = 0;
-      const END_MS = 1100, START_MS = 120, MAX_MS = 25000, blockMs = 4096 / rate * 1000;
+      const START_MS = 120, MAX_MS = 25000, blockMs = 4096 / rate * 1000;
+      // Each person's pace (Rama, 17 & 25 Nov): new people get a long, patient wait before an answer counts as finished;
+      // it learns from the pauses they take mid-answer, and gets quicker only as they show they're ready sooner.
+      const P = CanadaRec.pace || (CanadaRec.pace = (() => { let d = null; try { d = JSON.parse(localStorage.getItem('wellheard-pace') || 'null'); } catch (e) { /* fresh */ } return Object.assign({ end: 1800, pauses: [] }, d || {}); })());
+      const paceSave = () => { try { localStorage.setItem('wellheard-pace', JSON.stringify({ end: P.end, pauses: P.pauses.slice(-24) })); } catch (e) { /* full */ } };
+      const paceLearn = () => {   // the wait = their longer mid-answer pauses plus a margin, never under 0.9 s or over 3 s
+        const a = P.pauses.slice(-24).sort((x, y) => x - y); if (a.length < 4) return;
+        const p90 = a[Math.min(a.length - 1, Math.floor(a.length * 0.9))], want = Math.max(900, Math.min(3000, p90 + 450));
+        P.end = want > P.end ? want : Math.max(want, P.end - 60);   // longer straight away, shorter only bit by bit
+        paceSave();
+      };
       // handles one block of 4096 samples from the microphone
       const handle = x => {
         CanadaRec.beat = this._beat = performance.now();
@@ -3122,16 +3135,18 @@
           noise = noise * 0.95 + Math.min(rms, 0.05) * 0.05;
           pre.push(out); if (pre.length > 3) pre.shift();   // keep the start of the first word
           loudMs = loud ? loudMs + blockMs : 0;
-          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; this._echo = CanadaRec.talkingNow(true); this._gap = this._lastEnd ? performance.now() - this._lastEnd : 1e9; if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); CanadaRec.talkOver(); }
+          if (loudMs >= START_MS) { speaking = true; quietMs = 0; buf = pre.slice(); pre = []; this._echo = CanadaRec.talkingNow(true); this._gap = this._lastEnd ? performance.now() - this._lastEnd : 1e9;
+            if (this._gap < 1500 && !CanadaRec.listMode) { P.end = Math.min(3000, P.end + 250); paceSave(); }   /* carried on right after we stopped listening: they needed longer */ if (this.onspeechstart) this.onspeechstart(); CanadaRec.hearing(true); CanadaRec.talkOver(); }
           return;
         }
         buf.push(out);
         if (CanadaRec.talkingNow(false) && buf.length < 6) this._echo = true;   // the app started speaking just as the phrase began
+        if (loud && quietMs >= 250) { P.pauses.push(Math.round(quietMs)); if (P.pauses.length > 40) P.pauses.splice(0, P.pauses.length - 40); paceLearn(); }   // a pause, then they carried on
         quietMs = loud ? 0 : quietMs + blockMs;
         const len = buf.length * blockMs;
         // Short replies ("yes", "next") are finished sooner; long answers keep a longer pause so a breath doesn't cut them.
         // When the app has just asked "Is that right?", every reply is short.
-        const endMs = CanadaRec.quick || (!CanadaRec.listMode && len < 1600) ? 600 : END_MS;   // lists: a pause starts a new line, so keep it longer
+        const endMs = CanadaRec.quick || (!CanadaRec.listMode && len < 1600) ? Math.min(P.end, Math.max(600, P.end * 0.55)) : P.end;   // lists: a pause starts a new line, so keep it longer
         if (quietMs >= endMs || len >= MAX_MS) { const b = buf; buf = []; speaking = false; loudMs = 0; this._lastEnd = performance.now() - quietMs; this._send(b, this._gap); }
       };
       // The microphone's sound comes through an AudioWorklet: its own sound lane, which iPhones don't pause the way
@@ -3453,7 +3468,7 @@
       try {
         const parts = speechParts(text);
         const get = (t) => fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: t, slow: slowVoice, voice: voiceName || (helperIsLilly() ? { en: 'en-CA-ClaraNeural', fr: 'fr-CA-SylvieNeural' } : { fr: 'fr-CA-AntoineNeural' })[lang] || VOICE_OF[lang] }) }).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+          body: JSON.stringify({ text: t, mood: window.__ttsMood || 'warm', slow: slowVoice, voice: voiceName || (helperIsLilly() ? { en: 'en-CA-ClaraNeural', fr: 'fr-CA-SylvieNeural' } : { fr: 'fr-CA-AntoineNeural' })[lang] || VOICE_OF[lang] }) }).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
         let next = get(parts[0]);
         for (let i = 0; i < parts.length; i++) {
           const blob = await next; if (g !== sayGen) return;
@@ -5871,44 +5886,52 @@
     // A whole section done (Rama, 25 Nov): "Outstanding!", clapping, and the helper's big smile. Once per section per visit.
     function phaseEndAt(i) { const st = steps[i]; if (!st) return false; let last = -1; steps.forEach((x, j) => { if (x.phaseIndex === st.phaseIndex) last = j; }); return last === i; }
     const phCelebrated = new Set();
-    function clapping() {
-      try {
-        ensureCtx(); const ctx = sharedCtx; if (!ctx) return;
-        const len = Math.floor(ctx.sampleRate * 0.05), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
-        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
-        const out = ctx.createGain(); out.gain.value = 0.55; out.connect(ctx.destination);
-        const t0 = ctx.currentTime + 0.05, dur = 2.6;
-        for (let p = 0; p < 6; p++) {   // six people clapping, each at their own pace
-          let t = t0 + Math.random() * 0.15; const gap = 0.2 + Math.random() * 0.08;
-          while (t < t0 + dur) {
-            const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
-            src.buffer = buf; src.playbackRate.value = 0.85 + Math.random() * 0.4; bp.type = 'bandpass'; bp.frequency.value = 1100 + Math.random() * 900; bp.Q.value = 0.9;
-            const fade = Math.max(0, 1 - Math.max(0, t - t0 - dur * 0.6) / (dur * 0.4));
-            g.gain.value = (0.35 + Math.random() * 0.3) * fade;
-            src.connect(bp); bp.connect(g); g.connect(out); src.start(t);
-            t += gap + (Math.random() - 0.5) * 0.06;
-          }
-        }
-      } catch (e) { console.warn('Clapping could not play', e); }
+    // A soft four-note chime (Rama, 25 Nov: the clapping sounded terrible on iPhone). Pure tones, gentle start, quiet:
+    // phone speakers play them cleanly, and nothing sudden to startle anyone or jar a hearing aid. Resolves when done.
+    function chime() {
+      return new Promise((done) => {
+        try {
+          ensureCtx(); const ctx = sharedCtx; if (!ctx) return done();
+          const out = ctx.createGain(); out.gain.value = 0.22; out.connect(ctx.destination);
+          const t0 = ctx.currentTime + 0.05;
+          [[523.25, 0], [659.25, 0.18], [783.99, 0.36], [1046.5, 0.54]].forEach(([f, at], i) => {
+            const o = ctx.createOscillator(), g = ctx.createGain(), t = t0 + at, last = i === 3;
+            o.type = 'sine'; o.frequency.value = f;
+            g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(last ? 0.9 : 0.7, t + 0.04); g.gain.exponentialRampToValueAtTime(0.001, t + (last ? 1.1 : 0.5));
+            o.connect(g); g.connect(out); o.start(t); o.stop(t + (last ? 1.15 : 0.55));
+          });
+          setTimeout(done, 1350);
+        } catch (e) { console.warn('Chime could not play', e); done(); }
+      });
     }
+    const THUMB = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+    // saying "next" (or "continue") closes the celebration card
+    { const hP = heard; heard = function (t) { if (window.__phClose && /^(next|continue|ok|okay|suivant|continuer)\b/i.test(String(t || '').trim())) { window.__phClose(); return; } return hP(t); }; }
     function celebratePhase(ph) {
       if (phCelebrated.has(ph)) return; phCelebrated.add(ph);
       const nm = ((SID('name') && SID('name').answer) || '').trim().split(/\s+/)[0] || '';
       const T3 = [['You’ve completed the appointment prep.', 'Vous avez terminé la préparation du rendez-vous.', 'Your pages are ready to print, save or send.', 'Vos pages sont prêtes à imprimer, enregistrer ou envoyer.'],
-        ['You’ve made it through the visit.', 'Vous avez fait toute la visite.', 'Your summary and next steps are ready to print, save and send.', 'Votre résumé et vos prochaines étapes sont prêts à imprimer, enregistrer et envoyer.'],
-        ['You’re all done.', 'Vous avez tout terminé.', 'Everything is saved on your pages.', 'Tout est enregistré dans vos pages.']][ph] || ['Section done.', 'Section terminée.', '', ''];
+        ['You’ve made it through the visit.', 'Vous avez fait toute la visite.', '', ''],
+        ['You’re all done.', 'Vous avez tout terminé.', 'Your summary and next steps are ready to print, save and send.', 'Votre résumé et vos prochaines étapes sont prêts à imprimer, enregistrer et envoyer.']][ph] || ['Section done.', 'Section terminée.', '', ''];
       const big = L2('Outstanding' + (nm ? ', ' + nm : '') + '!', 'Bravo' + (nm ? ', ' + nm : '') + ' !');
-      const ov = document.createElement('div'); ov.className = 'ph-done'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-live', 'assertive');
-      ov.innerHTML = `<div class="ph-card"><div class="ph-face reid-happy reid-grin"><svg viewBox="0 0 40 40" aria-hidden="true">${faceSvg(whHelper)}</svg></div>
-        <p class="ph-big">${esc(big)}</p><p class="ph-sub">${esc(L2(T3[0], T3[1]))}${T3[2] ? '<br>' + esc(L2(T3[2], T3[3])) : ''}</p>
-        <button type="button" class="tactile-btn primary-capsule-btn w-full min-h-[56px] font-extrabold text-[18px] text-white">${L2('Continue', 'Continuer')}</button></div>`;
+      // Accessible for older users (Rama, 25 Nov): no timer, only the Continue button (or Esc, or saying "next") closes it,
+      // the button is ready for the keyboard, the text follows the text-size setting, and the voice waits for the chime.
+      const ov = document.createElement('div'); ov.className = 'ph-done'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'phBig');
+      ov.innerHTML = `<div class="ph-card"><div class="ph-face-wrap"><div class="ph-face reid-happy reid-grin"><svg viewBox="0 0 40 40" aria-hidden="true">${faceSvg(whHelper)}</svg></div><span class="ph-thumb">${THUMB}</span></div>
+        <p class="ph-big" id="phBig">${esc(big)}</p><p class="ph-sub">${esc(L2(T3[0], T3[1]))}${T3[2] ? '<br>' + esc(L2(T3[2], T3[3])) : ''}</p>
+        <button type="button" data-phgo class="tactile-btn primary-capsule-btn w-full min-h-[60px] font-extrabold text-[20px] text-white">${L2('Continue', 'Continuer')}</button></div>`;
       document.body.appendChild(ov); applyLang();
       const emb = document.getElementById('companionEmblem'); if (emb) emb.classList.add('reid-happy', 'reid-grin');
-      const close = () => { if (!ov.isConnected) return; ov.remove(); if (emb) emb.classList.remove('reid-happy', 'reid-grin'); };
-      ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('button')) { close(); if (readAloud) speakStep(); } });
-      setTimeout(close, 9000);
-      clapping();
-      setTimeout(() => sayT(big.replace(/!$/, '') + '! ' + T3[0], (big.replace(/ !$/, '')) + ' ! ' + T3[1], true), 900);
+      const go = ov.querySelector('[data-phgo]'); setTimeout(() => go.focus(), 50);
+      const key = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
+      const close = () => { if (!ov.isConnected) return; ov.remove(); document.removeEventListener('keydown', key, true); window.__phClose = null; if (emb) emb.classList.remove('reid-happy', 'reid-grin'); hush(); if (readAloud) speakStep(); };
+      document.addEventListener('keydown', key, true); go.addEventListener('click', close); window.__phClose = close;
+      const line = L2(big + ' ' + T3[0] + (T3[2] ? ' ' + T3[2] : ''), big + ' ' + T3[1] + (T3[3] ? ' ' + T3[3] : ''));
+      chime().then(() => {   // then the helper says it, warmly, even when read-aloud is off (it's the one moment worth hearing)
+        if (!ov.isConnected) return;
+        const was = [inputPreference, readAloud]; inputPreference = 'voice'; readAloud = true; window.__ttsMood = 'happy';
+        try { say(line, lang === 'en' || lang === 'fr'); } finally { inputPreference = was[0]; readAloud = was[1]; setTimeout(() => { window.__ttsMood = ''; }, 3000); }
+      });
     }
 
     // =====================================================================

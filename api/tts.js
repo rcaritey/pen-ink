@@ -53,11 +53,15 @@ export default async function handler(req, res) {
   let voice = VOICES[body && body.voice] ? body.voice : DEFAULT_VOICE;
   // "Slower" voice setting: HD voices ignore speed, so use the standard twin and slow it down.
   const slow = !!(body && body.slow);
+  // Warmth (Rama, 25 Nov: "voice can often be emotionless"): the HD voice reads in a friendly style,
+  // and cheerfully for celebrations. Voices without styles simply ignore it.
+  const mood = body && body.mood === 'happy' ? 'happy' : body && body.mood === 'plain' ? 'plain' : 'warm';
   if (slow && TWIN[voice]) voice = TWIN[voice];
   if (!text) return res.status(400).json({ error: 'empty' });
 
   try {
-    let r = await synth(key, region, text, voice, slow).catch(() => null);
+    let r = await synth(key, region, text, voice, slow, undefined, mood).catch(() => null);
+    if ((!r || !r.ok) && mood !== 'plain' && isHd(voice)) { console.error('tts style refused', r && r.status); r = await synth(key, region, text, voice, slow).catch(() => null); }   // a style it won't take: same voice, no style
     if ((!r || !r.ok) && TWIN[voice]) { console.error('tts hd unavailable', r && r.status); r = await synth(key, region, text, TWIN[voice], slow); }
     // a language's own voice isn't available in this region: the multilingual voice reads it instead
     if ((!r || !r.ok) && VOICES[voice] && !/^en-/.test(VOICES[voice])) { console.error('tts voice unavailable', voice, r && r.status); r = await synth(key, region, text, MULTI, slow, VOICES[voice]).catch(() => null); }
@@ -82,13 +86,15 @@ function sayRight(t, hd) {
     .replace(recRe, (m, r) => (hd ? r + 'e-cord' : `<phoneme alphabet="ipa" ph="ɹɪˈkɔːɹd">${m}</phoneme>`));
 }
 
-function synth(key, region, text, voice, slow, readAs) {
+const STYLE = { warm: 'friendly', happy: 'cheerful' };
+function synth(key, region, text, voice, slow, readAs, mood) {
   // Standard voices read slightly slower than default, easier for older listeners. HD voices take
   // no speed or pitch changes: they find their own pace and tune.
   const said = /^en-/.test(voice) ? sayRight(esc(text), isHd(voice)) : esc(text);
   let inner = isHd(voice) ? said : `<prosody rate="${slow ? '-22%' : '-8%'}">${said}</prosody>`;
   if (readAs) inner = `<lang xml:lang="${readAs}">${inner}</lang>`;
-  const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${VOICES[voice]}">` +
+  if (mood && STYLE[mood] && isHd(voice)) inner = `<mstts:express-as style="${STYLE[mood]}">${inner}</mstts:express-as>`;
+  const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="${VOICES[voice]}">` +
     `<voice name="${voice}">${inner}</voice></speak>`;
   return fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
     method: 'POST',
