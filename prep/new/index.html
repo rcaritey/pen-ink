@@ -466,10 +466,10 @@
     #companionEmblem > svg.reid-face { width: 100%; height: 100%; overflow: visible; }
     #reidBadge .rb-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
     #reidBadge .rb-name { font-weight: 800; font-size: 16px; color: #1E2634; line-height: 1.2; }
-    #reidBadge #companionStateCaption { font-size: 14px !important; margin: 0; }
+    #reidBadge #companionStateCaption { font-size: 14px !important; margin: 0; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.25; }
     #sideReid .lp-show.in-side { position: static !important; z-index: auto !important; margin-top: auto; width: 100%; box-shadow: none; }
     /* bigger text on the wide layout: there's room across */
-    .wide #screenLanding h1 { font-size: 2rem !important; } .wide #landingIntro, .wide #landingHook, .wide #screenLanding li { font-size: 18px !important; } .wide #landingWelcome { font-size: 14px !important; }
+    .wide #screenLanding h1 { font-size: 2rem !important; } .wide #landingIntro, .wide #landingHook, .wide #landingWhat, .wide #screenLanding li { font-size: 18px !important; } .wide #landingWelcome { font-size: 14px !important; }
     .wide #screenLanding [aria-label="How WellHeard works"] p { font-size: 16px !important; }
     .wide #screenLanding button { font-size: 17px !important; }
     .wide #screenQuestion, .wide #listTitle { font-size: 1.9rem !important; }
@@ -588,7 +588,7 @@
             Ever left the doctor’s and remembered what you forgot to ask?
           </h1>
           <p id="landingHook" class="text-[15px] leading-snug text-[#425268] mt-3 font-medium">You’re not alone. Much of what the doctor says is forgotten right away, and almost half of what we remember is wrong.</p>
-          <p id="landingWhat" class="text-[16px] leading-snug text-[#1E2634] mt-3 font-medium">Reid helps you arrive at your medical appointments prepared, records your visit, and creates a clear summary of the medical team’s recommendations and next steps.</p>
+          <p id="landingWhat" class="text-[15px] leading-snug text-[#425268] mt-3 font-medium">Reid helps you arrive at your medical appointments prepared, records your visit, and creates a clear summary of the medical team’s recommendations and next steps.</p>
         </div>
 
         <div id="landingCard" class="w-full shrink-0 bg-[#FBF1E4] border border-[#EBD3B8] rounded-[20px] px-4 py-3.5">
@@ -1750,7 +1750,7 @@
         caption.className = 'block text-[11px] font-bold text-[#3B5E42] mt-0.5 truncate';
       } else {
         dot.className = 'w-3 h-3 rounded-full bg-[#64748B] border-2 border-[#FAF7F0] absolute -bottom-0.5 -right-0.5';
-        caption.textContent = steps[currentIndex] && steps[currentIndex].mode === 'landing' ? 'Your AI helper' : inputPreference === 'tap' ? 'Tap / Type mode' : 'Reid is paused';
+        caption.textContent = steps[currentIndex] && steps[currentIndex].mode === 'landing' ? (lang === 'fr' ? 'Votre assistant IA de rendez-vous' : 'Your AI appointment helper') : inputPreference === 'tap' ? 'Tap / Type mode' : 'Reid is paused';
         caption.className = 'block text-[11px] font-bold text-[#425268] mt-0.5 truncate';
       }
     }
@@ -4772,8 +4772,8 @@
     // ---------- first page: Reid's bubble says exactly what he says (Rama, 25 Nov) ----------
     // Phones only allow sound after a tap: "Yes, read it" is that tap. The bubble stays on the page the whole time:
     // asking first, then showing he's reading, then the last thing he said. He reads the bubble, then the page as written.
-    const HELLO_EN = 'Welcome! My name is Reid, your AI helper.';
-    const HELLO_FR = 'Bienvenue ! Je m’appelle Reid, votre assistant IA.';
+    const HELLO_EN = 'Welcome! My name is Reid, your AI appointment helper.';
+    const HELLO_FR = 'Bienvenue ! Je m’appelle Reid, votre assistant IA pour vos rendez-vous.';
     const ASK_EN = 'Shall I read this page to you?', ASK_FR = 'Voulez-vous que je vous lise cette page ?';
     const END_EN = 'When you’re ready, tap Get started.', END_FR = 'Quand vous êtes prêt, touchez Commencer.';
     const hello = document.createElement('div'); hello.id = 'reidHello';
@@ -6017,7 +6017,7 @@
         if (currentIndex !== was) {
           if (was === 0 && inputPreference === 'voice') { isListening = true; syncVoiceBarVisuals(); setCompanionState('listening'); }
           if (currentIndex === 1 && was === 0 && greeted) speakStep();
-          else if (currentIndex === 1 && was === 0) say(lang === 'fr' ? "Bonjour, je suis Reid, l'assistant IA de WellHeard. Une question à la fois, à votre rythme." : "Hello. My name is Reid. I’m your AI helper. One question at a time, at your pace.").then(speakStep); else speakStep();
+          else if (currentIndex === 1 && was === 0) sayT("Hello. My name is Reid, your AI appointment helper. One question at a time, at your pace.", "Bonjour. Je m’appelle Reid, votre assistant IA pour vos rendez-vous. Une question à la fois, à votre rythme.", true).then(speakStep); else speakStep();
         }
       } finally { nexting = false; }
     };
@@ -6669,7 +6669,7 @@
       rs();
       if (badge && document.getElementById('appContainer').classList.contains('wide')) side.insertBefore(badge, side.firstChild);
       if (show && document.getElementById('appContainer').classList.contains('wide')) side.appendChild(show);
-      const rn = badge && badge.querySelector('.rb-name'); if (rn) rn.textContent = L2('Reid, your AI helper', 'Reid, votre aide IA');
+      const rn = badge && badge.querySelector('.rb-name'); if (rn) rn.textContent = 'Reid';   // the line under it says what he is (Rama, 25 Nov: it was said twice)
     }; }
     { const sa2 = sizeApp; sizeApp = function () {
       sa2();
