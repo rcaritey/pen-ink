@@ -43,6 +43,10 @@
     return `<image class="helper-img" href="${helperSrc(h)}" x="0" y="0" width="40" height="40"/>${lid(x1, y1)}${lid(x2, y2)}
       <ellipse class="hf-mouth" cx="${mx}" cy="${my}" rx="0.85" ry="0.62" fill="#2b1d18"/><g class="hf-happy">${happy(x1, y1)}${happy(x2, y2)}</g>`; };
   window.applyHelper = () => { document.querySelectorAll('.reid-head').forEach((g) => { g.innerHTML = faceSvg(whHelper); }); renameIn(document.body); };
+  /* Rama (25 Nov): the helper says his name once — the first time — never again on this device */
+  window.whMet = (nm) => { try { return (JSON.parse(localStorage.getItem('wellheard-met') || '[]') || []).includes(nm || helperName()); } catch (e) { return false; } };
+  window.whMarkMet = (nm) => { try { const a = JSON.parse(localStorage.getItem('wellheard-met') || '[]') || []; nm = nm || helperName(); if (!a.includes(nm)) { a.push(nm); localStorage.setItem('wellheard-met', JSON.stringify(a)); } } catch (e) {} };
+  window.WH_MET0 = whMet();   // had they met the helper before this visit?
   window.setHelper = (h) => { if (!WH_HELPERS.includes(h)) return; whHelper = h; try { localStorage.setItem('wellheard-helper', h); } catch (e) {} applyHelper(); };
   document.addEventListener('DOMContentLoaded', () => {
     applyHelper();
@@ -2687,7 +2691,7 @@
 
     function resetAllFromSettings(skipModalClose = false) {
       steps.forEach((s) => { if ('answer' in s) s.answer = ''; });
-      try { localStorage.removeItem(STORE); } catch (e) { /* storage blocked */ }
+      try { localStorage.removeItem(STORE); localStorage.removeItem('wellheard-met'); } catch (e) { /* storage blocked */ }
       steps.forEach((s) => {
         if ('customActive' in s) s.customActive = false;
       });
@@ -4094,7 +4098,7 @@
       panel.innerHTML = body;
       speakSettings(panel);
       panel.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { setView = b.dataset.go; renderSettings(); applyLang(); }));
-      panel.querySelectorAll('[data-hps]').forEach((b) => b.addEventListener('click', () => { setHelper(b.dataset.hps); saveAll(); renderSettings(); applyLang(); applyHelper(); sayT('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.', true); }));
+      panel.querySelectorAll('[data-hps]').forEach((b) => b.addEventListener('click', () => { setHelper(b.dataset.hps); saveAll(); renderSettings(); applyLang(); applyHelper(); sayT('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.', true); whMarkMet(); }));
       panel.querySelectorAll('[data-ts]').forEach((b) => b.addEventListener('click', () => { textSize = Number(b.dataset.ts); applyTextSize(); saveAll(); renderSettings(); renderCurrentStep(); }));
       panel.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang)));
       panel.querySelectorAll('[data-jump]').forEach((b) => b.addEventListener('click', () => { closeModal('helpSettingsModal'); stopRec(); currentIndex = Number(b.dataset.jump); renderCurrentStep(); speakStep(); }));
@@ -4776,8 +4780,9 @@
     // ---------- first page: Reid's bubble says exactly what he says (Rama, 25 Nov) ----------
     // Phones only allow sound after a tap: "Yes, read it" is that tap. The bubble stays on the page the whole time:
     // asking first, then showing he's reading, then the last thing he said. He reads the bubble, then the page as written.
-    const HELLO_EN = 'Welcome! My name is Reid, your AI appointment helper.';
-    const HELLO_FR = 'Bienvenue ! Je m’appelle Reid, votre assistant IA pour vos rendez-vous.';
+    const MET0 = WH_MET0;
+    const HELLO_EN = MET0 ? 'Welcome back!' : 'Welcome! My name is Reid, your AI appointment helper.';
+    const HELLO_FR = MET0 ? 'Bon retour !' : 'Bienvenue ! Je m’appelle Reid, votre assistant IA pour vos rendez-vous.';
     const ASK_EN = 'Shall I read this page to you?', ASK_FR = 'Voulez-vous que je vous lise cette page ?';
     const END_EN = 'When you’re ready, tap Get started.', END_FR = 'Quand vous êtes prêt, touchez Commencer.';
     const hello = document.createElement('div'); hello.id = 'reidHello';
@@ -5072,7 +5077,7 @@
     }
     document.getElementById('listItems').addEventListener('click', (e) => {
       const hp = e.target.closest('[data-hp]');
-      if (hp) { setHelper(hp.dataset.hp); renderList(); applyLang(); applyHelper(); sayT('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.', true); return; }
+      if (hp) { setHelper(hp.dataset.hp); renderList(); applyLang(); applyHelper(); sayT('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.', true); whMarkMet(); return; }
       const b = e.target.closest('[data-su]'); if (!b) return; ensureCtx();
       const k = b.dataset.su, on = b.dataset.v === '1';
       if (k === 'lang') { openModal('helpSettingsModal'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
@@ -5591,18 +5596,19 @@
       const MB = 'tactile-btn w-full min-h-[52px] px-3 rounded-2xl font-extrabold text-base flex items-center gap-3 text-left';
       // Tapping the helper: just a speech bubble beside the face (Rama, 24 Nov) — the greeting and hands-free, nothing else
       const open = () => {
-        const fr = lang === 'fr', nm = helperName(), hf = inputPreference === 'voice' && isListening;
+        const fr = lang === 'fr', nm = helperName(), hf = inputPreference === 'voice' && isListening, met = whMet(nm);
+        const hiEn = met ? 'How can I help?' : 'Hello. My name is ' + nm + '. How can I help?', hiFr = met ? 'Comment puis-je vous aider ?' : 'Bonjour. Je m’appelle ' + nm + '. Comment puis-je vous aider ?';
         const tb = document.getElementById('toastBanner'); if (tb) { tb.classList.remove('opacity-100'); tb.classList.add('opacity-0'); }
-        menu.innerHTML = `<p class="rp-hi">${fr ? 'Bonjour. Je m’appelle ' + nm + '. Comment puis-je vous aider ?' : 'Hello. My name is ' + nm + '. How can I help?'}</p>
+        menu.innerHTML = `<p class="rp-hi">${fr ? hiFr : hiEn}</p>
           <p class="rp-say">${hf ? (fr ? 'Je vous écoute. Dites « suivant », « retour », « explique », « réglages », ou posez-moi une question.' : 'I’m listening. Say “next”, “go back”, “explain”, “settings”, or ask me a question.')
             : (fr ? 'En mains libres, vous me parlez et je fais le reste.' : 'Go hands-free and just talk to me. I’ll do the rest.')}</p>
           <div class="flex flex-col gap-[10px]"><button type="button" data-r="handsfree" class="${MB} min-h-[56px] text-[17px] justify-center ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}">${WHI('mic', 22)}${hf ? (fr ? 'Arrêter' : 'Turn off hands-free') : (fr ? 'Mains libres' : 'Go hands-free')}</button>
           <button type="button" data-r="close" class="${MB} justify-center bg-white border border-[#D6CFC0] text-[#1E2634]">${fr ? 'Pas maintenant' : 'Not now'}</button></div>
           <form class="rp-type" data-rtype><label class="rp-say" for="reidTypeBox">${fr ? 'Ou écrivez-moi :' : 'Or type to me:'}</label>
-            <div class="flex items-stretch gap-[8px]"><input id="reidTypeBox" type="text" autocomplete="off" placeholder="${fr ? 'Par exemple : texte plus grand' : 'For example: bigger text'}" class="flex-1 min-w-0 min-h-[52px] px-3 rounded-2xl bg-white text-[17px] text-[#1E2634]" style="border: 2px solid #5E7A63">
-            <button type="submit" class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#3B5E42] text-white font-extrabold text-base">${fr ? 'Envoyer' : 'Send'}</button></div></form>`;
+            <div class="flex flex-col gap-[8px]"><textarea id="reidTypeBox" rows="1" autocomplete="off" placeholder="${fr ? 'Par exemple : texte plus grand' : 'For example: bigger text'}" class="w-full min-h-[52px] px-3 py-[12px] rounded-2xl bg-white text-[17px] leading-snug text-[#1E2634]" style="border: 2px solid #5E7A63; resize: none; overflow-y: hidden; max-height: 30vh"></textarea>
+            <button type="submit" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-[#3B5E42] text-white font-extrabold text-base">${fr ? 'Envoyer' : 'Send'}</button></div></form>`;
         menu.classList.remove('hidden');
-        applyLang(); sayT('Hello. My name is ' + nm + '. How can I help?', 'Bonjour. Je m’appelle ' + nm + '. Comment puis-je vous aider ?', true);
+        applyLang(); sayT(hiEn, hiFr, true); whMarkMet(nm);
         // beside the face, to the right, with the curved tail back to it (the same shape as the helper's notes)
         const face = [...document.querySelectorAll('#companionEmblem')].find((e) => e.getBoundingClientRect().width > 0) || emb;
         const r = face.getBoundingClientRect(), z = parseFloat(getComputedStyle(document.getElementById('appContainer')).zoom) || 1, vw = document.documentElement.clientWidth;
@@ -5614,6 +5620,10 @@
       // the picture moves into the side panel on computers, so listen on the page and check where the tap landed
       document.addEventListener('click', (e) => { if (!e.target.closest('#companionEmblem') || e.target.closest('#reidMenu')) return; e.stopPropagation(); ensureCtx(); if (menu.classList.contains('hidden')) open(); else close(); }, true);
       emb.style.cursor = 'pointer';
+      // the type box grows with what's typed (Rama, 25 Nov); Enter sends, Shift+Enter starts a new line
+      const growBox = (box) => { box.style.height = 'auto'; const max = window.innerHeight * 0.3; box.style.height = Math.min(box.scrollHeight + 4, max) + 'px'; box.style.overflowY = box.scrollHeight + 4 > max ? 'auto' : 'hidden'; };
+      menu.addEventListener('input', (e) => { if (e.target.id === 'reidTypeBox') growBox(e.target); });
+      menu.addEventListener('keydown', (e) => { if (e.target.id === 'reidTypeBox' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); e.target.form.requestSubmit(); } });
       menu.addEventListener('submit', (e) => {
         e.preventDefault(); const box = menu.querySelector('#reidTypeBox'), t = box && box.value.trim(); if (!t) { if (box) box.focus(); return; }
         close(); hush();
@@ -5664,7 +5674,7 @@
           if (/^(change|switch) (the )?(language|langue)$|^(change|changer) (de )?langue$/.test(low)) { openPanel('settings'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^(change|switch) (the )?(helper|assistant|voice)$|^(switch to|change to) (reid|lilly)$/.test(low)) {
             const to = /lilly/.test(low) ? 'lilly-1' : /reid/.test(low) ? 'reid-1' : '';
-            if (to) { setHelper(to); saveAll(); sayT('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.', true); renderCurrentStep(); return; }
+            if (to) { setHelper(to); saveAll(); sayT('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.', true); whMarkMet(); renderCurrentStep(); return; }
             openPanel('settings'); setView = 'helper'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^(stop|turn off|end) hands[ -]?free$|^hands[ -]?free off$/.test(low)) { handsFree(false); return; }
           if (st.mode === 'setup') {
@@ -5679,7 +5689,7 @@
               if (/^(no|nope|non|no thanks)/.test(low)) { readAloud = false; hush(); saveAll(); re2(); return; } }
           }
           if (st.mode === 'helperpick') { const to = /lilly|lily|woman|female|femme/.test(low) ? 'lilly-1' : /reid|man|male|homme/.test(low) ? 'reid-1' : '';
-            if (to) { setHelper(to); saveAll(); renderList(); applyLang(); sayT('Hello. My name is ' + helperName() + '. Say next when ready.', 'Bonjour. Je m’appelle ' + helperName() + '. Dites suivant.', true); return; } }
+            if (to) { setHelper(to); saveAll(); renderList(); applyLang(); sayT('Hello. My name is ' + helperName() + '. Say next when ready.', 'Bonjour. Je m’appelle ' + helperName() + '. Dites suivant.', true); whMarkMet(); return; } }
         }
         return hG(t); }; }
 
@@ -6029,8 +6039,7 @@
         const was = currentIndex; protoNext();
         if (currentIndex !== was) {
           if (was === 0 && inputPreference === 'voice') { isListening = true; syncVoiceBarVisuals(); setCompanionState('listening'); }
-          if (currentIndex === 1 && was === 0 && greeted) speakStep();
-          else if (currentIndex === 1 && was === 0) sayT("Hello. My name is Reid, your AI appointment helper. One question at a time, at your pace.", "Bonjour. Je m’appelle Reid, votre assistant IA pour vos rendez-vous. Une question à la fois, à votre rythme.", true).then(speakStep); else speakStep();
+          if (currentIndex === 1 && was === 0) { const met = WH_MET0 || whMet(); whMarkMet(); if (greeted) speakStep(); else if (met) sayT('One question at a time, at your pace.', 'Une question à la fois, à votre rythme.', true).then(speakStep); else sayT("Hello. My name is Reid, your AI appointment helper. One question at a time, at your pace.", "Bonjour. Je m’appelle Reid, votre assistant IA pour vos rendez-vous. Une question à la fois, à votre rythme.", true).then(speakStep); } else speakStep();
         }
       } finally { nexting = false; }
     };
