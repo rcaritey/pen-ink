@@ -5805,7 +5805,8 @@
         lab.parentNode.insertBefore(col, lab); col.appendChild(lab); h = document.createElement('span'); h.id = 'nextNavHint'; h.className = 'truncate'; col.appendChild(h);
       }
       const narrow = window.innerWidth < 480;   // phones: shorter, so it isn't cut off
-      h.textContent = lang === 'fr' ? (narrow ? 'quand c’est fini' : 'Touchez Suivant quand c’est fini') : tr(narrow ? 'when done' : 'Press Next when done');
+      const talk = inputPreference === 'voice';   // say it only when the helper is listening (Rama, 25 Nov)
+      h.textContent = lang === 'fr' ? (narrow ? 'quand c’est fini' : talk ? 'Dites « suivant » ou touchez Suivant quand c’est fini' : 'Touchez Suivant quand c’est fini') : tr(narrow ? 'when done' : talk ? 'Say “next” or press Next when done' : 'Press Next when done');
       nxAt = currentIndex; nx.classList.remove('nx-ready'); void nx.offsetWidth; nx.classList.add('nx-ready');
     }
     window.nudgeNext = nudgeNext;
