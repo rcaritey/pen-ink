@@ -520,7 +520,7 @@
         <div
           id="companionEmblem"
           class="w-12 h-12 rounded-full flex items-center justify-center shrink-0 relative companion-listening transition-colors"
-          title="Reid — WellHeard's AI helper"
+          title="Reid — WellHeard's AI helper. Tap him for help or to go hands-free."
           aria-hidden="true"
         >
           <svg class="reid-face" width="40" height="40" viewBox="0 0 40 40" fill="none" stroke-linecap="round" aria-hidden="true">
@@ -1761,7 +1761,7 @@
         caption.className = 'block text-[11px] font-bold text-[#3B5E42] mt-0.5 truncate';
       } else {
         dot.className = 'w-3 h-3 rounded-full bg-[#64748B] border-2 border-[#FAF7F0] absolute -bottom-0.5 -right-0.5';
-        caption.textContent = steps[currentIndex] && steps[currentIndex].mode === 'landing' ? (lang === 'fr' ? 'Votre assistant IA de rendez-vous' : 'Your AI appointment helper') : inputPreference === 'tap' ? 'Tap / Type mode' : 'Reid is paused';
+        caption.textContent = steps[currentIndex] && steps[currentIndex].mode === 'landing' ? (lang === 'fr' ? 'Votre assistant IA de rendez-vous' : 'Your AI appointment helper') : inputPreference === 'tap' ? 'Tap and type mode' : 'Reid is paused';
         caption.className = 'block text-[11px] font-bold text-[#425268] mt-0.5 truncate';
       }
     }
@@ -2879,7 +2879,7 @@
       'None yet': 'Aucune pour l’instant', 'One question per line...': 'Une question par ligne...', 'Questions to consider': 'Questions à considérer', 'Questions for the doctor': 'Questions pour le médecin',
       'Anything else': 'Autre chose', "Anything else you'd like to ask?": 'Autre chose à demander ?', 'One question per line. If not, tap Next.': 'Une question par ligne. Sinon, touchez Suivant.',
       "No, that's all": "Non, c'est tout", 'What matters most': 'Le plus important', 'Check everything': 'Vérifiez tout', 'Most important first': 'Les plus importantes en premier',
-      'Reid is listening': 'Reid écoute', 'Reid got it': 'Reid a compris', 'Reid has a quick question': 'Reid a une petite question', 'Reid is paused': 'Reid est en pause', 'Tap / Type mode': 'Mode toucher / écrire'
+      'Reid is listening': 'Reid écoute', 'Reid got it': 'Reid a compris', 'Reid has a quick question': 'Reid a une petite question', 'Reid is paused': 'Reid est en pause', 'Tap and type mode': 'Mode toucher / écrire'
     };
     const tr = (t) => (lang === 'fr' && FR[t]) || (isMT() && uic()[t]) || t;
     // ----- all languages -----
@@ -4636,7 +4636,7 @@
     const EXPLAIN = {
       setup: () => ({ lang: L2('Pick the language you read best. Everything will be in that language. Then say next.', 'Choisissez la langue que vous lisez le mieux. Tout sera dans cette langue. Puis dites suivant.'),
         size: L2('Pick the text size that is easiest for you. Everything on the screen grows together. Then say next.', 'Choisissez la taille de texte la plus facile pour vous. Tout l’écran grandit ensemble. Puis dites suivant.'),
-        mode: L2('Speak and tap means I listen to you, and you can still tap. Tap and type means I don’t listen. Then say next.', 'Parler et toucher veut dire que je vous écoute, et vous pouvez aussi toucher. Toucher et écrire veut dire que je n’écoute pas. Puis dites suivant.'),
+        mode: L2('Talk and tap means I listen to you, and you can still tap. Tap and type means I don’t listen. Then say next.', 'Parler et toucher veut dire que je vous écoute, et vous pouvez aussi toucher. Toucher et écrire veut dire que je n’écoute pas. Puis dites suivant.'),
         read: L2('If you say yes, I read each question out loud. You can change this any time. Then say next.', 'Si vous dites oui, je lis chaque question à voix haute. Vous pouvez changer à tout moment. Puis dites suivant.') })[steps[currentIndex].part || 'lang'],
       helperpick: () => L2('Pick the helper you like. Reid has a man’s voice, Lilly a woman’s. You can change later in Settings. Then say next.', 'Choisissez l’assistant que vous aimez. Reid a une voix d’homme, Lilly une voix de femme. Vous pourrez changer plus tard dans Réglages. Puis dites suivant.'),
       ideas: () => L2('Reid reads you questions for the doctor, one at a time. First the ones for what you want from this visit, then ones you may not have thought of. For each, tap or say must ask, if there’s time, or leave out. Must-ask questions go first on your pages. Previous goes back one. Your own adds a question. Reid, more asks for new ones. ', 'Reid vous lit des questions pour le médecin, une à la fois. Pour chacune, dites à poser absolument, si on a le temps, ou laisser. ') + (curIdea() ? stop(curIdea()) : '')
@@ -4662,7 +4662,7 @@
       consent: () => L2("Before we begin, a quick word about your privacy. Everything you tell me stays on your phone. To help you, I send your voice to Microsoft, here in Canada, to turn it into words. And I send your answers to Claude, in the United States, anonymously, never with your name, so I can suggest good questions. They are never used to train AI models. Is that alright with you? You can tap I agree, or No thanks.", "Avant de commencer, un mot sur votre vie privée. Tout ce que vous me dites reste sur votre téléphone. Pour vous aider, j'envoie votre voix à Microsoft, ici au Canada, pour la transformer en mots. Et j'envoie vos réponses à Claude, aux États-Unis, de façon anonyme, jamais avec votre nom, pour vous suggérer de bonnes questions. Elles ne servent jamais à entraîner des modèles d'IA. Est-ce que ça vous convient ? Touchez J'accepte, ou Non merci."),
       setup: () => ({ lang: L2('Which language would you like? Tap it, or say it.', 'Quelle langue voulez-vous ? Touchez-la, ou dites-la.'),
         size: L2('Which text size is easiest to read? Normal, large, or extra large?', 'Quelle taille de texte est la plus facile à lire ? Normal, grand, ou très grand ?'),
-        mode: L2('How would you like to answer? Speak and tap, or tap and type only?', 'Comment voulez-vous répondre ? Parler et toucher, ou toucher et écrire seulement ?'),
+        mode: L2('How would you like to answer? Talk and tap, or tap and type only?', 'Comment voulez-vous répondre ? Parler et toucher, ou toucher et écrire seulement ?'),
         read: L2('Should I read the questions aloud? Yes, or no?', 'Est-ce que je lis les questions à voix haute ? Oui, ou non ?') })[steps[currentIndex].part || 'lang'],
       helperpick: () => L2('Who would you like to help you? Tap the helper you prefer.', 'Qui voulez-vous pour vous aider ? Touchez l’assistant que vous préférez.'),
       doctorSummary: () => L2('Would you like to print the summary for your doctor?', 'Voulez-vous imprimer le résumé pour votre médecin ?'),
@@ -4982,6 +4982,7 @@
       const fr = lang === 'fr', onStep = steps[currentIndex].mode !== 'landing', voice = inputPreference === 'voice';
       const SB = 'tactile-btn w-full min-h-[52px] px-3 rounded-2xl font-extrabold text-[15px] flex items-center gap-3 text-left bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]';
       side.innerHTML = `<p class="text-xs font-extrabold uppercase tracking-wider text-[#3B5E42] px-1">${fr ? 'Reid peut :' : 'Reid can:'}</p>
+        ${!voice ? `<button type="button" data-s="talkmode" class="${SB} bg-[#E5EFE7] border-[#3B5E42]/40 text-[#1E4627]">${ico('say')}${fr ? 'Passer à parler et toucher' : 'Switch to talk & tap'}</button>` : ''}
         <button type="button" data-s="read" class="${SB}">${ico('voice')}${fr ? 'Lire l’écran' : 'Read this screen'}</button>
         ${onStep ? `<button type="button" data-s="explain" class="${SB}">${ico('explain')}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
         ${voice && onStep ? `<button type="button" data-s="listen" class="${SB}">${ico('say')}${isListening ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter' : 'Start listening')}</button>` : ''}
@@ -4995,6 +4996,11 @@
       if (b.dataset.s === 'read') forceSay(readScreen);
       if (b.dataset.s === 'explain') forceSay(explainStep);
       if (b.dataset.s === 'listen') { toggleListening(); renderSide(); applyLang(); }
+      if (b.dataset.s === 'talkmode') {   // tap mode → talk and tap: Reid starts listening straight away (Rama, 25 Nov)
+        setInputMode('voice'); if (!isListening) toggleListening(); saveAll(); renderSide(); applyLang();
+        if (typeof setCompanionState === 'function') setCompanionState('listening');
+        const m = L2('Talk and tap is on. I’m listening — you can still tap or type.', 'Parler et toucher est activé. Je vous écoute — vous pouvez aussi toucher ou écrire.');
+        showToast(m); sayT('Talk and tap is on. I’m listening — you can still tap or type.', 'Parler et toucher est activé. Je vous écoute — vous pouvez aussi toucher ou écrire.', true); }
     });
 
     // ---------- iPhone / iPad in Safari: show how to make WellHeard full screen ----------
@@ -5069,7 +5075,7 @@
           `<button type="button" data-su="ts" data-v="${v}" aria-pressed="${textSize === v}" class="${BIG} ${textSize === v ? SEL : OFF}"><span class="w-[44px] text-center" style="font-size:${px}px" aria-hidden="true">A</span><span class="flex-1">${textSize === v ? '✓ ' : ''}${t}</span></button>`).join('')}</div>`;
       } else if (part === 'mode') {
         T(L2('How would you like to answer?', 'Comment voulez-vous répondre ?'), L2('You can change this any time.', 'Vous pouvez changer à tout moment.'));
-        items.innerHTML = `<div class="pk-list">${opt('mode', 1, inputPreference === 'voice', L2('Speak and tap', 'Parler et toucher'), L2(nm + ' listens to you. You can still tap or type.', nm + ' vous écoute. Vous pouvez aussi toucher ou écrire.'), WHI('mic', 26))}
+        items.innerHTML = `<div class="pk-list">${opt('mode', 1, inputPreference === 'voice', L2('Talk and tap', 'Parler et toucher'), L2(nm + ' listens to you. You can still tap or type.', nm + ' vous écoute. Vous pouvez aussi toucher ou écrire.'), WHI('mic', 26))}
           ${opt('mode', 0, inputPreference !== 'voice', L2('Tap and type only', 'Toucher et écrire seulement'), L2(nm + ' doesn’t listen. You tap or type your answers.', nm + ' n’écoute pas. Vous touchez ou écrivez.'), WHI('hand', 26))}</div>`;
       } else {
         T(L2('Should ' + nm + ' read the questions aloud?', nm + ' lit-il les questions à voix haute ?'), L2('You can turn this on or off any time.', 'Vous pouvez l’activer ou le désactiver à tout moment.'));
@@ -5687,7 +5693,7 @@
               if (hit) { setLang(hit[0]); re2(); ackLang(hit[0]); return; } }
             if (part === 'size') { const v = /extra|très grand|tres grand|biggest/.test(low) ? 2 : /large|big|grand/.test(low) ? 1 : /normal|small|regular|petit/.test(low) ? 0 : -1;
               if (v >= 0) { textSize = v; applyTextSize(); saveAll(); re2(); sayT(['Normal.', 'Large.', 'Extra large.'][v] + ' Say next when ready.', ['Normal.', 'Grand.', 'Très grand.'][v] + ' Dites suivant quand c’est bon.', true); return; } }
-            if (part === 'mode') { if (/^(speak|speak and tap|talk|voice|parler|parler et toucher)/.test(low)) { setInputMode('voice'); saveAll(); re2(); sayT('Speak and tap. Say next when ready.', 'Parler et toucher. Dites suivant.', true); return; }
+            if (part === 'mode') { if (/^(speak|speak and tap|talk|voice|parler|parler et toucher)/.test(low)) { setInputMode('voice'); saveAll(); re2(); sayT('Talk and tap. Say next when ready.', 'Parler et toucher. Dites suivant.', true); return; }
               if (/^(tap|type|tap and type|toucher|écrire)/.test(low)) { setInputMode('tap'); saveAll(); re2(); return; } }
             if (part === 'read') { if (/^(yes|yeah|yep|sure|ok|okay|read them|oui)/.test(low)) { readAloud = true; saveAll(); re2(); sayT('Yes, I’ll read them. Say next when ready.', 'Oui, je les lirai. Dites suivant.', true); return; }
               if (/^(no|nope|non|no thanks)/.test(low)) { readAloud = false; hush(); saveAll(); re2(); return; } }
