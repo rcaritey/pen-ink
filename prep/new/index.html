@@ -467,6 +467,7 @@
   <style id="textSizes">
     /* Large / Extra large make the whole page bigger; if a page then runs long, it can scroll */
     .ts-1 #appContainer > section, .ts-2 #appContainer > section { overflow-y: auto !important; }
+    .ts-1 #sideReid, .ts-2 #sideReid { overflow-y: auto; min-height: 0; }
   </style>
 </head>
 <body class="min-h-screen w-full flex flex-col items-center justify-center overflow-hidden">
@@ -4859,7 +4860,7 @@
       // Wide layout: make sure the left column (Reid, Help, progress, "Reid can") and the bottom bar fit.
       // Measure them at normal size; if they need more room than the page has, the whole page gets a
       // little smaller (and wider, so it still fills the screen) instead of cutting things off (23 Nov).
-      if (main.classList.contains('wide')) {
+      if (main.classList.contains('wide') && !textSize) {   // Large / Extra large stay large; the left column scrolls if it must (Rama, 25 Nov)
         const sec = main.querySelector(':scope > section'), side = document.getElementById('sideReid');
         main.style.zoom = '1'; main.style.height = 'auto';
         const sh = sec ? sec.style.height : '', so = sec ? sec.style.overflow : '';
@@ -5013,6 +5014,7 @@
       if (k === 'mode') { setInputMode(on ? 'voice' : 'tap'); if (!on) stopRec(); }
       if (k === 'read') { readAloud = on; if (!on) hush(); }
       saveAll(); renderList(); applyLang();
+      requestAnimationFrame(() => { const sel = document.querySelector('#listItems [aria-pressed="true"]'); if (sel) sel.scrollIntoView({ block: 'nearest' }); });   // bigger text: the choice stays in view
     });
     document.getElementById('privacyLink').addEventListener('click', () => { ensureCtx(); menuKind = 'help'; openModal('helpSettingsModal'); setView = 'privacy'; spokenView = null; renderSettings(); applyLang(); });
 
@@ -6514,7 +6516,8 @@
       }
       // on a computer, nothing should need scrolling: if a screen is too tall, make everything a little smaller instead
       const desk = main.classList.contains('with-pages') || main.classList.contains('wide');
-      if (!(desk ? ['landing', 'consent'] : ['landing', 'consent', 'goalqs', 'ready', 'priority', 'review']).includes(steps[currentIndex].mode)) {
+      // …but only at Normal: Large and Extra large must look bigger, so those scroll instead of shrinking back (Rama, 25 Nov)
+      if (!textSize && !(desk ? ['landing', 'consent'] : ['landing', 'consent', 'goalqs', 'ready', 'priority', 'review']).includes(steps[currentIndex].mode)) {
         const floor = desk ? 0.9 : 0.85;
         const boxes = ['listItems', 'screenQuestion', 'sideReid'].map((id) => document.getElementById(id)).filter((e) => e && e.offsetParent);
         for (let k = 0; k < 3; k++) {
@@ -6570,7 +6573,7 @@
       if (show) { if (wide) { side.appendChild(show); show.classList.add('in-side'); } else if (show.parentElement !== document.body) { document.body.appendChild(show); show.classList.remove('in-side'); } }
       // the left column (Reid, what he can do, Chat with Rama, See my pages) must fit on a short screen:
       // if it doesn't, the whole page gets a little smaller and wider instead of cutting the bottom button off
-      if (wide && side) { const main = document.getElementById('appContainer');
+      if (wide && side && !textSize) { const main = document.getElementById('appContainer');   // at Large / Extra large the column scrolls instead
         for (let k = 0; k < 3; k++) {
           const over = side.scrollHeight - side.clientHeight; if (over <= 2) break;
           const z = parseFloat(main.style.zoom) || 1, h = parseFloat(main.style.height), w = parseFloat(main.style.width), nz = z * h / (h + over + 12);
@@ -6653,12 +6656,13 @@
       if (!main.classList.contains('with-pages')) return;
       main.classList.add('wide'); placeWide();
       const vw = window.innerWidth, vh = window.innerHeight, W = 840, appVis = Math.max(640, Math.min(vw * 0.6, vw - 420));
-      let z = Math.min(1.5, (appVis - 24) / W, (vh * 0.96) / 600), h = (vh * 0.96) / z;
+      const tsz = ([1, 1.18, 1.36][textSize] || 1) * sysTextScale();
+      let z = Math.min(1.5, (appVis - 24) / W, (vh * 0.96) / 600) * tsz, h = (vh * 0.96) / z;
       main.style.zoom = z; main.style.width = W + 'px'; main.style.height = h + 'px';
       if (LISTMODES[steps[currentIndex].mode]) renderList();
       // the same no-scroll fit as everywhere else
       const boxes = ['listItems', 'screenQuestion', 'sideReid'].map((id) => document.getElementById(id)).filter((e) => e && e.offsetParent);
-      if (steps[currentIndex].mode !== 'consent') for (let k = 0; k < 3; k++) {
+      if (steps[currentIndex].mode !== 'consent' && !textSize) for (let k = 0; k < 3; k++) {
         const over = Math.max(0, ...boxes.map((e) => e.scrollHeight - e.clientHeight)); if (over <= 2) break;
         const nz = Math.max(0.85, z * h / (h + over + 10)); if (nz >= z - 0.001) break;
         const vis = h * z; main.style.width = (W * z / nz) + 'px'; z = nz; h = vis / z; main.style.zoom = z; main.style.height = h + 'px';
