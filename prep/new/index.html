@@ -4239,14 +4239,24 @@
     ];
     const COMMON = { en: COMMON_SRC.map((c) => c[0]), fr: COMMON_SRC.map((c) => c[1]) };
     const commonSrc = (q) => (COMMON_SRC.find((c) => c[0] === q || c[1] === q) || [])[2];
-    function ideaPool() {
+    // A limit, most important first (Rama, 25 Nov: "it keeps adding questions"): 12 to start; "Show me 5 more" raises it.
+    // Order: questions for their goal, then ones for the doctor they're seeing, then the ones they may not have thought of.
+    let ideaCap = 12;
+    function ideaPoolAll() {
       const mine = qLines(SID('ask').answer).concat(qLines(SID('ideasmore').answer), ownQs), out = [];
-      (typeof goalPool === 'object' ? goalPool : []).concat(aiPool, COMMON[lang === 'fr' ? 'fr' : 'en']).forEach((q) => {
+      const com = COMMON[lang === 'fr' ? 'fr' : 'en'], tag = (k) => aiPool.filter((q) => (typeof aiTags === 'object' && aiTags[q]) === k);
+      const rest = aiPool.filter((q) => !(typeof aiTags === 'object' && (aiTags[q] === 'd' || aiTags[q] === 'c')));
+      (typeof goalPool === 'object' ? goalPool : []).concat(tag('d'), tag('c'), rest, com).forEach((q) => {
+        if (!q) return;
         if (qPicked.includes(q)) { if (!out.includes(q)) out.push(q); return; }
-        if (mine.some((m) => similar(m, q)) || out.some((o) => similar(o, q))) return;
+        if (out.includes(q) || mine.some((m) => similar(m, q)) || out.some((o) => similar(o, q))) return;
         out.push(q);
       });
       return out;
+    }
+    function ideaPool() {
+      const all = ideaPoolAll();
+      return all.filter((q, i) => i < ideaCap || qPicked.includes(q) || qSkipped.includes(q));   // decided ones never vanish
     }
 
     const QSTEPS = [
@@ -4546,12 +4556,16 @@
               <button type="button" data-idea="no" class="tactile-btn flex-1 min-h-[68px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xl">✕ ${L2('Leave out', 'Laisser')}</button></div>`;
         } else {
           // out of suggestions: Reid fetches more on his own (Rama, 24 Nov: offer more, don't ask), and says so on screen when there are none
-          if (!aiBusy && !ideasOut) { if (aiPool.length >= 60) ideasOut = true; else setTimeout(() => fetchClaudeQuestions(true, true), 0); }
-          const busy = !ideasOut;
+          const capped = ideaPoolAll().length >= ideaCap;   // reached the limit: stop here, more only if asked
+          if (!capped && !aiBusy && !ideasOut) { if (aiPool.length >= 60) ideasOut = true; else setTimeout(() => fetchClaudeQuestions(true, true), 0); }
+          const busy = !capped && !ideasOut;
           const addedLine = qPicked.length ? L2(`You added ${qPicked.length}. They're on your pages.`, `Vous en avez ajouté ${qPicked.length}. Elles sont sur vos pages.`) : L2('You haven’t added any. That’s fine.', 'Vous n’en avez ajouté aucune. Pas de souci.');
           items.innerHTML = busy
             ? `<div class="w-full bg-white border border-[#D6CFC0] rounded-[22px] p-4 text-[17px] text-[#1E2634] leading-snug" role="status"><span class="block text-[19px] font-extrabold">${L2('Reid is finding more questions…', 'Reid cherche d’autres questions…')}</span><span class="block mt-1">${L2('This takes a few seconds.', 'Cela prend quelques secondes.')} ${addedLine}</span></div>
             <button type="button" data-idea="no" class="tactile-btn w-full min-h-[56px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${L2('Skip, go on', 'Passer, continuer')} ›</button>`
+            : capped ? `<div class="w-full bg-white border border-[#D6CFC0] rounded-[22px] p-4 text-[17px] text-[#1E2634] leading-snug" role="status"><span class="block text-[19px] font-extrabold">${L2('Those are the most important questions for this visit.', 'Voilà les questions les plus importantes pour cette visite.')}</span><span class="block mt-1">${addedLine}</span></div>
+            <button type="button" data-idea="no" class="tactile-btn w-full min-h-[60px] rounded-[18px] bg-[#E5EFE7] wh-quiet font-extrabold text-lg">${L2('Go on', 'Continuer')} ›</button>
+            <button type="button" data-idea="more5" class="tactile-btn w-full min-h-[56px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${L2('Show me 5 more', 'M’en montrer 5 de plus')}</button>`
             : `<div class="w-full bg-white border border-[#D6CFC0] rounded-[22px] p-4 text-[17px] text-[#1E2634] leading-snug" role="status"><span class="block text-[19px] font-extrabold">${L2('Reid has no more questions for this visit.', 'Reid n’a plus d’autres questions pour cette visite.')}</span><span class="block mt-1">${addedLine}</span></div>
             <button type="button" data-idea="no" class="tactile-btn w-full min-h-[60px] rounded-[18px] bg-[#E5EFE7] wh-quiet font-extrabold text-lg">${L2('Go on', 'Continuer')} ›</button>
             <button type="button" data-idea="yes" class="tactile-btn w-full min-h-[56px] rounded-[18px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${WHI('search')} ${L2('Look again', 'Chercher encore')}</button>`;
@@ -4614,7 +4628,7 @@
     // keep suggestions coming: when 3 or fewer are left, quietly ask Claude for more (up to about 60 in all)
     function refillIdeas() {
       const left = ideaPool().filter((q) => !qPicked.includes(q) && !qSkipped.includes(q)).length;
-      if (!aiBusy && left <= 3 && aiPool.length < 60) fetchClaudeQuestions(true, true);
+      if (!aiBusy && left <= 3 && ideaPoolAll().length < ideaCap && aiPool.length < 60) fetchClaudeQuestions(true, true);   // only fetch to reach the limit
     }
     function decideIdea(act) {
       if (act === 'undo') {
@@ -4622,7 +4636,9 @@
         qPicked = qPicked.filter((x) => x !== last); qPrio = qPrio.filter((x) => x !== last); qSkipped = qSkipped.filter((x) => x !== last);
       } else {
         const q = curIdea();
-        if (!q) { if (act === 'yes' || act === 'star') { ideasOut = false; fetchClaudeQuestions(true); } else if (act === 'no') goNext(); return; }
+        if (!q) {
+          if (act === 'more5') { ideaCap += 5; ideasOut = false; if (ideaPoolAll().length < ideaCap) fetchClaudeQuestions(true); renderList(); applyLang(); const n2 = curIdea(); if (n2) say(stop(n2)); return; }
+          if (act === 'yes' || act === 'star') { ideasOut = false; fetchClaudeQuestions(true); } else if (act === 'no') goNext(); return; }
         if (act === 'no') qSkipped.push(q); else { qPicked.push(q); if (act === 'star' && !qPrio.includes(q)) qPrio.push(q); }
         ideaHist.push(q);
         setCompanionState('captured');
@@ -4657,7 +4673,7 @@
       const k = b.dataset.foot;
       if (k === 'more') { nextListPage(); renderList(); applyLang(); if (steps[currentIndex].mode === 'ideas') say(qShown.map((q, i) => `${i + 1}. ${q}`).join(' ')); }
       if (k === 'add') { qAdding = true; renderList(); }
-      if (k === 'gen') fetchClaudeQuestions(true);
+      if (k === 'gen') { if (steps[currentIndex].mode === 'ideas') ideaCap = Math.max(ideaCap, ideaPool().length) + 5; ideasOut = false; if (ideaPoolAll().length < ideaCap) fetchClaudeQuestions(true); else { renderList(); applyLang(); } }   // asked for more: 5 more
       if (k === 'save') listAdd();
       if (k === 'print') printPages('doctor');
     });
@@ -6381,7 +6397,7 @@
         h.textContent = L2('You came for: ', 'Vous venez pour : ') + goal + '. ' + L2('Tap the most important first.', 'Touchez la plus importante en premier.');
       }
     }; }
-    { const ip = ideaPool; ideaPool = function () { return ip().filter((q) => (goalPool.includes(q) || !goalPool.some((g) => similar(g, q))) && !COMMON.en.includes(q) && !COMMON.fr.includes(q)); }; }
+    { const ip = ideaPoolAll; ideaPoolAll = function () { return ip().filter((q) => (goalPool.includes(q) || !goalPool.some((g) => similar(g, q))) && !COMMON.en.includes(q) && !COMMON.fr.includes(q)); }; }
     Object.assign(SPEAK, {
       goalqs: () => goalPool.length ? L2('Here are questions for what you want out of this visit. Tap the ones to keep. You can also say your own question.', 'Voici des questions selon ce que vous voulez de cette visite. Touchez celles à garder. Vous pouvez aussi dire votre propre question.')
         : L2('Reid is writing questions to help you get what you came for. You can say your own question too.', 'Reid écrit des questions pour votre objectif. Vous pouvez aussi dire votre question.'),
