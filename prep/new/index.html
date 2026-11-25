@@ -2831,10 +2831,10 @@
         // beside his face, to the right, with the curved tail sweeping back to him
         const fr = (r.right - a.left) / z, ft = (r.top - a.top) / z, fh = r.height / z;
         toast.classList.add('reid-bubble'); toast.firstChild.remove(); toast.style.transform = 'none';
-        toast.insertAdjacentHTML('beforeend', reidTail('#fff'));
-        const left = fr + 32; toast.style.maxWidth = Math.max(180, Math.min(380, aw - left - 8)) + 'px';
-        toast.style.left = left + 'px'; toast.style.top = (ft - 2) + 'px';
-        toast.style.setProperty('--tailY', Math.max(10, fh / 2 + 1) + 'px');
+        // computers: beside his face; phones: under the header, the full width, so it covers nothing (Rama, 25 Nov)
+        if (app.classList.contains('wide')) { const left = fr + 34; toast.style.maxWidth = Math.max(180, Math.min(380, aw - left - 8)) + 'px'; toast.style.left = left + 'px'; toast.style.top = (ft - 2) + 'px'; }
+        else { toast.style.left = '16px'; toast.style.maxWidth = (aw - 32) + 'px'; toast.style.top = (ay + 18) + 'px'; }
+        requestAnimationFrame(() => pointTail(toast, '#fff'));   // the same comic tail as his other bubbles, pointing at him
       }
       toast.classList.remove('opacity-0');
       toast.classList.add('opacity-100');
