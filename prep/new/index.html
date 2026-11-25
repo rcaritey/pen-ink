@@ -232,6 +232,24 @@
     }
     @media (max-height: 760px) and (min-width: 700px) { #pickHost .pk-mins { grid-template-columns: repeat(4, minmax(0, 1fr)); } #pickHost .pk-hours { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
     @media (max-width: 480px) { #nextNavHint { font-size: 13px; } }
+    /* the date in three columns: each scrolls on its own and fills the space (Rama, 25 Nov) */
+    .dp-cols { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 10px; flex: 1 1 auto; min-height: 150px; }
+    .dp-cols.dp-time { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .dp-col { display: flex; flex-direction: column; min-height: 0; background: #F0EBE1; border-radius: 16px; padding: 6px; }
+    .dp-head { margin: 2px 4px 6px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #3B5E42; }
+    .dp-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px; overscroll-behavior: contain; }
+    .dp-empty { margin: 8px 4px; font-size: 15px; color: #425268; line-height: 1.3; }
+    #voiceCaptureScreen #pickHost:not(.hidden):has(.dp-cols) { overflow: hidden; }
+    #voiceCaptureScreen:has(.dp-cols) .pk-heard { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 6px 16px; margin-top: 4px; }
+    #voiceCaptureScreen:has(.dp-cols) .pk-heard-val { display: inline; font-size: 21px; }
+    .dp-cols .tactile-btn { white-space: nowrap; }
+    #pickHost [data-unsure="day"] { min-height: 46px !important; }
+    /* short laptop windows: the ✓ in the columns already shows the date, so the card steps aside; the area scrolls to reach Not booked yet */
+    @media (max-height: 760px) {
+      #voiceCaptureScreen:has(.dp-cols) .pk-heard { display: none; }
+      #voiceCaptureScreen #pickHost:not(.hidden):has(.dp-cols) { overflow-y: auto; }
+      .dp-cols { min-height: 180px; }
+    }
     #voiceCaptureScreen #pickHost:not(.hidden) { flex: 1 1 auto !important; flex-shrink: 1 !important; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 4px; }
     .primary-capsule-btn {
       background-color: #B84A27;
@@ -3539,13 +3557,13 @@
           if (p && p.date) {
             const d = p.date, iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             lastDayHeard = { at: Date.now(), date: { month: d.getMonth(), day: d.getDate() } };
-            st.dateISO = iso; pickWeek = null; pickMonth = null; pickBrowse = false; calMonth = new Date(d.getFullYear(), d.getMonth(), 1); setPick(st, dayStr(d)); flashPick();
+            st.dateISO = iso; pickWeek = null; pickMonth = null; pickBrowse = false; calMonth = new Date(d.getFullYear(), d.getMonth(), 1); dpY = d.getFullYear(); dpM = d.getMonth(); setPick(st, dayStr(d)); flashPick();
             say(L2(dayStr(d) + '. Got it. Say next, or change it.', dayStr(d) + '. C’est noté. Dites suivant, ou changez-la.'), true); return;
           }
           if (p && p.month) {
             const mName = p.month.toLocaleDateString(LOC[lang] || 'en-CA', { month: 'long', year: 'numeric' });
             lastDayHeard = { at: Date.now(), date: { month: p.month.getMonth() } };
-            st.dateISO = ''; pickWeek = 'month'; pickMonth = p.month; pickBrowse = true; calMonth = new Date(p.month.getFullYear(), p.month.getMonth(), 1); setPick(st, mName); flashPick();
+            st.dateISO = ''; pickWeek = 'month'; pickMonth = p.month; pickBrowse = true; calMonth = new Date(p.month.getFullYear(), p.month.getMonth(), 1); dpY = p.month.getFullYear(); dpM = p.month.getMonth(); setPick(st, mName); flashPick();
             say(L2(mName + '. Got it. Say the day if you know it, or say next.', mName + '. C’est noté. Dites le jour si vous le savez, ou dites suivant.'), true); return;
           }
           if (low.split(/\s+/).length <= 8 && !/\?$/.test(low)) { const m = L2('Sorry, I didn’t get the date. Say it like June 24, 2027, or tap below.', 'Désolé, je n’ai pas compris la date. Dites par exemple 24 juin 2027, ou touchez ci-dessous.'); showToast(m); say(m, true); return; }
@@ -5947,7 +5965,7 @@
     const pickHost = document.createElement('div'); pickHost.id = 'pickHost'; pickHost.className = 'hidden w-full flex flex-col gap-[8px] shrink-0';
     const dayStr = (d) => d.toLocaleDateString(LOC[lang] || 'en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
     const hourStr = (h, m) => { const d = new Date(2000, 0, 1, h, m); return d.toLocaleTimeString(LOC[lang] || 'en-CA', { hour: 'numeric', minute: '2-digit' }); };
-    let pickWeek = null, pickHour = null, pickBrowse = false, pickFor = null, pickMonth = null, pickPage = 0;   // two-tap picker state, reset on each new step
+    let pickWeek = null, pickHour = null, pickBrowse = false, pickFor = null, pickMonth = null, pickPage = 0, dpY = null, dpM = null, tpMin = null, tpAP = null;   // two-tap picker state, reset on each new step
     const CELL = 'tactile-btn h-[40px] rounded-xl font-extrabold text-[18px] flex items-center justify-center';
     const PILL = 'tactile-btn min-h-[52px] rounded-2xl font-extrabold text-[17px] flex items-center justify-center';
     const wideNow = () => document.getElementById('appContainer').classList.contains('wide');
@@ -5961,42 +5979,52 @@
       const BIG = 'tactile-btn w-full min-h-[60px] px-4 rounded-2xl font-extrabold text-[18px] flex items-center justify-between gap-2 text-left';
       const backBtn = (act, en, f) => `<button type="button" data-pk="${act}" class="tactile-btn self-start min-h-[48px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[16px]">‹ ${L2(en, f)}</button>`;
       if (step.id === 'day') {
-        // the original month calendar (Rama asked for it back, 25 Nov)
-        if (!calMonth) { const iso = step.dateISO ? new Date(step.dateISO + 'T00:00') : today; calMonth = new Date(iso.getFullYear(), iso.getMonth(), 1); }
-        const y = calMonth.getFullYear(), m = calMonth.getMonth(), first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
-        const wk = [...Array(7)].map((_, i) => new Date(2023, 0, 1 + i).toLocaleDateString(LOC[lang] || 'en-CA', { weekday: 'narrow' }));
-        const notBtn = `<button type="button" data-unsure="day" class="${PILL} ${wideNow() ? 'px-4' : 'w-full'} ${notSure ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${notSure ? '✓ ' : ''}${L2('Not booked yet', 'Pas encore fixé')}</button>`;
-        const canBack = y > today.getFullYear() || (y === today.getFullYear() && m > today.getMonth());
-        html += `<div class="flex items-stretch gap-[10px]">
-            <button type="button" data-cal="-1" ${canBack ? '' : 'disabled'} aria-label="${L2('Previous month', 'Mois précédent')}" class="${PILL} w-[56px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] ${canBack ? '' : 'opacity-30'}">◀</button>
-            <div class="flex-1 flex items-center justify-center font-extrabold text-[18px] text-[#1E2634]" data-notr>${calMonth.toLocaleDateString(LOC[lang] || 'en-CA', { month: 'long', year: 'numeric' })}</div>
-            <button type="button" data-cal="1" aria-label="${L2('Next month', 'Mois suivant')}" class="${PILL} w-[56px] bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">▶</button>${wideNow() ? notBtn : ''}</div>
-          <div class="grid grid-cols-7 gap-[6px] text-center text-[12px] font-extrabold text-[#425268]" data-notr>${wk.map((d) => `<span>${d}</span>`).join('')}</div>
-          <div class="grid grid-cols-7 gap-[6px]" data-notr>${'<span></span>'.repeat(first)}${[...Array(days)].map((_, i) => {
-            const d = new Date(y, m, i + 1), iso = `${y}-${String(m + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
+        // Three columns (Rama, 25 Nov): Year (this year + 10) · Month (Jan–Dec) · Day (weekday and date, up to 31). Each column scrolls on its own.
+        const sel = step.dateISO && !notSure ? new Date(step.dateISO + 'T00:00') : null;
+        if (dpY === null) dpY = sel ? sel.getFullYear() : today.getFullYear();
+        if (dpM === null && sel) dpM = sel.getMonth();
+        const narrow = window.innerWidth < 600, loc = LOC[lang] || 'en-CA';
+        const ON = 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]', OFF = 'bg-white border border-[#D6CFC0] text-[#1E2634]', GONE = 'bg-transparent border border-dashed border-[#E2DBD0] text-[#425268]/40';
+        const cell = 'tactile-btn w-full min-h-[52px] px-2 rounded-xl font-extrabold text-[17px] flex items-center justify-center gap-1 shrink-0';
+        const col = (title, body) => `<div class="dp-col"><p class="dp-head">${title}</p><div class="dp-list" data-notr>${body}</div></div>`;
+        const years = [...Array(11)].map((_, i) => today.getFullYear() + i);
+        const yHtml = years.map((y) => `<button type="button" data-dy="${y}" aria-pressed="${dpY === y}" class="${cell} ${dpY === y ? ON : OFF}">${dpY === y ? '✓ ' : ''}${y}</button>`).join('');
+        const mHtml = [...Array(12)].map((_, m) => {
+          const past = dpY === today.getFullYear() && m < today.getMonth(), on = dpM === m;
+          const nm = new Date(2024, m, 1).toLocaleDateString(loc, { month: narrow ? 'short' : 'long' });
+          return `<button type="button" data-dm="${m}" aria-pressed="${on}" ${past ? 'disabled' : ''} class="${cell} ${on ? ON : past ? GONE : OFF}">${on ? '✓ ' : ''}${nm}</button>`; }).join('');
+        let dHtml = `<p class="dp-empty">${L2('Pick the month first', 'Choisissez d’abord le mois')}</p>`;
+        if (dpM !== null) {
+          const n = new Date(dpY, dpM + 1, 0).getDate();
+          dHtml = [...Array(n)].map((_, i) => {
+            const d = new Date(dpY, dpM, i + 1), iso = `${dpY}-${String(dpM + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
             const past = d < today, on = step.dateISO === iso && !notSure, isToday = d.getTime() === today.getTime();
-            return `<button type="button" data-day="${iso}" aria-pressed="${on}" ${past ? 'disabled' : ''} aria-label="${dayStr(d)}" class="${CELL} ${on ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : past ? 'text-[#425268]/35' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} ${isToday && !on ? 'ring-2 ring-[#3B5E42]' : ''}">${i + 1}</button>`;
-          }).join('')}</div>
-          ${wideNow() ? '' : notBtn}`;
-      } else {
-        const t = /^(\d{1,2}):(\d{2})/.exec(step.time24 || '') || null, H = t ? +t[1] : null, M = t ? +t[2] : null;
-        if (pickHour === null && !pickBrowse && H !== null && !notSure) pickHour = H;
-        if (pickHour === null) {
-          const hours = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
-          html += `<div class="pk-hours" data-notr>${hours.map((h) => `<button type="button" data-hour="${h}" class="${PILL} min-h-[60px] text-[18px] ${OFFB}">${hourStr(h, 0).replace(/:00/, '')}</button>`).join('')}</div>
-            <button type="button" data-unsure="time" class="${BIG} justify-center ${notSure ? SEL : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}"><span>${notSure ? '✓ ' : ''}${L2('Not sure of the time', 'Heure pas sûre')}</span></button>`;
-        } else {
-          html += backBtn('hours', 'Change the hour', 'Changer l’heure') + `<div class="pk-list pk-mins" data-notr>${[0, 15, 30, 45].map((mm) => {
-            const on = H === pickHour && M === mm && !notSure;
-            return `<button type="button" data-min="${mm}" aria-pressed="${on}" class="${BIG} justify-center ${on ? SEL : OFFB}"><span>${on ? '✓ ' : ''}${hourStr(pickHour, mm)}</span></button>`;
-          }).join('')}</div>`;
+            return `<button type="button" data-day="${iso}" aria-pressed="${on}" aria-label="${dayStr(d)}" ${past ? 'disabled' : ''} class="${cell} justify-between px-3 ${on ? ON : past ? GONE : OFF} ${isToday && !on ? 'ring-2 ring-[#3B5E42]' : ''}"><span class="font-normal text-[15px] text-[#425268]">${on ? '✓ ' : ''}${d.toLocaleDateString(loc, { weekday: 'short' })}</span><span>${i + 1}</span></button>`; }).join('');
         }
+        html += `<div class="dp-cols">${col(L2('Year', 'Année'), yHtml)}${col(L2('Month', 'Mois'), mHtml)}${col(L2('Day', 'Jour'), dHtml)}</div>
+          <button type="button" data-unsure="day" class="${PILL} w-full shrink-0 ${notSure ? ON : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${notSure ? '✓ ' : ''}${L2('Not booked yet', 'Pas encore fixé')}</button>`;
+      } else {
+        // Three columns (Rama, 25 Nov): Hour (1–12) · Minutes (00, 15, 30, 45) · AM / PM. One tap on the hour already gives a time.
+        const t = /^(\d{1,2}):(\d{2})/.exec(step.time24 || '') || null, H = t && !notSure ? +t[1] : null, M = t && !notSure ? +t[2] : null;
+        const h12 = H === null ? null : (H % 12 || 12), ap = H === null ? tpAP : (H < 12 ? 'am' : 'pm'), mm = M === null ? tpMin : M;
+        const ON = 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]', OFF = 'bg-white border border-[#D6CFC0] text-[#1E2634]';
+        const cell = 'tactile-btn w-full min-h-[52px] px-2 rounded-xl font-extrabold text-[18px] flex items-center justify-center gap-1 shrink-0';
+        const col = (title, body) => `<div class="dp-col"><p class="dp-head">${title}</p><div class="dp-list" data-notr>${body}</div></div>`;
+        const btn = (attr, v, on, label) => `<button type="button" ${attr}="${v}" aria-pressed="${on}" class="${cell} ${on ? ON : OFF}">${on ? '✓ ' : ''}${label}</button>`;
+        const hHtml = [...Array(12)].map((_, i) => btn('data-th', i + 1, h12 === i + 1, i + 1)).join('');
+        const mHtml = [0, 15, 30, 45].map((x) => btn('data-tm', x, mm === x, ':' + String(x).padStart(2, '0'))).join('');
+        const aHtml = btn('data-tap', 'am', ap === 'am', L2('AM', 'Matin')) + btn('data-tap', 'pm', ap === 'pm', L2('PM', 'Après-midi'));
+        html += `<div class="dp-cols dp-time">${col(L2('Hour', 'Heure'), hHtml)}${col(L2('Minutes', 'Minutes'), mHtml)}${col(L2('AM / PM', 'Matin / après-midi'), aHtml)}</div>
+          <button type="button" data-unsure="time" class="${PILL} w-full shrink-0 ${notSure ? ON : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'}">${notSure ? '✓ ' : ''}${L2('Not sure of the time', 'Heure pas sûre')}</button>`;
       }
       const chosen = (step.answer || '').trim(), help = document.getElementById('screenHelperText');
       help.classList.remove('hidden');
       help.innerHTML = chosen ? `<span class="pk-heard" role="status"><span class="pk-heard-lab">✓ ${step.id === 'day' ? L2('Appointment day', 'Jour du rendez-vous') : L2('Appointment time', 'Heure du rendez-vous')}</span><span class="pk-heard-val" data-notr>${esc(chosen.replace(/\.$/, ''))}</span></span>`
-        : esc(step.id === 'day' ? L2('Tap the day, or say it.', 'Touchez le jour, ou dites-le.') : (pickHour === null ? L2('Tap the hour, or say the time.', 'Touchez l’heure, ou dites-la.') : L2('Now tap the exact time.', 'Touchez maintenant l’heure exacte.')));
+        : esc(step.id === 'day' ? L2('Tap the year, month and day — or say the date.', 'Touchez l’année, le mois et le jour — ou dites la date.') : L2('Tap the hour, minutes and AM or PM — or say the time.', 'Touchez l’heure, les minutes et matin ou après-midi — ou dites l’heure.'));
       pickHost.innerHTML = html;
+      if (pickHost.querySelector('.dp-cols')) requestAnimationFrame(() => { pickHost.scrollTop = 0; });   // keep the Year / Month / Day headings in view
+      // each date column shows its chosen item (or today's month) without the person hunting for it
+      pickHost.querySelectorAll('.dp-list').forEach((l) => { const on = l.querySelector('[aria-pressed="true"]') || l.querySelector('button:not([disabled])'); if (on) l.scrollTop = Math.max(0, on.offsetTop - l.offsetTop - l.clientHeight / 2 + on.offsetHeight / 2); });
     }
     function setPick(step, text) {
       step.answer = text; step.customActive = true; document.getElementById('answerInput').value = text;
@@ -6012,8 +6040,23 @@
       if (b.dataset.pk === 'months') { pickWeek = 'months'; pickBrowse = true; renderPicker(step); applyLang(); return; }
       if (b.dataset.pk === 'month') { pickWeek = 'month'; pickBrowse = true; renderPicker(step); applyLang(); return; }
       if (b.dataset.pk === 'hours') { pickHour = null; pickBrowse = true; renderPicker(step); applyLang(); return; }
+      if (b.dataset.dy) { dpY = Number(b.dataset.dy); const t0 = new Date(); if (dpY === t0.getFullYear() && dpM !== null && dpM < t0.getMonth()) dpM = null;
+        if (step.dateISO && !step.dateISO.startsWith(dpY + '-')) { const d0 = new Date(step.dateISO + 'T00:00'), n = new Date(dpY, d0.getMonth() + 1, 0).getDate(), d1 = new Date(dpY, d0.getMonth(), Math.min(d0.getDate(), n));
+          if (dpM === d0.getMonth() && d1 >= new Date(t0.getFullYear(), t0.getMonth(), t0.getDate())) { step.dateISO = `${dpY}-${String(d1.getMonth() + 1).padStart(2, '0')}-${String(d1.getDate()).padStart(2, '0')}`; setPick(step, dayStr(d1)); return; } }
+        renderPicker(step); applyLang(); return; }
+      if (b.dataset.dm) { dpM = Number(b.dataset.dm); renderPicker(step); applyLang(); const dl = pickHost.querySelectorAll('.dp-list')[2]; if (dl) dl.scrollTop = 0; return; }
       if (b.dataset.cal) { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + Number(b.dataset.cal), 1); renderPicker(step); applyLang(); return; }
       if (b.dataset.day) { step.dateISO = b.dataset.day; const d = new Date(b.dataset.day + 'T00:00'); setPick(step, dayStr(d)); say(dayStr(d), true); return; }
+      if (b.dataset.th || b.dataset.tm !== undefined || b.dataset.tap) {   // hour / minutes / AM-PM columns
+        const t = /^(\d{1,2}):(\d{2})/.exec(step.time24 || ''), has = !!t && !/^(not sure|pas sûr|heure pas)/i.test(step.answer || '');
+        let h = has ? +t[1] : null, m = has ? +t[2] : (tpMin !== null ? tpMin : 0), ap = has ? (h < 12 ? 'am' : 'pm') : tpAP;
+        if (b.dataset.tm !== undefined) { m = Number(b.dataset.tm); tpMin = m; }
+        if (b.dataset.tap) { ap = b.dataset.tap; tpAP = ap; }
+        if (b.dataset.th) { const x = Number(b.dataset.th); if (!ap) ap = (x >= 7 && x <= 11) ? 'am' : 'pm'; h = x % 12 + (ap === 'pm' ? 12 : 0); }
+        else if (h !== null) h = h % 12 + (ap === 'pm' ? 12 : 0);
+        if (h === null) { renderPicker(step); applyLang(); return; }   // minutes or AM/PM before the hour: remembered until the hour is tapped
+        step.time24 = `${h}:${String(m).padStart(2, '0')}`; setPick(step, hourStr(h, m)); say(hourStr(h, m), true); return;
+      }
       if (b.dataset.hour) { const h = Number(b.dataset.hour), mm = 0; pickHour = h; step.time24 = `${h}:${String(mm).padStart(2, '0')}`; setPick(step, hourStr(h, mm)); return; }
       if (b.dataset.min !== undefined) { const h = pickHour !== null ? pickHour : Number((step.time24 || '9:00').split(':')[0]), mm = Number(b.dataset.min); step.time24 = `${h}:${String(mm).padStart(2, '0')}`; setPick(step, hourStr(h, mm)); say(hourStr(h, mm), true); return; }
       if (b.dataset.unsure) { step.dateISO = step.id === 'day' ? '' : step.dateISO; step.time24 = step.id === 'time' ? '' : step.time24; setPick(step, step.id === 'day' ? L2('Not booked yet', 'Pas encore fixé') : L2('Not sure of the time', 'Heure pas sûre')); }
@@ -6023,7 +6066,7 @@
       const scr = document.getElementById('voiceCaptureScreen'), box = document.getElementById('answerBoxWrapper'), chips = document.getElementById('quickChipsGrid');
       if (on && pickHost.parentNode !== scr) scr.insertBefore(pickHost, box);
       pickHost.classList.toggle('hidden', !on); box.classList.toggle('hidden', on); chips.classList.toggle('hidden', on);
-      if (on) { if (step.id === 'day') calMonth = calMonth || null; if (pickFor !== step) { pickFor = step; pickWeek = null; pickHour = null; pickBrowse = false; pickMonth = null; pickPage = 0; } renderPicker(step); }
+      if (on) { if (step.id === 'day') calMonth = calMonth || null; if (pickFor !== step) { pickFor = step; pickWeek = null; pickHour = null; pickBrowse = false; pickMonth = null; pickPage = 0; dpY = null; dpM = null; tpMin = null; tpAP = null; } renderPicker(step); }
     }
 
     // ---------- tie everything into the prototype's own flow ----------
