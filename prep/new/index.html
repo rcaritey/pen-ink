@@ -114,19 +114,26 @@
     #companionEmblem.reid-happy { animation: hfHop .55s ease-out 2; }
     @keyframes hfHop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-5px); } }
     @media (prefers-reduced-motion: reduce) { .hf-lid { animation: none; } #companionEmblem.reid-happy { animation: none; } }
-    .pg-row { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .pg-ic { width: 28px; height: 28px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid #D6CFC0; color: #8A93A0; background: #fff; flex-shrink: 0; }
+    .pg-row { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .pg-ic { width: 32px; height: 32px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid #D6CFC0; color: #8A93A0; background: #fff; flex-shrink: 0; }
     .pg-ic.done { background: #E5EFE7; border-color: #3B5E42; color: #3B5E42; }
-    .pg-ic.now { width: 34px; height: 34px; background: #3B5E42; border-color: #3B5E42; color: #fff; }
+    .pg-ic.now { width: 38px; height: 38px; background: #3B5E42; border-color: #3B5E42; color: #fff; }
     /* road map icons (Rama, 25 Nov): say what they are on hover, and take you to that part when tapped */
     button.pg-ic { position: relative; cursor: pointer; padding: 0; font: inherit; transition: transform .12s ease, box-shadow .12s ease; }
-    button.pg-ic::before { content: ''; position: absolute; inset: -8px; }   /* a bigger target than the circle */
+    button.pg-ic::before { content: ''; position: absolute; inset: -6px; }   /* 44px target; stops halfway into the gap so two never overlap */
+    .pg-ic.later { opacity: .55; border-style: dashed; }
+    /* phones: all the icons on one line, the part's name on the line under them */
+    #appContainer:not(.wide) .pg-row { gap: 8px; }
+    #appContainer:not(.wide) .pg-ic { width: 32px; height: 32px; }
+    #appContainer:not(.wide) .pg-ic.now { width: 36px; height: 36px; }
+    #appContainer:not(.wide) button.pg-ic::before { inset: -6px -4px; }
+    #appContainer:not(.wide) .pg-name { flex-basis: 100%; margin: 0; }
     button.pg-ic:hover, button.pg-ic:focus-visible { transform: scale(1.08); box-shadow: 0 0 0 3px #C9DCCB; }
     .pg-tip { position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%); z-index: 80; white-space: nowrap; pointer-events: none;
       background: #1E2634; color: #fff; font-size: 14px; font-weight: 700; line-height: 1.2; padding: 7px 11px; border-radius: 10px; opacity: 0; transition: opacity .12s ease; }
     .pg-tip::after { content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-bottom-color: #1E2634; }
     button.pg-ic:hover .pg-tip, button.pg-ic:focus-visible .pg-tip { opacity: 1; }
-    @media (hover: none) { button.pg-ic:hover .pg-tip { opacity: 0; } }
+    @media (hover: none) { button.pg-ic:hover .pg-tip, button.pg-ic:focus-visible .pg-tip { opacity: 0; } }
     .pg-name { margin-left: 4px; font-weight: 700; color: #1E2634; }
     .comic-tail { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; z-index: 1; }
     .hp-wrap { display: flex; flex-direction: column; gap: 10px; width: 100%; }
@@ -5882,23 +5889,30 @@
       { k: 'share', icon: 'mail', ids: ['shareFinish'], en: 'Share', fr: 'Partager', den: 'sharing', dfr: 'le partage' },
     ];
     const partOf = (st) => st && PARTS.find((p) => p.ids.includes(st.id) || (p.dq && /^dq\d+$/.test(st.id)));
+    // furthest screen reached: road map icons past it can't be tapped (jumping ahead skipped screens and ticked them as done — Rama, 25 Nov)
+    let reachedMax = -1;
+    const firstOf = (p, ph) => steps.findIndex((x) => x.phaseIndex === ph && partOf(x) === p);
     function partRow(step) {
       const el = document.getElementById('stepSubtitle'), here = partOf(step); if (!el || !here) return;
+      reachedMax = Math.max(reachedMax, currentIndex);
       const inPhase = PARTS.filter((p) => steps.some((x) => x.phaseIndex === step.phaseIndex && partOf(x) === p));
       const at = inPhase.indexOf(here);
+      const open = (p) => firstOf(p, step.phaseIndex) <= reachedMax;
       el.innerHTML = `<span class="pg-row" role="group" aria-label="${esc(L2('Part ', 'Partie ') + (at + 1) + L2(' of ', ' sur ') + inPhase.length + ': ' + L2(here.en, here.fr))}">${inPhase.map((p, i) =>
-        `<button type="button" data-part="${p.k}" class="pg-ic ${i < at ? 'done' : i === at ? 'now' : ''}" aria-label="${esc(L2('Go to ', 'Aller à ') + L2(p.en, p.fr))}"${i === at ? ' aria-current="step"' : ''}>${WHI(i < at ? 'check' : p.icon, i === at ? 18 : 15)}<span class="pg-tip">${L2(p.en, p.fr)}</span></button>`).join('')}<span class="pg-name" aria-hidden="true">${L2(here.en, here.fr)}</span></span>`;
+        open(p) || i === at
+          ? `<button type="button" data-part="${p.k}" class="pg-ic ${i < at ? 'done' : i === at ? 'now' : ''}" aria-label="${esc(L2('Go to ', 'Aller à ') + L2(p.en, p.fr))}"${i === at ? ' aria-current="step"' : ''}>${WHI(i < at ? 'check' : p.icon, i === at ? 18 : 15)}<span class="pg-tip">${L2(p.en, p.fr)}</span></button>`
+          : `<span class="pg-ic later" role="img" aria-label="${esc(L2('Coming up: ', 'À venir : ') + L2(p.en, p.fr))}">${WHI(p.icon, 15)}</span>`).join('')}<span class="pg-name" aria-hidden="true">${L2(here.en, here.fr)}</span></span>`;
     }
     // tapping a road map icon goes to the first screen of that part, in this phase
     document.addEventListener('click', (e) => {
       const b = e.target.closest('#stepSubtitle [data-part]'); if (!b) return;
       const ph = steps[currentIndex].phaseIndex, p = PARTS.find((x) => x.k === b.dataset.part); if (!p) return;
       const i = steps.findIndex((x) => x.phaseIndex === ph && partOf(x) === p);
-      if (i < 0 || i === currentIndex) return;
-      ensureCtx(); hush(); goTo(i);
+      if (i < 0 || i === currentIndex || i > reachedMax) return;
+      b.blur(); ensureCtx(); hush(); goTo(i);
     });
     function cheer(pa, pb) {
-      const nm = ((SID('name') && SID('name').answer) || '').trim().split(/\s+/)[0] || '';
+      const nm = (((SID('name') && SID('name').answer) || '').trim().split(/\s+/)[0] || '').replace(/[.,!?;:]+$/, '');
       const en = `Well done${nm ? ', ' + nm : ''}! You’ve finished ${pa.den}. Now on to ${pb.den}.`;
       const fr = `Bravo${nm ? ', ' + nm : ''} ! Vous avez terminé ${pa.dfr}. Passons à ${pb.dfr}.`;
       const emb = document.getElementById('companionEmblem');
@@ -5908,7 +5922,10 @@
       sayT(en, fr, true).then(() => { if (currentIndex === at && readAloud) speakStep(); });
     }
     { const gnC = goNext; goNext = function () {
-        const a = currentIndex, pa = partOf(steps[a]); const r = gnC.apply(this, arguments);
+        const a = currentIndex, pa = partOf(steps[a]);
+        // a spoken name comes back as "Rama." — keep just the name, so it never reads "Outstanding, Rama.!" (Rama, 25 Nov)
+        const cleanName = () => { const n = steps[a]; if (n.id === 'name' && typeof n.answer === 'string') n.answer = n.answer.replace(/[\s.,!?;:]+$/, '').replace(/^\s*(my name is|i am|i'm|je m'appelle|je suis)\s+/i, ''); };
+        cleanName(); const r = gnC.apply(this, arguments); cleanName();
         const b = currentIndex, pb = partOf(steps[b]);
         if (b > a && pa && pb && pa !== pb && pa.k !== 'start' && !phaseEndAt(b)) cheer(pa, pb);
         if (b > a && phaseEndAt(b) && steps[a].phaseIndex === steps[b].phaseIndex) celebratePhase(steps[b].phaseIndex);
@@ -5940,7 +5957,7 @@
     { const hP = heard; heard = function (t) { if (window.__phClose && /^(next|continue|ok|okay|suivant|continuer)\b/i.test(String(t || '').trim())) { window.__phClose(); return; } return hP(t); }; }
     function celebratePhase(ph) {
       if (phCelebrated.has(ph)) return; phCelebrated.add(ph);
-      const nm = ((SID('name') && SID('name').answer) || '').trim().split(/\s+/)[0] || '';
+      const nm = (((SID('name') && SID('name').answer) || '').trim().split(/\s+/)[0] || '').replace(/[.,!?;:]+$/, '');
       const T3 = [['You’ve completed the appointment prep.', 'Vous avez terminé la préparation du rendez-vous.', 'Your pages are ready to print, save or send.', 'Vos pages sont prêtes à imprimer, enregistrer ou envoyer.'],
         ['You’ve made it through the visit.', 'Vous avez fait toute la visite.', '', ''],
         ['You’re all done.', 'Vous avez tout terminé.', 'Your summary and next steps are ready to print, save and send.', 'Votre résumé et vos prochaines étapes sont prêts à imprimer, enregistrer et envoyer.']][ph] || ['Section done.', 'Section terminée.', '', ''];
