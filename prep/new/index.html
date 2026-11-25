@@ -4711,53 +4711,55 @@
     // Phones only allow sound after a tap, so Reid can't speak the moment the page opens.
     // His hello is written; tapping "Yes, read it" is the tap that lets him speak.
     var greeted = false;
+    // ---------- first page: Reid's bubble says exactly what he says (Rama, 25 Nov) ----------
+    // Phones only allow sound after a tap: "Yes, read it" is that tap. The bubble stays on the page the whole time:
+    // asking first, then showing he's reading, then the last thing he said. He reads the bubble, then the page as written.
+    const HELLO_EN = 'Welcome! My name is Reid, your AI helper. I help you arrive at your medical appointments prepared, record your visit, and create a clear summary of the medical team’s recommendations and next steps.';
+    const HELLO_FR = 'Bienvenue ! Je m’appelle Reid, votre assistant IA. Je vous aide à arriver préparé à vos rendez-vous médicaux, j’enregistre votre visite, et je fais un résumé clair des recommandations de l’équipe médicale et des prochaines étapes.';
+    const ASK_EN = 'Shall I read this page to you?', ASK_FR = 'Voulez-vous que je vous lise cette page ?';
+    const END_EN = 'When you’re ready, tap Get started.', END_FR = 'Quand vous êtes prêt, touchez Commencer.';
     const hello = document.createElement('div'); hello.id = 'reidHello';
     hello.className = 'hidden relative w-full shrink-0 mt-3 mb-1 bg-white border-2 border-[#3B5E42] rounded-[22px] p-3.5 flex flex-col gap-[10px] shadow-md';
-    { const sl = document.getElementById('screenLanding'); sl.insertBefore(hello, sl.firstChild); }   // in the page, above the headline: nothing hidden behind it (Rama, 25 Nov)
-    function showHello() {
-      if (steps[currentIndex].mode !== 'landing' || window.__helloDone) return;
+    { const sl = document.getElementById('screenLanding'); sl.insertBefore(hello, sl.firstChild); }   // in the page, above the headline: nothing hidden behind it
+    let helloState = 'ask';
+    function showHello(state) {
+      if (steps[currentIndex].mode !== 'landing') return;
+      if (state) helloState = state;
+      const L = (en, fr) => (lang === 'fr' ? fr : en), B = 'tactile-btn flex-1 min-h-[52px] rounded-2xl font-extrabold text-base';
+      const foot = helloState === 'ask'
+        ? `<div class="flex items-stretch"><button type="button" data-hi="yes" class="${B} bg-[#3B5E42] text-white">▶ ${L('Yes, read it', 'Oui, lisez-la')}</button><div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-hi="no" class="${B} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${L('No thanks', 'Non merci')}</button></div>`
+        : helloState === 'reading'
+        ? `<button type="button" data-hi="stop" class="${B} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">■ ${L('Stop reading', 'Arrêter la lecture')}</button>`
+        : `<p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">${L(END_EN, END_FR)}</p><button type="button" data-hi="yes" class="${B} bg-white border border-[#D6CFC0] text-[#1E2634]">▶ ${L('Read it again', 'Relire')}</button>`;
       hello.innerHTML = `<span class="absolute -top-[9px] left-[34px] w-4 h-4 bg-white border-l-2 border-t-2 border-[#3B5E42] rotate-45" aria-hidden="true"></span>
-        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Welcome! My name is Reid, your AI helper. I help you arrive prepared, with your questions and health information for your doctor. I can also record the visit, so you leave with a clear summary and next steps. Shall I read this page to you?</p>
-        <div class="flex items-stretch"><button type="button" data-hi="yes" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">▶ Yes, read it</button>
-        <div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-hi="no" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">No thanks</button></div>
-`;
-      hello.classList.remove('hidden'); applyLang();
-      // computers: the bubble stays over the left column instead of covering the headline
+        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">${L(HELLO_EN, HELLO_FR)}${helloState === 'ask' ? ' ' + L(ASK_EN, ASK_FR) : ''}</p>${foot}`;
+      hello.classList.remove('hidden'); applyLang(hello);
       if (typeof fitLanding === 'function') fitLanding();
     }
-    function readLanding() {
-      // what's on the first page, in the language it's showing, without the buttons' small print
-      const root = document.getElementById('screenLanding'), bits = [];
-      root.querySelectorAll('h1, p').forEach((el) => { if (/^landing(Intro|Welcome|Hook)$/.test(el.id) || el.tagName === 'H1' || el.closest('#landingModes')) return; const t = el.textContent.replace(/\s+/g, ' ').trim(); if (t) bits.push(/[.!?:。？！]$/.test(t) ? t : t + '.'); });
-      const modes = [...root.querySelectorAll('button[onclick*="setInputMode"]')].map((b) => b.textContent.replace(/[✓]/g, '').replace(/\s*\+\s*/g, isMT() ? ', ' : lang === 'fr' ? ' et ' : ' and ').replace(/\s*\/\s*/g, isMT() ? ', ' : lang === 'fr' ? ' ou ' : ' or ').replace(/\s+/g, ' ').trim()).filter(Boolean);
-      const q = bits.findIndex((t) => /answer|répondre/i.test(t) && /\?/.test(t));
-      if (modes.length && q > -1) bits.splice(q + 1, 0, modes.join(lang === 'fr' ? ', ou ' : ', or ') + '.');
-      return bits.join(' ');
-    }
-    // Reid reads the first page himself, in the first person
-    const HELLO = "Welcome to WellHeard. My name is Reid. I’m your AI helper.";
-    const INTRO = "I'll help you get ready, make a clear page for your doctor, and write down what was said. You can speak or tap with me.";
+    function readLanding() { return ''; }   // kept for older callers: the page is now read as written, below
+    // Reid reads exactly what's on the page: his bubble, then the page's own words, then the last line (shown in the bubble)
     async function readFirstPage() {
-      const g = sayGen, T2 = async (t) => (isMT() ? await mt(t) : tr(t));
-      const hi = await T2(HELLO), intro = await T2(INTRO), ready = await T2('When you are ready, tap Get started.');
+      const g = sayGen, T2 = async (t) => (isMT() ? await mt(t) : t);
+      const txt = (sel) => { const e = document.querySelector(sel); return e && e.offsetParent !== null ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
+      const hi = lang === 'fr' ? HELLO_FR : await T2(HELLO_EN), end = lang === 'fr' ? END_FR : await T2(END_EN);
       if (g !== sayGen) return;
-      // welcome, the question on the page, the reassurance, Reid's own introduction, then the rest
-      const txt = (id) => { const e = document.getElementById(id); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
-      const h1 = document.querySelector('#screenLanding h1').textContent.replace(/\s+/g, ' ').trim();
-      await say([hi, h1, txt('landingHook'), intro, readLanding(), ready].filter(Boolean).join(' '), true);
+      const parts = [hi, txt('#screenLanding h1'), txt('#landingHook'), end].filter(Boolean).map((t) => (/[.!?:。？！]$/.test(t) ? t : t + '.'));
+      await say(parts.join(' '), true);
     }
     hello.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-hi]'); if (!b) return;
-      ensureCtx(); hello.classList.add('hidden'); window.__helloDone = true; if (typeof fitLanding === 'function') fitLanding();
-      if (b.dataset.hi === 'fs') { openModal('helpSettingsModal'); setView = 'device'; spokenView = null; renderSettings(); applyLang(); return; }
-      if (b.dataset.hi === 'no') { if (inSafariOnly && !sessionStorage.getItem('wh-fs')) showFS(); return; }
-      greeted = true;
+      ensureCtx();
+      if (b.dataset.hi === 'stop') { hush(); showHello('done'); return; }
+      if (b.dataset.hi === 'no') { showHello('done'); if (inSafariOnly && !sessionStorage.getItem('wh-fs')) showFS(); return; }
+      greeted = true; showHello('reading');
       const was = inputPreference; inputPreference = 'voice';   // he reads it even if typing was chosen
       await readFirstPage();
-      if (inSafariOnly && !sessionStorage.getItem('wh-fs') && steps[currentIndex].mode === 'landing') showFS();
       inputPreference = was;
+      if (steps[currentIndex].mode === 'landing') { showHello('done'); if (inSafariOnly && !sessionStorage.getItem('wh-fs')) showFS(); }
     });
-    setTimeout(showHello, 400);
+    setTimeout(() => showHello(), 400);
+    // back on the first page later: the bubble is there again
+    { const rcs = renderCurrentStep; renderCurrentStep = function () { rcs.apply(this, arguments); if (steps[currentIndex].mode === 'landing') showHello(); }; }
 
     // everything that's on the screen right now, in the order it appears, in the language it's showing
     function screenText() {

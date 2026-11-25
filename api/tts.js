@@ -71,10 +71,22 @@ export default async function handler(req, res) {
   }
 }
 
+// English words spelt the same but said two ways (Rama, 25 Nov: "record" and "read" came out wrong).
+// "read this page" is "reed", and "record your visit" is "ri-CORD". Standard voices get the exact sounds;
+// the HD voice doesn't take sound tags, so it gets a respelling it can't misread.
+function sayRight(t, hd) {
+  const AFTER = '(this|the|that|these|it|them|to|aloud|out|your|my|our|what|every|each|back|again|everything)';
+  const readRe = new RegExp('\\b([Rr])ead(?=\\s+' + AFTER + '\\b)', 'g');
+  const recRe = new RegExp('\\b([Rr])ecord(?=\\s+' + AFTER + '\\b)', 'g');
+  return t.replace(readRe, (m, r) => (hd ? r + 'eed' : `<phoneme alphabet="ipa" ph="ɹiːd">${m}</phoneme>`))
+    .replace(recRe, (m, r) => (hd ? r + 'e-cord' : `<phoneme alphabet="ipa" ph="ɹɪˈkɔːɹd">${m}</phoneme>`));
+}
+
 function synth(key, region, text, voice, slow, readAs) {
   // Standard voices read slightly slower than default, easier for older listeners. HD voices take
   // no speed or pitch changes: they find their own pace and tune.
-  let inner = isHd(voice) ? esc(text) : `<prosody rate="${slow ? '-22%' : '-8%'}">${esc(text)}</prosody>`;
+  const said = /^en-/.test(voice) ? sayRight(esc(text), isHd(voice)) : esc(text);
+  let inner = isHd(voice) ? said : `<prosody rate="${slow ? '-22%' : '-8%'}">${said}</prosody>`;
   if (readAs) inner = `<lang xml:lang="${readAs}">${inner}</lang>`;
   const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${VOICES[voice]}">` +
     `<voice name="${voice}">${inner}</voice></speak>`;
