@@ -2799,7 +2799,7 @@
 
     // ---------- French ----------
     const FR = {
-      'Get ready for your appointment': 'Préparez votre rendez-vous', 'Welcome to WellHeard': 'Bienvenue sur WellHeard', 'Ever left the doctor’s and remembered what you forgot to ask?': 'Déjà sorti de chez le médecin en vous rappelant ce que vous avez oublié de demander ?', 'You’re not alone. Much of what the doctor says is forgotten right away, and almost half of what we remember is wrong.': 'Vous n’êtes pas seul. On oublie vite une bonne partie de ce que dit le médecin, et près de la moitié de ce qu’on retient est faux.', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what was said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce qui a été dit.', 'Reid is talking': 'Reid parle', 'Reid, your AI helper, will:': 'Reid, votre assistant IA, va :', 'Help you get ready, one question at a time': 'Vous aider à vous préparer, une question à la fois', 'Make a clear page for your doctor': 'Faire une page claire pour votre médecin', 'Write down what the doctor said': 'Noter ce que le médecin a dit', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what the doctor said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce que le médecin a dit.', 'Your AI helper': 'Votre assistant IA', "Welcome to WellHeard! I'm Reid, your AI helper. Would you like me to read this page to you?": "Bienvenue sur WellHeard ! Je suis Reid, votre assistant IA. Voulez-vous que je vous lise cette page ?", "Welcome to WellHeard. I'm Reid, your AI helper.": "Bienvenue sur WellHeard. Je suis Reid, votre assistant IA.", "I'll help you get ready, make a clear page for your doctor, and write down what was said. You can speak or tap with me.": "Je vous aide à vous préparer, je fais une page claire pour votre médecin et je note ce qui a été dit. Vous pouvez me parler ou toucher l'écran.", 'How it works': 'Comment ça marche',
+      'Get ready for your appointment': 'Préparez votre rendez-vous', 'Welcome to WellHeard': 'Bienvenue sur WellHeard', 'Ever left the doctor’s and remembered what you forgot to ask?': 'Déjà sorti de chez le médecin en vous rappelant ce que vous avez oublié de demander ?', 'You’re not alone. Much of what the doctor says is forgotten right away, and almost half of what we remember is wrong.': 'Vous n’êtes pas seul. On oublie vite une bonne partie de ce que dit le médecin, et près de la moitié de ce qu’on retient est faux.', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what was said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce qui a été dit.', 'Reid is talking': 'Reid parle', 'Reid, your AI helper, will:': 'Reid, votre assistant IA, va :', 'Help you get ready, one question at a time': 'Vous aider à vous préparer, une question à la fois', 'Make a clear page for your doctor': 'Faire une page claire pour votre médecin', 'Write down what the doctor said': 'Noter ce que le médecin a dit', ', your AI helper, gets you ready, makes a clear page for your doctor, and writes down what the doctor said.': ', votre assistant IA, vous prépare, fait une page claire pour votre médecin et note ce que le médecin a dit.', 'Your AI helper': 'Votre assistant IA', "Welcome to WellHeard! My name is Reid. I’m your AI helper. Would you like me to read this page to you?": "Bienvenue sur WellHeard ! Je suis Reid, votre assistant IA. Voulez-vous que je vous lise cette page ?", "Welcome to WellHeard. My name is Reid. I’m your AI helper.": "Bienvenue sur WellHeard. Je m’appelle Reid. Je suis votre assistant IA.", "I'll help you get ready, make a clear page for your doctor, and write down what was said. You can speak or tap with me.": "Je vous aide à vous préparer, je fais une page claire pour votre médecin et je note ce qui a été dit. Vous pouvez me parler ou toucher l'écran.", 'How it works': 'Comment ça marche',
       'How would you like to answer?': 'Comment voulez-vous répondre ?', '✓ Speak + Tap': '✓ Parler + toucher', 'Speak + Tap': 'Parler + toucher',
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
       'Private: your answers are saved only on this device.': 'Privé : vos réponses sont gardées seulement sur cet appareil.',
@@ -4049,7 +4049,7 @@
       panel.innerHTML = body;
       speakSettings(panel);
       panel.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { setView = b.dataset.go; renderSettings(); applyLang(); }));
-      panel.querySelectorAll('[data-hps]').forEach((b) => b.addEventListener('click', () => { setHelper(b.dataset.hps); saveAll(); renderSettings(); applyLang(); applyHelper(); say(L2('Hi, I’m ' + helperName() + '.', 'Bonjour, je suis ' + helperName() + '.'), true); }));
+      panel.querySelectorAll('[data-hps]').forEach((b) => b.addEventListener('click', () => { setHelper(b.dataset.hps); saveAll(); renderSettings(); applyLang(); applyHelper(); say(L2('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.'), true); }));
       panel.querySelectorAll('[data-ts]').forEach((b) => b.addEventListener('click', () => { textSize = Number(b.dataset.ts); applyTextSize(); saveAll(); renderSettings(); renderCurrentStep(); }));
       panel.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang)));
       panel.querySelectorAll('[data-jump]').forEach((b) => b.addEventListener('click', () => { closeModal('helpSettingsModal'); stopRec(); currentIndex = Number(b.dataset.jump); renderCurrentStep(); speakStep(); }));
@@ -4066,7 +4066,7 @@
       on('explain', () => { closeModal('helpSettingsModal'); explainStep(); });
       on('readreid', () => { const l = panel.querySelector('#reidCanList'); if (!l) return; const c = l.cloneNode(true); c.querySelectorAll('button').forEach((x) => x.remove());
         c.querySelectorAll('li, p').forEach((x) => x.append('. ')); forceSay(() => say(c.textContent.replace(/\s+/g, ' ').replace(/\.\s*\./g, '.').trim())); });
-      on('test', () => say(fr ? 'Bonjour, je suis Reid.' : "Hi, I'm Reid. This is how I sound."));
+      on('test', () => say(fr ? 'Bonjour, je suis Reid.' : "Hello. My name is Reid. This is how I sound."));
       on('print-doc', () => printPages('doctor'));
       on('show-doc', () => { closeModal('helpSettingsModal'); openFullDoctorCard(); });
       on('print-recap', () => printPages('recap'));
@@ -4581,7 +4581,11 @@
     const stop = (t) => /[.!?]$/.test(t.trim()) ? t.trim() : t.trim() + '.';
     const readList = () => qShown.map((q, i) => `${i + 1}. ${stop(q)}`).join(' ');
     const EXPLAIN = {
-      setup: () => L2('This page sets up WellHeard for you. Tap Change to pick your language. Tap a bigger A for bigger text. Choose speak and tap, or tap and type. Turn Reid’s reading on or off. Then tap Next.', 'Cette page règle WellHeard pour vous. Touchez Changer pour la langue, un plus grand A pour un texte plus grand, puis Suivant.'),
+      setup: () => ({ lang: L2('Pick the language you read best. Everything will be in that language. Then say next.', 'Choisissez la langue que vous lisez le mieux. Tout sera dans cette langue. Puis dites suivant.'),
+        size: L2('Pick the text size that is easiest for you. Everything on the screen grows together. Then say next.', 'Choisissez la taille de texte la plus facile pour vous. Tout l’écran grandit ensemble. Puis dites suivant.'),
+        mode: L2('Speak and tap means I listen to you, and you can still tap. Tap and type means I don’t listen. Then say next.', 'Parler et toucher veut dire que je vous écoute, et vous pouvez aussi toucher. Toucher et écrire veut dire que je n’écoute pas. Puis dites suivant.'),
+        read: L2('If you say yes, I read each question out loud. You can change this any time. Then say next.', 'Si vous dites oui, je lis chaque question à voix haute. Vous pouvez changer à tout moment. Puis dites suivant.') })[steps[currentIndex].part || 'lang'],
+      helperpick: () => L2('Pick the helper you like. Reid has a man’s voice, Lilly a woman’s. You can change later in Settings. Then say next.', 'Choisissez l’assistant que vous aimez. Reid a une voix d’homme, Lilly une voix de femme. Vous pourrez changer plus tard dans Réglages. Puis dites suivant.'),
       ideas: () => L2('Reid reads you questions for the doctor, one at a time. First the ones for what you want from this visit, then ones you may not have thought of. For each, tap or say must ask, if there’s time, or leave out. Must-ask questions go first on your pages. Previous goes back one. Your own adds a question. Reid, more asks for new ones. ', 'Reid vous lit des questions pour le médecin, une à la fois. Pour chacune, dites à poser absolument, si on a le temps, ou laisser. ') + (curIdea() ? stop(curIdea()) : '')
         + L2(' Tap the ones you want, or say their number. Say more for others. Then say next.', ' Touchez celles que vous voulez, ou dites leur numéro. Dites plus pour en voir d’autres. Puis dites suivant.'),
       priority: () => chosen().length ? L2('Your questions. A star means must ask. ', 'Vos questions. Une étoile veut dire à poser absolument. ') + readList() + L2(' Say a number to add or take off its star. Then say next.', ' Dites un numéro pour ajouter ou enlever l’étoile. Puis dites suivant.')
@@ -4603,7 +4607,11 @@
       ready: () => L2('You’re ready. Your pages are ready to print, save or send. Tap Change to fix anything. Then tap Next.', 'Vous êtes prêt. Vos pages sont prêtes à imprimer, enregistrer ou envoyer. Touchez Modifier pour corriger. Puis Suivant.'),
       meds: () => document.getElementById('listTitle').textContent && steps[currentIndex].mode === 'meds' ? (medDraft.stage === 'list' ? L2('Here are your medicines. Tap one to change it, or add another. Say next when you’re done.', 'Voici vos médicaments. Touchez-en un pour le modifier, ou ajoutez-en un. Dites suivant quand vous avez fini.') : medDraft.sugg.length ? L2('Did you mean ', 'Vouliez-vous dire ') + medDraft.sugg[0].name + '?' : document.getElementById('listTitle').textContent) : '',
       consent: () => L2("Before we begin, a quick word about your privacy. Everything you tell me stays on your phone. To help you, I send your voice to Microsoft, here in Canada, to turn it into words. And I send your answers to Claude, in the United States, anonymously, never with your name, so I can suggest good questions. They are never used to train AI models. Is that alright with you? You can tap I agree, or No thanks.", "Avant de commencer, un mot sur votre vie privée. Tout ce que vous me dites reste sur votre téléphone. Pour vous aider, j'envoie votre voix à Microsoft, ici au Canada, pour la transformer en mots. Et j'envoie vos réponses à Claude, aux États-Unis, de façon anonyme, jamais avec votre nom, pour vous suggérer de bonnes questions. Elles ne servent jamais à entraîner des modèles d'IA. Est-ce que ça vous convient ? Touchez J'accepte, ou Non merci."),
-      setup: () => L2('Before we start, would you like to change the language or the text size?', 'Avant de commencer, voulez-vous changer la langue ou la taille du texte ?'),
+      setup: () => ({ lang: L2('Which language would you like? Tap it, or say it.', 'Quelle langue voulez-vous ? Touchez-la, ou dites-la.'),
+        size: L2('Which text size is easiest to read? Normal, large, or extra large?', 'Quelle taille de texte est la plus facile à lire ? Normal, grand, ou très grand ?'),
+        mode: L2('How would you like to answer? Speak and tap, or tap and type only?', 'Comment voulez-vous répondre ? Parler et toucher, ou toucher et écrire seulement ?'),
+        read: L2('Should I read the questions aloud? Yes, or no?', 'Est-ce que je lis les questions à voix haute ? Oui, ou non ?') })[steps[currentIndex].part || 'lang'],
+      helperpick: () => L2('Who would you like to help you? Tap a picture.', 'Qui voulez-vous pour vous aider ? Touchez une image.'),
       doctorSummary: () => L2('Would you like to print the summary for your doctor?', 'Voulez-vous imprimer le résumé pour votre médecin ?'),
       visitQuestions: () => chosen().length ? L2('Which questions has the doctor answered? ', 'À quelles questions le médecin a-t-il répondu ? ') + visitQuestions.slice(vStarts[vPage] || 0, vStarts[vPage + 1] || QP()).map((q, i) => `${i + 1}. ${stop(q.text)}`).join(' ') : L2('Would you like to add a question?', 'Voulez-vous ajouter une question ?'),
       nextSteps: () => L2('What happens next?', 'Et ensuite ?'),
@@ -4704,7 +4712,7 @@
     function showHello() {
       if (steps[currentIndex].mode !== 'landing' || window.__helloDone) return;
       hello.innerHTML = `<span class="absolute -top-[9px] left-[34px] w-4 h-4 bg-white border-l-2 border-t-2 border-[#1E2634] rotate-45" aria-hidden="true"></span>
-        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Welcome to WellHeard! I'm Reid, your AI helper. Would you like me to read this page to you?</p>
+        <p class="text-[16px] font-extrabold text-[#1E2634] leading-snug">Welcome to WellHeard! My name is Reid. I’m your AI helper. Would you like me to read this page to you?</p>
         <div class="flex items-stretch"><button type="button" data-hi="yes" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">▶ Yes, read it</button>
         <div class="w-[12px] shrink-0" aria-hidden="true"></div><button type="button" data-hi="no" class="tactile-btn flex-1 min-h-[52px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">No thanks</button></div>
 `;
@@ -4725,7 +4733,7 @@
       return bits.join(' ');
     }
     // Reid reads the first page himself, in the first person
-    const HELLO = "Welcome to WellHeard. I'm Reid, your AI helper.";
+    const HELLO = "Welcome to WellHeard. My name is Reid. I’m your AI helper.";
     const INTRO = "I'll help you get ready, make a clear page for your doctor, and write down what was said. You can speak or tap with me.";
     async function readFirstPage() {
       const g = sayGen, T2 = async (t) => (isMT() ? await mt(t) : tr(t));
@@ -4994,7 +5002,7 @@
     }
     document.getElementById('listItems').addEventListener('click', (e) => {
       const hp = e.target.closest('[data-hp]');
-      if (hp) { setHelper(hp.dataset.hp); renderList(); applyLang(); applyHelper(); say(L2('Hi, I’m ' + helperName() + '.', 'Bonjour, je suis ' + helperName() + '.'), true); return; }
+      if (hp) { setHelper(hp.dataset.hp); renderList(); applyLang(); applyHelper(); say(L2('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.'), true); return; }
       const b = e.target.closest('[data-su]'); if (!b) return; ensureCtx();
       const k = b.dataset.su, on = b.dataset.v === '1';
       if (k === 'lang') { openModal('helpSettingsModal'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
@@ -5512,7 +5520,7 @@
       const MB = 'tactile-btn w-full min-h-[52px] px-3 rounded-2xl font-extrabold text-base flex items-center gap-3 text-left';
       const open = () => {
         const fr = lang === 'fr', voice = inputPreference === 'voice', onStep = steps[currentIndex].mode !== 'landing', nm = helperName(), hf = voice && isListening;
-        menu.innerHTML = `<p class="rp-hi">${fr ? 'Bonjour, je suis ' + nm + '. Comment puis-je vous aider ?' : 'Hi, I’m ' + nm + '. How can I help?'}</p>
+        menu.innerHTML = `<p class="rp-hi">${fr ? 'Bonjour, je suis ' + nm + '. Comment puis-je vous aider ?' : 'Hello. My name is ' + nm + '. How can I help?'}</p>
           <button type="button" data-r="handsfree" class="${MB} min-h-[64px] ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}">${ico('say', !hf)}<span class="flex-1"><span class="block">${hf ? (fr ? '✓ Mains libres : activé' : '✓ Hands-free is on') : (fr ? 'Passer en mains libres' : 'Go hands-free')}</span><span class="block text-[14px] font-normal ${hf ? 'text-[#425268]' : 'text-white/90'}">${hf ? (fr ? 'Touchez pour arrêter' : 'Tap to turn it off') : (fr ? 'Parlez-moi, je fais le reste' : 'Just talk. I’ll listen and do it.')}</span></span></button>
           <p class="rp-say">${fr ? 'Vous pouvez dire : « suivant », « retour », « explique », « lis l’écran », « texte plus grand », « réglages », « efface cet écran », ou me poser une question.' : 'You can say: “next”, “go back”, “explain”, “read the screen”, “bigger text”, “settings”, “clear this screen”, or ask me a question.'}</p>
           ${onStep ? `<button type="button" data-r="explain" class="${MB} bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]">${ico('explain')}${fr ? 'Expliquer cet écran' : 'Explain this screen'}</button>` : ''}
@@ -5523,7 +5531,7 @@
           <button type="button" data-r="can" class="${MB} bg-white border border-[#D6CFC0] text-[#3B5E42]">${ico('explain')}${fr ? 'Que peut faire ' + nm + ' ?' : 'What can ' + nm + ' do?'}</button>
           <button type="button" data-chat class="${MB} bg-white border border-[#D6CFC0] text-[#1E4627]">${ico('chat')}${fr ? 'Écrire à Rama' : 'Chat with Rama'}</button>
           <button type="button" data-r="close" class="${MB} bg-white border border-[#D6CFC0] text-[#1E2634] justify-center">${fr ? 'Fermer' : 'Close'}</button>`;
-        say(fr ? 'Bonjour, je suis ' + nm + '. Comment puis-je vous aider ?' : 'Hi, I’m ' + nm + '. How can I help?', true);
+        say(fr ? 'Bonjour, je suis ' + nm + '. Comment puis-je vous aider ?' : 'Hello. My name is ' + nm + '. How can I help?', true);
         { const r = emb.getBoundingClientRect(), z = parseFloat(getComputedStyle(document.getElementById('appContainer')).zoom) || 1, vw = document.documentElement.clientWidth, w = Math.min(340, vw / z - 24);   // the app can be zoomed for bigger text
           menu.style.position = 'fixed'; menu.style.width = w + 'px'; menu.style.left = Math.max(12, Math.min(r.left, vw - w * z - 12)) / z + 'px'; menu.style.top = (r.bottom + 14) / z + 'px'; menu.style.maxHeight = Math.max(240, innerHeight - r.bottom - 28) / z + 'px'; }
         menu.classList.remove('hidden');
@@ -5574,9 +5582,22 @@
           if (/^(change|switch) (the )?(language|langue)$|^(change|changer) (de )?langue$/.test(low)) { openPanel('settings'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^(change|switch) (the )?(helper|assistant|voice)$|^(switch to|change to) (reid|lilly)$/.test(low)) {
             const to = /lilly/.test(low) ? 'lilly-1' : /reid/.test(low) ? 'reid-1' : '';
-            if (to) { setHelper(to); saveAll(); say(L2('Hi, I’m ' + helperName() + '.', 'Bonjour, je suis ' + helperName() + '.'), true); renderCurrentStep(); return; }
+            if (to) { setHelper(to); saveAll(); say(L2('Hello. My name is ' + helperName() + '.', 'Bonjour. Je m’appelle ' + helperName() + '.'), true); renderCurrentStep(); return; }
             openPanel('settings'); setView = 'helper'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^(stop|turn off|end) hands[ -]?free$|^hands[ -]?free off$/.test(low)) { handsFree(false); return; }
+          if (st.mode === 'setup') {
+            const part = st.part || 'lang', re2 = () => { renderList(); applyLang(); };
+            if (part === 'lang') { const hit = LANG_LIST.find(([c, n]) => low === n.toLowerCase() || low === n.toLowerCase().split(' ')[0] || ({ english: 'en', anglais: 'en', french: 'fr', français: 'fr', francais: 'fr', spanish: 'es', italian: 'it', portuguese: 'pt', chinese: 'zh', mandarin: 'zh', cantonese: 'yue', punjabi: 'pa', arabic: 'ar', tagalog: 'tl', tamil: 'ta', urdu: 'ur', farsi: 'fa', persian: 'fa', russian: 'ru', korean: 'ko', vietnamese: 'vi', hindi: 'hi', gujarati: 'gu', polish: 'pl', ukrainian: 'uk', greek: 'el' })[low] === c);
+              if (hit) { setLang(hit[0]); re2(); return; } }
+            if (part === 'size') { const v = /extra|très grand|tres grand|biggest/.test(low) ? 2 : /large|big|grand/.test(low) ? 1 : /normal|small|regular|petit/.test(low) ? 0 : -1;
+              if (v >= 0) { textSize = v; applyTextSize(); saveAll(); re2(); say(['Normal.', 'Large.', 'Extra large.'][v] + L2(' Say next when ready.', ' Dites suivant quand c’est bon.'), true); return; } }
+            if (part === 'mode') { if (/^(speak|speak and tap|talk|voice|parler|parler et toucher)/.test(low)) { setInputMode('voice'); saveAll(); re2(); say(L2('Speak and tap. Say next when ready.', 'Parler et toucher. Dites suivant.'), true); return; }
+              if (/^(tap|type|tap and type|toucher|écrire)/.test(low)) { setInputMode('tap'); saveAll(); re2(); return; } }
+            if (part === 'read') { if (/^(yes|yeah|yep|sure|ok|okay|read them|oui)/.test(low)) { readAloud = true; saveAll(); re2(); say(L2('Yes, I’ll read them. Say next when ready.', 'Oui, je les lirai. Dites suivant.'), true); return; }
+              if (/^(no|nope|non|no thanks)/.test(low)) { readAloud = false; hush(); saveAll(); re2(); return; } }
+          }
+          if (st.mode === 'helperpick') { const to = /lilly|lily|woman|female|femme/.test(low) ? 'lilly-1' : /reid|man|male|homme/.test(low) ? 'reid-1' : '';
+            if (to) { setHelper(to); saveAll(); renderList(); applyLang(); say(L2('Hello. My name is ' + helperName() + '. Say next when ready.', 'Bonjour. Je m’appelle ' + helperName() + '. Dites suivant.'), true); return; } }
         }
         return hG(t); }; }
 
@@ -5886,7 +5907,7 @@
         if (currentIndex !== was) {
           if (was === 0 && inputPreference === 'voice') { isListening = true; syncVoiceBarVisuals(); setCompanionState('listening'); }
           if (currentIndex === 1 && was === 0 && greeted) speakStep();
-          else if (currentIndex === 1 && was === 0) say(lang === 'fr' ? "Bonjour, je suis Reid, l'assistant IA de WellHeard. Une question à la fois, à votre rythme." : "Hi, I'm Reid, WellHeard's AI helper. One question at a time, at your pace.").then(speakStep); else speakStep();
+          else if (currentIndex === 1 && was === 0) say(lang === 'fr' ? "Bonjour, je suis Reid, l'assistant IA de WellHeard. Une question à la fois, à votre rythme." : "Hello. My name is Reid. I’m your AI helper. One question at a time, at your pace.").then(speakStep); else speakStep();
         }
       } finally { nexting = false; }
     };
