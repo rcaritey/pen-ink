@@ -8420,19 +8420,19 @@
       let closeT = null;
       const scroller = () => inp.closest('#listItems') || inp.closest('.overflow-y-auto');
       const close = () => { box.hidden = true; inp.setAttribute('aria-expanded', 'false'); const sc = scroller(); if (sc) sc.style.paddingBottom = ''; if (box.parentElement) box.parentElement.style.zIndex = ''; };
-      let extra = [], rq = 0, rT = null;
+      let extra = [], rq = 0, rT = null, typed = false;   // typed: narrowed by what was typed since tapping in
       const paint = () => {
-        const list = sgUniq(source(inp.value).concat(extra)).slice(0, 10), cur = sugLc(inp.value).trim();
+        const list = sgUniq(source(typed ? inp.value : '').concat(typed ? extra : [])).slice(0, 10), cur = sugLc(inp.value).trim();
         if (!list.length) { close(); return; }
         box.innerHTML = list.map((x, i) => `<button type="button" role="option" id="${box.id}-${i}" data-sg="${esc(x)}" aria-selected="${sugLc(x) === cur}" class="sg-opt">${sugLc(x) === cur ? '✓ ' : ''}${esc(x)}</button>`).join('');
         box.hidden = false; inp.setAttribute('aria-expanded', 'true'); if (box.parentElement) box.parentElement.style.zIndex = '60';   // above the boxes below it
         // make room under the box and bring the whole list into view (it would otherwise be cut off at the card's edge)
         const sc = scroller(); if (sc) { sc.style.paddingBottom = (box.offsetHeight + 12) + 'px'; requestAnimationFrame(() => { const br = box.getBoundingClientRect(), sr = sc.getBoundingClientRect(); if (br.bottom > sr.bottom) sc.scrollTop += br.bottom - sr.bottom + 8; }); }
       };
-      inp.addEventListener('focus', () => { clearTimeout(closeT); paint(); });
-      inp.addEventListener('click', () => { clearTimeout(closeT); paint(); });
+      inp.addEventListener('focus', () => { clearTimeout(closeT); typed = false; paint(); });   // tapping in always shows the full list
+      inp.addEventListener('click', () => { clearTimeout(closeT); if (box.hidden) { typed = false; paint(); } });
       inp.addEventListener('input', (e) => { if (!e.isTrusted) return;   // typing narrows it (not when Reid fills it in by voice)
-        extra = []; paint();
+        typed = true; extra = []; paint();
         if (remote) { clearTimeout(rT); const q = inp.value, my = ++rq; rT = setTimeout(async () => { const got = await remote(q); if (my !== rq || inp.value !== q) return; extra = got; if (document.activeElement === inp || box.contains(document.activeElement)) paint(); }, 350); }
       });
       inp.addEventListener('keydown', (e) => {
