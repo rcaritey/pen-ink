@@ -6315,11 +6315,11 @@
       return `<form id="apForm" class="ap-form" novalidate data-notr>
           <p class="ap-h" style="margin-top:0">${L2('Add an appointment', 'Ajouter un rendez-vous')}</p>
           <p class="ap-p" style="margin-top:0">${L2('Only the date is needed.', 'Seule la date est nécessaire.')}</p>
-          ${fld('apfDay', L2('Date (required)', 'Date (obligatoire)'), 'date', 'required')}
+          <div class="af-pair"><div class="flex flex-col gap-1.5 min-w-0 relative">${fld('apfWho', L2('Who with', 'Avec qui'), 'text', `autocomplete="off" maxlength="120" placeholder="${L2('Tap to choose or type', 'Touchez pour choisir ou écrivez')}"`)}</div>
+            <div class="flex flex-col gap-1.5 min-w-0 relative">${fld('apfWhere', L2('Where', 'Où'), 'text', `autocomplete="off" maxlength="160" placeholder="${L2('Clinic, hospital or address', 'Clinique, hôpital ou adresse')}"`)}</div></div>
+          <div class="af-two"><div class="flex flex-col gap-1.5 min-w-0">${fld('apfDay', L2('Date (required)', 'Date (obligatoire)'), 'date', 'required')}</div>
+            <div class="flex flex-col gap-1.5 min-w-0">${fld('apfTime', L2('Time', 'Heure'), 'time', '')}</div></div>
           <p id="apfDayErr" class="ap-err hidden" role="alert">${L2('Add the date of the appointment.', 'Ajoutez la date du rendez-vous.')}</p>
-          ${fld('apfTime', L2('Time', 'Heure'), 'time', '')}
-          ${fld('apfWho', L2('Doctor or clinic', 'Médecin ou clinique'), 'text', 'autocomplete="off" maxlength="120"')}
-          ${fld('apfAbout', L2('What it’s for', 'Pour quoi'), 'text', 'autocomplete="off" maxlength="200"')}
           <div class="ap-form-btns"><button type="button" data-apcancel class="tactile-btn ap-cancel">${L2('Cancel', 'Annuler')}</button>
             <button type="submit" class="tactile-btn ap-save">${L2('Save appointment', 'Enregistrer le rendez-vous')}</button></div></form>`;
     }
@@ -6331,7 +6331,7 @@
       const t = val('apfTime'), time = t ? new Date(2000, 0, 1, +t.slice(0, 2), +t.slice(3, 5)).toLocaleTimeString(lang === 'fr' ? 'fr-CA' : 'en-CA', { hour: 'numeric', minute: '2-digit' }) : '';
       const who = val('apfWho');
       visits.unshift({ id: 'a' + Date.now(), at: Date.now(), dayISO: day, day: dt.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: dt.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }),
-        time, who, where: '', about: val('apfAbout'), goal: '', qs: [], said: '', todo: [], next: '', added: true });
+        time, who, where: val('apfWhere'), about: '', goal: '', qs: [], said: '', todo: [], next: '', added: true });
       visits = visits.slice(0, 60); saveVisits(); apAdding = false; apWho = ''; renderAppts(); applyLang();
       showToast(AP_DEMO ? L2('Added for now. Example mode doesn’t save.', 'Ajouté pour l’instant. Le mode exemple n’enregistre pas.') : L2('Appointment saved.', 'Rendez-vous enregistré.'));
     }
@@ -6383,6 +6383,8 @@
       const addB = panel.querySelector('[data-apadd]'); if (addB) addB.addEventListener('click', () => { apAdding = true; renderAppts(); applyLang(); const f = panel.querySelector('#apfDay'); if (f) f.focus(); });
       const form = panel.querySelector('#apForm'); if (form) {
         if (typeof bigPickers === 'function') bigPickers(form);
+        suggestBox(form.querySelector('#apfWho'), whoSuggest); suggestBox(form.querySelector('#apfWhere'), whereSuggest, placesFor);   // same as Your appointment
+        form.style.overflow = 'visible';
         form.addEventListener('submit', (e) => { e.preventDefault(); apSaveAdd(form); });
         form.querySelector('[data-apcancel]').addEventListener('click', () => { apAdding = false; renderAppts(); applyLang(); const b2 = panel.querySelector('[data-apadd]'); if (b2) b2.focus(); });
       }
