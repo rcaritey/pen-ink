@@ -6840,7 +6840,7 @@
     const SKIPS = { basicsCheck: () => !isReturning() };
     { const rcs = renderCurrentStep; let prevIdx = currentIndex;
       renderCurrentStep = function () {
-        for (let n = 0; n < 3; n++) { const s = steps[currentIndex], k = s && SKIPS[s.id]; if (!(k && k())) break; currentIndex += currentIndex >= prevIdx ? 1 : -1; }
+        for (let n = 0; n < 8; n++) { const s = steps[currentIndex], k = s && SKIPS[s.id]; if (!(k && k())) break; currentIndex += currentIndex >= prevIdx ? 1 : -1; }
         prevIdx = currentIndex; rcs();
       }; }
     function renderBasicsCheck(items, foot) {
@@ -8190,6 +8190,9 @@
     const B_IDS = ['name', 'about', 'conditions', 'meds', 'allergies'], sIdx = (id) => steps.findIndex((x) => x.id === id);
     { const sk = SKIPS.basicsCheck; SKIPS.basicsCheck = () => !bForce && sk(); }
     SKIPS.name = () => !bEdit && !bForce && isReturning() && !!SID('name').fromLast && !!String(SID('name').answer || '').trim();
+    // Rama, 25 Nov: returning people confirm everything on the review, so the separate basics screens only open from its
+    // Change buttons, never as the next (or previous) pages
+    ['about', 'conditions', 'meds', 'allergies'].forEach((id) => { SKIPS[id] = () => bEdit !== id && isReturning(); });
     // Rama, 25 Nov: bullets so each thing is easy to confirm, on short pages (you · health conditions · medicines),
     // each section with a clear Change button. "Correct" (the bottom button) moves to the next page; on the last page it carries on.
     const B_PAGES = [['you', 'conditions', 'allergies', 'meds']];   // one page (Rama, 25 Nov); it scrolls only when the lists are long
@@ -8256,6 +8259,28 @@
       bBack = currentIndex > 0 && steps[currentIndex] && steps[currentIndex].id !== 'basicsCheck' ? currentIndex : sIdx('who');
       bForce = true; goTo(sIdx('basicsCheck')); bForce = false;
     };
+
+    // One-time clean-up (Rama, 25 Nov): answers saved before the echo fix can hold the helper's welcome and setup words.
+    // Strip anything matching those fixed phrases from the typed-or-spoken answers, once per device.
+    (function cleanOldEchoes() {
+      try { if (localStorage.getItem('wellheard-echofix1')) return; } catch (e) { console.warn('Clean-up flag not readable', e); return; }
+      const said = [];
+      const add = (x) => { if (typeof x === 'string' && x.trim()) said.push(x); else if (typeof x === 'function') { try { add(x()); } catch (e) { /* needs a live screen */ } } };
+      ['Welcome! My name is Reid, your AI appointment helper.', 'Welcome! My name is Lilly, your AI appointment helper.', 'Shall I read this page to you?', 'When you’re ready, tap Get started.',
+        'To make WellHeard full screen: at the bottom of Safari, tap the three dots beside the web address. Tap Share. Tap Add to Home Screen, then Add. Then open WellHeard from its new icon.'].forEach(add);
+      const land = document.getElementById('screenLanding'); if (land) add(land.textContent.replace(/\s+/g, ' '));
+      steps.filter((x) => ['landing', 'setup', 'helperpick', 'consent'].includes(x.mode)).forEach((x) => { add(x.question); add(x.helperText); if (typeof SPEAK === 'object') add(SPEAK[x.id]); if (typeof EXPLAIN === 'object') add(EXPLAIN[x.id]); });
+      ['Which language?', 'Which text size?', 'Who would you like to help you? Tap the helper you prefer.', 'Should I read the questions aloud, yes or no?'].forEach(add);
+      const keep = sayLog.splice(0); said.forEach((t) => sayLog.push({ at: Date.now(), text: t }));
+      let changed = 0;
+      ['conditions', 'allergies', 'story', 'concerns', 'goal', 'who', 'where', 'name'].forEach((id) => {
+        const st = SID(id); if (!st || typeof st.answer !== 'string' || !st.answer.trim()) return;
+        const clean = stripEcho(st.answer); if (clean !== st.answer.trim()) { st.answer = clean; changed++; }
+      });
+      sayLog.splice(0); keep.forEach((x) => sayLog.push(x));
+      if (changed) { saveAll(); console.info('Cleaned the helper’s words out of', changed, 'saved answer(s)'); }
+      try { localStorage.setItem('wellheard-echofix1', '1'); } catch (e) { console.warn('Clean-up flag not saved', e); }
+    })();
 
     // Is Reid talking, listening, hearing me, or paused? (Rama, 25 Nov) The microphone bar shows all four, with an icon
     // and two short lines so it never gets cut off on a phone. While Reid is talking, tapping the bar stops him.
