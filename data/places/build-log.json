@@ -1,0 +1,24 @@
+{
+  "built": "2026-11-26T06:49:12.591Z",
+  "sources": {
+    "toronto": {
+      "rows": 525009,
+      "named": 5079
+    },
+    "oda": {
+      "rows": 4033020,
+      "kept": 1648275
+    },
+    "odhf": {
+      "rows": 7033,
+      "ontario": 2695
+    }
+  },
+  "errors": [],
+  "counts": {
+    "streets": 42636,
+    "addresses": 1720362,
+    "places": 7762,
+    "health": 2695
+  }
+}
