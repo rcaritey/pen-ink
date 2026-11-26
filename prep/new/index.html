@@ -648,6 +648,7 @@
   </style>
   <style>
     #appContainer { padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+    #appContainer:not(.wide) #helpSettingsModal > div { padding-bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 0.75rem)); }   /* last button clear of the iPhone's home bar */
   </style>
   <style id="wideLayout">
     /* iPad / computer (Rama, 23 Nov): logo top left · road map top middle · Help and Settings top right;
@@ -7829,6 +7830,22 @@
     { const om = openModal, cm = closeModal;   // nothing floats over an open panel
       openModal = function (id) { document.body.classList.add('modal-open'); return om(id); };
       closeModal = function (id) { const r = cm(id); if (!document.querySelector('[role="dialog"]:not(.hidden)')) document.body.classList.remove('modal-open'); return r; }; }
+    // Help & Settings / My appointments on a phone (Rama, 26 Nov, iPhone photo: "Move to my other device" and the backup
+    // buttons were cut off at the bottom): the sheet only ever uses the part of the page that is actually on the screen,
+    // so its bottom never sits below the screen edge, and it scrolls inside when it's longer.
+    { const fitSheet = () => {
+        const m = document.getElementById('helpSettingsModal'), main = document.getElementById('appContainer');
+        if (!m || !main || m.classList.contains('hidden')) return;
+        if (main.classList.contains('wide') || main.classList.contains('with-pages')) { m.style.top = m.style.height = m.style.bottom = ''; return; }
+        const z = parseFloat(main.style.zoom) || 1, r = main.getBoundingClientRect(), vv = window.visualViewport;
+        const vTop = vv ? vv.offsetTop : 0, vBot = vTop + (vv ? vv.height : window.innerHeight);
+        const top = Math.max(r.top, vTop), bot = Math.min(r.bottom, vBot);
+        if (bot - top < 200) return;   // something odd: leave it as it was
+        m.style.top = ((top - r.top) / z) + 'px'; m.style.bottom = 'auto'; m.style.height = ((bot - top) / z) + 'px';
+      };
+      const om2 = openModal; openModal = function (id) { const r = om2.apply(this, arguments); if (id === 'helpSettingsModal') requestAnimationFrame(fitSheet); return r; };
+      window.addEventListener('resize', () => requestAnimationFrame(fitSheet));
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', () => requestAnimationFrame(fitSheet)); }
     // a medicine screen can grow as times are added: fit it again after each tap
     document.getElementById('listItems').addEventListener('click', (e) => { if (e.target.closest('[data-med]')) { clearTimeout(window.__medFit); window.__medFit = setTimeout(() => { if (steps[currentIndex].mode === 'meds') sizeApp(); }, 30); } });
     // Reid listens again on the first tap after the page is reopened (browsers only allow the microphone after a tap),
