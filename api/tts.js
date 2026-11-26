@@ -52,7 +52,8 @@ export default async function handler(req, res) {
     const r = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/voices/list`, { headers: { 'Ocp-Apim-Subscription-Key': key } }).catch(() => null);
     if (!r || !r.ok) return res.status(502).json({ error: 'list', status: r ? r.status : 0 });
     const all = await r.json();
-    return res.status(200).json(all.filter((v) => /^(en-CA|en-US|fr-CA)$/.test(v.Locale) && v.Gender === 'Female')
+    const g = req.query.voices === 'male' ? 'Male' : 'Female';
+    return res.status(200).json(all.filter((v) => /^(en-CA|en-US|fr-CA)$/.test(v.Locale) && v.Gender === g)
       .map((v) => ({ name: v.ShortName, type: v.VoiceType, styles: v.StyleList || [] })));
   }
   if (req.method === 'GET') return res.status(200).json({ on: !!key });
