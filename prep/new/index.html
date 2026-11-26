@@ -8395,15 +8395,29 @@
       const fr = lang === 'fr', base = sgUniq(pastOf('where').concat([fr ? 'Cabinet du médecin de famille' : 'Family doctor’s office', fr ? 'Appel vidéo' : 'Video call', fr ? 'Appel téléphonique' : 'Phone call'], AF_PLACES));
       const t = String(q || '').trim(); return (t ? base.filter((x) => sugHit(x, t)) : base).slice(0, 8);
     }
-    function suggestBox(inp, source) {
+    // live addresses from Azure Maps (only once the service is switched on; only the typed letters are sent)
+    let placesOn = null; const placeCache = new Map();
+    async function placesFor(q) {
+      const t = String(q || '').trim(); if (t.length < 3 || placesOn === false) return [];
+      const k = lang + '|' + t.toLowerCase(); if (placeCache.has(k)) return placeCache.get(k);
+      try {
+        const r = await fetch('/api/places', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: t, lang }) });
+        const d = await r.json().catch(() => ({}));
+        if (d.on === false) { placesOn = false; return []; }
+        placesOn = true; const items = Array.isArray(d.items) ? d.items.filter((x) => typeof x === 'string') : [];
+        if (r.ok) placeCache.set(k, items); return items;
+      } catch (e) { console.warn('Address suggestions unavailable', e); return []; }
+    }
+    function suggestBox(inp, source, remote) {
       if (!inp || inp.dataset.sugg) return; inp.dataset.sugg = '1';
       const box = document.createElement('div'); box.id = inp.id + 'List'; box.className = 'sg-list'; box.setAttribute('role', 'listbox'); box.setAttribute('aria-label', L2('Suggestions', 'Suggestions')); box.hidden = true;
       inp.after(box); inp.setAttribute('role', 'combobox'); inp.setAttribute('aria-autocomplete', 'list'); inp.setAttribute('aria-controls', box.id); inp.setAttribute('aria-expanded', 'false');
       let closeT = null;
       const scroller = () => inp.closest('#listItems') || inp.closest('.overflow-y-auto');
       const close = () => { box.hidden = true; inp.setAttribute('aria-expanded', 'false'); const sc = scroller(); if (sc) sc.style.paddingBottom = ''; if (box.parentElement) box.parentElement.style.zIndex = ''; };
+      let extra = [], rq = 0, rT = null;
       const paint = () => {
-        const list = source(inp.value), cur = sugLc(inp.value).trim();
+        const list = sgUniq(source(inp.value).concat(extra)).slice(0, 10), cur = sugLc(inp.value).trim();
         if (!list.length) { close(); return; }
         box.innerHTML = list.map((x, i) => `<button type="button" role="option" id="${box.id}-${i}" data-sg="${esc(x)}" aria-selected="${sugLc(x) === cur}" class="sg-opt">${sugLc(x) === cur ? '✓ ' : ''}${esc(x)}</button>`).join('');
         box.hidden = false; inp.setAttribute('aria-expanded', 'true'); if (box.parentElement) box.parentElement.style.zIndex = '60';   // above the boxes below it
@@ -8412,7 +8426,10 @@
       };
       inp.addEventListener('focus', () => { clearTimeout(closeT); paint(); });
       inp.addEventListener('click', () => { clearTimeout(closeT); paint(); });
-      inp.addEventListener('input', (e) => { if (e.isTrusted) paint(); });   // typing narrows it (not when Reid fills it in by voice)
+      inp.addEventListener('input', (e) => { if (!e.isTrusted) return;   // typing narrows it (not when Reid fills it in by voice)
+        extra = []; paint();
+        if (remote) { clearTimeout(rT); const q = inp.value, my = ++rq; rT = setTimeout(async () => { const got = await remote(q); if (my !== rq || inp.value !== q) return; extra = got; if (document.activeElement === inp || box.contains(document.activeElement)) paint(); }, 350); }
+      });
       inp.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !box.hidden) { e.stopPropagation(); close(); }
         if (e.key === 'ArrowDown' && !box.hidden) { e.preventDefault(); const f = box.querySelector('.sg-opt'); if (f) f.focus(); }
@@ -8532,7 +8549,7 @@
       foot.innerHTML = '';
       items.querySelectorAll('[data-afwho]').forEach((b) => b.addEventListener('click', () => { const w = $('afWho'); w.value = b.dataset.afwho; items.querySelectorAll('[data-afwho]').forEach((c) => { const on = c === b; c.setAttribute('aria-pressed', on); c.textContent = (on ? '✓ ' : '') + c.dataset.afwho; }); }));
       const d = $('afDay'); if (d) d.addEventListener('input', () => { $('afDayErr').classList.add('hidden'); d.removeAttribute('aria-invalid'); });
-      suggestBox($('afWho'), whoSuggest); suggestBox($('afWhere'), whereSuggest);
+      suggestBox($('afWho'), whoSuggest); suggestBox($('afWhere'), whereSuggest, placesFor);
       bigPickers(items);
       if (was && was.focus) { const f = document.getElementById(was.focus); if (f && !document.getElementById('pkSheet')) f.focus(); }
       if (typeof afMark === 'function') setTimeout(() => afMark(afNextEmpty()), 0);   // outline the box Reid is asking about
