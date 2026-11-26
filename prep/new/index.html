@@ -96,6 +96,19 @@
     .ap-p, .ap-meta { margin: 8px 0 0; font-size: 16px; color: #1E2634; line-height: 1.4; } .ap-meta { color: #425268; }
     .ap-ul { margin: 0; padding-left: 1.3em; list-style: disc; } .ap-ul li { font-size: 16px; color: #1E2634; line-height: 1.4; margin: 3px 0; }
     .ap-del { margin-top: 14px; width: 100%; min-height: 48px; border-radius: 14px; background: #fff; border: 1px solid #D6CFC0; color: #8A2E1C; font-weight: 800; font-size: 15px; }
+    .ap-see { margin-top: 14px; width: 100%; min-height: 52px; border-radius: 14px; background: #E5EFE7; border: 1px solid rgba(59, 94, 66, .45); color: #1E4627; font-weight: 800; font-size: 16px; }
+    .ap-home { width: 100%; min-height: 52px; margin-top: 8px; padding: 0 14px; border-radius: 16px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 12px; text-align: left; }
+    .ap-home .ap-n { margin-left: auto; color: #425268; font-size: 15px; }
+    #apViewer { position: fixed; inset: 0; z-index: 95; background: rgba(30, 38, 52, .45); display: flex; align-items: flex-end; justify-content: center; padding: 12px; }
+    @media (min-width: 640px) { #apViewer { align-items: center; } }
+    #apViewer .apv-box { width: 100%; max-width: 720px; max-height: calc(100dvh - 24px); display: flex; flex-direction: column; background: #FAF7F0; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(30, 38, 52, .3); }
+    #apViewer .apv-top { padding: 14px 16px 10px; border-bottom: 1px solid #E4DCCC; display: flex; flex-direction: column; gap: 10px; }
+    #apViewer .apv-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } @media (min-width: 640px) { #apViewer .apv-tabs { grid-template-columns: repeat(4, auto); justify-content: start; } }
+    #apViewer .apv-tab { min-height: 48px; padding: 6px 10px; line-height: 1.2; border-radius: 14px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 15px; }
+    #apViewer .apv-tab[aria-pressed="true"] { background: #E5EFE7; border: 2px solid #3B5E42; color: #1E4627; }
+    #apViewer .apv-body { overflow-y: auto; padding: 16px 18px 22px; font-size: 1.05rem; line-height: 1.5; color: #1E2634; background: #fff; }
+    #apViewer .apv-body h1 { font-size: 1.4rem; font-weight: 800; margin: 0 0 4px; } #apViewer .apv-body h2 { font-size: .85rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #3B5E42; margin: 16px 0 4px; }
+    #apViewer .apv-body ul, #apViewer .apv-body ol { padding-left: 1.3em; list-style: disc; } #apViewer .apv-body ol { list-style: decimal; } #apViewer .apv-body li { margin: 3px 0; }
     .ts-1 .ap-date { font-size: 20px; } .ts-1 .ap-who, .ts-1 .ap-ul li, .ts-1 .ap-p { font-size: 19px; } .ts-2 .ap-date { font-size: 23px; } .ts-2 .ap-who, .ts-2 .ap-ul li, .ts-2 .ap-p { font-size: 22px; }
     .ph-face-wrap { position: relative; width: 132px; margin: 0 auto 10px; }
     .ph-face { width: 132px; height: 132px; border-radius: 999px; overflow: hidden; background: #E5EFE7; animation: hfHop .6s ease-out 1; }
@@ -6028,7 +6041,20 @@
     // =====================================================================
     const VKEY = 'wellheard-visits';
     let visits = []; try { visits = JSON.parse(localStorage.getItem(VKEY) || '[]') || []; } catch (e) { visits = []; }
-    const saveVisits = () => { try { localStorage.setItem(VKEY, JSON.stringify(visits)); } catch (e) { /* full */ } };
+    const saveVisits = () => {
+      try { localStorage.setItem(VKEY, JSON.stringify(visits)); }
+      catch (e) {   // device storage full: keep every visit's summary, drop the saved pages of the oldest ones and try again
+        console.warn('Visits too big to save, trimming saved pages', e);
+        for (let i = visits.length - 1; i >= 0; i--) { if (!visits[i].pages) continue; delete visits[i].pages; try { localStorage.setItem(VKEY, JSON.stringify(visits)); return; } catch (e2) { /* still too big: drop the next one */ } }
+        try { localStorage.setItem(VKEY, JSON.stringify(visits)); } catch (e3) { console.error('Visits not saved', e3); showToast(L2('This device is full. Your visits could not be saved.', 'Cet appareil est plein. Vos visites n’ont pas pu être enregistrées.')); }
+      }
+    };
+    // the three pages and the recap, as they were at the end of the visit
+    const PAGES_KEPT = 12;
+    function pagesNow() {
+      const one = (fn, name) => { try { return fn(); } catch (e) { console.warn('Page not kept: ' + name, e); return ''; } };
+      return { mine: one(patientPage, 'patient'), doctor: one(doctorPage, 'doctor'), circle: one(circlePage, 'circle'), recap: one(recapPage, 'recap') };
+    }
     function visitNow() {
       const sel = nextStepTasks.filter((t) => t && t.selected && t.text).map((t) => t.text), nx = (document.getElementById('customTaskInput') || {}).value || '';
       return { at: Date.now(), dayISO: SID('day').dateISO || '', day: (SID('day').answer || '').trim(), time: (SID('time').answer || '').trim(), who: (SID('who').answer || '').trim(),
@@ -6037,7 +6063,9 @@
     }
     const hasVisit = (v) => !!(v.who || v.day || v.about || v.qs.length || v.said);
     { const snv0 = startNewVisit; startNewVisit = function () {   // keep the visit that's ending before starting a new one
-        try { const v = visitNow(); if (hasVisit(v)) { v.id = 'v' + Date.now(); visits.unshift(v); visits = visits.slice(0, 60); saveVisits(); } } catch (e) { console.warn('Visit not kept', e); }
+        try { const v = visitNow(); if (hasVisit(v)) { v.id = 'v' + Date.now(); v.pages = pagesNow(); visits.unshift(v); visits = visits.slice(0, 60);
+          visits.forEach((x, i) => { if (i >= PAGES_KEPT) delete x.pages; });   // keep the full pages for the newest visits only (device storage is small)
+          saveVisits(); } } catch (e) { console.warn('Visit not kept', e); }
         return snv0.apply(this, arguments); }; }
     const vWhen = (v) => v.dayISO || new Date(v.at).toISOString().slice(0, 10);
     // what Reid gets: the last 3 visits, short (the patient's name is removed before anything leaves the device)
@@ -6062,13 +6090,15 @@
           qs.length ? `<p class="ap-h">${L2('Your questions', 'Vos questions')}</p>${list(qs.map((q) => (q.star ? '★ ' : '') + esc(q.q)))}` : '',
           said.length ? `<p class="ap-h">${L2('What the doctor said', 'Ce que le médecin a dit')}</p>${list(said.map(esc))}` : '',
           (v.todo && v.todo.length) || v.next ? `<p class="ap-h">${L2('Next steps', 'Prochaines étapes')}</p>${list((v.todo || []).map(esc).concat(v.next ? [esc(v.next)] : []))}` : '',
+          cur || v.pages ? `<button type="button" data-apsee="${cur ? 'now' : v.id}" class="tactile-btn ap-see">${L2('See the pages', 'Voir les pages')} ›</button>` : '',
           cur ? '' : `<button type="button" data-apdel="${v.id}" class="tactile-btn ap-del">${apDelArm === v.id ? L2('Tap again to delete it', 'Touchez encore pour la supprimer') : L2('Delete this visit', 'Supprimer cette visite')}</button>`
         ].join('');
         return `<details class="ap-card${cur ? ' ap-cur' : ''}"><summary><span class="ap-date">${esc(v.day || L2('Day not set', 'Jour non fixé'))}</span>
           <span class="ap-who">${esc([v.who, v.about].filter(Boolean).join(' · ') || L2('No details yet', 'Pas encore de détails'))}</span>${cur ? `<span class="ap-tag">${L2('This visit', 'Cette visite')}</span>` : ''}</summary>
           <div class="ap-body" data-notr>${inner || `<p class="ap-p">${L2('Nothing saved yet.', 'Rien d’enregistré.')}</p>`}</div></details>`;
       };
-      const now = visitNow(), up = visits.filter((v) => v.dayISO && v.dayISO >= tISO), past = visits.filter((v) => !(v.dayISO && v.dayISO >= tISO));
+      const now = visitNow(), up = visits.filter((v) => v.dayISO && v.dayISO >= tISO).sort((a, b) => (a.dayISO > b.dayISO ? 1 : -1)),   // soonest first
+        past = visits.filter((v) => !(v.dayISO && v.dayISO >= tISO)).sort((a, b) => (vWhen(b) > vWhen(a) ? 1 : -1));   // most recent first
       const sec = (t, arr) => arr.length ? `<p class="ap-sec">${t}</p>${arr.join('')}` : '';
       panel.innerHTML = `<div class="sticky -top-5 -mx-5 -mt-5 px-5 pt-5 pb-2 bg-[#FAF7F0] z-10 flex items-center justify-between gap-2">
           <button type="button" data-apback class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">‹ ${L2('Back', 'Retour')}</button>
@@ -6083,6 +6113,10 @@
           <button type="button" data-apmove class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base">${L2('Move to my other device', 'Passer à mon autre appareil')} ›</button></div>`;
       panel.querySelector('[data-apback]').addEventListener('click', () => { setView = 'menu'; menuKind = 'settings'; renderSettings(); applyLang(); });
       panel.querySelector('[data-apmove]').addEventListener('click', () => { setView = 'device'; renderSettings(); applyLang(); });
+      panel.querySelectorAll('[data-apsee]').forEach((b) => b.addEventListener('click', () => {
+        const id = b.dataset.apsee, v = id === 'now' ? Object.assign(visitNow(), { pages: pagesNow() }) : visits.find((x) => x.id === id);
+        if (v && v.pages) openApViewer(v, b);
+      }));
       panel.querySelectorAll('[data-apdel]').forEach((b) => b.addEventListener('click', () => {
         const id = b.dataset.apdel;
         if (apDelArm !== id) { apDelArm = id; renderAppts(); applyLang(); const d = panel.querySelector(`[data-apdel="${id}"]`); if (d) { d.closest('details').open = true; d.focus(); } setTimeout(() => { if (apDelArm === id) { apDelArm = ''; } }, 5000); return; }
@@ -6090,6 +6124,59 @@
       }));
     }
     window.openAppts = () => { ensureCtx(); openPanel('settings'); setView = 'appts'; renderSettings(); applyLang(); };
+
+    // a saved visit's pages, read-only. Saved pages can come from another device's file, so they are cleaned before showing.
+    function cleanPage(html) {
+      const t = document.createElement('template'); t.innerHTML = String(html || '');
+      t.content.querySelectorAll('script, iframe, object, embed, style, link, meta, form, input, button, textarea, select').forEach((n) => n.remove());
+      t.content.querySelectorAll('*').forEach((n) => [...n.attributes].forEach((a) => {
+        const nm = a.name.toLowerCase(), val = String(a.value || '').trim().toLowerCase();
+        if (nm.startsWith('on') || nm === 'style' || nm === 'srcdoc' || ((nm === 'href' || nm === 'src' || nm === 'xlink:href') && !/^(https?:|data:image\/)/.test(val))) n.removeAttribute(a.name);
+      }));
+      return t.innerHTML;
+    }
+    function openApViewer(v, from) {
+      const old = document.getElementById('apViewer'); if (old) old.remove();
+      const tabs = [['mine', L2('Patient’s page', 'Page du patient')], ['doctor', L2('Medical team’s page', 'Page de l’équipe médicale')], ['circle', L2('Care circle’s page', 'Page du cercle d’aidants')], ['recap', L2('Summary and next steps', 'Résumé et prochaines étapes')]]
+        .filter(([k]) => v.pages[k]);
+      if (!tabs.length) { showToast(L2('The pages for this visit were not saved.', 'Les pages de cette visite n’ont pas été enregistrées.')); return; }
+      let on = tabs[0][0];
+      const box = document.createElement('div'); box.id = 'apViewer'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'apvTitle');
+      const draw = () => {
+        box.innerHTML = `<div class="apv-box"><div class="apv-top">
+            <div class="flex items-center justify-between gap-2"><p id="apvTitle" class="font-extrabold text-lg text-[#1E2634]">${esc(v.day || L2('Visit', 'Visite'))}${v.who ? ' · ' + esc(v.who) : ''}</p>
+              <button type="button" data-apvclose class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-white border-2 border-[#1E2634] text-[#1E2634] font-extrabold text-base">${L2('Done', 'Terminé')}</button></div>
+            <div class="apv-tabs" role="group" aria-label="${L2('Which page', 'Quelle page')}">${tabs.map(([k, t]) => `<button type="button" class="tactile-btn apv-tab" data-apvtab="${k}" aria-pressed="${k === on}">${k === on ? '✓ ' : ''}${t}</button>`).join('')}</div></div>
+          <div class="apv-body" data-notr tabindex="0">${cleanPage(v.pages[on])}</div></div>`;
+        box.querySelector('[data-apvclose]').addEventListener('click', close);
+        box.querySelectorAll('[data-apvtab]').forEach((b) => b.addEventListener('click', () => { on = b.dataset.apvtab; draw(); const f = box.querySelector(`[data-apvtab="${on}"]`); if (f) f.focus(); }));
+      };
+      const close = () => { box.remove(); document.removeEventListener('keydown', esc1, true); if (from && document.body.contains(from)) from.focus(); };
+      const esc1 = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+      box.addEventListener('click', (e) => { if (e.target === box) close(); });
+      document.addEventListener('keydown', esc1, true);
+      draw(); document.body.appendChild(box); applyLang(); const f = box.querySelector('[data-apvtab]'); if (f) f.focus();
+    }
+
+    // easy to find: a button on the first screen (once there's a visit) and one in the top bar beside Help and Settings
+    const apCount = () => visits.length + (hasVisit(visitNow()) ? 1 : 0);
+    function placeApButtons() {
+      const n = (() => { try { return apCount(); } catch (e) { console.warn('Visit count', e); return visits.length; } })();
+      const land = document.getElementById('screenLanding'), priv = document.getElementById('privacyLink');
+      if (land && priv) {
+        let b = document.getElementById('landingAppts');
+        if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'landingAppts'; b.className = 'tactile-btn ap-home'; b.addEventListener('click', () => openAppts()); priv.parentElement.insertBefore(b, priv); }
+        b.classList.toggle('hidden', !n);
+        b.innerHTML = `<span class="text-[#3B5E42]" aria-hidden="true">${WHI('calendar', 20)}</span><span>${L2('My appointments', 'Mes rendez-vous')}</span><span class="ap-n">${n} ›</span>`;
+      }
+      const set = document.querySelector('button[onclick="openPanel(\'settings\')"][aria-label="Settings"]');
+      if (set && !document.getElementById('topAppts')) {
+        const t = document.createElement('button'); t.type = 'button'; t.id = 'topAppts'; t.className = set.className; t.setAttribute('aria-label', L2('My appointments', 'Mes rendez-vous'));
+        t.innerHTML = `${WHI('calendar', 20)}<span>${L2('Visits', 'Visites')}</span>`; t.addEventListener('click', () => openAppts()); set.parentElement.insertBefore(t, set);
+      }
+    }
+    { const rcsA = renderCurrentStep; renderCurrentStep = function () { rcsA.apply(this, arguments); placeApButtons(); }; }
+    { const rA = renderAppts; renderAppts = function () { rA.apply(this, arguments); placeApButtons(); }; }
     { const rS = renderSettings; renderSettings = function () {
         if (setView === 'appts') { menuKind = 'settings'; renderAppts(); return; }
         rS.apply(this, arguments);
