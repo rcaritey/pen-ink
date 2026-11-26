@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <script>if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) document.querySelector('meta[name=viewport]').setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover');</script>
-  <style>html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }</style>
+  <style>html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: #FAF7F0; }
+    /* hide the page until the app has drawn the right screen, so the built-in starting layout never flashes (Rama, 25 Nov) */
+    html.wh-boot body { visibility: hidden; }</style>
+  <script>document.documentElement.classList.add('wh-boot'); setTimeout(() => document.documentElement.classList.remove('wh-boot'), 4000);   // safety: show it anyway after 4 s</script>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -8043,6 +8046,8 @@
         const zMax = (vh * 0.97) / 580;
         if (z > zMax) { const vis = h * z, visW = w * z; main.style.zoom = zMax; main.style.height = (vis / zMax) + 'px'; main.style.width = (visW / zMax) + 'px'; }
       }; window.addEventListener('resize', () => sizeApp()); sizeApp(); }
+    // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
+    requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('wh-boot')));
   </script>
 </body>
 </html>
