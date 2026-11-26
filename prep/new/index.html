@@ -4472,19 +4472,23 @@
 
     async function detailNext(step) {
       const a = lc(step.answer);
-      const yes = /^(yes|yeah|sure|ok|okay|oui|d'accord|allez)/.test(a) && consent && consent.choice === 'yes';
+      // Rama, 25 Nov ("does not ask dr's questions"): "yes" always leads to questions. Without the AI consent the standard
+      // questions any clinician asks are used (nothing is sent), and a slow AI gives up after a short wait instead of hanging.
+      const yes = /^(yes|yeah|sure|ok|okay|oui|d'accord|allez)/.test(a), aiOk = !!(consent && consent.choice === 'yes');
       if (!yes) { detailQs = []; spliceDetail(); return; }
       if (detailQs.length) return;
       setCompanionState('asking');
       const wait = lang === 'fr' ? 'Un instant. Reid prépare quelques questions.' : 'One moment. Reid is writing a few questions.';
-      showToast(wait); say(wait);
-      for (let t = 0; t < 2 && !detailQs.length; t++) {   // one quiet retry
+      if (aiOk) { showToast(wait); say(wait); }
+      for (let t = 0; aiOk && t < 2 && !detailQs.length; t++) {   // one quiet retry
         if (t) await new Promise((ok) => setTimeout(ok, 1500));
+        const ctl = typeof AbortController === 'function' ? new AbortController() : null, timer = ctl && setTimeout(() => ctl.abort(), t ? 12000 : 18000);
         try {
-          const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(Object.assign(picture(), { mode: 'clarify', details: [], asked: [] })) });
+          const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: ctl ? ctl.signal : undefined, body: JSON.stringify(Object.assign(picture(), { mode: 'clarify', details: [], asked: [] })) });
           const d = await r.json().catch(() => ({}));
           if (r.ok && d.ok && Array.isArray(d.questions)) detailQs = d.questions.filter((q) => q && q.q).slice(0, 5).map((q) => ({ q: q.q, label: q.label || '' }));
-        } catch (e) { console.warn('Interview unavailable', e); }
+        } catch (e) { console.warn('Interview unavailable', e && e.name === 'AbortError' ? 'took too long' : e); if (e && e.name === 'AbortError') { clearTimeout(timer); break; } }   // too slow: no second wait
+        finally { if (timer) clearTimeout(timer); }
       }
       // still nothing: the questions any clinician asks about a new problem, so "yes" always leads somewhere
       if (!detailQs.length) detailQs = (lang === 'fr' ? [['Quand est-ce que ça a commencé, et est-ce venu d’un coup ou peu à peu ?', 'Début'], ['Où exactement le sentez-vous ?', 'Endroit'], ['De 0 à 10, à quel point est-ce fort au pire ?', 'Intensité'], ['Qu’est-ce qui aide, et qu’est-ce qui empire ?', 'Ce qui aide ou empire'], ['Qu’avez-vous déjà essayé ?', 'Déjà essayé']]
