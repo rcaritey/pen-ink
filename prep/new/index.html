@@ -5946,8 +5946,8 @@
         if (document.getElementById('appContainer').classList.contains('wide')) {   // computers: beside the face
           const left = r.right + 34, w = Math.min(380, vw - left - 12);
           menu.style.width = Math.max(220, w) / z + 'px'; menu.style.left = left / z + 'px'; menu.style.top = (r.top - 4) / z + 'px';
-        } else {   // phones: a slim bubble right under the face, full width, covering as little as possible
-          menu.style.width = (vw - 24) / z + 'px'; menu.style.left = 12 / z + 'px'; menu.style.top = (r.bottom + 14) / z + 'px';
+        } else {   // phones: beside the face, to the right, starting level with the head (Rama, 26 Nov), over the top buttons
+          const left = r.right + 18; menu.style.width = Math.max(220, vw - left - 8) / z + 'px'; menu.style.left = left / z + 'px'; menu.style.top = Math.max(6, r.top - 2) / z + 'px';
         }
         requestAnimationFrame(() => pointTail(menu, '#FAF7F0'));
       };
@@ -8716,12 +8716,13 @@
     // ?voicetest (Rama, 26 Nov: "Lilly is quite monotone"): hear Lilly's current voice next to four expressive voices,
     // saying the same celebration line, to pick one. Nothing is saved.
     if (/[?&]voicetest\b/i.test(location.search)) setTimeout(() => {
-      const V = [['en-CA-ClaraNeural', 'Clara (Lilly before)'], ['en-US-Ava:DragonHDOmniLatestNeural', 'Ava'], ['en-US-Emma:DragonHDLatestNeural', 'Emma'],
-        ['en-US-Jenny:DragonHDLatestNeural', 'Jenny'], ['en-US-Aria:DragonHDLatestNeural', 'Aria'], ['en-CA-Liam:DragonHDOmniLatestNeural', 'Reid now (Liam), for comparison']];
+      const V = [['', 'For Reid'], ['en-CA-Liam:DragonHDOmniLatestNeural', 'Reid now (Liam, Canadian)'], ['en-US-Andrew:DragonHDLatestNeural', 'Andrew'], ['en-US-Andrew:DragonHDOmniLatestNeural', 'Andrew (Omni)'],
+        ['en-US-Brian:DragonHDLatestNeural', 'Brian'], ['en-US-Davis:DragonHDLatestNeural', 'Davis'], ['en-US-Steffan:DragonHDLatestNeural', 'Steffan'], ['en-US-Caleb:DragonHDOmniLatestNeural', 'Caleb'], ['en-US-Lewis:DragonHDOmniLatestNeural', 'Lewis'],
+        ['', 'For Lilly'], ['en-US-Emma:DragonHDLatestNeural', 'Emma (Lilly now)'], ['en-US-Ava:DragonHDOmniLatestNeural', 'Ava'], ['en-US-Jenny:DragonHDLatestNeural', 'Jenny'], ['en-US-Aria:DragonHDLatestNeural', 'Aria'], ['en-CA-ClaraNeural', 'Clara (Lilly before)']];
       const line = 'Outstanding, Rama! Your prep is done. Here’s what’s next. First, print or send your pages.';
       const box = document.createElement('div'); box.className = 'ph-done'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Voice test');
-      box.innerHTML = `<div class="ph-card" style="text-align:left"><p class="ph-big" style="font-size:26px">Which voice for Lilly?</p>
-        <p class="ph-sub" style="font-size:17px">Each says: “${line}”</p><div class="flex flex-col gap-2">${V.map(([v, t], i) => `<button type="button" data-vt="${i}" class="tactile-btn w-full min-h-[56px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[18px] text-left">▶ ${i + 1}. ${t}</button>`).join('')}</div>
+      box.innerHTML = `<div class="ph-card" style="text-align:left"><p class="ph-big" style="font-size:26px">Which voices?</p>
+        <p class="ph-sub" style="font-size:17px">Each says: “${line}”</p><div class="flex flex-col gap-2" style="max-height:52dvh;overflow-y:auto">${V.map(([v, t], i) => v ? `<button type="button" data-vt="${i}" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[18px] text-left">▶ ${t}</button>` : `<p class="ap-sec" style="margin-top:6px">${t}</p>`).join('')}</div>
         <button type="button" data-vtx class="tactile-btn w-full min-h-[52px] mt-3 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] font-extrabold">Close</button></div>`;
       document.body.appendChild(box); let cur = null;
       box.querySelector('[data-vtx]').addEventListener('click', () => { if (cur) cur.pause(); box.remove(); });

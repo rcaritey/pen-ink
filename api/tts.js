@@ -18,7 +18,11 @@ const HD = 'en-CA-Liam:DragonHDOmniLatestNeural';
 // voices are offered, each with a standard twin to fall back on.
 const LILLY_HD = { 'en-US-Ava:DragonHDOmniLatestNeural': 'en-US-AvaNeural', 'en-US-Emma:DragonHDLatestNeural': 'en-US-EmmaNeural',
   'en-US-Jenny:DragonHDLatestNeural': 'en-US-JennyNeural', 'en-US-Aria:DragonHDLatestNeural': 'en-US-AriaNeural' };
-const TWIN = Object.assign({ [HD]: 'en-CA-LiamNeural' }, LILLY_HD);
+// Reid's candidates (Rama, 26 Nov: "more options for Reid's voice"): expressive male HD voices offered in Canada Central
+const REID_HD = { 'en-US-Andrew:DragonHDLatestNeural': 'en-US-AndrewNeural', 'en-US-Andrew:DragonHDOmniLatestNeural': 'en-US-AndrewNeural',
+  'en-US-Brian:DragonHDLatestNeural': 'en-US-BrianNeural', 'en-US-Davis:DragonHDLatestNeural': 'en-US-DavisNeural', 'en-US-Steffan:DragonHDLatestNeural': 'en-US-SteffanNeural',
+  'en-US-Caleb:DragonHDOmniLatestNeural': 'en-US-AndrewNeural', 'en-US-Lewis:DragonHDOmniLatestNeural': 'en-US-AndrewNeural' };
+const TWIN = Object.assign({ [HD]: 'en-CA-LiamNeural' }, LILLY_HD, REID_HD);
 const DEFAULT_VOICE = HD;
 const VOICES = {
   [HD]: 'en-CA',
@@ -27,7 +31,7 @@ const VOICES = {
   'fr-CA-SylvieNeural': 'fr-CA', 'fr-CA-ThierryNeural': 'fr-CA', 'fr-CA-AntoineNeural': 'fr-CA',
   'fr-FR-DeniseNeural': 'fr-FR', 'fr-FR-HenriNeural': 'fr-FR',
 };
-Object.keys(LILLY_HD).forEach((v) => { VOICES[v] = 'en-US'; VOICES[LILLY_HD[v]] = 'en-US'; });
+Object.entries(Object.assign({}, LILLY_HD, REID_HD)).forEach(([v, twin]) => { VOICES[v] = 'en-US'; VOICES[twin] = 'en-US'; });
 // every language's own voice, plus the multilingual voice as a fallback
 Object.values(LANGS).forEach(([, locale, v]) => { if (!VOICES[v]) VOICES[v] = locale; });
 VOICES[MULTI] = 'en-US';
