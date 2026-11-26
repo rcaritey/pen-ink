@@ -151,6 +151,11 @@
     #pkSheet .pk-nav:disabled { opacity: .35; }
     #pkSheet .pk-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
     #pkSheet .pk-wk span { text-align: center; font-size: 13px; font-weight: 800; color: #425268; text-transform: capitalize; padding-bottom: 2px; }
+    #pkSheet .pk-now { text-align: center; font-size: 26px; font-weight: 800; color: #1E4627; background: #E5EFE7; border-radius: 14px; padding: 8px; margin-bottom: 6px; }
+    #pkSheet .pk-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    #pkSheet .pk-col { background: #F0EBE1; border-radius: 18px; padding: 6px 8px 8px; } #pkSheet .pk-col .pk-sub { margin: 2px 2px 6px; font-size: 14px; text-transform: uppercase; letter-spacing: .05em; }
+    #pkSheet .pk-colbtns { display: flex; flex-direction: column; gap: 6px; max-height: min(48dvh, 380px); overflow-y: auto; padding: 2px; }
+    #pkSheet .pk-ok { width: 100%; min-height: 56px; margin-top: 12px; border-radius: 16px; background: #3B5E42; color: #fff; font-weight: 800; font-size: 18px; } #pkSheet .pk-ok:disabled { opacity: .4; }
     #pkSheet .pk-hours { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; } #pkSheet .pk-mins { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
     #pkSheet .pk-day { min-height: 52px; border-radius: 12px; background: #fff; border: 1px solid #D6CFC0; font-size: 20px; font-weight: 800; color: #1E2634; }
     #pkSheet .pk-day.today { border: 2px solid #3B5E42; } #pkSheet .pk-day.on { background: #3B5E42; border-color: #3B5E42; color: #fff; }
@@ -8483,19 +8488,30 @@
       draw(); close = pkSheet(L2('Choose the date', 'Choisissez la date'), body, back);
       const f = body.querySelector('.pk-day.on') || body.querySelector('.pk-day.today:not([disabled])') || body.querySelector('.pk-day:not([disabled])'); if (f) f.focus();
     }
+    // Time: the original three columns (Rama, 25 Nov: "pull up the old add-time picker"): Hour 1–12, Minutes, AM / PM.
+    // Tapping an hour guesses AM or PM the way clinics run (7–11 AM, 12–6 PM); it can be changed. The time so far shows at
+    // the top, and Done saves it.
     function openTimePick(cur, onPick, back) {
-      let h = cur ? +cur.split(':')[0] : null, mi = cur ? +cur.split(':')[1] : 0;
+      let h12 = null, mi = 0, pm = null;
+      if (cur) { const H = +cur.split(':')[0]; mi = +cur.split(':')[1]; pm = H >= 12; h12 = H % 12 || 12; }
       const body = document.createElement('div'); let close = null;
-      const hl = (x) => new Date(2000, 0, 1, x).toLocaleTimeString(pkLoc(), { hour: 'numeric' }).replace(/:00/, '');
+      const amL = L2('AM', 'AM'), pmL = L2('PM', 'PM');
       const draw = () => {
-        const hrs = []; for (let x = 7; x <= 19; x++) hrs.push(x);
-        body.innerHTML = `<p class="pk-sub">${L2('1. Tap the hour', '1. Touchez l’heure')}</p>
-          <div class="pk-hours">${hrs.map((x) => `<button type="button" data-pkh="${x}" class="pk-day${h === x ? ' on' : ''}" aria-pressed="${h === x}">${hl(x)}</button>`).join('')}</div>
-          <p class="pk-sub">${L2('2. Tap the minutes', '2. Touchez les minutes')}</p>
-          <div class="pk-mins">${[0, 15, 30, 45].map((x) => `<button type="button" data-pkmi="${x}" class="pk-day${mi === x ? ' on' : ''}" aria-pressed="${mi === x}" ${h === null ? 'disabled' : ''}>:${String(x).padStart(2, '0')}</button>`).join('')}</div>
+        const ready = h12 !== null && pm !== null, shown = ready ? `${h12}:${String(mi).padStart(2, '0')} ${pm ? pmL : amL}` : L2('Pick the hour', 'Choisissez l’heure');
+        const col = (t, inner) => `<div class="pk-col"><p class="pk-sub">${t}</p><div class="pk-colbtns">${inner}</div></div>`;
+        body.innerHTML = `<p class="pk-now" aria-live="polite">${shown}</p>
+          <div class="pk-cols">
+            ${col(L2('Hour', 'Heure'), [...Array(12)].map((_, i) => i + 1).map((x) => `<button type="button" data-pkh="${x}" class="pk-day${h12 === x ? ' on' : ''}" aria-pressed="${h12 === x}">${x}</button>`).join(''))}
+            ${col(L2('Minutes', 'Minutes'), [0, 15, 30, 45].map((x) => `<button type="button" data-pkmi="${x}" class="pk-day${mi === x ? ' on' : ''}" aria-pressed="${mi === x}">:${String(x).padStart(2, '0')}</button>`).join(''))}
+            ${col(L2('AM / PM', 'AM / PM'), [[false, amL], [true, pmL]].map(([v, t]) => `<button type="button" data-pkap="${v ? 1 : 0}" class="pk-day${pm === v ? ' on' : ''}" aria-pressed="${pm === v}">${t}</button>`).join(''))}
+          </div>
+          <button type="button" data-pkok class="tactile-btn pk-ok" ${ready ? '' : 'disabled'}>✓ ${L2('Done', 'Terminé')}</button>
           <button type="button" data-pkclear class="tactile-btn pk-clear">${L2('Not sure of the time', 'Heure pas sûre')}</button>`;
-        body.querySelectorAll('[data-pkh]').forEach((b) => b.addEventListener('click', () => { h = +b.dataset.pkh; draw(); const f = body.querySelector(`[data-pkmi="${mi}"]`); if (f) f.focus(); }));
-        body.querySelectorAll('[data-pkmi]').forEach((b) => b.addEventListener('click', () => { mi = +b.dataset.pkmi; onPick(`${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`); close(); }));
+        const refocus = (sel) => { const f = body.querySelector(sel); if (f) f.focus(); };
+        body.querySelectorAll('[data-pkh]').forEach((b) => b.addEventListener('click', () => { h12 = +b.dataset.pkh; if (pm === null) pm = !(h12 >= 7 && h12 <= 11); draw(); refocus(`[data-pkh="${h12}"]`); }));
+        body.querySelectorAll('[data-pkmi]').forEach((b) => b.addEventListener('click', () => { mi = +b.dataset.pkmi; draw(); refocus(`[data-pkmi="${mi}"]`); }));
+        body.querySelectorAll('[data-pkap]').forEach((b) => b.addEventListener('click', () => { pm = b.dataset.pkap === '1'; draw(); refocus(`[data-pkap="${pm ? 1 : 0}"]`); }));
+        body.querySelector('[data-pkok]').addEventListener('click', () => { if (h12 === null || pm === null) return; const H = (h12 % 12) + (pm ? 12 : 0); onPick(`${String(H).padStart(2, '0')}:${String(mi).padStart(2, '0')}`); close(); });
         body.querySelector('[data-pkclear]').addEventListener('click', () => { onPick(''); close(); });
       };
       draw(); close = pkSheet(L2('Choose the time', 'Choisissez l’heure'), body, back);
