@@ -1,5 +1,5 @@
 {
-  "built": "2026-11-26T06:49:12.591Z",
+  "built": "2026-11-26T06:51:02.244Z",
   "sources": {
     "toronto": {
       "rows": 525009,
@@ -16,9 +16,9 @@
   },
   "errors": [],
   "counts": {
-    "streets": 42636,
-    "addresses": 1720362,
-    "places": 7762,
-    "health": 2695
+    "streets": 41028,
+    "addresses": 1695295,
+    "places": 7610,
+    "health": 2693
   }
 }
