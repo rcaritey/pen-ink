@@ -75,6 +75,7 @@
     #landingCard { display: none !important; }
     #screenLanding { overflow-y: auto; }   /* on a short screen nothing is cut off: the page scrolls */   /* Rama, 24 Nov: no box on the first page; Reid's bubble says it */
     .rp-hi { margin: 2px 4px 2px; font-size: 20px; font-weight: 700; line-height: 1.25; color: #1E2634; }
+    #reidMenu .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
     .rp-type { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
     .rp-say { margin: 0 4px; font-size: 15px; line-height: 1.4; color: #425268; }
     .hf-lid, .hf-mouth { transform-box: fill-box; transform-origin: center; }
@@ -5917,21 +5918,32 @@
         const fr = lang === 'fr', nm = helperName(), hf = inputPreference === 'voice' && isListening, met = whMet(nm);
         const hiEn = met ? 'How can I help?' : 'Hello. My name is ' + nm + '. How can I help?', hiFr = met ? 'Comment puis-je vous aider ?' : 'Bonjour. Je m’appelle ' + nm + '. Comment puis-je vous aider ?';
         const tb = document.getElementById('toastBanner'); if (tb) { tb.classList.remove('opacity-100'); tb.classList.add('opacity-0'); }
+        // Compact (Rama, 26 Nov: "very clunky on the phone, the big box hid the questions, Reid talked behind it and
+        // couldn't hear"): one short line and a row of three buttons; the typing box only opens from Type. Opening it
+        // stops the helper talking so the microphone is free to hear you; he only speaks to introduce himself the first time.
+        const SB = 'tactile-btn flex-1 min-w-0 min-h-[52px] px-2 rounded-2xl font-extrabold text-[15px] flex flex-col items-center justify-center gap-0.5 leading-tight';
         menu.innerHTML = `<p class="rp-hi">${fr ? hiFr : hiEn}</p>
-          <p class="rp-say">${hf ? (fr ? 'Je vous écoute. Dites « suivant », « retour », « explique », « réglages », ou posez-moi une question.' : 'I’m listening. Say “next”, “go back”, “explain”, “settings”, or ask me a question.')
-            : (fr ? 'En mains libres, vous me parlez et je fais le reste.' : 'Go hands-free and just talk to me. I’ll do the rest.')}</p>
-          <div class="flex flex-col gap-[10px]"><button type="button" data-r="handsfree" class="${MB} min-h-[56px] text-[17px] justify-center ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}">${WHI('mic', 22)}${hf ? (fr ? 'Arrêter' : 'Turn off hands-free') : (fr ? 'Mains libres' : 'Go hands-free')}</button>
-          <button type="button" data-r="close" class="${MB} justify-center bg-white border border-[#D6CFC0] text-[#1E2634]">${fr ? 'Pas maintenant' : 'Not now'}</button></div>
-          <form class="rp-type" data-rtype><label class="rp-say" for="reidTypeBox">${fr ? 'Ou écrivez-moi :' : 'Or type to me:'}</label>
-            <div class="flex flex-col gap-[8px]"><textarea id="reidTypeBox" rows="1" autocomplete="off" placeholder="${fr ? 'Par exemple : texte plus grand' : 'For example: bigger text'}" class="w-full min-h-[52px] px-3 py-[12px] rounded-2xl bg-white text-[17px] leading-snug text-[#1E2634]" style="border: 2px solid #5E7A63; resize: none; overflow-y: hidden; max-height: 30vh"></textarea>
-            <button type="submit" class="tactile-btn w-full min-h-[52px] px-4 rounded-2xl bg-[#3B5E42] text-white font-extrabold text-base">${fr ? 'Envoyer' : 'Send'}</button></div></form>`;
+          <p class="rp-say">${hf ? (fr ? 'Je vous écoute. Dites « suivant », « retour » ou posez une question.' : 'I’m listening. Say “next”, “back”, or ask a question.')
+            : (fr ? 'Parlez-moi en mains libres, ou écrivez.' : 'Talk to me hands-free, or type.')}</p>
+          <div class="flex gap-[8px]">
+            <button type="button" data-r="handsfree" class="${SB} ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}" aria-pressed="${hf}">${WHI('mic', 20)}<span>${hf ? (fr ? 'Arrêter' : 'Stop') : (fr ? 'Mains libres' : 'Hands-free')}</span></button>
+            <button type="button" data-r="type" class="${SB} bg-white border border-[#D6CFC0] text-[#1E2634]">${WHI('pencil', 20)}<span>${fr ? 'Écrire' : 'Type'}</span></button>
+            <button type="button" data-r="close" class="${SB} bg-white border border-[#D6CFC0] text-[#1E2634]"><span aria-hidden="true" class="text-[20px] leading-none">✕</span><span>${fr ? 'Fermer' : 'Close'}</span></button></div>
+          <form class="rp-type" data-rtype style="display:none"><label class="sr-only" for="reidTypeBox">${fr ? 'Écrivez-moi' : 'Type to me'}</label>
+            <div class="flex gap-[8px] items-end"><textarea id="reidTypeBox" rows="1" autocomplete="off" placeholder="${fr ? 'Par exemple : texte plus grand' : 'For example: bigger text'}" class="flex-1 min-w-0 min-h-[52px] px-3 py-[12px] rounded-2xl bg-white text-[17px] leading-snug text-[#1E2634]" style="border:2px solid #3B5E42"></textarea>
+            <button type="submit" class="tactile-btn shrink-0 min-h-[52px] px-4 rounded-2xl bg-[#3B5E42] text-white font-extrabold text-base">${fr ? 'Envoyer' : 'Send'}</button></div></form>`;
         menu.classList.remove('hidden');
-        applyLang(); sayT(hiEn, hiFr, true); whMarkMet(nm);
-        // beside the face, to the right, with the curved tail back to it (the same shape as the helper's notes)
+        hush(true);   // stop talking; hands-free listening carries on
+        applyLang(); if (!met) sayT(hiEn, hiFr, true); whMarkMet(nm);
         const face = [...document.querySelectorAll('#companionEmblem')].find((e) => e.getBoundingClientRect().width > 0) || emb;
         const r = face.getBoundingClientRect(), z = parseFloat(getComputedStyle(document.getElementById('appContainer')).zoom) || 1, vw = document.documentElement.clientWidth;
-        const left = r.right + 34, w = Math.min(380, vw - left - 12);
-        menu.style.position = 'fixed'; menu.style.width = Math.max(220, w) / z + 'px'; menu.style.left = left / z + 'px'; menu.style.top = (r.top - 4) / z + 'px'; menu.style.maxHeight = '';
+        menu.style.position = 'fixed'; menu.style.maxHeight = '';
+        if (document.getElementById('appContainer').classList.contains('wide')) {   // computers: beside the face
+          const left = r.right + 34, w = Math.min(380, vw - left - 12);
+          menu.style.width = Math.max(220, w) / z + 'px'; menu.style.left = left / z + 'px'; menu.style.top = (r.top - 4) / z + 'px';
+        } else {   // phones: a slim bubble right under the face, full width, covering as little as possible
+          menu.style.width = (vw - 24) / z + 'px'; menu.style.left = 12 / z + 'px'; menu.style.top = (r.bottom + 14) / z + 'px';
+        }
         requestAnimationFrame(() => pointTail(menu, '#FAF7F0'));
       };
       const close = () => menu.classList.add('hidden');
@@ -5951,6 +5963,7 @@
       menu.addEventListener('click', (e) => {
         e.stopPropagation(); const b = e.target.closest('[data-r]'); if (!b) return;
         if (b.dataset.r === 'clear') { if (Date.now() - clearArm < 4000 || !canClear()) close(); clearTap(b); return; }
+        if (b.dataset.r === 'type') { const f = menu.querySelector('[data-rtype]'); if (f) { f.style.display = ''; const tb = f.querySelector('textarea'); if (tb) tb.focus(); } b.setAttribute('aria-expanded', 'true'); return; }
         close();
         if (b.dataset.r === 'explain') forceSay(explainStep);
         if (b.dataset.r === 'repeat') forceSay(speakStep);
