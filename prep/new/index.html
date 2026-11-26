@@ -6044,7 +6044,38 @@
     // =====================================================================
     const VKEY = 'wellheard-visits';
     let visits = []; try { visits = JSON.parse(localStorage.getItem(VKEY) || '[]') || []; } catch (e) { visits = []; }
+    // ?demo in the address: show made-up visits to see how the list looks. Nothing is saved, and the real visits are untouched.
+    const AP_DEMO = /[?&]demo\b/i.test(location.search);
+    if (AP_DEMO) visits = demoVisits();
+    function demoVisits() {
+      const d = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return x; };
+      const iso = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+      const nice = (x) => x.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+      const ul = (a) => `<ul>${a.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+      const pg = (h, parts) => `<div class="pg"><h1>${h}</h1>${parts.map(([t, a]) => `<h2>${t}</h2>${Array.isArray(a) ? ul(a) : `<p>${a}</p>`}`).join('')}</div>`;
+      const mk = (n, at, who, where, about, goal, qs, said, todo) => {
+        const x = d(n), past = n < 0;
+        const pages = { mine: pg('My page', [['What I want from this visit', goal], ['My questions', qs.map((q, i) => (i === 0 ? '★ ' : '') + q)]]),
+          doctor: pg('For the medical team', [['Reason for the visit', about], ['What the patient hopes for', goal], ['Questions', qs]]),
+          circle: pg('For the care circle', [['The visit', `${nice(x)}, ${at}, ${who}, ${where}`], ['Main questions', qs.slice(0, 3)]]),
+          recap: past ? pg('Appointment recap', [['What the doctor said', said], ['Next steps', todo]]) : '' };
+        if (!past) delete pages.recap;
+        return { id: 'demo' + n, at: x.getTime(), dayISO: iso(x), day: nice(x), time: at, who, where, about, goal, qs: qs.map((q, i) => ({ q, star: i === 0 })), said: said.join('\n'), todo, next: '', pages };
+      };
+      return [
+        mk(19, '9:30 AM', 'Dr. Patel, urologist', 'North York General', 'Follow-up cystoscopy', 'Know the results and what comes next',
+          ['Will I need someone to drive me home?', 'When will I get the results?', 'Should I stop any medicines before?'], [], []),
+        mk(-13, '2:00 PM', 'Dr. Lee, neurologist', 'Toronto Western', 'Tremor getting worse in the right hand', 'Find out if the medicine can be adjusted',
+          ['Could the dose be adjusted?', 'Is the tremor worse because of stress or sleep?', 'Should I see a physiotherapist?'],
+          ['Increase the medicine to 3 times a day, with meals', 'Tremor is a little worse but expected', 'Physiotherapy referral sent'], ['Start the new dose Monday', 'Book physio', 'Come back in 3 months']),
+        mk(-27, '10:15 AM', 'Maria Santos, foot care nurse', 'Community clinic', 'Thick toenails and a sore heel', 'Get my feet comfortable for walking',
+          ['What shoes should I wear?', 'Is the heel pain from my walking?'], ['Nails trimmed, heel is a mild strain', 'Wear supportive shoes with a firm heel'], ['Ice the heel 10 minutes at night', 'Next visit in 6 weeks']),
+        mk(-104, '11:00 AM', 'Dr. Lee, neurologist', 'Toronto Western', 'Regular check-up', 'Check that the medicine is still working',
+          ['Is my balance getting worse?', 'Can I keep driving?'], ['Balance stable', 'Driving is fine for now, review next year'], ['Keep doing Rock Steady 3 times a week'])
+      ];
+    }
     const saveVisits = () => {
+      if (AP_DEMO) return;   // example visits are never saved
       try { localStorage.setItem(VKEY, JSON.stringify(visits)); }
       catch (e) {   // device storage full: keep every visit's summary, drop the saved pages of the oldest ones and try again
         console.warn('Visits too big to save, trimming saved pages', e);
@@ -6115,6 +6146,7 @@
           <p class="font-extrabold text-lg text-[#1E2634] flex-1 text-center">${L2('My appointments', 'Mes rendez-vous')}</p>
           <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-white border-2 border-[#1E2634] text-[#1E2634] font-extrabold text-base">${L2('Done', 'Terminé')}</button></div>${chips}</div>
         <div class="flex flex-col gap-[10px]">
+          ${AP_DEMO ? `<p class="ap-note" style="background:#FBF1E4;border:1px solid #EBD3B8;border-radius:14px;padding:10px 12px;color:#1E2634;font-weight:700">${L2('These are example visits, made up to show how this looks. Nothing here is saved. Open the app without “?demo” to see your real visits.', 'Ce sont des visites d’exemple, inventées pour montrer l’apparence. Rien n’est enregistré. Ouvrez l’app sans « ?demo » pour voir vos vraies visites.')}</p>` : ''}
           <p class="ap-note">${L2(helperName() + ' looks at your last few visits when suggesting questions. They are kept on this device only. Tap one to see it.', helperName() + ' regarde vos dernières visites pour suggérer des questions. Elles restent sur cet appareil seulement. Touchez-en une pour la voir.')}</p>
           ${hasVisit(now) && mine(now) ? card(now, true) : ''}
           ${sec(L2('Coming up', 'À venir'), upF.map((v) => card(v)))}
