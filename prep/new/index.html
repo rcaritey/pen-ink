@@ -3372,12 +3372,14 @@
         const d = r.ok ? await r.json() : null;
         if (!r.ok) console.warn("Listening service error", r.status);
         const text = d && d.ok ? String(d.text || "").trim() : "";
+        // a real phrase (0.8 s or more) came back empty or failed: say so, rather than miss it silently (Rama, 26 Nov)
+        if (!text && n >= 16000 * 0.8 && this.onmissed && this._running) this.onmissed();
         if (text && this.onresult && (this._running || this._ending)) {
           const res = [{ transcript: text, confidence: 1 }]; res.audio = wav.buffer; res.isFinal = true; res.gap = gap === undefined ? 1e9 : gap;
           this._results.push(res);
           this.onresult({ resultIndex: this._results.length - 1, results: this._results });
         }
-      } catch (err) { console.warn("Couldn't reach the listening service", err); }
+      } catch (err) { console.warn("Couldn't reach the listening service", err); if (n >= 16000 * 0.8 && this.onmissed && this._running) this.onmissed(); }
       finally { this._pending--; CanadaRec.writing(-1); this._maybeEnd(); }
     }
     _release() {
@@ -3659,6 +3661,8 @@
       rec = new CanadaRec(); rec.lang = LOC[lang] || 'en-CA';
       rec.onresult = (e) => { const r = e.results[e.results.length - 1]; onHeard((r && r[0] && r[0].transcript || '').trim()); };
       rec.onend = () => { rec = null; if (isListening && !speaking && !recRec) setTimeout(startRec, 300); };
+      // heard someone talk but got no words back: ask them to say it again (at most once every 8 seconds)
+      rec.onmissed = () => { if (speaking) return; const t = performance.now(); if (t - (startRec.missT || 0) < 8000) return; startRec.missT = t; showToast(lang === 'fr' ? "Désolé, je n'ai pas bien entendu. Pouvez-vous le redire?" : tr("Sorry, I didn't catch that. Please say it again.")); };
       rec.onerror = (e) => {
         console.warn('Listening problem', e && e.error);
         if (e && (e.error === 'not-allowed' || e.error === 'needs-tap')) { isListening = false; syncVoiceBarVisuals(); setCompanionState('paused'); showToast(tr('Microphone is off. Tap the green bar to try again.')); }
