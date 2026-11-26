@@ -5970,7 +5970,7 @@
           <p class="rp-say">${hf ? (fr ? 'Dites « suivant », « retour » ou posez une question.' : 'Say “next”, “back”, or ask a question.')
             : (fr ? 'Parlez-moi en mains libres, ou écrivez.' : 'Talk to me hands-free, or type.')}</p>
           <div class="flex gap-[8px]">
-            <button type="button" data-r="handsfree" class="${SB} ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}" aria-pressed="${hf}">${WHI('mic', 20)}<span>${hf ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter' : 'Start listening')}</span></button>
+            <button type="button" data-r="handsfree" class="${SB} ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}" aria-pressed="${hf}">${WHI('mic', 20)}<span>${hf ? (fr ? 'Arrêter' : 'Stop') : (fr ? 'Mains libres' : 'Hands-free')}</span></button>
             <button type="button" data-r="type" class="${SB} bg-white border border-[#D6CFC0] text-[#1E2634]">${WHI('pencil', 20)}<span>${fr ? 'Écrire' : 'Type'}</span></button>
             <button type="button" data-r="close" class="${SB} bg-white border border-[#D6CFC0] text-[#1E2634]"><span aria-hidden="true" class="text-[20px] leading-none">✕</span><span>${fr ? 'Fermer' : 'Close'}</span></button></div>
           <form class="rp-type" data-rtype style="display:none"><label class="sr-only" for="reidTypeBox">${fr ? 'Écrivez-moi' : 'Type to me'}</label>
@@ -8821,7 +8821,25 @@
       ['Multiple sclerosis', 'Sclérose en plaques'], ['Myotonic dystrophy', 'Dystrophie myotonique'], ['Neuropathy', 'Neuropathie'], ['Sleep apnea', 'Apnée du sommeil'], ['Glaucoma', 'Glaucome'],
       ['Cataracts', 'Cataractes'], ['Macular degeneration', 'Dégénérescence maculaire'], ['Hearing loss', 'Perte auditive'], ['Acid reflux', 'Reflux acide'], ["Crohn's disease", 'Maladie de Crohn'],
       ['Ulcerative colitis', 'Colite ulcéreuse'], ['Liver disease', 'Maladie du foie'], ['Gout', 'Goutte'], ['Psoriasis', 'Psoriasis'], ['Lupus', 'Lupus'], ['Anemia', 'Anémie'],
-      ['Enlarged prostate', 'Hypertrophie de la prostate'], ['Incontinence', 'Incontinence'], ['Back pain', 'Mal de dos'], ['Chronic pain', 'Douleur chronique'], ['Obesity', 'Obésité'], ['HIV', 'VIH'], ['Hepatitis', 'Hépatite']];
+      ['Enlarged prostate', 'Hypertrophie de la prostate'], ['Incontinence', 'Incontinence'], ['Back pain', 'Mal de dos'], ['Chronic pain', 'Douleur chronique'], ['Obesity', 'Obésité'], ['HIV', 'VIH'], ['Hepatitis', 'Hépatite'],
+      // more (Rama, 26 Nov: "missing many, ADHD, autism, etc.")
+      ['ADHD', 'TDAH'], ['Autism', 'Autisme'], ['Down syndrome', 'Trisomie 21'], ['Cerebral palsy', 'Paralysie cérébrale'], ['Learning disability', 'Trouble d’apprentissage'],
+      ['Intellectual disability', 'Déficience intellectuelle'], ['Dyslexia', 'Dyslexie'], ['Tourette syndrome', 'Syndrome de Gilles de la Tourette'], ['Bipolar disorder', 'Trouble bipolaire'],
+      ['Schizophrenia', 'Schizophrénie'], ['PTSD', 'TSPT'], ['OCD', 'TOC'], ['Panic disorder', 'Trouble panique'], ['Insomnia', 'Insomnie'], ['Restless legs syndrome', 'Syndrome des jambes sans repos'],
+      ['REM sleep behaviour disorder', 'Trouble du comportement en sommeil paradoxal'], ['Essential tremor', 'Tremblement essentiel'], ['Dystonia', 'Dystonie'], ['ALS', 'SLA'],
+      ["Huntington's disease", 'Maladie de Huntington'], ['Muscular dystrophy', 'Dystrophie musculaire'], ['Myasthenia gravis', 'Myasthénie grave'], ['Brain injury', 'Lésion cérébrale'],
+      ['Concussion', 'Commotion cérébrale'], ['Mini-stroke (TIA)', 'Mini-AVC (ICT)'], ['Vertigo', 'Vertige'], ['Tinnitus', 'Acouphènes'], ['Low vision', 'Basse vision'],
+      ['Type 1 diabetes', 'Diabète de type 1'], ['Type 2 diabetes', 'Diabète de type 2'], ['Prediabetes', 'Prédiabète'], ['Hypothyroidism', 'Hypothyroïdie'], ['Hyperthyroidism', 'Hyperthyroïdie'],
+      ['Low blood pressure', 'Pression basse'], ['Dizziness when standing', 'Étourdissements en se levant'], ['Coronary artery disease', 'Maladie coronarienne'], ['Angina', 'Angine de poitrine'],
+      ['Pacemaker', 'Stimulateur cardiaque'], ['Blood clots', 'Caillots sanguins'], ['Peripheral artery disease', 'Maladie artérielle périphérique'], ['Emphysema', 'Emphysème'],
+      ['Pulmonary fibrosis', 'Fibrose pulmonaire'], ['Long COVID', 'COVID longue'], ['Rheumatoid arthritis', 'Polyarthrite rhumatoïde'], ['Fibromyalgia', 'Fibromyalgie'],
+      ['Chronic fatigue syndrome', 'Syndrome de fatigue chronique'], ['Spinal stenosis', 'Sténose spinale'], ['Scoliosis', 'Scoliose'], ['Hip replacement', 'Prothèse de hanche'],
+      ['Knee replacement', 'Prothèse de genou'], ['Falls', 'Chutes'], ['Celiac disease', 'Maladie cœliaque'], ['Irritable bowel syndrome', 'Syndrome du côlon irritable'],
+      ['Constipation', 'Constipation'], ['Swallowing problems', 'Troubles de déglutition'], ['Diverticulitis', 'Diverticulite'], ['Gallstones', 'Calculs biliaires'], ['Hernia', 'Hernie'],
+      ['Kidney stones', 'Calculs rénaux'], ['Dialysis', 'Dialyse'], ['Bladder problems', 'Problèmes de vessie'], ['Urinary tract infections', 'Infections urinaires'],
+      ['Eczema', 'Eczéma'], ['Skin cancer', 'Cancer de la peau'], ['Breast cancer', 'Cancer du sein'], ['Prostate cancer', 'Cancer de la prostate'], ['Colon cancer', 'Cancer du côlon'],
+      ['Lung cancer', 'Cancer du poumon'], ['Leukemia', 'Leucémie'], ['Lymphoma', 'Lymphome'], ['Menopause', 'Ménopause'], ['Endometriosis', 'Endométriose'], ['PCOS', 'SOPK'],
+      ['Seasonal allergies', 'Allergies saisonnières'], ['Hearing aids', 'Appareils auditifs'], ['Vitamin B12 deficiency', 'Carence en vitamine B12'], ['Vitamin D deficiency', 'Carence en vitamine D']];
     const condName = (x) => L2(x[0], x[1]);
     const condList = () => String(SID('conditions').answer || '').split(/\n|,\s*/).map((x) => x.trim()).filter((x) => x && !/^(none|no|aucun)/i.test(x));
     const condNone = () => /^(none|aucun)/i.test(String(SID('conditions').answer || '').trim());
