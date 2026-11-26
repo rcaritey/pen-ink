@@ -40,19 +40,25 @@ async function eachRow(file, onRow, enc = 'utf8') {
   return { header, n };
 }
 const pick = (o, ...names) => { for (const n of names) { const v = o[n]; if (v != null && String(v).trim() && !/^(none|null|nan)$/i.test(String(v).trim())) return String(v).trim(); } return ''; };
-const title = (s) => (/[a-z]/.test(s) ? s : s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()).replace(/\b(Of|And|The|De|Du|La|Le|Des)\b/g, (m) => m.toLowerCase()).replace(/^./, (m) => m.toUpperCase()))
+const title = (s) => (/[a-z]/.test(s) && /[A-Z]/.test(s) ? s : s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()).replace(/\b(Of|And|The|De|Du|La|Le|Des)\b/g, (m) => m.toLowerCase()).replace(/^./, (m) => m.toUpperCase()))
   .replace(/\s+/g, ' ').trim();
+// one spelling per street: "bathurst street" and "BATHURST ST" are the same street
+const ABBR = { street: 'St', avenue: 'Ave', road: 'Rd', drive: 'Dr', boulevard: 'Blvd', crescent: 'Cres', court: 'Crt', place: 'Pl', lane: 'Lane', parkway: 'Pkwy', square: 'Sq', terrace: 'Terr', circle: 'Cir', trail: 'Trl', highway: 'Hwy',
+  west: 'W', east: 'E', north: 'N', south: 'S', ave: 'Ave', st: 'St', rd: 'Rd', dr: 'Dr', blvd: 'Blvd', cres: 'Cres', crt: 'Crt', pl: 'Pl', w: 'W', e: 'E', n: 'N', s: 'S' };
+const street = (x) => { const w = title(x).split(' '); return w.map((t, i) => (i > 0 && ABBR[t.toLowerCase()]) || t).join(' '); };
+const addrFix = (a) => { const m = /^(\d+[A-Za-z]?)\s+(.+)$/.exec(String(a || '').trim()); return m ? m[1].toUpperCase() + ' ' + street(m[2]) : street(a); };
+const JUNK = /\b(tunnel|shaft|chamber|pumping|sewage|culvert|substation|transformer|hydro station|ambulance|outfall|reservoir|storage tank|snow dump|salt dome|works yard)\b/i;
 const cityName = (s) => title(String(s || '').replace(/\s*\(.*\)\s*$/, ''));
 
 const streets = new Map();   // "Street|City" -> Set of civic numbers
 const places = new Map();    // "name|address" -> [name, address, city, health]
-const addNum = (num, street, city) => {
-  num = String(num || '').trim(); street = title(street); city = cityName(city);
-  if (!/^\d+[A-Za-z]?$/.test(num) || !street || !city) return;
-  const k = street + '|' + city; let s = streets.get(k); if (!s) streets.set(k, (s = new Set())); s.add(num.toUpperCase());
+const addNum = (num, stName, city) => {
+  num = String(num || '').trim(); const st = street(stName); city = cityName(city);
+  if (!/^\d+[A-Za-z]?$/.test(num) || !st || !city) return;
+  const k = st + '|' + city; let s = streets.get(k); if (!s) streets.set(k, (s = new Set())); s.add(num.toUpperCase());
 };
 const addPlace = (name, addr, city, health) => {
-  name = title(name); addr = title(addr); city = cityName(city); if (!name || name.length < 3) return;
+  name = title(name).replace(/\s+/g, ' '); addr = addrFix(addr); city = cityName(city); if (!name || name.length < 3 || JUNK.test(name)) return;
   const k = (name + '|' + addr).toLowerCase(); const was = places.get(k);
   if (!was || (health && !was[3])) places.set(k, [name, addr, city, health ? 1 : 0]);
 };
@@ -99,7 +105,7 @@ for (const [k, fn] of [['toronto', toronto], ['oda', oda], ['odhf', odhf]]) {
 
 // numbers sorted naturally, stored as one space-separated string per street
 const nk = (x) => parseInt(x, 10) * 10 + (x.length > String(parseInt(x, 10)).length ? x.charCodeAt(x.length - 1) - 64 : 0);
-const S = [...streets].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([k, set]) => { const [st, city] = k.split('|'); return [st, city, [...set].sort((a, b) => nk(a) - nk(b)).join(' ')]; });
+const S = [...streets].sort((a, b) => ((b[0].endsWith('|Toronto')) - (a[0].endsWith('|Toronto'))) || (a[0] < b[0] ? -1 : 1)).map(([k, set]) => { const [st, city] = k.split('|'); return [st, city, [...set].sort((a, b) => nk(a) - nk(b)).join(' ')]; });
 const P = [...places.values()].sort((a, b) => b[3] - a[3] || (a[0] < b[0] ? -1 : 1));
 log.counts = { streets: S.length, addresses: S.reduce((n, s) => n + s[2].split(' ').length, 0), places: P.length, health: P.filter((p) => p[3]).length };
 if (!S.length && !P.length) { log.errors.push('nothing built: kept the old file'); }

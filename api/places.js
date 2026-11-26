@@ -36,7 +36,7 @@ const hit = (key, ws) => ws.every((w) => key.startsWith(w) || key.includes(' ' +
 export function search(qRaw) {
   const db = load(); if (!db) return null;
   const q = db.lc(qRaw); if (q.length < 2) return [];
-  const out = [], seen = new Set(), push = (s) => { if (!seen.has(s)) { seen.add(s); out.push(s); } };
+  const out = [], seen = new Set(), push = (s) => { const k = db.lc(s); if (!seen.has(k)) { seen.add(k); out.push(s); } };
   const m = /^(\d+[a-z]?)\s+(.+)$/.exec(q);
   if (m) {   // "399 bath" -> street addresses with that number
     const num = m[1].toUpperCase(), ws = words(m[2]);
