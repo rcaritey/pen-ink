@@ -111,6 +111,14 @@
     .ap-chip[aria-pressed="true"] { background: #E5EFE7; border: 2px solid #3B5E42; color: #1E4627; }
     @media (prefers-reduced-motion: reduce) { #voiceWave span { animation: none !important; } }
     #voiceWave.wave-hear span { background: #1E4627 !important; transform-origin: center; animation-duration: .45s !important; }
+    /* Reid's status tag on his picture, on every screen (Rama, 25 Nov: not visible on iPhone where there's no microphone bar) */
+    #reidPill { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); z-index: 3; white-space: nowrap; pointer-events: none;
+      font: 800 11px/1 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: .01em; padding: 4px 7px; border-radius: 999px; color: #fff; border: 2px solid #FAF7F0; }
+    #reidPill[hidden] { display: none; }
+    #companionEmblem.st-talk { box-shadow: 0 0 0 3px #B84A27; } #companionEmblem.st-hear { box-shadow: 0 0 0 3px #1E4627; animation: hearRing 1s ease-in-out infinite; }
+    @keyframes hearRing { 50% { box-shadow: 0 0 0 5px rgba(30,70,39,.55); } }
+    @media (prefers-reduced-motion: reduce) { #companionEmblem.st-hear { animation: none; } }
+    body.has-pill #companionStatusDot { display: none; }
     .ap-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; } .ap-tags .ap-tag { margin-top: 0; }
     .ap-stage { font-size: 13px; font-weight: 800; border-radius: 999px; padding: 2px 10px; border: 1px solid; }
     .ap-st-done { color: #1E4627; background: #E5EFE7; border-color: #9DBBA3; } .ap-st-todo { color: #7A2E12; background: #FBEDE4; border-color: #E2B8A0; }
@@ -8144,11 +8152,23 @@
         paused: { bg: '#F0EBE1', bd: '#D6CFC0', badge: '#5D6B7E', icon: PAU, color: '#1E2634', t: () => L2('Paused', 'En pause'), sub: () => L2('Tap to speak', 'Touchez pour parler') }
       };
       const now = () => (speaking ? 'talk' : !isListening ? 'paused' : hear ? 'hear' : 'listen');
+      let pillShown = '';
+      function pill(k) {
+        const em = document.getElementById('companionEmblem'); if (!em) return;
+        let el = document.getElementById('reidPill');
+        if (!el) { el = document.createElement('span'); el.id = 'reidPill'; em.appendChild(el); document.body.classList.add('has-pill'); }
+        const st = steps[currentIndex], off = (!speaking && (inputPreference === 'tap' || !st || st.mode === 'landing' || st.mode === 'setup' || st.mode === 'helperpick'));
+        const key = off ? 'off' : k; if (key === pillShown) return; pillShown = key;
+        em.classList.toggle('st-talk', key === 'talk'); em.classList.toggle('st-hear', key === 'hear');
+        if (off) { el.hidden = true; return; }
+        const P = { talk: ['#B84A27', L2('Talking', 'Parle')], hear: ['#1E4627', L2('Hearing', 'Entend')], listen: ['#3B5E42', L2('Listening', 'Écoute')], paused: ['#5D6B7E', L2('Paused', 'Pause')] }[key];
+        el.hidden = false; el.style.background = P[0]; el.textContent = P[1];
+      }
       window.vbState = function (force) {
         const btn = document.getElementById('speakToggleBtn'), badge = document.getElementById('micBadge'), label = document.getElementById('speakBtnLabel'), wave = document.getElementById('voiceWave');
         if (!btn || !badge || !label) return;
         if (!isListening) hear = false;
-        const k = now(); if (k === shown && !force) return; shown = k; const L = LOOK[k];
+        const k = now(); pill(k); if (k === shown && !force) return; shown = k; const L = LOOK[k];
         btn.className = 'tactile-btn w-full min-h-[54px] px-4 rounded-[18px] border flex items-center justify-between';
         btn.style.background = L.bg; btn.style.borderColor = L.bd; btn.style.borderWidth = k === 'hear' ? '2px' : '1px';
         badge.className = 'w-9 h-9 rounded-full text-white flex items-center justify-center shrink-0'; badge.style.background = L.badge; badge.innerHTML = L.icon;
