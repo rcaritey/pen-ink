@@ -924,6 +924,7 @@
             <span id="answerBoxHint" class="text-xs font-extrabold uppercase tracking-wider text-[#425268]">
               Your answer
             </span>
+            <div class="flex items-center gap-3">
             <button
               id="undoPillBtn"
               type="button"
@@ -932,6 +933,15 @@
             >
               ↶ Undo
             </button>
+            <button
+              id="clearPillBtn"
+              type="button"
+              onclick="clearPillTap(this)"
+              class="hidden tactile-btn min-h-[38px] px-3.5 rounded-full bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-xs shadow-2xs hover:bg-[#FAF7F0]"
+            >
+              ✕ <span data-clp>Clear</span>
+            </button>
+            </div>
           </div>
 
           <textarea
@@ -2746,6 +2756,7 @@
     function updateUndoVisibility() {
       const val = document.getElementById('answerInput').value.trim();
       document.getElementById('undoPillBtn').classList.toggle('hidden', val.length === 0);
+      const cp = document.getElementById('clearPillBtn'); if (cp) cp.classList.toggle('hidden', val.length === 0);
     }
 
     function undoLastWord() {
@@ -3105,7 +3116,7 @@
       "Parkinson's": 'Parkinson', 'Heart condition': 'Problème cardiaque', 'Diabetes': 'Diabète', 'Another condition': 'Autre problème',
       'What medicines do you take?': 'Quels médicaments prenez-vous ?', 'Say one at a time, with the dose if you know it, then pause. Include vitamins.': 'Dites-les un à la fois, avec la dose si vous la savez, puis faites une pause. Incluez les vitamines.',
       'None': 'Aucun', "Any allergies, or medicines you can't take?": 'Des allergies, ou des médicaments à éviter ?', 'None known': 'Aucune connue', 'Penicillin': 'Pénicilline', 'Sulfa drugs': 'Sulfamides', 'Another allergy': 'Autre allergie',
-      'Your answer': 'Votre réponse', 'YOUR ANSWER': 'VOTRE RÉPONSE', '↶ Undo': '↶ Annuler', 'Keep as is': 'Garder tel quel',
+      'Your answer': 'Votre réponse', 'YOUR ANSWER': 'VOTRE RÉPONSE', '↶ Undo': '↶ Annuler', 'Clear': 'Effacer', 'Keep as is': 'Garder tel quel',
       'Listening — tap to pause': "J'écoute — touchez pour mettre en pause", 'Paused — tap to speak': 'En pause — touchez pour parler',
       'Summary for the doctor': 'Résumé pour le médecin', 'Full screen': 'Plein écran', 'Print': 'Imprimer', 'Patient Visit Summary': 'Résumé de la visite',
       'Seeing': 'Avec', 'When': 'Quand', 'Where': 'Où', 'Main concern': 'Raison principale', 'Record Visit': 'Enregistrer la visite', 'Resume Recording': "Reprendre l'enregistrement", 'Recording — tap to pause': 'Enregistrement — touchez pour arrêter',
@@ -7762,6 +7773,13 @@
       const m = L2('Tap Clear again to erase what’s on this screen.', 'Touchez Effacer encore pour effacer cet écran.'); showToast(m); say(m);
       if (btn) { const lab = btn.querySelector('[data-cl]'); if (lab) { lab.textContent = L2('Tap again to clear', 'Touchez encore pour effacer'); setTimeout(() => { lab.textContent = L2('Clear this screen', 'Effacer cet écran'); }, 4000); } }
     }
+    // the Clear pill beside Undo in the answer box (Rama, 26 Nov): same tap-twice safety as "Clear this screen"
+    window.clearPillTap = function (btn) {
+      const armed = clearArm; clearTap(null);
+      const lab = btn && btn.querySelector('[data-clp]'); if (!lab) return;
+      if (clearArm && clearArm !== armed) { lab.textContent = L2('Tap again', 'Encore'); setTimeout(() => { lab.textContent = L2('Clear', 'Effacer'); }, 4000); }
+      else lab.textContent = L2('Clear', 'Effacer');
+    };
     const CLEAR_ICO = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20H9l-5-5 10-10 7 7-6 6"/><path d="M8 11l6 6"/></svg>';
     { const rs4 = renderSide; renderSide = function () {
       rs4();
