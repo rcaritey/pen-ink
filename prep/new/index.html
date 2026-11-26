@@ -136,7 +136,28 @@
     .af-pair { display: flex; flex-direction: column; gap: 6px; }
     @media (min-width: 900px) { .af-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; } .af-pair .ap-lbl { margin-top: 6px; } }
     .ap-in.af-ask { border: 2px solid #3B5E42; box-shadow: 0 0 0 4px rgba(59,94,66,.15); }   /* the box Reid is asking about */
-    .af-two { display: grid; grid-template-columns: 1.25fr 1fr; gap: 10px; } .af-two .ap-lbl { margin-top: 0; }
+    .pk-field { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; font-weight: 700; text-align: left; white-space: nowrap; overflow: hidden; } .pk-field > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+    .pk-field .pk-ph { color: #425268; font-weight: 600; } .pk-field .pk-ico { color: #3B5E42; flex: none; } .pk-field[aria-invalid="true"] { border: 2px solid #8A2E1C; }
+    #pkSheet { position: fixed; inset: 0; z-index: 130; background: rgba(30, 38, 52, .45); display: flex; align-items: flex-end; justify-content: center; padding: 10px; }
+    @media (min-width: 640px) { #pkSheet { align-items: center; } }
+    #pkSheet .pk-box { width: 100%; max-width: 520px; max-height: calc(100dvh - 20px); overflow-y: auto; background: #FAF7F0; border-radius: 24px; padding: 14px 14px 18px; box-shadow: 0 20px 60px rgba(30,38,52,.3); }
+    #pkSheet .pk-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    #pkSheet .pk-title { font-size: 20px; font-weight: 800; color: #1E2634; } #pkSheet .pk-sub { font-size: 16px; font-weight: 800; color: #3B5E42; margin: 10px 0 6px; }
+    #pkSheet .pk-x, #pkSheet .pk-clear { min-height: 48px; padding: 0 16px; border-radius: 14px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 16px; }
+    #pkSheet .pk-clear { width: 100%; margin-top: 12px; }
+    #pkSheet .pk-mon { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 8px; }
+    #pkSheet .pk-mname { font-size: 20px; font-weight: 800; color: #1E2634; text-transform: capitalize; }
+    #pkSheet .pk-nav { min-width: 56px; min-height: 52px; border-radius: 14px; background: #F0EBE1; border: 1px solid #D6CFC0; font-size: 28px; font-weight: 800; color: #1E2634; }
+    #pkSheet .pk-nav:disabled { opacity: .35; }
+    #pkSheet .pk-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+    #pkSheet .pk-wk span { text-align: center; font-size: 13px; font-weight: 800; color: #425268; text-transform: capitalize; padding-bottom: 2px; }
+    #pkSheet .pk-hours { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; } #pkSheet .pk-mins { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+    #pkSheet .pk-day { min-height: 52px; border-radius: 12px; background: #fff; border: 1px solid #D6CFC0; font-size: 20px; font-weight: 800; color: #1E2634; }
+    #pkSheet .pk-day.today { border: 2px solid #3B5E42; } #pkSheet .pk-day.on { background: #3B5E42; border-color: #3B5E42; color: #fff; }
+    #pkSheet .pk-day:disabled { opacity: .3; background: transparent; border-color: transparent; }
+    #pkSheet button:focus-visible { outline: 3px solid #1E4627; outline-offset: 2px; }
+    .af-two { display: grid; grid-template-columns: 1fr; gap: 6px; } .af-two .ap-lbl { margin-top: 0; }
+    @media (min-width: 640px) { .af-two { grid-template-columns: 1.25fr 1fr; gap: 10px; } }   /* phones: full width so the day and time are never cut off */
     .ap-in:focus { outline: 3px solid #3B5E42; outline-offset: 2px; } .ap-in[aria-invalid="true"] { border: 2px solid #8A2E1C; }
     .ap-err { color: #8A2E1C; font-size: 15px; font-weight: 700; margin: 2px 0 0; }
     .ap-form-btns { display: flex; gap: 10px; margin-top: 12px; } .ap-cancel, .ap-save { flex: 1; min-height: 52px; border-radius: 14px; font-weight: 800; font-size: 16px; }
@@ -6317,6 +6338,7 @@
       panel.querySelector('[data-apmove]').addEventListener('click', () => { setView = 'device'; renderSettings(); applyLang(); });
       const addB = panel.querySelector('[data-apadd]'); if (addB) addB.addEventListener('click', () => { apAdding = true; renderAppts(); applyLang(); const f = panel.querySelector('#apfDay'); if (f) f.focus(); });
       const form = panel.querySelector('#apForm'); if (form) {
+        if (typeof bigPickers === 'function') bigPickers(form);
         form.addEventListener('submit', (e) => { e.preventDefault(); apSaveAdd(form); });
         form.querySelector('[data-apcancel]').addEventListener('click', () => { apAdding = false; renderAppts(); applyLang(); const b2 = panel.querySelector('[data-apadd]'); if (b2) b2.focus(); });
       }
@@ -8310,25 +8332,135 @@
       return `${String(h).padStart(2, '0')}:${mi}`;
     }
     const nice24 = (v) => { if (!v) return ''; const [h, m] = v.split(':').map(Number); return new Date(2000, 0, 1, h, m).toLocaleTimeString(LOC[lang] || 'en-CA', { hour: 'numeric', minute: '2-digit' }); };
+    // Quick choices for "Doctor or clinic" (Rama, 25 Nov): Family doctor first, then the specialists their own health
+    // conditions point to, then doctors from their past visits. Up to 6; the usual three when nothing is known yet.
+    const AF_SPEC = [
+      [/parkinson|myotonic|dystroph|multiple sclerosis|\bms\b|epilep|seizure|migraine|stroke|neuropath|als\b|dementia|alzheimer|parkinson/i, ['Neurologist', 'Neurologue']],
+      [/diabet|thyroid|hormon/i, ['Endocrinologist', 'Endocrinologue']],
+      [/diabet|foot|feet|toe|bunion|plantar/i, ['Foot clinic', 'Clinique des pieds']],
+      [/heart|cardi|atrial|afib|a-fib|arrhythm|blood pressure|hypertens|angina|cholesterol/i, ['Cardiologist', 'Cardiologue']],
+      [/lung|copd|asthma|emphysema|breath|sleep apnea|apnée|poumon/i, ['Respirologist', 'Pneumologue']],
+      [/kidney|renal|rein|dialys/i, ['Nephrologist', 'Néphrologue']],
+      [/arthrit|lupus|gout|goutte|rheumat|rhumat/i, ['Rheumatologist', 'Rhumatologue']],
+      [/cancer|tumou?r|lymphoma|leuk|oncolog/i, ['Oncologist', 'Oncologue']],
+      [/bladder|prostat|urin|incontinen|vessie|cystoscop/i, ['Urologist', 'Urologue']],
+      [/eye|cataract|glaucom|macular|vision|œil|yeux/i, ['Eye doctor', 'Ophtalmologiste']],
+      [/skin|eczema|psoria|dermat|peau/i, ['Dermatologist', 'Dermatologue']],
+      [/stomach|bowel|crohn|colitis|liver|reflux|gerd|celiac|intestin|foie/i, ['Gastroenterologist', 'Gastro-entérologue']],
+      [/depress|anxi|bipolar|schizo|mental/i, ['Psychiatrist', 'Psychiatre']],
+      [/balance|fall|chute|swallow|déglut|physio|mobility/i, ['Physiotherapist', 'Physiothérapeute']]
+    ];
+    function afPresets() {
+      const fr = lang === 'fr', bg = [SID('conditions').answer, typeof medsList !== 'undefined' ? medsList.map((m) => m.name).join(' ') : '', SID('concerns').answer, SID('story').answer].join(' ');
+      const out = [fr ? 'Médecin de famille' : 'Family doctor'];
+      AF_SPEC.forEach(([re, names]) => { if (re.test(bg)) { const n = fr ? names[1] : names[0]; if (!out.includes(n)) out.push(n); } });
+      try { (typeof visits !== 'undefined' ? visits : []).forEach((v) => { const w = String(v.who || '').trim(); if (w && out.length < 6 && !out.some((x) => x.toLowerCase() === w.toLowerCase())) out.push(w); }); } catch (e) { console.warn('Past doctors not read', e); }
+      if (out.length === 1) out.push(fr ? 'Clinique sans rendez-vous' : 'Walk-in clinic', fr ? 'Spécialiste' : 'Specialist');
+      return out.slice(0, 6);
+    }
+
+    // Big, easy pickers for dates and times (Rama, 25 Nov: "clicking anywhere on the date bar should open the calendar
+    // right away, large, easy to tap"). Every date or time box in the app's forms becomes a wide button that shows the
+    // day or time in words; one tap opens a large calendar or a grid of hours.
+    const pkLoc = () => LOC[lang] || 'en-CA';
+    const pkIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    function pkSheet(title, body, onClose) {
+      const old = document.getElementById('pkSheet'); if (old) old.remove();
+      const box = document.createElement('div'); box.id = 'pkSheet'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'pkTitle');
+      box.innerHTML = `<div class="pk-box"><div class="pk-top"><p id="pkTitle" class="pk-title">${title}</p><button type="button" data-pkx class="tactile-btn pk-x">${L2('Cancel', 'Annuler')}</button></div><div class="pk-body"></div></div>`;
+      box.querySelector('.pk-body').appendChild(body);
+      const close = () => { box.remove(); document.removeEventListener('keydown', esc1, true); if (onClose) onClose(); };
+      const esc1 = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+      box.querySelector('[data-pkx]').addEventListener('click', close); box.addEventListener('click', (e) => { if (e.target === box) close(); });
+      document.addEventListener('keydown', esc1, true); document.body.appendChild(box);
+      return close;
+    }
+    function openDatePick(cur, min, onPick, back) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      let view = cur ? new Date(cur + 'T00:00') : new Date(today); view.setDate(1);
+      const body = document.createElement('div'); let close = null;
+      const draw = () => {
+        const y = view.getFullYear(), m = view.getMonth(), first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+        const wk = [...Array(7)].map((_, i) => new Date(2024, 8, 1 + i).toLocaleDateString(pkLoc(), { weekday: 'short' }).replace('.', ''));
+        const prevOk = !min || new Date(y, m, 1) > new Date(min + 'T00:00');
+        let cells = ''; for (let i = 0; i < first; i++) cells += '<span></span>';
+        for (let d = 1; d <= days; d++) { const iso = pkIso(new Date(y, m, d)), off = min && iso < min, on = iso === cur, isT = iso === pkIso(today);
+          cells += `<button type="button" data-pkd="${iso}" class="pk-day${on ? ' on' : ''}${isT ? ' today' : ''}" ${off ? 'disabled' : ''} aria-label="${new Date(y, m, d).toLocaleDateString(pkLoc(), { weekday: 'long', month: 'long', day: 'numeric' })}${isT ? ' (' + L2('today', 'aujourd’hui') + ')' : ''}" aria-pressed="${on}">${d}</button>`; }
+        body.innerHTML = `<div class="pk-mon"><button type="button" data-pkm="-1" class="tactile-btn pk-nav" ${prevOk ? '' : 'disabled'} aria-label="${L2('Previous month', 'Mois précédent')}">‹</button>
+            <p class="pk-mname" aria-live="polite">${view.toLocaleDateString(pkLoc(), { month: 'long', year: 'numeric' })}</p>
+            <button type="button" data-pkm="1" class="tactile-btn pk-nav" aria-label="${L2('Next month', 'Mois suivant')}">›</button></div>
+          <div class="pk-grid pk-wk" aria-hidden="true">${wk.map((w) => `<span>${w}</span>`).join('')}</div><div class="pk-grid">${cells}</div>`;
+        body.querySelectorAll('[data-pkm]').forEach((b) => b.addEventListener('click', () => { view.setMonth(view.getMonth() + Number(b.dataset.pkm)); draw(); const f = body.querySelector(`[data-pkm="${b.dataset.pkm}"]`); if (f && !f.disabled) f.focus(); }));
+        body.querySelectorAll('[data-pkd]').forEach((b) => b.addEventListener('click', () => { onPick(b.dataset.pkd); close(); }));
+      };
+      draw(); close = pkSheet(L2('Choose the date', 'Choisissez la date'), body, back);
+      const f = body.querySelector('.pk-day.on') || body.querySelector('.pk-day.today:not([disabled])') || body.querySelector('.pk-day:not([disabled])'); if (f) f.focus();
+    }
+    function openTimePick(cur, onPick, back) {
+      let h = cur ? +cur.split(':')[0] : null, mi = cur ? +cur.split(':')[1] : 0;
+      const body = document.createElement('div'); let close = null;
+      const hl = (x) => new Date(2000, 0, 1, x).toLocaleTimeString(pkLoc(), { hour: 'numeric' }).replace(/:00/, '');
+      const draw = () => {
+        const hrs = []; for (let x = 7; x <= 19; x++) hrs.push(x);
+        body.innerHTML = `<p class="pk-sub">${L2('1. Tap the hour', '1. Touchez l’heure')}</p>
+          <div class="pk-hours">${hrs.map((x) => `<button type="button" data-pkh="${x}" class="pk-day${h === x ? ' on' : ''}" aria-pressed="${h === x}">${hl(x)}</button>`).join('')}</div>
+          <p class="pk-sub">${L2('2. Tap the minutes', '2. Touchez les minutes')}</p>
+          <div class="pk-mins">${[0, 15, 30, 45].map((x) => `<button type="button" data-pkmi="${x}" class="pk-day${mi === x ? ' on' : ''}" aria-pressed="${mi === x}" ${h === null ? 'disabled' : ''}>:${String(x).padStart(2, '0')}</button>`).join('')}</div>
+          <button type="button" data-pkclear class="tactile-btn pk-clear">${L2('Not sure of the time', 'Heure pas sûre')}</button>`;
+        body.querySelectorAll('[data-pkh]').forEach((b) => b.addEventListener('click', () => { h = +b.dataset.pkh; draw(); const f = body.querySelector(`[data-pkmi="${mi}"]`); if (f) f.focus(); }));
+        body.querySelectorAll('[data-pkmi]').forEach((b) => b.addEventListener('click', () => { mi = +b.dataset.pkmi; onPick(`${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`); close(); }));
+        body.querySelector('[data-pkclear]').addEventListener('click', () => { onPick(''); close(); });
+      };
+      draw(); close = pkSheet(L2('Choose the time', 'Choisissez l’heure'), body, back);
+      const f = body.querySelector('[data-pkh].on') || body.querySelector('[data-pkh="9"]'); if (f) f.focus();
+    }
+    // turn native date/time boxes inside root into big buttons (the real value stays in a hidden box with the same id)
+    function bigPickers(root) {
+      if (!root) return;
+      root.querySelectorAll('input.ap-in[type="date"], input.ap-in[type="time"]').forEach((inp) => {
+        const kind = inp.type, min = inp.getAttribute('min') || '';
+        const btn = document.createElement('button'); btn.type = 'button'; btn.id = inp.id + 'Btn'; btn.className = 'tactile-btn ap-in pk-field';
+        const show = () => { const v = inp.value;
+          btn.innerHTML = v ? `<span>${esc(kind === 'date' ? new Date(v + 'T00:00').toLocaleDateString(pkLoc(), { weekday: 'short', month: 'short', day: 'numeric', year: new Date(v + 'T00:00').getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }) : nice24(v))}</span>`
+            : `<span class="pk-ph">${L2('Choose', 'Choisir')}</span>`;
+          btn.insertAdjacentHTML('beforeend', `<span class="pk-ico" aria-hidden="true">${kind === 'date' ? WHI('calendar', 22) : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'}</span>`); };
+        inp.type = 'hidden'; inp.after(btn); show();
+        const lab = root.querySelector(`label[for="${inp.id}"]`); if (lab) lab.htmlFor = btn.id;
+        inp.addEventListener('input', show);
+        inp.focus = () => btn.focus();   // error messages move focus to the visible button
+        new MutationObserver(() => { btn.classList.toggle('af-ask', inp.classList.contains('af-ask')); const inv = inp.getAttribute('aria-invalid'); if (inv) btn.setAttribute('aria-invalid', inv); else btn.removeAttribute('aria-invalid'); const db = inp.getAttribute('aria-describedby'); if (db) btn.setAttribute('aria-describedby', db); })
+          .observe(inp, { attributes: true, attributeFilter: ['class', 'aria-invalid', 'aria-describedby'] });
+        btn.addEventListener('click', () => {
+          const put = (v) => { const cur = document.getElementById(inp.id) || inp; cur.value = v; cur.dispatchEvent(new Event('input', { bubbles: true })); const b2 = document.getElementById(btn.id) || btn; b2.focus(); };   // the box may have been redrawn while the picker was open
+          const back = () => { const b2 = document.getElementById(btn.id); if (b2) b2.focus(); };
+          if (kind === 'date') openDatePick(inp.value, min, put, back); else openTimePick(inp.value, put, back);
+        });
+      });
+    }
+
     function renderApptForm(items, foot) {
       const $ = (id) => document.getElementById(id);
       $('listTitle').textContent = L2('Your appointment', 'Votre rendez-vous');
       $('listHelp').textContent = L2('Only the date is needed. Add the rest if you know it.', 'Seule la date est nécessaire. Ajoutez le reste si vous le savez.');
       $('listCounter').classList.add('hidden');
-      const day = SID('day'), who = String(SID('who').answer || ''), presets = (SID('who').presets || []).filter((x) => !/another|autre/i.test(x)).map((x) => [x, tr(x)]);   // "Another specialist" = type it in the box
+      // the layout redraws list screens when it resizes; keep whatever is already in the boxes (nothing saved yet is lost)
+      const old = document.getElementById('afForm'), was = old ? { day: $('afDay').value, time: $('afTime').value, who: $('afWho').value, where: $('afWhere').value, focus: document.activeElement && document.activeElement.id } : null;
+      const day = was ? { dateISO: was.day } : SID('day'), who = was ? was.who : String(SID('who').answer || ''), presets = afPresets().map((x) => [x, x]);   // from their health background, Family doctor first
       const fld = (id, label, type, val, extra) => `<label for="${id}" class="ap-lbl">${label}</label><input id="${id}" type="${type}" value="${esc(val || '')}" ${extra || ''} class="ap-in">`;
       items.classList.add('overflow-y-auto');
       items.innerHTML = `<form id="afForm" class="ap-form" novalidate data-notr onsubmit="return false">
           <div class="af-two"><div class="flex flex-col gap-1.5 min-w-0">${fld('afDay', L2('Date (required)', 'Date (obligatoire)'), 'date', day.dateISO || '', `required min="${isoToday()}"`)}</div>
-            <div class="flex flex-col gap-1.5 min-w-0">${fld('afTime', L2('Time', 'Heure'), 'time', to24(SID('time').answer), '')}</div></div>
+            <div class="flex flex-col gap-1.5 min-w-0">${fld('afTime', L2('Time', 'Heure'), 'time', was ? was.time : to24(SID('time').answer), '')}</div></div>
           <p id="afDayErr" class="ap-err hidden" role="alert">${L2('Add the date of the appointment.', 'Ajoutez la date du rendez-vous.')}</p>
           <div class="af-pair"><div class="flex flex-col gap-1.5 min-w-0">${fld('afWho', L2('Doctor or clinic', 'Médecin ou clinique'), 'text', who, 'autocomplete="off" maxlength="120"')}
           <div class="af-chips" role="group" aria-label="${L2('Quick choices', 'Choix rapides')}">${presets.map(([v, t]) => `<button type="button" data-afwho="${esc(t)}" class="tactile-btn ap-chip" aria-pressed="${who === t || who === v}">${who === t || who === v ? '✓ ' : ''}${esc(t)}</button>`).join('')}</div>
-          </div><div class="flex flex-col gap-1.5 min-w-0">${fld('afWhere', L2('Where (clinic or address)', 'Où (clinique ou adresse)'), 'text', SID('where').answer, 'autocomplete="off" maxlength="160"')}</div></div>
+          </div><div class="flex flex-col gap-1.5 min-w-0">${fld('afWhere', L2('Where (clinic or address)', 'Où (clinique ou adresse)'), 'text', was ? was.where : SID('where').answer, 'autocomplete="off" maxlength="160"')}</div></div>
         </form>`;
       foot.innerHTML = '';
       items.querySelectorAll('[data-afwho]').forEach((b) => b.addEventListener('click', () => { const w = $('afWho'); w.value = b.dataset.afwho; items.querySelectorAll('[data-afwho]').forEach((c) => { const on = c === b; c.setAttribute('aria-pressed', on); c.textContent = (on ? '✓ ' : '') + c.dataset.afwho; }); }));
       const d = $('afDay'); if (d) d.addEventListener('input', () => { $('afDayErr').classList.add('hidden'); d.removeAttribute('aria-invalid'); });
+      bigPickers(items);
+      if (was && was.focus) { const f = document.getElementById(was.focus); if (f && !document.getElementById('pkSheet')) f.focus(); }
       if (typeof afMark === 'function') setTimeout(() => afMark(afNextEmpty()), 0);   // outline the box Reid is asking about
     }
     function saveApptForm() {   // true when it can move on
@@ -8381,14 +8513,14 @@
         if (pt) { const v = `${String(pt.h).padStart(2, '0')}:${String(pt.m).padStart(2, '0')}`; afPut('time', v); got.push(nice24(v));
         rest = rest.replace(/\b(at\s+|à\s+)?(\d{1,2}([:h]\d{2})?\s*(am|pm|a\s*m|p\s*m|o'?clock)?|noon|midday|midi|half past \w+|quarter (past|to|of) \w+)\b/, ' '); } }
       // doctor: "with Dr. Lee", "seeing the neurologist", a quick choice, or the whole answer when that's what was asked
-      const preset = (SID('who').presets || []).map((x) => tr(x)).find((x) => !/another|autre/i.test(x) && rest.includes(x.toLowerCase()));
+      const preset = afPresets().find((x) => rest.includes(x.toLowerCase()));
       const wm = /\b(?:with|see|seeing|avec|voir)\s+((?:dr\.?|doctor|docteur|the|my|le|la|mon|ma)\s+)?([a-zà-ÿ' .-]{2,40}?)(?=\s+(?:at|in|à|au|on|le)\b|,|$)/i.exec(rest.trim());
       const dr = /\b(dr\.?|doctor|docteur)\s+([a-zà-ÿ'-]{2,30})/i.exec(rest);
       let who = '';
       if (wm) who = ((wm[1] || '').trim().replace(/^(the|my|le|la|mon|ma)$/i, '') + ' ' + wm[2]).trim();
       else if (dr) who = 'Dr. ' + dr[2];
       else if (preset) who = preset;
-      if (who) { const pr = (SID('who').presets || []).map((x) => tr(x)).find((x) => x.toLowerCase() === who.toLowerCase());
+      if (who) { const pr = afPresets().find((x) => x.toLowerCase() === who.toLowerCase());
         who = pr || who.replace(/^(dr\.?|doctor|docteur)\s+/i, 'Dr. ').replace(/\b\w/g, (c) => c.toUpperCase()); afPut('who', who); got.push(who); rest = rest.replace(wm ? wm[0] : dr ? dr[0] : preset.toLowerCase(), ' '); }
       // place: "at Toronto Western", "in the clinic on Bayview" (never a time), or the whole answer when asked
       const pm = /\b(?:at|in|à|au)\s+((?:the\s+)?[a-zà-ÿ][a-zà-ÿ0-9' .-]{2,60})/i.exec(rest);
