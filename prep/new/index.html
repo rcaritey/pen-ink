@@ -75,6 +75,8 @@
     #landingCard { display: none !important; }
     #screenLanding { overflow-y: auto; }   /* on a short screen nothing is cut off: the page scrolls */   /* Rama, 24 Nov: no box on the first page; Reid's bubble says it */
     .rp-hi { margin: 2px 4px 2px; font-size: 20px; font-weight: 700; line-height: 1.25; color: #1E2634; }
+    .rp-state { margin: 2px 0 0; padding: 6px 10px; border-radius: 12px; font-size: 16px; font-weight: 800; line-height: 1.3; }
+    #reidMenu { z-index: 120 !important; }   /* above the helper's speech bubble and the pages */
     #reidMenu .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
     .rp-type { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
     .rp-say { margin: 0 4px; font-size: 15px; line-height: 1.4; color: #425268; }
@@ -3593,6 +3595,11 @@
       if (/^(skip|skip (this|that|it|these)( one)?|passer|on passe)$/.test(low) && (step.id === 'detail' || /^dq\d+$/.test(step.id))) { skipDetail(step); return; }
       if (step.id === 'detail' && /^(yes|yeah|yes please|sure|ok|okay|oui|d'accord|allez-y)$/.test(low)) { selectPreset('Yes, ask me'); return; }
       if (/^(?:(?:sorry|pardon|oh|um|uh|reid)[ ,]+)*((sorry|pardon|what|huh|eh)( me)?|come again|say (it|that) again( please)?|(can|could) you (say|repeat) (it|that)( again)?( please)?|(once|one) more time|again( please)?|i didn'?t (hear|catch|get) (it|that|you)|what did you say|what was (the|that) question|louder( please)?)( reid)?$/.test(low)) { speakStep(); return; }
+      // "clear the answer", "clear the entire answer box", "erase everything", "start over" (Rama, 26 Nov: it was written down as the answer)
+      if (low.split(' ').length <= 10 && (/^(start (over|again)|recommence[rz]?|efface[rz]? tout|tout effacer)$/.test(low) || (/\b(clear|erase|delete|wipe|empty|remove|efface[rz]?|supprime[rz]?|vide[rz]?)\b/.test(low) && /\b(answer|box|everything|all|it|that|text|réponse|tout|case)\b/.test(low) && !/\b(medicine|pill|question)\b/.test(low)))) {
+        const box = document.getElementById('answerInput');
+        if (step.mode === 'voice' && box) { step.answer = ''; step.customActive = false; box.value = ''; if (typeof saveAll === 'function') saveAll(); renderCurrentStep(); showToast(L2('Cleared.', 'Effacé.')); say(L2('Cleared. ', 'Effacé. ') + tr(step.question || ''), true); return; }
+      }
       if (window.__typedToReid) { understand(t); return; }   // typed in Reid's bubble: a message to him, never an answer
       if (step.mode !== 'voice') { if (!listHeard(step, low)) understand(t); return; }
       if (low.split(' ').length <= 14 && !step.big && ((/\?\s*$/.test(t) || QWORD.test(low)) || REQ.test(low))) { understand(t, () => addAnswer(t)); return; }
@@ -5927,8 +5934,10 @@
         // couldn't hear"): one short line and a row of three buttons; the typing box only opens from Type. Opening it
         // stops the helper talking so the microphone is free to hear you; he only speaks to introduce himself the first time.
         const SB = 'tactile-btn flex-1 min-w-0 min-h-[52px] px-2 rounded-2xl font-extrabold text-[15px] flex flex-col items-center justify-center gap-0.5 leading-tight';
+        delete menu.dataset.typing;
         menu.innerHTML = `<p class="rp-hi">${fr ? hiFr : hiEn}</p>
-          <p class="rp-say">${hf ? (fr ? 'Je vous écoute. Dites « suivant », « retour » ou posez une question.' : 'I’m listening. Say “next”, “back”, or ask a question.')
+          <p id="rpState" class="rp-state" role="status" aria-live="polite"></p>
+          <p class="rp-say">${hf ? (fr ? 'Dites « suivant », « retour » ou posez une question.' : 'Say “next”, “back”, or ask a question.')
             : (fr ? 'Parlez-moi en mains libres, ou écrivez.' : 'Talk to me hands-free, or type.')}</p>
           <div class="flex gap-[8px]">
             <button type="button" data-r="handsfree" class="${SB} ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}" aria-pressed="${hf}">${WHI('mic', 20)}<span>${hf ? (fr ? 'Arrêter' : 'Stop') : (fr ? 'Mains libres' : 'Hands-free')}</span></button>
@@ -5968,7 +5977,7 @@
       menu.addEventListener('click', (e) => {
         e.stopPropagation(); const b = e.target.closest('[data-r]'); if (!b) return;
         if (b.dataset.r === 'clear') { if (Date.now() - clearArm < 4000 || !canClear()) close(); clearTap(b); return; }
-        if (b.dataset.r === 'type') { const f = menu.querySelector('[data-rtype]'); if (f) { f.style.display = ''; const tb = f.querySelector('textarea'); if (tb) tb.focus(); } b.setAttribute('aria-expanded', 'true'); return; }
+        if (b.dataset.r === 'type') { menu.dataset.typing = '1'; if (typeof vbState === 'function') vbState(true); const f = menu.querySelector('[data-rtype]'); if (f) { f.style.display = ''; const tb = f.querySelector('textarea'); if (tb) tb.focus(); } b.setAttribute('aria-expanded', 'true'); return; }
         close();
         if (b.dataset.r === 'explain') forceSay(explainStep);
         if (b.dataset.r === 'repeat') forceSay(speakStep);
@@ -8750,7 +8759,15 @@
         paused: { bg: '#F0EBE1', bd: '#D6CFC0', badge: '#5D6B7E', icon: PAU, color: '#1E2634', t: () => L2('Paused', 'En pause'), sub: () => L2('Tap to speak', 'Touchez pour parler') }
       };
       const now = () => (speaking ? 'talk' : !isListening ? 'paused' : hear ? 'hear' : 'listen');
-      let pillShown = '';
+      let pillShown = '', rpShown = '';
+      function rpState(k) {   // the line in the "How can I help?" bubble: listening, hearing, talking, paused, or typing
+        const el = document.getElementById('rpState'), menu = document.getElementById('reidMenu'); if (!el || !menu || menu.classList.contains('hidden')) { rpShown = ''; return; }
+        const key = menu.dataset.typing ? 'type' : (inputPreference !== 'voice' && !speaking) ? 'off' : k; if (key === rpShown) return; rpShown = key;
+        const T = { talk: ['🔊', L2(helperName() + ' is talking', helperName() + ' parle'), '#7A2E12', '#FBEDE4'], hear: ['🎙️', L2('Hearing you…', 'Je vous entends…'), '#1E4627', '#D5E8D9'],
+          listen: ['🎙️', L2('Listening: speak now', 'J’écoute : parlez'), '#1E4627', '#E5EFE7'], paused: ['⏸', L2('Not listening: tap Hands-free, or Type', 'Je n’écoute pas : touchez Mains libres, ou Écrire'), '#425268', '#F0EBE1'],
+          off: ['⌨️', L2('Type your message below', 'Écrivez votre message ci-dessous'), '#425268', '#F0EBE1'], type: ['⌨️', L2('Typing: write your message, then Send', 'Écrire : tapez votre message, puis Envoyer'), '#1E2634', '#F0EBE1'] }[key];
+        el.innerHTML = `<span aria-hidden="true">${T[0]}</span> ${T[1]}`; el.style.color = T[2]; el.style.background = T[3];
+      }
       function pill(k) {
         const em = document.getElementById('companionEmblem'); if (!em) return;
         let el = document.getElementById('reidPill');
@@ -8766,7 +8783,7 @@
         const btn = document.getElementById('speakToggleBtn'), badge = document.getElementById('micBadge'), label = document.getElementById('speakBtnLabel'), wave = document.getElementById('voiceWave');
         if (!btn || !badge || !label) return;
         if (!isListening) hear = false;
-        const k = now(); pill(k); if (k === shown && !force) return; shown = k; const L = LOOK[k];
+        const k = now(); pill(k); rpState(k); if (k === shown && !force) return; shown = k; const L = LOOK[k];
         btn.className = 'tactile-btn w-full min-h-[54px] px-4 rounded-[18px] border flex items-center justify-between';
         btn.style.background = L.bg; btn.style.borderColor = L.bd; btn.style.borderWidth = k === 'hear' ? '2px' : '1px';
         badge.className = 'w-9 h-9 rounded-full text-white flex items-center justify-center shrink-0'; badge.style.background = L.badge; badge.innerHTML = L.icon;
@@ -8785,6 +8802,15 @@
       setInterval(vbState, 200);   // talking starts and stops in several places; a light check keeps the bar honest
       vbState(true);
     }
+    // While the "How can I help?" bubble is open, whatever is said is a request to the helper, exactly as if typed in the
+    // bubble: commands and settings still work, and it never lands in the answer box (Rama, 26 Nov). Speaking while the
+    // Type box is selected writes into it instead.
+    { const hRm = heard; heard = function (t) {
+        const rm = document.getElementById('reidMenu'), open = rm && !rm.classList.contains('hidden');
+        if (!open || document.activeElement && document.activeElement.id === 'reidTypeBox') return hRm.apply(this, arguments);
+        rm.classList.add('hidden'); window.__typedToReid = true;
+        try { return hRm.apply(this, arguments); } finally { window.__typedToReid = false; }
+      }; }
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>
