@@ -8745,6 +8745,94 @@
       }));
     }, 1500);
 
+    // Health conditions like medicines (Rama, 26 Nov: "the ailments should open similar to medicines"): one card per
+    // condition with ✕ to remove it, an "Add a condition" box with suggestions as you type, quick buttons for common ones,
+    // and "I don't have any". Speaking adds them one by one ("Parkinson's and high blood pressure" adds two).
+    // Saved as the same answer text as before (one per line), so the pages and the review read it unchanged.
+    const CONDS = [["Parkinson's", 'Parkinson'], ['High blood pressure', 'Hypertension'], ['Diabetes', 'Diabète'], ['Heart condition', 'Problème cardiaque'],
+      ['High cholesterol', 'Cholestérol élevé'], ['Arthritis', 'Arthrite'], ['Osteoarthritis', 'Arthrose'], ['Osteoporosis', 'Ostéoporose'], ['Asthma', 'Asthme'], ['COPD', 'MPOC'],
+      ['Atrial fibrillation', 'Fibrillation auriculaire'], ['Heart failure', 'Insuffisance cardiaque'], ['Stroke', 'AVC'], ['Kidney disease', 'Maladie rénale'], ['Thyroid condition', 'Problème de thyroïde'],
+      ['Cancer', 'Cancer'], ['Depression', 'Dépression'], ['Anxiety', 'Anxiété'], ['Dementia', 'Démence'], ["Alzheimer's", 'Alzheimer'], ['Epilepsy', 'Épilepsie'], ['Migraine', 'Migraine'],
+      ['Multiple sclerosis', 'Sclérose en plaques'], ['Myotonic dystrophy', 'Dystrophie myotonique'], ['Neuropathy', 'Neuropathie'], ['Sleep apnea', 'Apnée du sommeil'], ['Glaucoma', 'Glaucome'],
+      ['Cataracts', 'Cataractes'], ['Macular degeneration', 'Dégénérescence maculaire'], ['Hearing loss', 'Perte auditive'], ['Acid reflux', 'Reflux acide'], ["Crohn's disease", 'Maladie de Crohn'],
+      ['Ulcerative colitis', 'Colite ulcéreuse'], ['Liver disease', 'Maladie du foie'], ['Gout', 'Goutte'], ['Psoriasis', 'Psoriasis'], ['Lupus', 'Lupus'], ['Anemia', 'Anémie'],
+      ['Enlarged prostate', 'Hypertrophie de la prostate'], ['Incontinence', 'Incontinence'], ['Back pain', 'Mal de dos'], ['Chronic pain', 'Douleur chronique'], ['Obesity', 'Obésité'], ['HIV', 'VIH'], ['Hepatitis', 'Hépatite']];
+    const condName = (x) => L2(x[0], x[1]);
+    const condList = () => String(SID('conditions').answer || '').split(/\n|,\s*/).map((x) => x.trim()).filter((x) => x && !/^(none|no|aucun)/i.test(x));
+    const condNone = () => /^(none|aucun)/i.test(String(SID('conditions').answer || '').trim());
+    function condSet(list, none) {
+      const st = SID('conditions'); st.answer = none ? L2('None', 'Aucun') : list.join('\n'); st.customActive = !!st.answer; st.fromLast = false;
+      if (typeof saveAll === 'function') saveAll();
+    }
+    const condTidy = (x) => { const t = String(x || '').replace(/^(and|et|also|aussi|i have|j'ai|i've got|i got|my|mon|ma)\s+/i, '').replace(/[.!?]+$/, '').trim(); const k = CONDS.find((c) => sugLc(c[0]) === sugLc(t) || sugLc(c[1]) === sugLc(t)); return k ? condName(k) : t.replace(/^./, (c) => c.toUpperCase()); };
+    function condAdd(raw) {
+      const add = String(raw || '').split(/,|\n|\band\b|\bet\b|\bplus\b/i).map(condTidy).filter((x) => x.length > 1 && x.split(/\s+/).length <= 6);
+      if (!add.length) return [];
+      const cur = condList(), out = cur.slice(); add.forEach((x) => { if (!out.some((y) => sugLc(y) === sugLc(x))) out.push(x); });
+      condSet(out); return add;
+    }
+    const condSuggest = (q) => { const t = String(q || '').trim(), have = condList().map(sugLc), all = CONDS.map(condName).filter((x) => !have.includes(sugLc(x)));
+      return (t ? all.filter((x) => sugHit(x, t)) : all).slice(0, 8); };
+    SID('conditions').mode = 'condlist'; LISTMODES.condlist = 1;
+    function renderCondList(items, foot) {
+      const $ = (id) => document.getElementById(id), list = condList(), none = condNone();
+      $('listTitle').textContent = L2('Do you have other health conditions?', 'Avez-vous d’autres problèmes de santé ?');
+      $('listHelp').textContent = L2('Add each one. Type, tap a suggestion, or say them.', 'Ajoutez-les un par un. Écrivez, touchez une suggestion, ou dites-les.');
+      $('listCounter').classList.add('hidden');
+      const quick = ["Parkinson's", 'High blood pressure', 'Diabetes', 'Heart condition', 'Arthritis', 'Osteoporosis'].map((e) => condName(CONDS.find((c) => c[0] === e))).filter((x) => !list.some((y) => sugLc(y) === sugLc(x))).slice(0, 4);
+      items.classList.add('overflow-y-auto');
+      items.innerHTML = `<div class="w-full flex flex-col gap-[10px]" data-notr>
+          ${list.length ? `<div class="flex flex-col gap-[8px]" role="list" aria-label="${L2('Your conditions', 'Vos problèmes de santé')}">${list.map((x, i) => `<div role="listitem" class="w-full min-h-[56px] pl-4 pr-1.5 rounded-2xl bg-white border-2 border-[#3B5E42] flex items-center gap-3">
+              <span class="text-[#3B5E42]" aria-hidden="true">✓</span><span class="flex-1 min-w-0 text-[18px] font-extrabold text-[#1E2634] leading-snug">${esc(x)}</span>
+              <button type="button" data-cdel="${i}" class="tactile-btn shrink-0 w-12 h-12 rounded-xl bg-white border border-[#D6CFC0] text-[#8A2E1C] text-[20px] font-extrabold" aria-label="${L2('Remove', 'Retirer')} ${esc(x)}">✕</button></div>`).join('')}</div>` : ''}
+          <div class="flex flex-col gap-1.5 relative"><label for="condAdd" class="ap-lbl" style="margin-top:0">${list.length ? L2('Add another', 'En ajouter un autre') : L2('Add a condition', 'Ajouter un problème de santé')}</label>
+            <div class="flex gap-[8px] items-start"><div class="flex-1 min-w-0 relative"><input id="condAdd" type="text" autocomplete="off" maxlength="80" class="ap-in" placeholder="${L2('Type or tap to choose', 'Écrivez ou touchez pour choisir')}"></div>
+            <button type="button" data-cadd class="tactile-btn shrink-0 min-h-[52px] px-4 rounded-2xl bg-[#3B5E42] text-white font-extrabold text-base">${L2('Add', 'Ajouter')}</button></div></div>
+          ${quick.length && !none ? `<div class="af-chips" role="group" aria-label="${L2('Common ones', 'Les plus courants')}">${quick.map((x) => `<button type="button" data-cq="${esc(x)}" class="tactile-btn ap-chip">+ ${esc(x)}</button>`).join('')}</div>` : ''}
+          ${list.length ? '' : `<button type="button" data-cnone class="tactile-btn w-full min-h-[56px] rounded-2xl font-extrabold text-[17px] ${none ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}" aria-pressed="${none}">${none ? '✓ ' : ''}${L2('I don’t have any', 'Je n’en ai pas')}</button>`}
+        </div>`;
+      foot.innerHTML = '';
+      const inp = $('condAdd'), commit = () => { const v = inp.value.trim(); if (!v) { inp.focus(); return; } const got = condAdd(v); inp.value = ''; renderList(); applyLang(); const n = $('condAdd'); if (n) n.focus(); if (got.length) say(got.join(L2(' and ', ' et ')) + L2(' added.', ' ajouté.'), true); };
+      suggestBox(inp, condSuggest);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } });
+      inp.addEventListener('change', () => { if (condSuggest('').some((x) => x === inp.value)) commit(); });   // picked from the list
+      items.querySelector('[data-cadd]').addEventListener('click', commit);
+      if (!items.__condWired) items.__condWired = true, items.addEventListener('click', (e) => {   // once: this box is reused by every list screen
+        const st = steps[currentIndex]; if (!st || st.mode !== 'condlist') return;
+        const d = e.target.closest('[data-cdel]'), q = e.target.closest('[data-cq]'), n = e.target.closest('[data-cnone]');
+        if (d) { const l = condList(), gone = l.splice(+d.dataset.cdel, 1)[0]; condSet(l); renderList(); applyLang(); showToast(L2('Removed: ', 'Retiré : ') + gone); }
+        if (q) { condAdd(q.dataset.cq); renderList(); applyLang(); }
+        if (n) { condSet([], !condNone()); renderList(); applyLang(); }
+      });
+      // picking from the pop-up list adds it straight away
+      inp.addEventListener('input', (e) => { if (!e.isTrusted && e.inputType !== 'insertText' && inp.value && CONDS.some((c) => condName(c) === inp.value)) commit(); });
+    }
+    { const rlC = renderList; renderList = function () { const st = steps[currentIndex];
+        if (st && st.mode === 'condlist') { renderCondList(document.getElementById('listItems'), document.getElementById('listFoot')); return; }
+        return rlC.apply(this, arguments); }; }
+    { const hC = heard; heard = function (t) {
+        const st = steps[currentIndex], low = String(t || '').toLowerCase().replace(/[.!?,]/g, '').trim();
+        if (!st || st.mode !== 'condlist' || !low || cmdOf(low) || /^(next|next please|back|go back|repeat|help|stop|pause|wait|undo|skip|done|suivant|retour|aide|passer|terminé)$/.test(low) || window.__typedToReid) return hC.apply(this, arguments);
+        if (document.activeElement && document.activeElement.id === 'condAdd') return hC.apply(this, arguments);   // speaking into the box: it's typed there
+        if (/\b(clear|erase|delete|wipe|empty|start over|efface|supprime)\b/.test(low) && /\b(all|everything|them|list|answer|box|tout)\b/.test(low)) { condSet([]); renderList(); applyLang(); say(L2('Cleared. Say your conditions, or say none.', 'Effacé. Dites vos problèmes de santé, ou dites aucun.'), true); return; }
+        const rm = /^(remove|delete|take off|take out|not|enlève|retire|supprime)\s+(.+)$/.exec(low);
+        if (rm) { const l = condList(), i = l.findIndex((x) => sugLc(x).includes(sugLc(rm[2])) || sugLc(rm[2]).includes(sugLc(x))); if (i >= 0) { const g = l.splice(i, 1)[0]; condSet(l); renderList(); applyLang(); say(g + L2(' removed.', ' retiré.'), true); return; } }
+        if (/^(no|none|nothing|no i don'?t|i don'?t have any|non|aucun|rien)$/.test(low)) { condSet([], true); renderList(); applyLang(); say(L2('Okay, none. Say next.', 'D’accord, aucun. Dites suivant.'), true); return; }
+        if (low.split(/\s+/).length > 14 || /\?$/.test(String(t).trim())) return hC.apply(this, arguments);   // a question or a long sentence: not a list
+        const got = condAdd(t); if (!got.length) return hC.apply(this, arguments);
+        renderList(); applyLang(); setCompanionState('captured'); say(got.join(L2(' and ', ' et ')) + L2(' added. Any others? Or say next.', ' ajouté. D’autres ? Ou dites suivant.'), true);
+      }; }
+    if (typeof SPEAK === 'object') SPEAK.condlist = () => condList().length ? L2('You have: ', 'Vous avez : ') + condList().join(', ') + L2('. Any others? Or say next.', '. D’autres ? Ou dites suivant.') : L2('Do you have other health conditions? Say them, or say none.', 'Avez-vous d’autres problèmes de santé ? Dites-les, ou dites aucun.');
+    if (typeof EXPLAIN === 'object' && typeof SPEAK === 'object') EXPLAIN.condlist = () => L2('Add each health condition you have. Type it, tap a suggestion, or say it. Tap the cross to remove one. If you have none, tap I don’t have any.', 'Ajoutez chaque problème de santé. Écrivez-le, touchez une suggestion, ou dites-le. Touchez la croix pour en retirer un. Si vous n’en avez pas, touchez Je n’en ai pas.');
+    // the iPhone keyboard's microphone types straight into a box; a dictated "clear everything" clears the answer instead of being kept
+    document.addEventListener('input', (e) => {
+      const box = e.target; if (!box || box.id !== 'answerInput') return;
+      const sent = String(box.value).split(/(?<=[.!?])\s+/), last = (sent[sent.length - 1] || '').trim();
+      if (/^(please\s+)?(clear|erase|delete|wipe)\s+(it|everything|all|the (whole|entire) (answer( box)?|thing)|the answer( box)?|answer box)(\s+completely)?(\s+please)?[.!]?$/i.test(last)) {
+        const st = steps[currentIndex]; box.value = ''; if (st) { st.answer = ''; st.customActive = false; } if (typeof saveAll === 'function') saveAll(); showToast(L2('Cleared.', 'Effacé.'));
+      }
+    }, true);
+
     // Is Reid talking, listening, hearing me, or paused? (Rama, 25 Nov) The microphone bar shows all four, with an icon
     // and two short lines so it never gets cut off on a phone. While Reid is talking, tapping the bar stops him.
     { let hear = false, shown = '';
