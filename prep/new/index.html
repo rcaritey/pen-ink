@@ -231,6 +231,11 @@
     #appContainer:not(.wide) .pg-ic.now { width: 36px; height: 36px; }
     #appContainer:not(.wide) button.pg-ic::before { inset: -6px -4px; }
     #appContainer:not(.wide) .pg-name { flex-basis: 100%; margin: 0; }
+    /* the icons always stay on one line (Rama, 26 Nov: the 7th wrapped under the others when the questions panel was open) */
+    #stepSubtitle { container-type: inline-size; }
+    .pg-icons { display: inline-flex; align-items: center; gap: inherit; flex-wrap: nowrap; }
+    @container (max-width: 400px) { .pg-icons { gap: 6px; } .pg-icons .pg-ic { width: 30px; height: 30px; } .pg-icons .pg-ic.now { width: 34px; height: 34px; } }
+    @container (max-width: 330px) { .pg-icons { gap: 4px; } .pg-icons .pg-ic { width: 27px; height: 27px; } .pg-icons .pg-ic.now { width: 31px; height: 31px; } .pg-icons .pg-ic svg { width: 14px; height: 14px; } }
     button.pg-ic:hover, button.pg-ic:focus-visible { transform: scale(1.08); box-shadow: 0 0 0 3px #C9DCCB; }
     .pg-tip { position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%); z-index: 80; white-space: nowrap; pointer-events: none;
       background: #1E2634; color: #fff; font-size: 14px; font-weight: 700; line-height: 1.2; padding: 7px 11px; border-radius: 10px; opacity: 0; transition: opacity .12s ease; }
@@ -6086,10 +6091,10 @@
       const inPhase = PARTS.filter((p) => steps.some((x) => x.phaseIndex === step.phaseIndex && partOf(x) === p));
       const at = inPhase.indexOf(here);
       const open = (p) => firstOf(p, step.phaseIndex) <= reachedMax;
-      el.innerHTML = `<span class="pg-row" role="group" aria-label="${esc(L2('Part ', 'Partie ') + (at + 1) + L2(' of ', ' sur ') + inPhase.length + ': ' + L2(here.en, here.fr))}">${inPhase.map((p, i) =>
+      el.innerHTML = `<span class="pg-row" role="group" aria-label="${esc(L2('Part ', 'Partie ') + (at + 1) + L2(' of ', ' sur ') + inPhase.length + ': ' + L2(here.en, here.fr))}"><span class="pg-icons">${inPhase.map((p, i) =>
         open(p) || i === at
           ? `<button type="button" data-part="${p.k}" class="pg-ic ${i < at ? 'done' : i === at ? 'now' : ''}" aria-label="${esc(L2('Go to ', 'Aller à ') + L2(p.en, p.fr))}"${i === at ? ' aria-current="step"' : ''}>${WHI(i < at ? 'check' : p.icon, i === at ? 18 : 15)}<span class="pg-tip">${L2(p.en, p.fr)}</span></button>`
-          : `<span class="pg-ic later" role="img" aria-label="${esc(L2('Coming up: ', 'À venir : ') + L2(p.en, p.fr))}">${WHI(p.icon, 15)}</span>`).join('')}<span class="pg-name" aria-hidden="true">${L2(here.en, here.fr)}</span></span>`;
+          : `<span class="pg-ic later" role="img" aria-label="${esc(L2('Coming up: ', 'À venir : ') + L2(p.en, p.fr))}">${WHI(p.icon, 15)}</span>`).join('')}</span><span class="pg-name" aria-hidden="true">${L2(here.en, here.fr)}</span></span>`;
     }
     // tapping a road map icon goes to the first screen of that part, in this phase
     document.addEventListener('click', (e) => {
@@ -6151,7 +6156,7 @@
       const T3 = [['Your prep is done.', 'Votre préparation est terminée.', '', ''], ['The visit is done.', 'La visite est terminée.', '', ''],
         ['You’re all done.', 'Vous avez tout terminé.', '', '']][ph] || ['Section done.', 'Section terminée.', '', ''];
       const big = L2('Outstanding' + (nm ? ', ' + nm : '') + '!', 'Bravo' + (nm ? ', ' + nm : '') + ' !');
-      const NEXT = [[['print', 'Print or send your pages', 'Imprimez ou envoyez vos pages'], ['calendar', 'Bring them to the visit', 'Apportez-les à la visite'], ['mic', 'Open WellHeard at the visit', 'Ouvrez WellHeard à la visite']],
+      const NEXT = [[['print', 'Print or send your pages', 'Imprimez ou envoyez vos pages'], ['calendar', 'Bring them to the visit', 'Apportez-les à la visite'], ['mic', 'Open WellHeard at the visit to record it and go through your questions', 'Ouvrez WellHeard à la visite pour l’enregistrer et passer vos questions']],
         [['note', helperName() + ' writes the summary', helperName() + ' écrit le résumé'], ['check', 'Check it', 'Vérifiez-le'], ['mail', 'Send it and add dates', 'Envoyez-le et ajoutez les dates']],
         [['mail', 'Send your summary', 'Envoyez votre résumé'], ['calendar', 'Add your next visit to the calendar', 'Ajoutez la prochaine visite au calendrier'], ['user', 'Next time, start a new visit', 'La prochaine fois, commencez une nouvelle visite']]][ph] || [];
       // Accessible for older users (Rama, 25 Nov): no timer, only the Continue button (or Esc, or saying "next") closes it,
