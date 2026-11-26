@@ -75,6 +75,8 @@
     #landingCard { display: none !important; }
     #screenLanding { overflow-y: auto; }   /* on a short screen nothing is cut off: the page scrolls */   /* Rama, 24 Nov: no box on the first page; Reid's bubble says it */
     .rp-hi { margin: 2px 4px 2px; font-size: 20px; font-weight: 700; line-height: 1.25; color: #1E2634; }
+    #reidMenu.rp-top .comic-tail { display: none; }
+    #appContainer.rp-shrunk { transition: transform .2s ease-out; } @media (prefers-reduced-motion: reduce) { #appContainer.rp-shrunk { transition: none; } }
     .rp-state { margin: 2px 0 0; padding: 6px 10px; border-radius: 12px; font-size: 16px; font-weight: 800; line-height: 1.3; }
     #reidMenu { z-index: 120 !important; }   /* above the helper's speech bubble and the pages */
     #reidMenu .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
@@ -5953,14 +5955,32 @@
         const r = face.getBoundingClientRect(), z = parseFloat(getComputedStyle(document.getElementById('appContainer')).zoom) || 1, vw = document.documentElement.clientWidth;
         menu.style.position = 'fixed'; menu.style.maxHeight = '';
         if (document.getElementById('appContainer').classList.contains('wide')) {   // computers: beside the face
+          if (menu.parentElement !== document.getElementById('appContainer')) document.getElementById('appContainer').appendChild(menu);
           const left = r.right + 34, w = Math.min(380, vw - left - 12);
           menu.style.width = Math.max(220, w) / z + 'px'; menu.style.left = left / z + 'px'; menu.style.top = (r.top - 4) / z + 'px';
-        } else {   // phones: beside the face, to the right, starting level with the head (Rama, 26 Nov), over the top buttons
-          const left = r.right + 18; menu.style.width = Math.max(220, vw - left - 8) / z + 'px'; menu.style.left = left / z + 'px'; menu.style.top = Math.max(6, r.top - 2) / z + 'px';
+        } else {   // phones: across the top of the screen; the app shrinks and slides down below it, so nothing is hidden (Rama, 26 Nov)
+          if (menu.parentElement !== document.body) document.body.appendChild(menu);   // outside the app, so shrinking the app doesn't move it
+          const ts = [...document.getElementById('appContainer').classList].find((c) => /^ts-\d$/.test(c)); menu.classList.remove('ts-1', 'ts-2'); if (ts) menu.classList.add(ts);
+          menu.style.width = (vw - 16) + 'px'; menu.style.left = '8px'; menu.style.top = '8px'; menu.classList.add('rp-top');
         }
-        requestAnimationFrame(() => pointTail(menu, '#FAF7F0'));
+        if (!menu.classList.contains('rp-top')) requestAnimationFrame(() => pointTail(menu, '#FAF7F0'));
       };
       const close = () => menu.classList.add('hidden');
+      // phones: while the bubble is open at the top, the whole app is scaled down and moved below it; it grows back when
+      // the bubble closes, and re-fits when the typing box opens or grows
+      const app = document.getElementById('appContainer');
+      const fit = () => {
+        const on = !menu.classList.contains('hidden') && menu.classList.contains('rp-top');
+        if (!on) { app.style.transform = ''; app.style.transformOrigin = ''; app.classList.remove('rp-shrunk'); return; }
+        // measure the app as it really is (it has its own zoom), then move its top just under the bubble and shrink it to fit
+        // layout size, not the on-screen box: the box is mid-animation while the app slides (transforms don't change offset*)
+        const z = parseFloat(getComputedStyle(app).zoom) || 1, top0 = app.offsetTop * z, h0 = app.offsetHeight * z;
+        const want = menu.offsetTop + menu.offsetHeight + 8, room = window.innerHeight - want - 4;
+        const sc = Math.max(0.5, Math.min(1, room / Math.max(1, h0)));
+        app.style.transformOrigin = 'top center'; app.style.transform = `translateY(${(want - top0) / z}px) scale(${sc})`; app.classList.add('rp-shrunk');
+      };
+      new MutationObserver(() => { if (menu.classList.contains('hidden') && menu.classList.contains('rp-top')) menu.classList.remove('rp-top'); fit(); }).observe(menu, { attributes: true, attributeFilter: ['class', 'style'] });
+      if (typeof ResizeObserver === 'function') new ResizeObserver(() => fit()).observe(menu);
       // the picture moves into the side panel on computers, so listen on the page and check where the tap landed
       document.addEventListener('click', (e) => { if (!e.target.closest('#companionEmblem') || e.target.closest('#reidMenu')) return; e.stopPropagation(); ensureCtx(); if (menu.classList.contains('hidden')) open(); else close(); }, true);
       emb.style.cursor = 'pointer';
