@@ -97,6 +97,9 @@
     .ap-ul { margin: 0; padding-left: 1.3em; list-style: disc; } .ap-ul li { font-size: 16px; color: #1E2634; line-height: 1.4; margin: 3px 0; }
     .ap-del { margin-top: 14px; width: 100%; min-height: 48px; border-radius: 14px; background: #fff; border: 1px solid #D6CFC0; color: #8A2E1C; font-weight: 800; font-size: 15px; }
     .ap-see { margin-top: 14px; width: 100%; min-height: 52px; border-radius: 14px; background: #E5EFE7; border: 1px solid rgba(59, 94, 66, .45); color: #1E4627; font-weight: 800; font-size: 16px; }
+    .ap-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; -webkit-overflow-scrolling: touch; }
+    .ap-chip { flex: none; min-height: 48px; padding: 0 16px; border-radius: 999px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 15px; white-space: nowrap; }
+    .ap-chip[aria-pressed="true"] { background: #E5EFE7; border: 2px solid #3B5E42; color: #1E4627; }
     .ap-home { width: 100%; min-height: 52px; margin-top: 8px; padding: 0 14px; border-radius: 16px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 12px; text-align: left; }
     .ap-home .ap-n { margin-left: auto; color: #425268; font-size: 15px; }
     #apViewer { position: fixed; inset: 0; z-index: 95; background: rgba(30, 38, 52, .45); display: flex; align-items: flex-end; justify-content: center; padding: 12px; }
@@ -6077,7 +6080,8 @@
         return p; }; }
 
     // the list, in Settings (and a button beside the questions on computers)
-    let apDelArm = '';
+    let apDelArm = '', apWho = '';   // apWho: the doctor the list is narrowed to ('' = all visits)
+    const whoKey = (w) => String(w || '').trim().toLowerCase().replace(/\s+/g, ' ');
     function renderAppts() {
       const panel = document.querySelector('#helpSettingsModal > div'); if (!panel) return;
       const today = new Date(); const tISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -6098,21 +6102,30 @@
           <div class="ap-body" data-notr>${inner || `<p class="ap-p">${L2('Nothing saved yet.', 'Rien d’enregistré.')}</p>`}</div></details>`;
       };
       const now = visitNow(), up = visits.filter((v) => v.dayISO && v.dayISO >= tISO).sort((a, b) => (a.dayISO > b.dayISO ? 1 : -1)),   // soonest first
-        past = visits.filter((v) => !(v.dayISO && v.dayISO >= tISO)).sort((a, b) => (vWhen(b) > vWhen(a) ? 1 : -1));   // most recent first
+        past = visits.filter((v) => !(v.dayISO && v.dayISO >= tISO)).sort((a, b) => (vWhen(b) > vWhen(a) ? 1 : -1)),   // most recent first
+        docs = [], seen = {};
+      [now].concat(visits).forEach((v) => { const k = whoKey(v.who); if (k && !seen[k]) { seen[k] = 1; docs.push(String(v.who).trim()); } });
+      if (apWho && !seen[apWho]) apWho = '';   // that doctor's last visit was deleted
+      const mine = (v) => !apWho || whoKey(v.who) === apWho, upF = up.filter(mine), pastF = past.filter(mine);
+      const chip = (k, t) => `<button type="button" data-apwho="${esc(k)}" aria-pressed="${apWho === k}" class="tactile-btn ap-chip">${apWho === k ? '✓ ' : ''}${esc(t)}</button>`;
+      const chips = docs.length ? `<div class="ap-chips" role="group" aria-label="${L2('Show visits with', 'Voir les visites avec')}">${chip('', L2('All visits', 'Toutes les visites'))}${docs.map((d) => chip(whoKey(d), d)).join('')}</div>` : '';
       const sec = (t, arr) => arr.length ? `<p class="ap-sec">${t}</p>${arr.join('')}` : '';
-      panel.innerHTML = `<div class="sticky -top-5 -mx-5 -mt-5 px-5 pt-5 pb-2 bg-[#FAF7F0] z-10 flex items-center justify-between gap-2">
+      panel.innerHTML = `<div class="sticky -top-5 -mx-5 -mt-5 px-5 pt-5 pb-2 bg-[#FAF7F0] z-10 flex flex-col gap-2"><div class="flex items-center justify-between gap-2">
           <button type="button" data-apback class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">‹ ${L2('Back', 'Retour')}</button>
           <p class="font-extrabold text-lg text-[#1E2634] flex-1 text-center">${L2('My appointments', 'Mes rendez-vous')}</p>
-          <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-white border-2 border-[#1E2634] text-[#1E2634] font-extrabold text-base">${L2('Done', 'Terminé')}</button></div>
+          <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-white border-2 border-[#1E2634] text-[#1E2634] font-extrabold text-base">${L2('Done', 'Terminé')}</button></div>${chips}</div>
         <div class="flex flex-col gap-[10px]">
           <p class="ap-note">${L2(helperName() + ' looks at your last few visits when suggesting questions. They are kept on this device only. Tap one to see it.', helperName() + ' regarde vos dernières visites pour suggérer des questions. Elles restent sur cet appareil seulement. Touchez-en une pour la voir.')}</p>
-          ${hasVisit(now) ? card(now, true) : ''}
-          ${sec(L2('Coming up', 'À venir'), up.map((v) => card(v)))}
-          ${sec(L2('Past visits', 'Visites passées'), past.map((v) => card(v)))}
+          ${hasVisit(now) && mine(now) ? card(now, true) : ''}
+          ${sec(L2('Coming up', 'À venir'), upF.map((v) => card(v)))}
+          ${sec(L2('Past visits', 'Visites passées'), pastF.map((v) => card(v)))}
           ${!visits.length ? `<p class="ap-p">${L2('When you start a new visit, this one is kept here.', 'Quand vous commencez une nouvelle visite, celle-ci est gardée ici.')}</p>` : ''}
           <button type="button" data-apmove class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base">${L2('Move to my other device', 'Passer à mon autre appareil')} ›</button></div>`;
       panel.querySelector('[data-apback]').addEventListener('click', () => { setView = 'menu'; menuKind = 'settings'; renderSettings(); applyLang(); });
       panel.querySelector('[data-apmove]').addEventListener('click', () => { setView = 'device'; renderSettings(); applyLang(); });
+      panel.querySelectorAll('[data-apwho]').forEach((b) => b.addEventListener('click', () => { apWho = b.dataset.apwho; renderAppts(); applyLang();
+        const f = panel.querySelector(`[data-apwho="${CSS.escape(apWho)}"]`); if (f) f.focus();
+        showToast(apWho ? L2('Showing visits with ' + b.textContent.trim(), 'Visites avec ' + b.textContent.trim()) : L2('Showing all visits', 'Toutes les visites')); }));
       panel.querySelectorAll('[data-apsee]').forEach((b) => b.addEventListener('click', () => {
         const id = b.dataset.apsee, v = id === 'now' ? Object.assign(visitNow(), { pages: pagesNow() }) : visits.find((x) => x.id === id);
         if (v && v.pages) openApViewer(v, b);
