@@ -3675,7 +3675,7 @@
       try {
         const parts = speechParts(text);
         const get = (t) => fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: t, mood: window.__ttsMood || 'warm', slow: slowVoice, voice: voiceName || (helperIsLilly() ? { en: 'en-CA-ClaraNeural', fr: 'fr-CA-SylvieNeural' } : { fr: 'fr-CA-AntoineNeural' })[lang] || VOICE_OF[lang] }) }).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+          body: JSON.stringify({ text: t, mood: window.__ttsMood || 'warm', slow: slowVoice, voice: voiceName || (helperIsLilly() ? { en: 'en-US-Emma:DragonHDLatestNeural', fr: 'fr-CA-SylvieNeural' } : { fr: 'fr-CA-AntoineNeural' })[lang] || VOICE_OF[lang] }) }).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
         let next = get(parts[0]);
         for (let i = 0; i < parts.length; i++) {
           const blob = await next; if (g !== sayGen) return;
@@ -4292,7 +4292,7 @@
         body = head(T("Reid's voice", 'La voix de Reid'), 1) + `<div class="flex flex-col gap-[12px]">
           ${card(T('Reads each question aloud', 'Lit chaque question à voix haute'), pair('read', T('On', 'Oui'), T('Off', 'Non'), readAloud))}
           ${card(T('Speed', 'Vitesse'), pair('slow', T('Normal', 'Normale'), T('Slower', 'Plus lente'), !slowVoice))}
-          ${isMT() ? '' : card(T('Voice', 'Voix'), pair('voicename', fr ? 'Sylvie' : 'Liam', fr ? 'Antoine' : 'Clara', !voiceName))}
+          ${isMT() ? '' : card(T('Voice', 'Voix'), pair('voicename', fr ? 'Sylvie' : 'Liam', fr ? 'Antoine' : 'Emma', !voiceName))}
           ${card(T('Hear it', 'Écouter'), `<button type="button" data-act="test" class="${B}">▶ ${T('Play a sample', 'Écouter un exemple')}</button>`)}</div>`;
       } else if (setView === 'lang') {
         body = head(T('Language', 'Langue'), 1) + `<div class="flex flex-col gap-[12px]">
@@ -4394,7 +4394,7 @@
         if (b.dataset.set === 'lang') { lang = on ? 'en' : 'fr'; voiceName = ''; stopRec(); }
         if (b.dataset.set === 'read') readAloud = on;
         if (b.dataset.set === 'slow') slowVoice = !on;
-        if (b.dataset.set === 'voicename') voiceName = on ? '' : (fr ? 'fr-CA-AntoineNeural' : 'en-CA-ClaraNeural');
+        if (b.dataset.set === 'voicename') voiceName = on ? '' : (fr ? 'fr-CA-AntoineNeural' : 'en-US-Emma:DragonHDLatestNeural');
         if (b.dataset.set === 'mode') { setInputMode(on ? 'voice' : 'tap'); if (!on) stopRec(); }
         saveAll(); renderSettings(); renderCurrentStep();
       }));
@@ -6176,7 +6176,7 @@
       const lis = [...ov.querySelectorAll('.ph-next li')]; lis.forEach((li) => li.classList.add('ph-hide'));
       const show = (i) => { if (lis[i]) lis[i].classList.remove('ph-hide'); };
       const wait = (ms) => new Promise((ok) => setTimeout(ok, ms));
-      const head = L2(big + ' ' + T3[0], big + ' ' + T3[1]);
+      const head = L2(big.replace(/^(Outstanding|Bravo),\s/, '$1 ') + ' ' + T3[0], big.replace(/^(Outstanding|Bravo),\s/, '$1 ') + ' ' + T3[1]);   // said with no pause before the name (Rama, 26 Nov)
       const stepSaid = (n, i) => { const t = L2(n[1], n[2]) + '.'; return (i === 0 ? L2('Here’s what’s next. First, ', 'Et ensuite. D’abord, ') : L2(['', 'Then, ', 'And, '][i], ['', 'Puis, ', 'Et, '][i])) + (/^(WellHeard|Reid|Lilly)/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1)); };
       chime().then(async () => {   // then the helper says it, warmly, even when read-aloud is off (it's the one moment worth hearing)
         if (!ov.isConnected) return;
@@ -8697,7 +8697,7 @@
     // ?voicetest (Rama, 26 Nov: "Lilly is quite monotone"): hear Lilly's current voice next to four expressive voices,
     // saying the same celebration line, to pick one. Nothing is saved.
     if (/[?&]voicetest\b/i.test(location.search)) setTimeout(() => {
-      const V = [['en-CA-ClaraNeural', 'Lilly now (Clara, Canadian)'], ['en-US-Ava:DragonHDOmniLatestNeural', 'Ava'], ['en-US-Emma:DragonHDLatestNeural', 'Emma'],
+      const V = [['en-CA-ClaraNeural', 'Clara (Lilly before)'], ['en-US-Ava:DragonHDOmniLatestNeural', 'Ava'], ['en-US-Emma:DragonHDLatestNeural', 'Emma'],
         ['en-US-Jenny:DragonHDLatestNeural', 'Jenny'], ['en-US-Aria:DragonHDLatestNeural', 'Aria'], ['en-CA-Liam:DragonHDOmniLatestNeural', 'Reid now (Liam), for comparison']];
       const line = 'Outstanding, Rama! Your prep is done. Here’s what’s next. First, print or send your pages.';
       const box = document.createElement('div'); box.className = 'ph-done'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Voice test');
