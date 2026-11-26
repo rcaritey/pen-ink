@@ -1,8 +1,9 @@
 // Removes names and contact details from what WellHeard sends to Claude.
 // Uses Azure AI Language (personal information detection) in Canada.
 // Switched on only when AZURE_LANGUAGE_KEY and AZURE_LANGUAGE_ENDPOINT are
-// set in Vercel. If Azure can't be reached, the text goes on unchanged (the
-// person's own name is already removed on the phone before it gets here).
+// set in Vercel. Fails closed (25 Nov 2026, Rama: "stop sending until it's back"):
+// if the keys are missing, or Azure can't be reached or skips any piece of text,
+// the result is marked blocked and nothing goes to Claude.
 
 const KEEP = new Set(['mode', 'lang', 'docLang', 'focus']);
 const HIDE = (c) => c === 'Person' || c === 'PhoneNumber' || c === 'Email' || c === 'Address' || /^CA/.test(c);
@@ -42,8 +43,10 @@ async function analyse(docs, endpoint, key) {
 // the server, so Claude never sees them but the person still does.
 export async function removePersonalDetails(body, lang) {
   const none = { body: body && typeof body === 'object' ? JSON.parse(JSON.stringify(body)) : body, restore: (t) => t };   // always a copy
+  const blocked = { blocked: true, body: null, restore: (t) => t };
   const key = process.env.AZURE_LANGUAGE_KEY, endpoint = process.env.AZURE_LANGUAGE_ENDPOINT;
-  if (!key || !endpoint || !body || typeof body !== 'object') return none;
+  if (!body || typeof body !== 'object') return none;
+  if (!key || !endpoint) { console.error('Personal detail removal is not set up: AZURE_LANGUAGE_KEY / AZURE_LANGUAGE_ENDPOINT missing'); return blocked; }
   const language = LANG[lang] || 'en';
 
   // gather every piece of text, remembering where it came from
@@ -70,6 +73,8 @@ export async function removePersonalDetails(body, lang) {
       return tagOf.get(k);
     };
     (await Promise.all(batches)).flat().forEach((d) => { found[d.id] = d.entities || []; });
+    const missed = docs.filter((d) => !found[d.id]).length;   // Azure skipped a piece: don't send it unchecked
+    if (missed) throw new Error(`${missed} piece(s) not checked`);
     slots.forEach((s, si) => {
       const fixed = s.parts.map((p, pi) => {
         const ents = (found[`${si}.${pi}`] || []).filter((e) => HIDE(e.category)).sort((a, b) => b.offset - a.offset);
@@ -82,7 +87,7 @@ export async function removePersonalDetails(body, lang) {
     const restore = (text, inJson) => String(text).replace(/\[P(\d+)\]/g, (m) => (real[m] === undefined ? m : inJson ? JSON.stringify(real[m]).slice(1, -1) : real[m]));
     return { body: copy, restore };
   } catch (e) {
-    console.warn('Personal detail removal skipped:', e.message);
-    return none;
+    console.error('Personal detail removal failed, nothing sent:', e.message);
+    return blocked;
   }
 }

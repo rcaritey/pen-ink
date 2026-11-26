@@ -413,6 +413,7 @@ export default async function handler(req, res) {
   })();
   if (body.mode !== 'ui') {
     const scrubbed = await removePersonalDetails(body, body.lang);
+    if (scrubbed.blocked) return res.status(503).json({ ok: false, error: "Reid can’t check for names and personal details right now, so nothing was sent. Your answers are saved here. Try again in a few minutes." });
     const safe = JSON.parse(JSON.stringify(scrubbed.body || {}));   // a copy: when nothing was scrubbed this is the same object
     Object.keys(body).forEach((k) => { delete body[k]; });
     Object.assign(body, safe);
