@@ -75,7 +75,6 @@
     #landingCard { display: none !important; }
     #screenLanding { overflow-y: auto; }   /* on a short screen nothing is cut off: the page scrolls */   /* Rama, 24 Nov: no box on the first page; Reid's bubble says it */
     .rp-hi { margin: 2px 4px 2px; font-size: 20px; font-weight: 700; line-height: 1.25; color: #1E2634; }
-    #reidMenu.rp-top .comic-tail { display: none; }
     #appContainer.rp-shrunk { transition: transform .2s ease-out; } @media (prefers-reduced-motion: reduce) { #appContainer.rp-shrunk { transition: none; } }
     .rp-state { margin: 2px 0 0; padding: 6px 10px; border-radius: 12px; font-size: 16px; font-weight: 800; line-height: 1.3; }
     #reidMenu { z-index: 120 !important; }   /* above the helper's speech bubble and the pages */
@@ -5088,7 +5087,7 @@
     function pointTail(bub, bg) {
       if (!bub || bub.classList.contains('hidden')) return;
       const face = [...document.querySelectorAll('#companionEmblem')].find((e) => e.getBoundingClientRect().width > 0); if (!face) return;
-      const app = document.getElementById('appContainer'), z = parseFloat(getComputedStyle(app).zoom) || 1;
+      const app = document.getElementById('appContainer'), z = parseFloat(bub.style.zoom) || (app.contains(bub) ? parseFloat(getComputedStyle(app).zoom) || 1 : 1);
       const b = bub.getBoundingClientRect(), f = face.getBoundingClientRect(), bw = 2;
       const W = b.width / z - 2 * bw, H = b.height / z - 2 * bw;
       const fx = (f.left + f.width / 2 - b.left) / z - bw, fy = (f.top + f.height / 2 - b.top) / z - bw, fr = f.width / z / 2;
@@ -5964,16 +5963,16 @@
         const face = [...document.querySelectorAll('#companionEmblem')].find((e) => e.getBoundingClientRect().width > 0) || emb;
         const r = face.getBoundingClientRect(), z = parseFloat(getComputedStyle(document.getElementById('appContainer')).zoom) || 1, vw = document.documentElement.clientWidth;
         menu.style.position = 'fixed'; menu.style.maxHeight = '';
-        if (document.getElementById('appContainer').classList.contains('wide')) {   // computers: beside the face
-          if (menu.parentElement !== document.getElementById('appContainer')) document.getElementById('appContainer').appendChild(menu);
-          const left = r.right + 34, w = Math.min(380, vw - left - 12);
-          menu.style.width = Math.max(220, w) / z + 'px'; menu.style.left = left / z + 'px'; menu.style.top = (r.top - 4) / z + 'px';
-        } else {   // phones: across the top of the screen; the app shrinks and slides down below it, so nothing is hidden (Rama, 26 Nov)
-          if (menu.parentElement !== document.body) document.body.appendChild(menu);   // outside the app, so shrinking the app doesn't move it
-          const ts = [...document.getElementById('appContainer').classList].find((c) => /^ts-\d$/.test(c)); menu.classList.remove('ts-1', 'ts-2'); if (ts) menu.classList.add(ts);
-          menu.style.width = (vw - 16) + 'px'; menu.style.left = '8px'; menu.style.top = '8px'; menu.classList.add('rp-top');
-        }
-        if (!menu.classList.contains('rp-top')) requestAnimationFrame(() => pointTail(menu, '#FAF7F0'));
+        // Every screen: the bubble sits above Reid at the top, its tail pointing down at him; the app shrinks and slides
+        // down below it, so nothing is hidden (Rama, 26 Nov: "the AI box / bubble should be above Reid")
+        if (menu.parentElement !== document.body) document.body.appendChild(menu);   // outside the app, so shrinking the app doesn't move it
+        const ts = [...document.getElementById('appContainer').classList].find((c) => /^ts-\d$/.test(c)); menu.classList.remove('ts-1', 'ts-2'); if (ts) menu.classList.add(ts);
+        if (document.getElementById('appContainer').classList.contains('wide')) {   // computers: same size text as the app, starting over Reid
+          const w = Math.min(560 * z, vw - 16), left = Math.max(8, Math.min(vw - w - 8, r.left - 24));
+          menu.style.zoom = z; menu.style.width = w / z + 'px'; menu.style.left = left / z + 'px'; menu.style.top = 8 / z + 'px';
+          menu.dataset.fx = r.left + r.width / 2;   // where Reid's face is before the app shrinks (fit() lines the bubble up with him)
+        } else { menu.style.zoom = ''; menu.style.width = (vw - 16) + 'px'; menu.style.left = '8px'; menu.style.top = '8px'; delete menu.dataset.fx; }
+        menu.classList.add('rp-top');
       };
       const close = () => menu.classList.add('hidden');
       // phones: while the bubble is open at the top, the whole app is scaled down and moved below it; it grows back when
@@ -5985,9 +5984,15 @@
         // measure the app as it really is (it has its own zoom), then move its top just under the bubble and shrink it to fit
         // layout size, not the on-screen box: the box is mid-animation while the app slides (transforms don't change offset*)
         const z = parseFloat(getComputedStyle(app).zoom) || 1, top0 = app.offsetTop * z, h0 = app.offsetHeight * z;
-        const want = menu.offsetTop + menu.offsetHeight + 8, room = window.innerHeight - want - 4;
+        const want = menu.getBoundingClientRect().bottom + 22, room = window.innerHeight - want - 4;   // room for the tail
         const sc = Math.max(0.5, Math.min(1, room / Math.max(1, h0)));
         app.style.transformOrigin = 'top center'; app.style.transform = `translateY(${(want - top0) / z}px) scale(${sc})`; app.classList.add('rp-shrunk');
+        if (menu.dataset.fx) {   // computers: start the bubble just left of where Reid ends up, so the tail drops straight down to him
+          const cx = (app.offsetLeft + app.offsetWidth / 2) * z, fx = cx + (+menu.dataset.fx - cx) * sc, mz = parseFloat(menu.style.zoom) || 1, mw = menu.offsetWidth * mz;
+          const nl = Math.round(Math.max(8, Math.min(window.innerWidth - mw - 8, fx - 70)) / mz) + 'px';
+          if (menu.style.left !== nl) menu.style.left = nl;   // only when it changes: the style watcher calls fit() again
+        }
+        clearTimeout(fit.t); fit.t = setTimeout(() => pointTail(menu, '#FAF7F0'), 260);   // after the slide: point at where Reid ends up
       };
       new MutationObserver(() => { if (menu.classList.contains('hidden') && menu.classList.contains('rp-top')) menu.classList.remove('rp-top'); fit(); }).observe(menu, { attributes: true, attributeFilter: ['class', 'style'] });
       if (typeof ResizeObserver === 'function') new ResizeObserver(() => fit()).observe(menu);
