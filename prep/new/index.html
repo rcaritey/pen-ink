@@ -6,7 +6,13 @@
   <script>if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) document.querySelector('meta[name=viewport]').setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover');</script>
   <style>html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: #FAF7F0; }
     /* hide the page until the app has drawn the right screen, so the built-in starting layout never flashes (Rama, 25 Nov) */
-    html.wh-boot body { visibility: hidden; }</style>
+    html.wh-boot body { visibility: hidden; }
+    /* while loading: the logo and the chosen helper, centred (Rama, 25 Nov) */
+    #whSplash { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #FAF7F0; visibility: visible; transition: opacity .25s ease-out; }
+    html:not(.wh-boot) #whSplash { opacity: 0; pointer-events: none; }
+    #whSplash img { width: 132px; height: 132px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 2px 4px rgba(30,38,52,.12), 0 14px 34px rgba(30,38,52,.14); object-fit: cover; background: #E5EFE7; }
+    #whSplash .sp-logo { display: flex; align-items: center; gap: 10px; font: 800 30px/1 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: -.02em; color: #1B3A5C; }
+    @media (prefers-reduced-motion: reduce) { #whSplash { transition: none; } }</style>
   <script>document.documentElement.classList.add('wh-boot'); setTimeout(() => document.documentElement.classList.remove('wh-boot'), 4000);   // safety: show it anyway after 4 s</script>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -657,6 +663,11 @@
   </style>
 </head>
 <body class="min-h-screen w-full flex flex-col items-center justify-center overflow-hidden">
+  <div id="whSplash" aria-hidden="true">
+    <img id="whSplashImg" alt="" src="/prep/new/avatars/reid-1.webp">
+    <div class="sp-logo"><svg width="42" height="42" viewBox="-4 -6 72 72" aria-hidden="true"><path d="M42 12 a18 16 0 1 1 6 30.5 L56 51 L41 44 a18 16 0 0 1 1 -32 Z" fill="#76A07E"/><path d="M26 4 a22 18 0 1 1 -4 35.7 L8 49 L13.5 35 A22 18 0 0 1 26 4 Z" fill="#1B3A5C" stroke="#FAF7F0" stroke-width="3" paint-order="stroke"/><path d="M16.5 22 L23.5 29 L35.5 15.5" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Well<span style="color:#3B5E42">Heard</span></span></div>
+  </div>
+  <script>document.getElementById('whSplashImg').src = '/prep/new/avatars/' + whHelper + '.webp';   // the helper this person picked</script>
 
   <!-- Centered 420x820 Zero-Scroll Mobile Device Frame -->
   <main
@@ -8157,7 +8168,7 @@
       vbState(true);
     }
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
-    requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('wh-boot')));
+    requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>
 </body>
 </html>
