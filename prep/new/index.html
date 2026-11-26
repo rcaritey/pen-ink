@@ -7564,6 +7564,25 @@
         return;
       }
       if (abHeard(t, true)) { abAskNext(); return; }   // said with units: may fill several at once
+      // Rama, 26 Nov: "change the age from 1 to 54" was taken as a weight. Naming a thing changes that thing; "I want to
+      // change it" asks which one, and the answer is applied to it.
+      const FIELD = [[/\b(age|old|years?|ans|âge)\b/, 0], [/\b(gender|sex|female|male|woman|man|genre|femme|homme)\b/, 1],
+        [/\b(height|tall|feet|foot|cm|centimet\w*|taille|mesure)\b/, 2], [/\b(weight|weigh|pounds?|lbs?|kilos?|kg|poids|pèse)\b/, 3]];
+      const hit = FIELD.find(([re]) => re.test(w)), wantChange = /\b(change|correct|fix|wrong|update|edit|mistake|not right|redo|changer|corriger|modifier|erreur)\b/.test(w);
+      const NAMES = [L2('age', 'âge'), L2('gender', 'genre'), L2('height', 'taille'), L2('weight', 'poids')];
+      if (hit) {
+        const f = hit[1], nums = abNums(t), v = nums.length ? nums[nums.length - 1] : null;   // "from 1 to 54": the last number is the new one
+        let set = false;
+        if (f === 0 && v > 0 && v <= 120) { AB.age = String(v); set = true; }
+        if (f === 2 && nums.length) { const a = nums[nums.length - (nums.length > 1 && nums[nums.length - 1] < 12 && nums[nums.length - 2] >= 3 && nums[nums.length - 2] <= 7 ? 2 : 1)];
+          if (a >= 100 && a <= 230) { AB.hu = 'cm'; AB.cm = String(a); set = true; }
+          else if (a >= 3 && a <= 7) { AB.hu = 'ft'; AB.ft = String(a); const i = nums[nums.indexOf(a) + 1]; AB.inch = i != null && i < 12 ? String(i) : '0'; set = true; } }
+        if (f === 3 && v >= 20 && v <= 500) { if (AB.wu === 'kg') AB.kg = String(v); else AB.lb = String(v); set = true; }
+        if (f === 1 && abHeard(t)) set = true;
+        if (set) { abSave(); abAsk = abFirstEmpty(); renderList(); applyLang(); say(L2('Done. Your ', 'C’est fait. Votre ') + NAMES[f] + L2(' is changed. ', ' est changé. ') + (abAsk < 4 ? AB_Q[abAsk]() : L2('Say next, or change something else.', 'Dites suivant, ou changez autre chose.'))); return; }
+        abAsk = f; renderList(); applyLang(); say(L2('Okay, your ', 'D’accord, votre ') + NAMES[f] + '. ' + AB_Q[f]()); return;   // named it without the new value: ask for it
+      }
+      if (wantChange) { say(L2('What would you like to change: your age, gender, height or weight?', 'Que voulez-vous changer : votre âge, votre genre, votre taille ou votre poids ?')); return; }
       const n = abNums(t);
       if (!n.length) return h2(t);
       let ok = false;
@@ -7573,7 +7592,7 @@
         else if (n[0] >= 3 && n[0] <= 7) { AB.hu = 'ft'; AB.ft = String(n[0]); AB.inch = n[1] != null && n[1] < 12 ? String(n[1]) : '0'; ok = true; }
       }
       if (abAsk === 3 && n[0] >= 20 && n[0] <= 500) { if (AB.wu === 'kg') AB.kg = String(n[0]); else AB.lb = String(n[0]); ok = true; }
-      if (!ok) { say(L2('Sorry, I didn’t catch the number. ', 'Désolé, je n’ai pas compris le chiffre. ') + AB_Q[Math.min(abAsk, 3)]()); return; }
+      if (!ok) { say(L2('Sorry, I didn’t catch that. Is it your age, gender, height or weight you want to change?', 'Désolé, je n’ai pas compris. Voulez-vous changer votre âge, votre genre, votre taille ou votre poids ?')); return; }
       abSave(); abAskNext();
     }; }
     // the row Reid is asking about is highlighted
