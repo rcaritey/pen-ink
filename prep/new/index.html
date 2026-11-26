@@ -119,6 +119,8 @@
     @keyframes hearRing { 50% { box-shadow: 0 0 0 5px rgba(30,70,39,.55); } }
     @media (prefers-reduced-motion: reduce) { #companionEmblem.st-hear { animation: none; } }
     body.has-pill #companionStatusDot { display: none; }
+    .b-grid { display: flex; flex-direction: column; gap: 6px; }
+    @media (min-width: 900px) { .b-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; } }   /* About me: two columns on wide screens */
     .ap-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; } .ap-tags .ap-tag { margin-top: 0; }
     .ap-stage { font-size: 13px; font-weight: 800; border-radius: 999px; padding: 2px 10px; border: 1px solid; }
     .ap-st-done { color: #1E4627; background: #E5EFE7; border-color: #9DBBA3; } .ap-st-todo { color: #7A2E12; background: #FBEDE4; border-color: #E2B8A0; }
@@ -8184,37 +8186,40 @@
     // About me (Rama, 25 Nov): returning people get one review screen. The name screen is skipped (the name is on the
     // review), each line is tappable to change just that one thing and come straight back, and "About me" in
     // My appointments opens the same review any time, returning to wherever the person was.
-    let bEdit = '', bBack = -1, bForce = false;
+    let bEdit = '', bBack = -1, bForce = false, bQueue = [];   // bQueue: more screens to visit after this one (You = name, then age…)
     const B_IDS = ['name', 'about', 'conditions', 'meds', 'allergies'], sIdx = (id) => steps.findIndex((x) => x.id === id);
     { const sk = SKIPS.basicsCheck; SKIPS.basicsCheck = () => !bForce && sk(); }
     SKIPS.name = () => !bEdit && !bForce && isReturning() && !!SID('name').fromLast && !!String(SID('name').answer || '').trim();
     // Rama, 25 Nov: bullets so each thing is easy to confirm, on short pages (you · health conditions · medicines),
     // each section with a clear Change button. "Correct" (the bottom button) moves to the next page; on the last page it carries on.
-    const B_PAGES = [['name', 'about'], ['conditions', 'allergies'], ['meds']];
+    const B_PAGES = [['you', 'conditions', 'allergies', 'meds']];   // one page (Rama, 25 Nov); it scrolls only when the lists are long
     let bPage = 0;
     const bSplit = (t) => String(t || '').split(/\n|[,;]|\.\s+|\.$|\s+(?:and|et)\s+/i).map((x) => x.trim()).filter((x) => x && x.length > 1);
     function bItems(id) {
       const fr = lang === 'fr';
-      if (id === 'meds') return medsList.length ? medsList.map((m) => [m.name, doseOf(m)].filter(Boolean).join(' ') + (schedText(m, fr) ? ' — ' + schedText(m, fr) : '')) : bSplit(SID('meds').answer);
-      if (id === 'about') return String(SID('about').answer || '').split(/\s*[·•]\s*|,\s*/).map((x) => x.trim()).filter(Boolean);
-      if (id === 'name') return String(SID('name').answer || '').trim() ? [String(SID('name').answer).trim()] : [];
+      if (id === 'meds') return medsList.length ? medsList.map((m) => [m.name, doseOf(m)].filter(Boolean).join(' ')) : bSplit(SID('meds').answer);   // name and dose; times are on the medicines screen
+      if (id === 'you') {   // name, then age, gender, height, weight (from the About you numbers when the answer line is empty)
+        const nm = String(SID('name').answer || '').trim(), ab = String(SID('about').answer || (typeof abFmt === 'function' ? abFmt() : '') || '');
+        const parts = ab.split(/\s*[·•]\s*|,\s*/).map((x) => x.trim()).filter(Boolean);
+        return (nm ? [nm] : []).concat(parts.length ? [parts.join(' · ')] : []);   // two lines: the name, then age · gender · height · weight
+      }
       return bSplit(SID(id).answer);
     }
     renderBasicsCheck = function (items, foot) {
       const $ = (id) => document.getElementById(id), fromList = bBack >= 0, last = bPage >= B_PAGES.length - 1;
       bPage = Math.min(bPage, B_PAGES.length - 1);
-      const of = L2(` (${bPage + 1} of ${B_PAGES.length})`, ` (${bPage + 1} sur ${B_PAGES.length})`);
+      const of = B_PAGES.length > 1 ? L2(` (${bPage + 1} of ${B_PAGES.length})`, ` (${bPage + 1} sur ${B_PAGES.length})`) : '';
       $('listTitle').textContent = (fromList ? L2('About me', 'À propos de moi') : L2('Is this still right?', 'Est-ce toujours exact ?')) + of;
-      $('listHelp').textContent = L2('Check each line. To fix something, tap Change. If it’s right, tap Correct.', 'Vérifiez chaque ligne. Pour corriger, touchez Changer. Si c’est exact, touchez Exact.');
+      $('listHelp').textContent = L2('Tap Change to fix anything.', 'Touchez Changer pour corriger.');
       $('listCounter').classList.add('hidden');
-      const lab = { name: L2('Name', 'Nom'), about: L2('Age, gender, height, weight', 'Âge, genre, taille, poids'), conditions: L2('Health conditions', 'Problèmes de santé'), meds: L2('Medicines', 'Médicaments'), allergies: L2('Allergies', 'Allergies') };
+      const lab = { you: L2('You', 'Vous'), conditions: L2('Health conditions', 'Problèmes de santé'), meds: L2('Medicines', 'Médicaments'), allergies: L2('Allergies', 'Allergies') };
       const sec = (id) => { const it = bItems(id);
-        return `<section class="w-full rounded-2xl bg-white border border-[#D6CFC0] px-4 py-3" aria-labelledby="bh-${id}">
-          <div class="flex items-center justify-between gap-2"><h3 id="bh-${id}" class="text-[13px] font-extrabold uppercase tracking-wide text-[#3B5E42]">${esc(lab[id])}</h3>
-            <button type="button" data-bedit="${id}" class="tactile-btn shrink-0 min-h-[48px] px-4 rounded-xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[15px] flex items-center gap-2" aria-label="${L2('Change', 'Changer')} ${esc(lab[id])}">${WHI('pencil', 18)} ${it.length ? L2('Change', 'Changer') : L2('Add', 'Ajouter')}</button></div>
-          ${it.length ? `<ul class="mt-1 pl-5 list-disc flex flex-col gap-1" data-notr>${it.map((x) => `<li class="text-[17px] font-semibold text-[#1E2634] leading-snug">${esc(x)}</li>`).join('')}</ul>` : `<p class="mt-1 text-[16px] font-semibold text-[#5D6B7E]">${L2('Nothing added', 'Rien d’ajouté')}</p>`}</section>`; };
+        return `<section class="w-full rounded-2xl bg-white border border-[#D6CFC0] pl-3 pr-1.5 py-1.5 flex items-start gap-2" aria-labelledby="bh-${id}">
+          <div class="flex-1 min-w-0"><h3 id="bh-${id}" class="text-[12px] font-extrabold uppercase tracking-wide text-[#3B5E42]">${esc(lab[id])}</h3>
+          ${it.length ? `<ul class="pl-5 list-disc flex flex-col" data-notr>${it.map((x) => `<li class="text-[16px] font-semibold text-[#1E2634] leading-snug">${esc(x)}</li>`).join('')}</ul>` : `<p class="text-[16px] font-semibold text-[#5D6B7E]">${L2('Nothing added', 'Rien d’ajouté')}</p>`}</div>
+          <button type="button" data-bedit="${id === 'you' ? 'name>about' : id}" class="tactile-btn shrink-0 min-h-[52px] min-w-[64px] px-2 rounded-xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[13px] flex flex-col items-center justify-center gap-0.5" aria-label="${it.length ? L2('Change', 'Changer') : L2('Add', 'Ajouter')} ${esc(lab[id])}">${WHI('pencil', 18)}<span>${it.length ? L2('Change', 'Changer') : L2('Add', 'Ajouter')}</span></button></section>`; };
       items.classList.add('overflow-y-auto');
-      items.innerHTML = `<div class="w-full flex flex-col gap-[10px]">${B_PAGES[bPage].map(sec).join('')}</div>`;
+      items.innerHTML = `<div class="w-full b-grid">${B_PAGES[bPage].map(sec).join('')}</div>`;
       foot.innerHTML = '';
       // the big bottom button confirms this page (it's always on screen, even on a small phone)
       setTimeout(() => { const nl = $('nextNavLabel'); if (nl && steps[currentIndex] && steps[currentIndex].id === 'basicsCheck') nl.textContent = '✓ ' + L2('Correct', 'Exact'); }, 0);   // the page number is in the title
@@ -8226,7 +8231,7 @@
     // tap a line: open just that question; its Next comes back here
     document.getElementById('listItems').addEventListener('click', (e) => {
       const b = e.target.closest('[data-bedit]'); if (!b) return;
-      bEdit = b.dataset.bedit; const i = sIdx(bEdit); if (i >= 0) goTo(i);
+      bQueue = b.dataset.bedit.split('>'); bEdit = bQueue.shift(); const i = sIdx(bEdit); if (i >= 0) goTo(i);
     });
     { const gn = goNext; goNext = function () {
         const st = steps[currentIndex];
@@ -8236,6 +8241,7 @@
           bPage = 0; if (bBack >= 0) { const to = bBack; bBack = -1; goTo(to); return; }
           goTo(sIdx('who')); return;
         }
+        if (bEdit && st && st.id === bEdit && bQueue.length) { saveCurrentStepState(); if (st.fromLast) st.fromLast = false; bEdit = bQueue.shift(); saveAll(); goTo(sIdx(bEdit)); return; }
         if (bEdit && st && st.id === bEdit) { saveCurrentStepState(); if (st.fromLast) st.fromLast = false; bPage = Math.max(0, B_PAGES.findIndex((pg) => pg.includes(bEdit))); bEdit = ''; saveAll(); bForce = true; bReturning = true; goTo(sIdx('basicsCheck')); bReturning = false; bForce = false; return; }
         return gn.apply(this, arguments);
       }; }
