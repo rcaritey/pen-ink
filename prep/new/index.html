@@ -3416,6 +3416,45 @@
     }, true);
     document.addEventListener('pointercancel', () => { tapAt = null; }, true);
     // a phrase heard while Reid was talking: his own words coming back, or the person?
+    // Everything the helper said in the last few minutes. Speech from the speakers can be transcribed late, after he has
+    // finished (Rama, 25 Nov: the welcome page and setup questions ended up in Health conditions), so any sentence that
+    // repeats his recent words is dropped, whenever it arrives, and the person's own words around it are kept.
+    const sayLog = [], SAY_KEEP_MS = 4 * 60 * 1000;
+    const echoNorm = (w) => (/^(reid|reed|read|lilly|lily|lili)$/.test(w) ? 'helper' : w.replace(/'/g, '').replace(/(?<=..)s$/, ''));   // "doctor's" = "doctors" = "doctor"
+    const echoWords = (t) => vwords(String(t || '').replace(/well\s*heard/gi, 'wellheard')).map(echoNorm);
+    function recentGrams() {
+      const cut = Date.now() - SAY_KEEP_MS; while (sayLog.length && sayLog[0].at < cut) sayLog.shift();
+      const g4 = new Set(), g2 = new Set();
+      sayLog.forEach((x) => { const w = echoWords(x.text); for (let i = 0; i + 1 < w.length; i++) { g2.add(w[i] + ' ' + w[i + 1]); if (i + 3 < w.length) g4.add(w.slice(i, i + 4).join(' ')); } });
+      return { g4, g2 };
+    }
+    // word by word: any run of 4+ words that follows the helper's recent speech is cut; the person's words around it stay
+    function stripEcho(t) {
+      if (!sayLog.length) return t;
+      const { g4, g2 } = recentGrams(); if (!g4.size) return t;
+      const toks = String(t).replace(/well\s+heard/gi, 'WellHeard').split(/\s+/).filter(Boolean), idx = [], ws = [];
+      toks.forEach((tk, i) => { echoWords(tk).forEach((x) => { ws.push(x); idx.push(i); }); });
+      const mark = new Array(toks.length).fill(false);
+      for (let i = 0; i + 3 < ws.length; i++) if (g4.has(ws.slice(i, i + 4).join(' '))) for (let k = 0; k < 4; k++) mark[idx[i + k]] = true;
+      if (!mark.some(Boolean)) return t;
+      // scraps of up to 4 words caught between two cut stretches are his words misheard, so they go too
+      for (let i = 0; i < toks.length;) {
+        if (mark[i]) { i++; continue; }
+        let j = i; while (j < toks.length && !mark[j]) j++;
+        const before = i > 0 && mark[i - 1], after = j < toks.length && mark[j];
+        if (j - i <= 4 && before && (after || j === toks.length)) for (let k = i; k < j; k++) mark[k] = true;
+        i = j;
+      }
+      let out = toks.filter((_, i) => !mark[i]).join(' ');
+      // leftover pieces of his sentences ("You're not alone.") go too, but never a plain yes/no or a command
+      out = out.split(/(?<=[.!?])\s+/).filter((sen) => {
+        const w = echoWords(sen); if (w.length < 2 || /^(yes|no|oui|non|next|back|stop)$/.test(w.join(' '))) return true;
+        for (let i = 0; i + 1 < w.length; i++) if (!g2.has(w[i] + ' ' + w[i + 1])) return true;
+        return false;
+      }).join(' ').replace(/\s+([.,!?])/g, '$1').replace(/^[\s.,!?]+/, '').trim();
+      if (out !== String(t).trim()) console.info('Removed the helper’s own words heard back');
+      return out;
+    }
     function isEcho(t) {
       const w = vwords(t); if (!w.length) return true;
       return w.filter((x) => !talkWords.has(x)).length / w.length < 0.5;
@@ -3527,6 +3566,7 @@
       const cmdOnly = /^(next|next please|back|go back|stop|pause|suivant|retour)$/.test(t.toLowerCase().replace(/[.!,?]/g, '').trim());
       if (speaking || ducked) { if (!cmdOnly && isEcho(t)) { if (audioEl) audioEl.volume = 1; ducked = false; return; } hush(true); }
       else if (cutAt && performance.now() - cutAt < 6000 && !cmdOnly && isEcho(t)) { cutAt = 0; return; }   // it was only Reid's own voice coming back: ignore it
+      if (!cmdOnly) { t = stripEcho(t); if (!t) return; }
       heard(t);
     }
     function startRec() {
@@ -3571,7 +3611,7 @@
       if (!text || inputPreference !== 'voice' || !readAloud) return;
       hush(); const g = sayGen; speaking = true; speakStart = performance.now(); talkFace(true);
       if (isMT() && !raw && !Object.values(uic()).includes(text)) { text = await mt(text); if (g !== sayGen) return; }
-      talkWords = new Set(vwords(text));
+      talkWords = new Set(vwords(text)); sayLog.push({ at: Date.now(), text: String(text) });
       if (IOS) stopRec(); else if (isListening) startRec();
       try {
         const parts = speechParts(text);
