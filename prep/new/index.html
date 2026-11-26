@@ -100,6 +100,18 @@
     .ap-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; -webkit-overflow-scrolling: touch; }
     .ap-chip { flex: none; min-height: 48px; padding: 0 16px; border-radius: 999px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 15px; white-space: nowrap; }
     .ap-chip[aria-pressed="true"] { background: #E5EFE7; border: 2px solid #3B5E42; color: #1E4627; }
+    .ap-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; } .ap-tags .ap-tag { margin-top: 0; }
+    .ap-stage { font-size: 13px; font-weight: 800; border-radius: 999px; padding: 2px 10px; border: 1px solid; }
+    .ap-st-done { color: #1E4627; background: #E5EFE7; border-color: #9DBBA3; } .ap-st-todo { color: #7A2E12; background: #FBEDE4; border-color: #E2B8A0; }
+    .ap-st-ready { color: #1E3A5F; background: #E6EEF7; border-color: #A9C0DA; } .ap-st-prep { color: #425268; background: #F0EBE1; border-color: #D6CFC0; }
+    .ap-add { width: 100%; min-height: 52px; border-radius: 16px; background: #1E2634; color: #fff; font-weight: 800; font-size: 16px; box-shadow: 0 1px 2px rgba(30,38,52,.25), 0 8px 20px rgba(30,38,52,.18); }
+    .ap-form { background: #fff; border: 1px solid #D6CFC0; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .ap-lbl { font-size: 15px; font-weight: 800; color: #1E2634; margin-top: 6px; }
+    .ap-in { min-height: 52px; border: 1px solid #8A8370; border-radius: 12px; padding: 0 12px; font-size: 17px; color: #1E2634; background: #fff; width: 100%; }
+    .ap-in:focus { outline: 3px solid #3B5E42; outline-offset: 2px; } .ap-in[aria-invalid="true"] { border: 2px solid #8A2E1C; }
+    .ap-err { color: #8A2E1C; font-size: 15px; font-weight: 700; margin: 2px 0 0; }
+    .ap-form-btns { display: flex; gap: 10px; margin-top: 12px; } .ap-cancel, .ap-save { flex: 1; min-height: 52px; border-radius: 14px; font-weight: 800; font-size: 16px; }
+    .ap-cancel { background: #fff; border: 1px solid #D6CFC0; color: #1E2634; } .ap-save { background: #1E2634; color: #fff; }
     .ap-home { width: 100%; min-height: 52px; margin-top: 8px; padding: 0 14px; border-radius: 16px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 12px; text-align: left; }
     .ap-home .ap-n { margin-left: auto; color: #425268; font-size: 15px; }
     #apViewer { position: fixed; inset: 0; z-index: 95; background: rgba(30, 38, 52, .45); display: flex; align-items: flex-end; justify-content: center; padding: 12px; }
@@ -6058,8 +6070,8 @@
         const pages = { mine: pg('My page', [['What I want from this visit', goal], ['My questions', qs.map((q, i) => (i === 0 ? '★ ' : '') + q)]]),
           doctor: pg('For the medical team', [['Reason for the visit', about], ['What the patient hopes for', goal], ['Questions', qs]]),
           circle: pg('For the care circle', [['The visit', `${nice(x)}, ${at}, ${who}, ${where}`], ['Main questions', qs.slice(0, 3)]]),
-          recap: past ? pg('Appointment recap', [['What the doctor said', said], ['Next steps', todo]]) : '' };
-        if (!past) delete pages.recap;
+          recap: past && said.length ? pg('Appointment recap', [['What the doctor said', said], ['Next steps', todo]]) : '' };
+        if (!pages.recap) delete pages.recap;
         return { id: 'demo' + n, at: x.getTime(), dayISO: iso(x), day: nice(x), time: at, who, where, about, goal, qs: qs.map((q, i) => ({ q, star: i === 0 })), said: said.join('\n'), todo, next: '', pages };
       };
       return [
@@ -6068,6 +6080,8 @@
         mk(-13, '2:00 PM', 'Dr. Lee, neurologist', 'Toronto Western', 'Tremor getting worse in the right hand', 'Find out if the medicine can be adjusted',
           ['Could the dose be adjusted?', 'Is the tremor worse because of stress or sleep?', 'Should I see a physiotherapist?'],
           ['Increase the medicine to 3 times a day, with meals', 'Tremor is a little worse but expected', 'Physiotherapy referral sent'], ['Start the new dose Monday', 'Book physio', 'Come back in 3 months']),
+        mk(-3, '1:00 PM', 'Dr. Wong, family doctor', 'Bayview Family Health', 'Blood pressure check', 'Know if my blood pressure is under control',
+          ['Is my blood pressure medicine still right?', 'Do I need blood work?'], [], []),
         mk(-27, '10:15 AM', 'Maria Santos, foot care nurse', 'Community clinic', 'Thick toenails and a sore heel', 'Get my feet comfortable for walking',
           ['What shoes should I wear?', 'Is the heel pain from my walking?'], ['Nails trimmed, heel is a mild strain', 'Wear supportive shoes with a firm heel'], ['Ice the heel 10 minutes at night', 'Next visit in 6 weeks']),
         mk(-104, '11:00 AM', 'Dr. Lee, neurologist', 'Toronto Western', 'Regular check-up', 'Check that the medicine is still working',
@@ -6111,12 +6125,46 @@
         return p; }; }
 
     // the list, in Settings (and a button beside the questions on computers)
-    let apDelArm = '', apWho = '';   // apWho: the doctor the list is narrowed to ('' = all visits)
+    let apDelArm = '', apWho = '', apAdding = false;
+    // where a visit is: getting ready → ready → summary to add → done. Icon + words, never colour alone.
+    function apStage(v, tISO) {
+      const upcoming = v.dayISO && v.dayISO >= tISO, said = String(v.said || '').trim(), n = (v.todo || []).length + (v.next ? 1 : 0);
+      if (said) return { k: 'done', icon: '✓', t: n ? L2(`Done · ${n} next step${n > 1 ? 's' : ''}`, `Terminé · ${n} prochaine${n > 1 ? 's' : ''} étape${n > 1 ? 's' : ''}`) : L2('Done', 'Terminé') };
+      if (!upcoming && v.dayISO) return { k: 'todo', icon: '!', t: L2('Summary to add', 'Résumé à ajouter') };
+      if ((v.qs || []).length) return { k: 'ready', icon: '●', t: L2('Ready for the visit', 'Prêt pour la visite') };
+      return { k: 'prep', icon: '○', t: L2('Getting ready', 'En préparation') };
+    }
+    const apStageTag = (v, tISO) => { const st = apStage(v, tISO); return `<span class="ap-stage ap-st-${st.k}"><span aria-hidden="true">${st.icon}</span> ${st.t}</span>`; };   // apWho: the doctor the list is narrowed to ('' = all visits)
     const whoKey = (w) => String(w || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    function apAddForm() {
+      const fld = (id, label, type, extra) => `<label for="${id}" class="ap-lbl">${label}</label><input id="${id}" name="${id}" type="${type}" ${extra || ''} class="ap-in">`;
+      return `<form id="apForm" class="ap-form" novalidate data-notr>
+          <p class="ap-h" style="margin-top:0">${L2('Add an appointment', 'Ajouter un rendez-vous')}</p>
+          <p class="ap-p" style="margin-top:0">${L2('Only the date is needed.', 'Seule la date est nécessaire.')}</p>
+          ${fld('apfDay', L2('Date (required)', 'Date (obligatoire)'), 'date', 'required')}
+          <p id="apfDayErr" class="ap-err hidden" role="alert">${L2('Add the date of the appointment.', 'Ajoutez la date du rendez-vous.')}</p>
+          ${fld('apfTime', L2('Time', 'Heure'), 'time', '')}
+          ${fld('apfWho', L2('Doctor or clinic', 'Médecin ou clinique'), 'text', 'autocomplete="off" maxlength="120"')}
+          ${fld('apfAbout', L2('What it’s for', 'Pour quoi'), 'text', 'autocomplete="off" maxlength="200"')}
+          <div class="ap-form-btns"><button type="button" data-apcancel class="tactile-btn ap-cancel">${L2('Cancel', 'Annuler')}</button>
+            <button type="submit" class="tactile-btn ap-save">${L2('Save appointment', 'Enregistrer le rendez-vous')}</button></div></form>`;
+    }
+    function apSaveAdd(form) {
+      const val = (id) => String((form.querySelector('#' + id) || {}).value || '').trim();
+      const day = val('apfDay'), err = form.querySelector('#apfDayErr'), dIn = form.querySelector('#apfDay');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) { err.classList.remove('hidden'); dIn.setAttribute('aria-invalid', 'true'); dIn.setAttribute('aria-describedby', 'apfDayErr'); dIn.focus(); return; }
+      const [y, m, d] = day.split('-').map(Number), dt = new Date(y, m - 1, d);
+      const t = val('apfTime'), time = t ? new Date(2000, 0, 1, +t.slice(0, 2), +t.slice(3, 5)).toLocaleTimeString(lang === 'fr' ? 'fr-CA' : 'en-CA', { hour: 'numeric', minute: '2-digit' }) : '';
+      const who = val('apfWho');
+      visits.unshift({ id: 'a' + Date.now(), at: Date.now(), dayISO: day, day: dt.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: dt.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }),
+        time, who, where: '', about: val('apfAbout'), goal: '', qs: [], said: '', todo: [], next: '', added: true });
+      visits = visits.slice(0, 60); saveVisits(); apAdding = false; apWho = ''; renderAppts(); applyLang();
+      showToast(AP_DEMO ? L2('Added for now. Example mode doesn’t save.', 'Ajouté pour l’instant. Le mode exemple n’enregistre pas.') : L2('Appointment saved.', 'Rendez-vous enregistré.'));
+    }
     function renderAppts() {
       const panel = document.querySelector('#helpSettingsModal > div'); if (!panel) return;
       const today = new Date(); const tISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const card = (v, cur) => {
+      const card = (v, cur) => {   // each card also shows the visit's stage (apStageTag)
         const qs = (v.qs || []), said = String(v.said || '').split('\n').map((x) => x.trim()).filter(Boolean);
         const list = (arr) => `<ul class="ap-ul">${arr.map((x) => `<li>${x}</li>`).join('')}</ul>`;
         const inner = [
@@ -6129,7 +6177,7 @@
           cur ? '' : `<button type="button" data-apdel="${v.id}" class="tactile-btn ap-del">${apDelArm === v.id ? L2('Tap again to delete it', 'Touchez encore pour la supprimer') : L2('Delete this visit', 'Supprimer cette visite')}</button>`
         ].join('');
         return `<details class="ap-card${cur ? ' ap-cur' : ''}"><summary><span class="ap-date">${esc(v.day || L2('Day not set', 'Jour non fixé'))}</span>
-          <span class="ap-who">${esc([v.who, v.about].filter(Boolean).join(' · ') || L2('No details yet', 'Pas encore de détails'))}</span>${cur ? `<span class="ap-tag">${L2('This visit', 'Cette visite')}</span>` : ''}</summary>
+          <span class="ap-who">${esc([v.who, v.about].filter(Boolean).join(' · ') || L2('No details yet', 'Pas encore de détails'))}</span><span class="ap-tags">${cur ? `<span class="ap-tag">${L2('This visit', 'Cette visite')}</span>` : ''}${apStageTag(v, tISO)}</span></summary>
           <div class="ap-body" data-notr>${inner || `<p class="ap-p">${L2('Nothing saved yet.', 'Rien d’enregistré.')}</p>`}</div></details>`;
       };
       const now = visitNow(), up = visits.filter((v) => v.dayISO && v.dayISO >= tISO).sort((a, b) => (a.dayISO > b.dayISO ? 1 : -1)),   // soonest first
@@ -6146,6 +6194,7 @@
           <p class="font-extrabold text-lg text-[#1E2634] flex-1 text-center">${L2('My appointments', 'Mes rendez-vous')}</p>
           <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-white border-2 border-[#1E2634] text-[#1E2634] font-extrabold text-base">${L2('Done', 'Terminé')}</button></div>${chips}</div>
         <div class="flex flex-col gap-[10px]">
+          ${apAdding ? apAddForm() : `<button type="button" data-apadd class="tactile-btn ap-add"><span aria-hidden="true">＋</span> ${L2('Add an appointment', 'Ajouter un rendez-vous')}</button>`}
           ${AP_DEMO ? `<p class="ap-note" style="background:#FBF1E4;border:1px solid #EBD3B8;border-radius:14px;padding:10px 12px;color:#1E2634;font-weight:700">${L2('These are example visits, made up to show how this looks. Nothing here is saved. Open the app without “?demo” to see your real visits.', 'Ce sont des visites d’exemple, inventées pour montrer l’apparence. Rien n’est enregistré. Ouvrez l’app sans « ?demo » pour voir vos vraies visites.')}</p>` : ''}
           <p class="ap-note">${L2(helperName() + ' looks at your last few visits when suggesting questions. They are kept on this device only. Tap one to see it.', helperName() + ' regarde vos dernières visites pour suggérer des questions. Elles restent sur cet appareil seulement. Touchez-en une pour la voir.')}</p>
           ${hasVisit(now) && mine(now) ? card(now, true) : ''}
@@ -6155,6 +6204,11 @@
           <button type="button" data-apmove class="tactile-btn w-full min-h-[52px] px-3 rounded-2xl bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-base">${L2('Move to my other device', 'Passer à mon autre appareil')} ›</button></div>`;
       panel.querySelector('[data-apback]').addEventListener('click', () => { setView = 'menu'; menuKind = 'settings'; renderSettings(); applyLang(); });
       panel.querySelector('[data-apmove]').addEventListener('click', () => { setView = 'device'; renderSettings(); applyLang(); });
+      const addB = panel.querySelector('[data-apadd]'); if (addB) addB.addEventListener('click', () => { apAdding = true; renderAppts(); applyLang(); const f = panel.querySelector('#apfDay'); if (f) f.focus(); });
+      const form = panel.querySelector('#apForm'); if (form) {
+        form.addEventListener('submit', (e) => { e.preventDefault(); apSaveAdd(form); });
+        form.querySelector('[data-apcancel]').addEventListener('click', () => { apAdding = false; renderAppts(); applyLang(); const b2 = panel.querySelector('[data-apadd]'); if (b2) b2.focus(); });
+      }
       panel.querySelectorAll('[data-apwho]').forEach((b) => b.addEventListener('click', () => { apWho = b.dataset.apwho; renderAppts(); applyLang();
         const f = panel.querySelector(`[data-apwho="${CSS.escape(apWho)}"]`); if (f) f.focus();
         showToast(apWho ? L2('Showing visits with ' + b.textContent.trim(), 'Visites avec ' + b.textContent.trim()) : L2('Showing all visits', 'Toutes les visites')); }));
