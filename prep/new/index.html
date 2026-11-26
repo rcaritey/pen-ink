@@ -81,6 +81,11 @@
     #reidMenu .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
     .rp-type { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
     .rp-say { margin: 0 4px; font-size: 15px; line-height: 1.4; color: #425268; }
+    .rp-log { display: flex; flex-direction: column; gap: 6px; max-height: 32dvh; overflow-y: auto; padding: 2px; }
+    .rp-log[hidden] { display: none; }
+    .rp-msg { margin: 0; max-width: 85%; padding: 8px 12px; border-radius: 16px; font-size: 17px; line-height: 1.35; color: #1E2634; overflow-wrap: anywhere; }
+    .rp-you { align-self: flex-end; background: #3B5E42; color: #fff; border-bottom-right-radius: 4px; }
+    .rp-them { align-self: flex-start; background: #fff; border: 1px solid #D6CFC0; border-bottom-left-radius: 4px; }
     .hf-lid, .hf-mouth { transform-box: fill-box; transform-origin: center; }
     .hf-lid { transform: scaleY(0); animation: hfBlink 5.3s infinite; }
     .hf-lid + .hf-lid { animation-delay: .02s; }
@@ -5084,6 +5089,19 @@
     // His hello is written; tapping "Yes, read it" is the tap that lets him speak.
     var greeted = false;
     // Comic-style tail (Rama, 25 Nov): from the bubble's edge straight to the helper's face, however far away he is
+    // The help bubble keeps the conversation, like a chat: what you said or typed on the right, the helper's answers on
+    // the left (Rama, 26 Nov: "when words are spoken they should show up in the conversation like a regular AI")
+    const rpChat = [];
+    const rpMsg = (m) => `<p class="rp-msg ${m.who === 'you' ? 'rp-you' : 'rp-them'}"><span class="sr-only">${m.who === 'you' ? L2('You: ', 'Vous : ') : helperName() + ' : '}</span>${esc(m.text)}</p>`;
+    function rpScroll() { const l = document.getElementById('rpLog'); if (l) l.scrollTop = l.scrollHeight; }
+    function rpAdd(who, text) {
+      const t = String(text || '').replace(/\s+/g, ' ').trim(); if (!t) return;
+      const last = rpChat[rpChat.length - 1]; if (last && last.who === who && last.text === t) return;
+      rpChat.push({ who, text: t }); if (rpChat.length > 30) rpChat.shift();
+      const l = document.getElementById('rpLog'); if (!l) return;
+      l.hidden = false; l.insertAdjacentHTML('beforeend', rpMsg(rpChat[rpChat.length - 1])); rpScroll();
+    }
+    const rpOpen = () => { const m = document.getElementById('reidMenu'); return !!m && !m.classList.contains('hidden'); };
     function pointTail(bub, bg) {
       if (!bub || bub.classList.contains('hidden')) return;
       const face = [...document.querySelectorAll('#companionEmblem')].find((e) => e.getBoundingClientRect().width > 0); if (!face) return;
@@ -5947,17 +5965,18 @@
         const SB = 'tactile-btn flex-1 min-w-0 min-h-[52px] px-2 rounded-2xl font-extrabold text-[15px] flex flex-col items-center justify-center gap-0.5 leading-tight';
         delete menu.dataset.typing;
         menu.innerHTML = `<p class="rp-hi">${fr ? hiFr : hiEn}</p>
+          <div id="rpLog" class="rp-log" role="log" aria-live="polite" aria-label="${fr ? 'Conversation' : 'Conversation'}"${rpChat.length ? '' : ' hidden'}>${rpChat.map(rpMsg).join('')}</div>
           <p id="rpState" class="rp-state" role="status" aria-live="polite"></p>
           <p class="rp-say">${hf ? (fr ? 'Dites « suivant », « retour » ou posez une question.' : 'Say “next”, “back”, or ask a question.')
             : (fr ? 'Parlez-moi en mains libres, ou écrivez.' : 'Talk to me hands-free, or type.')}</p>
           <div class="flex gap-[8px]">
-            <button type="button" data-r="handsfree" class="${SB} ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}" aria-pressed="${hf}">${WHI('mic', 20)}<span>${hf ? (fr ? 'Arrêter' : 'Stop') : (fr ? 'Mains libres' : 'Hands-free')}</span></button>
+            <button type="button" data-r="handsfree" class="${SB} ${hf ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#3B5E42] text-white'}" aria-pressed="${hf}">${WHI('mic', 20)}<span>${hf ? (fr ? 'Arrêter d’écouter' : 'Stop listening') : (fr ? 'Écouter' : 'Start listening')}</span></button>
             <button type="button" data-r="type" class="${SB} bg-white border border-[#D6CFC0] text-[#1E2634]">${WHI('pencil', 20)}<span>${fr ? 'Écrire' : 'Type'}</span></button>
             <button type="button" data-r="close" class="${SB} bg-white border border-[#D6CFC0] text-[#1E2634]"><span aria-hidden="true" class="text-[20px] leading-none">✕</span><span>${fr ? 'Fermer' : 'Close'}</span></button></div>
           <form class="rp-type" data-rtype style="display:none"><label class="sr-only" for="reidTypeBox">${fr ? 'Écrivez-moi' : 'Type to me'}</label>
             <div class="flex gap-[8px] items-end"><textarea id="reidTypeBox" rows="1" autocomplete="off" placeholder="${fr ? 'Par exemple : texte plus grand' : 'For example: bigger text'}" class="flex-1 min-w-0 min-h-[52px] px-3 py-[12px] rounded-2xl bg-white text-[17px] leading-snug text-[#1E2634]" style="border:2px solid #3B5E42"></textarea>
             <button type="submit" class="tactile-btn shrink-0 min-h-[52px] px-4 rounded-2xl bg-[#3B5E42] text-white font-extrabold text-base">${fr ? 'Envoyer' : 'Send'}</button></div></form>`;
-        menu.classList.remove('hidden');
+        menu.classList.remove('hidden'); rpScroll();
         hush(true);   // stop talking; hands-free listening carries on
         applyLang(); if (!met) sayT(hiEn, hiFr, true); whMarkMet(nm);
         const face = [...document.querySelectorAll('#companionEmblem')].find((e) => e.getBoundingClientRect().width > 0) || emb;
@@ -6005,7 +6024,7 @@
       menu.addEventListener('keydown', (e) => { if (e.target.id === 'reidTypeBox' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); e.target.form.requestSubmit(); } });
       menu.addEventListener('submit', (e) => {
         e.preventDefault(); const box = menu.querySelector('#reidTypeBox'), t = box && box.value.trim(); if (!t) { if (box) box.focus(); return; }
-        close(); hush();
+        rpAdd('you', t); box.value = ''; box.style.height = ''; hush();
         if (steps[currentIndex].mode === 'landing') { understand(t); return; }
         window.__typedToReid = true; try { heard(t); } finally { window.__typedToReid = false; }
       });
@@ -8107,6 +8126,7 @@
     // awake. If the iPhone or iPad pauses the microphone while you're in another app, recording picks up again
     // by itself when you come back.
     { const sy = say; say = function (t, raw) { if (isRecording) return Promise.resolve(); return sy(t, raw); }; }
+    { const sy2 = say; say = function (t, raw) { if (rpOpen() && !isRecording && !/^(Hello\. My name is|Bonjour\. Je m’appelle)/.test(String(t))) rpAdd('them', t); return sy2.apply(this, arguments); }; }
     const recBar = document.createElement('div'); recBar.id = 'recBar'; recBar.setAttribute('role', 'status');
     recBar.style.cssText = 'position:fixed;top:max(8px, env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:90;display:none;align-items:center;gap:12px;background:#991B1B;color:#fff;border-radius:999px;padding:6px 6px 6px 18px;font-weight:800;font-size:17px;box-shadow:0 6px 20px rgba(0,0,0,.2)';
     recBar.innerHTML = '<span aria-hidden="true" style="width:12px;height:12px;border-radius:99px;background:#fff"></span><span id="recBarText"></span><button type="button" id="recBarStop" style="font:inherit;font-weight:800;min-height:48px;padding:0 18px;border-radius:999px;border:0;background:#fff;color:#991B1B;cursor:pointer"></button>';
@@ -8760,7 +8780,7 @@
         const el = document.activeElement, low = String(t || '').toLowerCase().replace(/[.!?,]/g, '').trim();
         const typing = el && el.id !== 'answerInput' && ((el.tagName === 'INPUT' && /^(text|search|)$/.test(el.type || '')) || el.tagName === 'TEXTAREA') && !el.readOnly && !el.disabled && el.offsetParent !== null;
         const command = cmdOf(low) || /^(next|next please|go on|continue|back|go back|repeat|help|stop|pause|wait|undo|erase|skip|done|suivant|retour|aide|passer|terminé)$/.test(low);
-        if (!typing || command || !String(t || '').trim()) return hBox.apply(this, arguments);
+        if (!typing || command || window.__typedToReid || !String(t || '').trim()) return hBox.apply(this, arguments);   // sent from the bubble: a message, not dictation
         const said = String(t).trim(), cur = el.value || '', start = el.selectionStart ?? cur.length, end = el.selectionEnd ?? cur.length;
         const before = cur.slice(0, start), after = cur.slice(end), sep = before && !/\s$/.test(before) ? ' ' : '';
         el.value = (before + sep + said + after).slice(0, el.maxLength > 0 ? el.maxLength : 100000);
@@ -8811,7 +8831,7 @@
     }
     const condTidy = (x) => { const t = String(x || '').replace(/^(and|et|also|aussi|i have|j'ai|i've got|i got|my|mon|ma)\s+/i, '').replace(/[.!?]+$/, '').trim(); const k = CONDS.find((c) => sugLc(c[0]) === sugLc(t) || sugLc(c[1]) === sugLc(t)); return k ? condName(k) : t.replace(/^./, (c) => c.toUpperCase()); };
     function condAdd(raw) {
-      const add = String(raw || '').split(/,|\n|\band\b|\bet\b|\bplus\b/i).map(condTidy).filter((x) => x.length > 1 && x.split(/\s+/).length <= 6);
+      const add = String(raw || '').split(/[,.;]\s|[,;\n]|\band\b|\bet\b|\bplus\b/i).map(condTidy).filter((x) => x.length > 1 && x.split(/\s+/).length <= 6);
       if (!add.length) return [];
       const cur = condList(), out = cur.slice(); add.forEach((x) => { if (!out.some((y) => sugLc(y) === sugLc(x))) out.push(x); });
       condSet(out); return add;
@@ -8864,7 +8884,13 @@
         if (rm) { const l = condList(), i = l.findIndex((x) => sugLc(x).includes(sugLc(rm[2])) || sugLc(rm[2]).includes(sugLc(x))); if (i >= 0) { const g = l.splice(i, 1)[0]; condSet(l); renderList(); applyLang(); say(g + L2(' removed.', ' retiré.'), true); return; } }
         if (/^(no|none|nothing|no i don'?t|i don'?t have any|non|aucun|rien)$/.test(low)) { condSet([], true); renderList(); applyLang(); say(L2('Okay, none. Say next.', 'D’accord, aucun. Dites suivant.'), true); return; }
         if (low.split(/\s+/).length > 14 || /\?$/.test(String(t).trim())) return hC.apply(this, arguments);   // a question or a long sentence: not a list
-        const got = condAdd(t); if (!got.length) return hC.apply(this, arguments);
+        // Spoken: only add it if it's a known condition, or said as one ("I have …", "add …"). Anything else ("get out of
+        // this appointment") is talk to the helper, not a condition (Rama, 26 Nov).
+        const asked = /^(add|i have|i've got|i also have|also|j'ai|j'ai aussi|ajoute)\b/i.test(low);
+        const known = (x) => CONDS.some((c) => { const a = sugLc(c[0]), f = sugLc(c[1]), y = sugLc(condTidy(x)); return y && (y === a || y === f || y.includes(a) || a.includes(y) && y.length > 3); });
+        const parts = String(t).replace(/^(add|ajoute)\s+/i, '').split(/[,.;]\s|[,;\n]|\band\b|\bet\b|\bplus\b/i).map((x) => x.trim()).filter(Boolean);
+        if (!parts.length || !(asked || parts.every(known))) return hC.apply(this, arguments);
+        const got = condAdd(parts.join(', ')); if (!got.length) return hC.apply(this, arguments);
         renderList(); applyLang(); setCompanionState('captured'); say(got.join(L2(' and ', ' et ')) + L2(' added. Any others? Or say next.', ' ajouté. D’autres ? Ou dites suivant.'), true);
       }; }
     if (typeof SPEAK === 'object') SPEAK.condlist = () => condList().length ? L2('You have: ', 'Vous avez : ') + condList().join(', ') + L2('. Any others? Or say next.', '. D’autres ? Ou dites suivant.') : L2('Do you have other health conditions? Say them, or say none.', 'Avez-vous d’autres problèmes de santé ? Dites-les, ou dites aucun.');
@@ -8941,7 +8967,8 @@
     { const hRm = heard; heard = function (t) {
         const rm = document.getElementById('reidMenu'), open = rm && !rm.classList.contains('hidden');
         if (!open || document.activeElement && document.activeElement.id === 'reidTypeBox') return hRm.apply(this, arguments);
-        rm.classList.add('hidden'); window.__typedToReid = true;
+        if (!String(t || '').trim()) return;
+        rpAdd('you', t); window.__typedToReid = true;
         try { return hRm.apply(this, arguments); } finally { window.__typedToReid = false; }
       }; }
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
