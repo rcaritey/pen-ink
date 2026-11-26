@@ -3675,7 +3675,7 @@
       try {
         const parts = speechParts(text);
         const get = (t) => fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: t, mood: window.__ttsMood || 'warm', slow: slowVoice, voice: voiceName || (helperIsLilly() ? { en: 'en-US-Emma:DragonHDLatestNeural', fr: 'fr-CA-SylvieNeural' } : { fr: 'fr-CA-AntoineNeural' })[lang] || VOICE_OF[lang] }) }).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+          body: JSON.stringify({ text: t, mood: window.__ttsMood || 'warm', slow: slowVoice, voice: voiceName || (helperIsLilly() ? { en: 'en-US-Emma:DragonHDLatestNeural', fr: 'fr-CA-SylvieNeural' } : { en: 'en-US-Andrew:DragonHDOmniLatestNeural', fr: 'fr-CA-AntoineNeural' })[lang] || VOICE_OF[lang] }) }).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
         let next = get(parts[0]);
         for (let i = 0; i < parts.length; i++) {
           const blob = await next; if (g !== sayGen) return;
@@ -4292,7 +4292,7 @@
         body = head(T("Reid's voice", 'La voix de Reid'), 1) + `<div class="flex flex-col gap-[12px]">
           ${card(T('Reads each question aloud', 'Lit chaque question à voix haute'), pair('read', T('On', 'Oui'), T('Off', 'Non'), readAloud))}
           ${card(T('Speed', 'Vitesse'), pair('slow', T('Normal', 'Normale'), T('Slower', 'Plus lente'), !slowVoice))}
-          ${isMT() ? '' : card(T('Voice', 'Voix'), pair('voicename', fr ? 'Sylvie' : 'Liam', fr ? 'Antoine' : 'Emma', !voiceName))}
+          ${isMT() ? '' : card(T('Voice', 'Voix'), pair('voicename', fr ? 'Sylvie' : 'Andrew', fr ? 'Antoine' : 'Emma', !voiceName))}
           ${card(T('Hear it', 'Écouter'), `<button type="button" data-act="test" class="${B}">▶ ${T('Play a sample', 'Écouter un exemple')}</button>`)}</div>`;
       } else if (setView === 'lang') {
         body = head(T('Language', 'Langue'), 1) + `<div class="flex flex-col gap-[12px]">
@@ -8718,7 +8718,7 @@
     // ?voicetest (Rama, 26 Nov: "Lilly is quite monotone"): hear Lilly's current voice next to four expressive voices,
     // saying the same celebration line, to pick one. Nothing is saved.
     if (/[?&]voicetest\b/i.test(location.search)) setTimeout(() => {
-      const V = [['', 'For Reid'], ['en-CA-Liam:DragonHDOmniLatestNeural', 'Reid now (Liam, Canadian)'], ['en-US-Andrew:DragonHDLatestNeural', 'Andrew'], ['en-US-Andrew:DragonHDOmniLatestNeural', 'Andrew (Omni)'],
+      const V = [['', 'For Reid'], ['en-US-Andrew:DragonHDOmniLatestNeural', 'Andrew Omni (Reid now)'], ['en-CA-Liam:DragonHDOmniLatestNeural', 'Liam (Reid before)'], ['en-US-Andrew:DragonHDLatestNeural', 'Andrew'],
         ['en-US-Brian:DragonHDLatestNeural', 'Brian'], ['en-US-Davis:DragonHDLatestNeural', 'Davis'], ['en-US-Steffan:DragonHDLatestNeural', 'Steffan'], ['en-US-Caleb:DragonHDOmniLatestNeural', 'Caleb'], ['en-US-Lewis:DragonHDOmniLatestNeural', 'Lewis'],
         ['', 'For Lilly'], ['en-US-Emma:DragonHDLatestNeural', 'Emma (Lilly now)'], ['en-US-Ava:DragonHDOmniLatestNeural', 'Ava'], ['en-US-Jenny:DragonHDLatestNeural', 'Jenny'], ['en-US-Aria:DragonHDLatestNeural', 'Aria'], ['en-CA-ClaraNeural', 'Clara (Lilly before)']];
       const line = 'Outstanding, Rama! Your prep is done. Here’s what’s next. First, print or send your pages.';
