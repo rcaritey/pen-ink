@@ -8500,8 +8500,8 @@
 
     // Pop-up suggestions like the medicines box (Rama, 25 Nov). Tapping the box shows the list straight away; typing narrows
     // it. Who with: Family doctor, then doctors from past visits, then specialists their health points to, then the rest.
-    // Where: places from past visits, then Toronto-area hospitals and common places. Real street-address lookup needs a
-    // map service (Azure Maps) that isn't set up yet.
+    // Where: places from past visits, then Toronto-area hospitals and common places, then (as you type) real GTA street
+    // addresses, clinics and hospitals from /api/places (free Canadian open data, refreshed monthly).
     const AF_ALL_WHO = [['Family doctor', 'Médecin de famille'], ['Walk-in clinic', 'Clinique sans rendez-vous'], ['Nurse practitioner', 'Infirmière praticienne'],
       ['Neurologist', 'Neurologue'], ['Cardiologist', 'Cardiologue'], ['Endocrinologist', 'Endocrinologue'], ['Respirologist', 'Pneumologue'], ['Nephrologist', 'Néphrologue'],
       ['Rheumatologist', 'Rhumatologue'], ['Oncologist', 'Oncologue'], ['Urologist', 'Urologue'], ['Eye doctor', 'Ophtalmologiste'], ['Optometrist', 'Optométriste'],
@@ -8529,7 +8529,7 @@
       const fr = lang === 'fr', base = sgUniq(pastOf('where').concat([fr ? 'Cabinet du médecin de famille' : 'Family doctor’s office', fr ? 'Appel vidéo' : 'Video call', fr ? 'Appel téléphonique' : 'Phone call'], AF_PLACES));
       const t = String(q || '').trim(); return (t ? base.filter((x) => sugHit(x, t)) : base).slice(0, 8);
     }
-    // live addresses from Azure Maps (only once the service is switched on; only the typed letters are sent)
+    // addresses, clinics and hospitals from free Canadian open data, searched on WellHeard's own server in Montreal (only the typed letters are sent)
     let placesOn = null; const placeCache = new Map();
     async function placesFor(q) {
       const t = String(q || '').trim(); if (t.length < 3 || placesOn === false) return [];

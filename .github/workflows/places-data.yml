@@ -1,0 +1,53 @@
+# Refreshes the free Canadian address and clinic list used by the "Where" box in WellHeard (/Reid).
+# Runs on the 2nd of every month, by hand (Actions tab > Places data > Run workflow), and when this file or the
+# build script changes. It commits only when the data actually changed; Vercel then redeploys on its own.
+name: Places data
+on:
+  schedule:
+    - cron: '23 8 2 * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['scripts/build-places.mjs', '.github/workflows/places-data.yml']
+permissions:
+  contents: write
+concurrency: places-data
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Download open data
+        run: |
+          set -u
+          mkdir -p /tmp/src && cd /tmp/src
+          get() { curl -fsSL --retry 3 --retry-delay 10 -A "Mozilla/5.0 (WellHeard data refresh)" -o "$1" "$2" || echo "download failed: $2" >> /tmp/src/failed.txt; }
+          get toronto.csv "https://ckan0.cf.opendata.inter.prod-toronto.ca/dataset/abedd8bc-e3dd-4d45-8e69-79165a76e4fa/resource/64d4e54b-738f-4cd9-a9e7-8050fac8a52f/download/address-points-4326.csv"
+          get oda.zip "https://www150.statcan.gc.ca/n1/en/pub/46-26-0001/2021001/ODA_ON_v1.zip"
+          get odhf.zip "https://www150.statcan.gc.ca/n1/en/pub/13-26-0001/2020001/ODHF_v1.1.zip"
+          for z in oda odhf; do [ -f $z.zip ] && mkdir -p $z && unzip -oq $z.zip -d $z || true; done
+          ls -la /tmp/src /tmp/src/* | head -40
+      - name: Build
+        run: |
+          ODA=$(find /tmp/src/oda -iname '*.csv' -size +1M | head -1)
+          ODHF=$(find /tmp/src/odhf -iname '*.csv' | head -1)
+          node scripts/build-places.mjs --toronto /tmp/src/toronto.csv --oda "$ODA" --odhf "$ODHF" --out data/places
+          if [ -f /tmp/src/failed.txt ]; then node -e "const f='data/places/build-log.json',l=JSON.parse(require('fs').readFileSync(f));l.errors.push(...require('fs').readFileSync('/tmp/src/failed.txt','utf8').trim().split('\n'));require('fs').writeFileSync(f,JSON.stringify(l,null,2)+'\n')"; fi
+      - name: Commit if changed
+        run: |
+          git config user.name "WellHeard data bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/places/places.json.gz
+          if git diff --cached --quiet; then
+            echo "No data change."
+            # first run, or a failed run: still save the report so problems are visible
+            if ! git ls-files --error-unmatch data/places/build-log.json >/dev/null 2>&1 || node -e "process.exit(JSON.parse(require('fs').readFileSync('data/places/build-log.json')).errors.length ? 0 : 1)"; then git add data/places/build-log.json; git commit -m "Places data: build report" && git push; fi
+          else
+            git add data/places/build-log.json
+            git commit -m "Places data: monthly refresh"
+            git push
+          fi

@@ -2,6 +2,10 @@
   "functions": {
     "api/suggest.js": {
       "maxDuration": 120
+    },
+    "api/places.js": {
+      "includeFiles": "data/places/**",
+      "memory": 1024
     }
   },
   "routes": [
