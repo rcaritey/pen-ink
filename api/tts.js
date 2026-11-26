@@ -41,6 +41,15 @@ export default async function handler(req, res) {
     const r = await synth(key, region, 'Hi.', HD).catch(() => null);
     return res.status(200).json({ on: true, hd: !!(r && r.ok), status: r ? r.status : 0 });
   }
+  // GET ?voices=1: which female English/French voices this region offers, and their speaking styles (no user data)
+  if (req.method === 'GET' && req.query && req.query.voices) {
+    if (!key) return res.status(200).json({ on: false });
+    const r = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/voices/list`, { headers: { 'Ocp-Apim-Subscription-Key': key } }).catch(() => null);
+    if (!r || !r.ok) return res.status(502).json({ error: 'list', status: r ? r.status : 0 });
+    const all = await r.json();
+    return res.status(200).json(all.filter((v) => /^(en-CA|en-US|fr-CA)$/.test(v.Locale) && v.Gender === 'Female')
+      .map((v) => ({ name: v.ShortName, type: v.VoiceType, styles: v.StyleList || [] })));
+  }
   if (req.method === 'GET') return res.status(200).json({ on: !!key });
   if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
   if (!key) return res.status(503).json({ error: 'off' });
