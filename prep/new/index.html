@@ -156,6 +156,11 @@
     #pkSheet .pk-day.today { border: 2px solid #3B5E42; } #pkSheet .pk-day.on { background: #3B5E42; border-color: #3B5E42; color: #fff; }
     #pkSheet .pk-day:disabled { opacity: .3; background: transparent; border-color: transparent; }
     #pkSheet button:focus-visible { outline: 3px solid #1E4627; outline-offset: 2px; }
+    .sg-list { position: absolute; left: 0; right: 0; top: 100%; z-index: 40; margin-top: 4px; max-height: 236px; overflow-y: auto; background: #fff; border: 1px solid #D6CFC0; border-radius: 16px; padding: 6px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 2px 4px rgba(30,38,52,.08), 0 14px 32px rgba(30,38,52,.16); }
+    .sg-list[hidden] { display: none; }
+    .sg-opt { display: block; width: 100%; min-height: 48px; padding: 6px 12px; border-radius: 12px; text-align: left; font-weight: 800; font-size: 17px; line-height: 1.25; color: #1E2634; background: #fff; border: 1px solid transparent; box-shadow: none; }
+    .sg-opt:hover, .sg-opt:focus-visible { background: #E5EFE7; border-color: #3B5E42; outline: none; } .sg-opt[aria-selected="true"] { background: #E5EFE7; color: #1E4627; }
+    #afForm { overflow: visible; }
     .af-two { display: grid; grid-template-columns: 1fr; gap: 6px; } .af-two .ap-lbl { margin-top: 0; }
     @media (min-width: 640px) { .af-two { grid-template-columns: 1.25fr 1fr; gap: 10px; } }   /* phones: full width so the day and time are never cut off */
     .ap-in:focus { outline: 3px solid #3B5E42; outline-offset: 2px; } .ap-in[aria-invalid="true"] { border: 2px solid #8A2E1C; }
@@ -8359,6 +8364,71 @@
       return out.slice(0, 6);
     }
 
+    // Pop-up suggestions like the medicines box (Rama, 25 Nov). Tapping the box shows the list straight away; typing narrows
+    // it. Who with: Family doctor, then doctors from past visits, then specialists their health points to, then the rest.
+    // Where: places from past visits, then Toronto-area hospitals and common places. Real street-address lookup needs a
+    // map service (Azure Maps) that isn't set up yet.
+    const AF_ALL_WHO = [['Family doctor', 'Médecin de famille'], ['Walk-in clinic', 'Clinique sans rendez-vous'], ['Nurse practitioner', 'Infirmière praticienne'],
+      ['Neurologist', 'Neurologue'], ['Cardiologist', 'Cardiologue'], ['Endocrinologist', 'Endocrinologue'], ['Respirologist', 'Pneumologue'], ['Nephrologist', 'Néphrologue'],
+      ['Rheumatologist', 'Rhumatologue'], ['Oncologist', 'Oncologue'], ['Urologist', 'Urologue'], ['Eye doctor', 'Ophtalmologiste'], ['Optometrist', 'Optométriste'],
+      ['Dermatologist', 'Dermatologue'], ['Gastroenterologist', 'Gastro-entérologue'], ['Geriatrician', 'Gériatre'], ['Psychiatrist', 'Psychiatre'], ['Psychologist', 'Psychologue'],
+      ['Orthopedic surgeon', 'Chirurgien orthopédiste'], ['Surgeon', 'Chirurgien'], ['Gynecologist', 'Gynécologue'], ['Ear, nose and throat doctor', 'ORL'], ['Hematologist', 'Hématologue'],
+      ['Allergist', 'Allergologue'], ['Pain clinic', 'Clinique de la douleur'], ['Physiotherapist', 'Physiothérapeute'], ['Occupational therapist', 'Ergothérapeute'],
+      ['Speech therapist', 'Orthophoniste'], ['Dietitian', 'Diététiste'], ['Audiologist', 'Audiologiste'], ['Foot clinic', 'Clinique des pieds'], ['Dentist', 'Dentiste'],
+      ['Pharmacist', 'Pharmacien'], ['Social worker', 'Travailleur social']];
+    const AF_PLACES = ['Toronto Western Hospital', 'Toronto General Hospital', 'Mount Sinai Hospital', 'Sunnybrook Health Sciences Centre', 'North York General Hospital',
+      'St. Michael’s Hospital', 'Women’s College Hospital', 'Baycrest', 'Humber River Health', 'Michael Garron Hospital', 'Scarborough Health Network', 'St. Joseph’s Health Centre',
+      'Princess Margaret Cancer Centre', 'Toronto Rehab', 'Mackenzie Health', 'Trillium Health Partners', 'Southlake Health', 'SickKids'];
+    const sugLc = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const sugHit = (x, q) => { const a = sugLc(x), b = sugLc(q).trim(); return !b || a.startsWith(b) || a.split(/[\s,.'’-]+/).some((w) => w.startsWith(b)); };
+    const pastOf = (k) => { const out = []; try { (typeof visits !== 'undefined' ? visits : []).forEach((v) => { const w = String(v[k] || '').trim(); if (w && !out.some((x) => sugLc(x) === sugLc(w))) out.push(w); }); } catch (e) { console.warn('Past visits not read', e); } return out; };
+    const sgUniq = (arr) => { const seen = new Set(); return arr.filter((x) => { const k = sugLc(x); if (!x || seen.has(k)) return false; seen.add(k); return true; }); };
+    function whoSuggest(q) {
+      const fr = lang === 'fr', base = sgUniq([afPresets()[0]].concat(pastOf('who'), afPresets().slice(1), AF_ALL_WHO.map((x) => (fr ? x[1] : x[0]))));
+      const t = String(q || '').trim(), hits = base.filter((x) => sugHit(x, t.replace(/^(dr\.?|doctor|docteur)\s*/i, '') || t));
+      // typing a name: offer it as "Dr. Name" first
+      const nm = t.replace(/^(dr\.?|doctor|docteur)\s*/i, '');
+      const asDr = nm.length >= 2 && !hits.some((x) => sugLc(x) === sugLc(t)) && /^[a-zà-ÿ' -]+$/i.test(nm) ? ['Dr. ' + nm.replace(/\b\w/g, (c) => c.toUpperCase())] : [];
+      return sgUniq(t ? hits.concat(asDr) : base).slice(0, 8);   // real matches first; "Dr. Name" after them
+    }
+    function whereSuggest(q) {
+      const fr = lang === 'fr', base = sgUniq(pastOf('where').concat([fr ? 'Cabinet du médecin de famille' : 'Family doctor’s office', fr ? 'Appel vidéo' : 'Video call', fr ? 'Appel téléphonique' : 'Phone call'], AF_PLACES));
+      const t = String(q || '').trim(); return (t ? base.filter((x) => sugHit(x, t)) : base).slice(0, 8);
+    }
+    function suggestBox(inp, source) {
+      if (!inp || inp.dataset.sugg) return; inp.dataset.sugg = '1';
+      const box = document.createElement('div'); box.id = inp.id + 'List'; box.className = 'sg-list'; box.setAttribute('role', 'listbox'); box.setAttribute('aria-label', L2('Suggestions', 'Suggestions')); box.hidden = true;
+      inp.after(box); inp.setAttribute('role', 'combobox'); inp.setAttribute('aria-autocomplete', 'list'); inp.setAttribute('aria-controls', box.id); inp.setAttribute('aria-expanded', 'false');
+      let closeT = null;
+      const scroller = () => inp.closest('#listItems') || inp.closest('.overflow-y-auto');
+      const close = () => { box.hidden = true; inp.setAttribute('aria-expanded', 'false'); const sc = scroller(); if (sc) sc.style.paddingBottom = ''; if (box.parentElement) box.parentElement.style.zIndex = ''; };
+      const paint = () => {
+        const list = source(inp.value), cur = sugLc(inp.value).trim();
+        if (!list.length) { close(); return; }
+        box.innerHTML = list.map((x, i) => `<button type="button" role="option" id="${box.id}-${i}" data-sg="${esc(x)}" aria-selected="${sugLc(x) === cur}" class="sg-opt">${sugLc(x) === cur ? '✓ ' : ''}${esc(x)}</button>`).join('');
+        box.hidden = false; inp.setAttribute('aria-expanded', 'true'); if (box.parentElement) box.parentElement.style.zIndex = '60';   // above the boxes below it
+        // make room under the box and bring the whole list into view (it would otherwise be cut off at the card's edge)
+        const sc = scroller(); if (sc) { sc.style.paddingBottom = (box.offsetHeight + 12) + 'px'; requestAnimationFrame(() => { const br = box.getBoundingClientRect(), sr = sc.getBoundingClientRect(); if (br.bottom > sr.bottom) sc.scrollTop += br.bottom - sr.bottom + 8; }); }
+      };
+      inp.addEventListener('focus', () => { clearTimeout(closeT); paint(); });
+      inp.addEventListener('click', () => { clearTimeout(closeT); paint(); });
+      inp.addEventListener('input', (e) => { if (e.isTrusted) paint(); });   // typing narrows it (not when Reid fills it in by voice)
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !box.hidden) { e.stopPropagation(); close(); }
+        if (e.key === 'ArrowDown' && !box.hidden) { e.preventDefault(); const f = box.querySelector('.sg-opt'); if (f) f.focus(); }
+      });
+      box.addEventListener('keydown', (e) => {
+        const opts = [...box.querySelectorAll('.sg-opt')], i = opts.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') { e.preventDefault(); (opts[i + 1] || opts[i]).focus(); }
+        if (e.key === 'ArrowUp') { e.preventDefault(); if (i <= 0) inp.focus(); else opts[i - 1].focus(); }
+        if (e.key === 'Escape') { e.stopPropagation(); close(); inp.focus(); }
+      });
+      box.addEventListener('mousedown', (e) => e.preventDefault());   // keep the box open while tapping an option
+      box.addEventListener('click', (e) => { const b = e.target.closest('[data-sg]'); if (!b) return; inp.value = b.dataset.sg; inp.dispatchEvent(new Event('input', { bubbles: true })); close(); inp.focus(); setTimeout(close, 0); });
+      const leave = () => { clearTimeout(closeT); closeT = setTimeout(() => { if (!box.contains(document.activeElement) && document.activeElement !== inp) close(); }, 150); };
+      inp.addEventListener('blur', leave); box.addEventListener('focusout', leave);
+    }
+
     // Big, easy pickers for dates and times (Rama, 25 Nov: "clicking anywhere on the date bar should open the calendar
     // right away, large, easy to tap"). Every date or time box in the app's forms becomes a wide button that shows the
     // day or time in words; one tap opens a large calendar or a grid of hours.
@@ -8417,7 +8487,8 @@
     // turn native date/time boxes inside root into big buttons (the real value stays in a hidden box with the same id)
     function bigPickers(root) {
       if (!root) return;
-      root.querySelectorAll('input.ap-in[type="date"], input.ap-in[type="time"]').forEach((inp) => {
+      root.querySelectorAll('input[type="date"], input[type="time"]').forEach((inp) => {
+        if (!inp.classList.contains('ap-in')) inp.classList.add('ap-in');
         const kind = inp.type, min = inp.getAttribute('min') || '';
         const btn = document.createElement('button'); btn.type = 'button'; btn.id = inp.id + 'Btn'; btn.className = 'tactile-btn ap-in pk-field';
         const show = () => { const v = inp.value;
@@ -8438,6 +8509,9 @@
       });
     }
 
+    // every date or time box anywhere in the app becomes a big picker, including boxes drawn later
+    new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) { if (n.nodeType !== 1) continue; if (n.matches && n.matches('input[type="date"], input[type="time"]') && n.parentElement) bigPickers(n.parentElement); else if (n.querySelector && n.querySelector('input[type="date"], input[type="time"]')) bigPickers(n); } })
+      .observe(document.body, { childList: true, subtree: true });
     function renderApptForm(items, foot) {
       const $ = (id) => document.getElementById(id);
       $('listTitle').textContent = L2('Your appointment', 'Votre rendez-vous');
@@ -8449,16 +8523,16 @@
       const fld = (id, label, type, val, extra) => `<label for="${id}" class="ap-lbl">${label}</label><input id="${id}" type="${type}" value="${esc(val || '')}" ${extra || ''} class="ap-in">`;
       items.classList.add('overflow-y-auto');
       items.innerHTML = `<form id="afForm" class="ap-form" novalidate data-notr onsubmit="return false">
+          <div class="af-pair"><div class="flex flex-col gap-1.5 min-w-0 relative">${fld('afWho', L2('Who with', 'Avec qui'), 'text', who, `autocomplete="off" maxlength="120" placeholder="${L2('Tap to choose or type', 'Touchez pour choisir ou écrivez')}"`)}</div>
+            <div class="flex flex-col gap-1.5 min-w-0 relative">${fld('afWhere', L2('Where', 'Où'), 'text', was ? was.where : SID('where').answer, `autocomplete="off" maxlength="160" placeholder="${L2('Clinic, hospital or address', 'Clinique, hôpital ou adresse')}"`)}</div></div>
           <div class="af-two"><div class="flex flex-col gap-1.5 min-w-0">${fld('afDay', L2('Date (required)', 'Date (obligatoire)'), 'date', day.dateISO || '', `required min="${isoToday()}"`)}</div>
             <div class="flex flex-col gap-1.5 min-w-0">${fld('afTime', L2('Time', 'Heure'), 'time', was ? was.time : to24(SID('time').answer), '')}</div></div>
           <p id="afDayErr" class="ap-err hidden" role="alert">${L2('Add the date of the appointment.', 'Ajoutez la date du rendez-vous.')}</p>
-          <div class="af-pair"><div class="flex flex-col gap-1.5 min-w-0">${fld('afWho', L2('Doctor or clinic', 'Médecin ou clinique'), 'text', who, 'autocomplete="off" maxlength="120"')}
-          <div class="af-chips" role="group" aria-label="${L2('Quick choices', 'Choix rapides')}">${presets.map(([v, t]) => `<button type="button" data-afwho="${esc(t)}" class="tactile-btn ap-chip" aria-pressed="${who === t || who === v}">${who === t || who === v ? '✓ ' : ''}${esc(t)}</button>`).join('')}</div>
-          </div><div class="flex flex-col gap-1.5 min-w-0">${fld('afWhere', L2('Where (clinic or address)', 'Où (clinique ou adresse)'), 'text', was ? was.where : SID('where').answer, 'autocomplete="off" maxlength="160"')}</div></div>
         </form>`;
       foot.innerHTML = '';
       items.querySelectorAll('[data-afwho]').forEach((b) => b.addEventListener('click', () => { const w = $('afWho'); w.value = b.dataset.afwho; items.querySelectorAll('[data-afwho]').forEach((c) => { const on = c === b; c.setAttribute('aria-pressed', on); c.textContent = (on ? '✓ ' : '') + c.dataset.afwho; }); }));
       const d = $('afDay'); if (d) d.addEventListener('input', () => { $('afDayErr').classList.add('hidden'); d.removeAttribute('aria-invalid'); });
+      suggestBox($('afWho'), whoSuggest); suggestBox($('afWhere'), whereSuggest);
       bigPickers(items);
       if (was && was.focus) { const f = document.getElementById(was.focus); if (f && !document.getElementById('pkSheet')) f.focus(); }
       if (typeof afMark === 'function') setTimeout(() => afMark(afNextEmpty()), 0);   // outline the box Reid is asking about
@@ -8483,7 +8557,7 @@
     { const rcsAF = renderCurrentStep; renderCurrentStep = function () { const st = steps[currentIndex]; if (st && APPT_OLD.includes(st.id)) currentIndex = sIdx('apptForm'); return rcsAF.apply(this, arguments); }; }
     // By voice too (Rama, 25 Nov): Reid asks for each empty box in turn and fills it from what's said. One sentence can
     // fill several ("December 14th at 2:30 with Dr. Lee at Toronto Western"). Tapping and typing still work alongside.
-    const AF_KEYS = ['day', 'time', 'who', 'where'];
+    const AF_KEYS = ['who', 'where', 'day', 'time'];   // same order as the boxes
     const afEl = { day: 'afDay', time: 'afTime', who: 'afWho', where: 'afWhere' };
     const afVal = (k) => { const e = document.getElementById(afEl[k]); return e ? String(e.value || '').trim() : ''; };
     const afNextEmpty = () => AF_KEYS.find((k) => !afVal(k) && !(document.getElementById(afEl[k]) || {}).dataset?.skipped) || '';
