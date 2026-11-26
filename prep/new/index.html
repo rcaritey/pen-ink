@@ -121,6 +121,14 @@
     body.has-pill #companionStatusDot { display: none; }
     .b-grid { display: flex; flex-direction: column; gap: 6px; }
     @media (min-width: 900px) { .b-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; } }   /* About me: two columns on wide screens */
+    /* a part just finished: its road map check mark pops in with a soft green ring (under 0.3 s each) */
+    #pgDoneSr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .pg-ic.pg-pop { animation: pgPop .28s cubic-bezier(.3, 1.6, .5, 1) both, pgRing .3s ease-out .26s 2; }
+    .pg-ic.pg-pop svg { animation: pgDraw .28s ease-out both; }
+    @keyframes pgPop { 0% { transform: scale(.55); } 70% { transform: scale(1.22); } 100% { transform: scale(1); } }
+    @keyframes pgRing { 0% { box-shadow: 0 0 0 0 rgba(59,94,66,.55); } 100% { box-shadow: 0 0 0 12px rgba(59,94,66,0); } }
+    @keyframes pgDraw { 0% { opacity: 0; transform: rotate(-25deg) scale(.6); } 100% { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .pg-ic.pg-pop, .pg-ic.pg-pop svg { animation: none; } .pg-ic.pg-pop { box-shadow: 0 0 0 3px rgba(59,94,66,.45); } }
     .ap-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; } .ap-tags .ap-tag { margin-top: 0; }
     .ap-stage { font-size: 13px; font-weight: 800; border-radius: 999px; padding: 2px 10px; border: 1px solid; }
     .ap-st-done { color: #1E4627; background: #E5EFE7; border-color: #9DBBA3; } .ap-st-todo { color: #7A2E12; background: #FBEDE4; border-color: #E2B8A0; }
@@ -6075,15 +6083,16 @@
       if (i < 0 || i === currentIndex || i > reachedMax) return;
       b.blur(); ensureCtx(); hush(); goTo(i);
     });
-    function cheer(pa, pb) {
-      const nm = (((SID('name') && SID('name').answer) || '').trim().split(/\s+/)[0] || '').replace(/[.,!?;:]+$/, '');
-      const en = `Well done${nm ? ', ' + nm : ''}! You’ve finished ${pa.den}. Now on to ${pb.den}.`;
-      const fr = `Bravo${nm ? ', ' + nm : ''} ! Vous avez terminé ${pa.dfr}. Passons à ${pb.dfr}.`;
-      const emb = document.getElementById('companionEmblem');
-      if (emb) { emb.classList.add('reid-happy'); setTimeout(() => emb.classList.remove('reid-happy'), 2600); }
-      showToast(lang === 'fr' ? fr : en);
-      const at = currentIndex;
-      sayT(en, fr, true).then(() => { if (currentIndex === at && readAloud) speakStep(); });
+    // Finishing a smaller part (Rama, 25 Nov: "no more Reid congratulations after each smaller step, animate the check
+    // mark instead"): the part's check mark on the road map pops in, quietly; screen readers hear "Done: …". The big
+    // end-of-section celebration (Outstanding!) is unchanged.
+    function cheer(pa) {
+      requestAnimationFrame(() => {
+        const ic = document.querySelector(`#stepSubtitle [data-part="${pa.k}"]`); if (!ic) return;
+        ic.classList.remove('pg-pop'); void ic.offsetWidth; ic.classList.add('pg-pop'); setTimeout(() => ic.classList.remove('pg-pop'), 900);
+      });
+      let sr = document.getElementById('pgDoneSr'); if (!sr) { sr = document.createElement('p'); sr.id = 'pgDoneSr'; sr.className = 'sr-only'; sr.setAttribute('role', 'status'); document.body.appendChild(sr); }
+      sr.textContent = L2('Done: ', 'Terminé : ') + L2(pa.en, pa.fr);
     }
     { const gnC = goNext; goNext = function () {
         const a = currentIndex, pa = partOf(steps[a]);
@@ -6091,7 +6100,7 @@
         const cleanName = () => { const n = steps[a]; if (n.id === 'name' && typeof n.answer === 'string') n.answer = n.answer.replace(/[\s.,!?;:]+$/, '').replace(/^\s*(my name is|i am|i'm|je m'appelle|je suis)\s+/i, ''); };
         cleanName(); const r = gnC.apply(this, arguments); cleanName();
         const b = currentIndex, pb = partOf(steps[b]);
-        if (b > a && pa && pb && pa !== pb && pa.k !== 'start' && !phaseEndAt(b)) cheer(pa, pb);
+        if (b > a && pa && pb && pa !== pb && pa.k !== 'start' && !phaseEndAt(b)) cheer(pa);
         if (b > a && phaseEndAt(b) && steps[a].phaseIndex === steps[b].phaseIndex) celebratePhase(steps[b].phaseIndex);
         return r; }; }
 
