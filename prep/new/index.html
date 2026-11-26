@@ -8447,7 +8447,7 @@
       };
       inp.addEventListener('focus', () => { clearTimeout(closeT); typed = false; paint(); });   // tapping in always shows the full list
       inp.addEventListener('click', () => { clearTimeout(closeT); if (box.hidden) { typed = false; paint(); } });
-      inp.addEventListener('input', (e) => { if (!e.isTrusted) return;   // typing narrows it (not when Reid fills it in by voice)
+      inp.addEventListener('input', (e) => { if (!e.isTrusted && e.inputType !== 'insertText') return;   // typing or speaking into the box narrows it (not when Reid fills it in by voice)
         typed = true; extra = []; paint();
         if (remote) { clearTimeout(rT); const q = inp.value, my = ++rq; rT = setTimeout(async () => { const got = await remote(q); if (my !== rq || inp.value !== q) return; extra = got; if (document.activeElement === inp || box.contains(document.activeElement)) paint(); }, 350); }
       });
@@ -8660,6 +8660,21 @@
         return hAF(t); }; }
     if (typeof SPEAK === 'object') SPEAK.apptForm = () => L2('Your appointment. ', 'Votre rendez-vous. ') + afPrompt() + (afNextEmpty() === 'day' ? L2(' You can say it all at once, or tap the boxes.', ' Vous pouvez tout dire d’un coup, ou toucher les cases.') : '');
     if (typeof EXPLAIN === 'object' && typeof SPEAK === 'object') EXPLAIN.apptForm = SPEAK.apptForm;
+
+    // Speaking fills the box you'd type in (Rama, 26 Nov): when a typing box is selected (Who with, Where, your own
+    // question, a medicine name…), what's said is written into that box, as if typed. Commands like "next" still work.
+    { const hBox = heard; heard = function (t) {
+        const el = document.activeElement, low = String(t || '').toLowerCase().replace(/[.!?,]/g, '').trim();
+        const typing = el && el.id !== 'answerInput' && ((el.tagName === 'INPUT' && /^(text|search|)$/.test(el.type || '')) || el.tagName === 'TEXTAREA') && !el.readOnly && !el.disabled && el.offsetParent !== null;
+        const command = cmdOf(low) || /^(next|next please|go on|continue|back|go back|repeat|help|stop|pause|wait|undo|erase|skip|done|suivant|retour|aide|passer|terminé)$/.test(low);
+        if (!typing || command || !String(t || '').trim()) return hBox.apply(this, arguments);
+        const said = String(t).trim(), cur = el.value || '', start = el.selectionStart ?? cur.length, end = el.selectionEnd ?? cur.length;
+        const before = cur.slice(0, start), after = cur.slice(end), sep = before && !/\s$/.test(before) ? ' ' : '';
+        el.value = (before + sep + said + after).slice(0, el.maxLength > 0 ? el.maxLength : 100000);
+        const pos = (before + sep + said).length; try { el.setSelectionRange(pos, pos); } catch (e) { /* some boxes don't allow it */ }
+        el.dispatchEvent(new InputEvent('input', { bubbles: true, data: said, inputType: 'insertText' }));
+        setCompanionState('captured'); return;
+      }; }
 
     // Is Reid talking, listening, hearing me, or paused? (Rama, 25 Nov) The microphone bar shows all four, with an icon
     // and two short lines so it never gets cut off on a phone. While Reid is talking, tapping the bar stops him.
