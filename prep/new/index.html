@@ -203,9 +203,12 @@
     .ph-face svg { width: 132px; height: 132px; display: block; }
     .ph-big { font-size: 30px; font-weight: 800; color: #1E4627; line-height: 1.15; margin: 4px 0 6px; }
     .ph-sub { font-size: 19px; color: #1E2634; line-height: 1.35; margin: 0 0 14px; }
-    .ph-next { text-align: left; background: #fff; border: 1px solid #E2DACB; border-radius: 18px; padding: 12px 16px 12px 14px; margin: 0 0 16px; }
+    .ph-next { text-align: left; background: #fff; border: 1px solid #E2DACB; border-radius: 18px; padding: 14px 16px; margin: 0 0 18px; }
     .ph-next-h { margin: 0 0 6px; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #3B5E42; }
-    .ph-next ol { margin: 0; padding-left: 1.5em; list-style: decimal; } .ph-next li { font-size: 18px; line-height: 1.35; color: #1E2634; margin: 4px 0; }
+    .ph-next li { transition: opacity .25s ease-out, transform .25s ease-out; } .ph-next li.ph-hide { opacity: 0; transform: translateY(8px); }
+    @media (prefers-reduced-motion: reduce) { .ph-next li { transition: none; } .ph-next li.ph-hide { transform: none; } }
+    .ph-next ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; } .ph-next li { display: flex; align-items: center; gap: 12px; }
+    .ph-ic { flex: none; width: 40px; height: 40px; border-radius: 12px; background: #E5EFE7; color: #3B5E42; display: flex; align-items: center; justify-content: center; } .ph-next li { font-size: 19px; font-weight: 700; line-height: 1.3; color: #1E2634; margin: 0; }
     .ph-card { max-height: calc(100vh - 32px); overflow-y: auto; }
     .ts-1 .ph-next li { font-size: 21px; } .ts-2 .ph-next li { font-size: 24px; }
     @keyframes phIn { from { opacity: 0; } to { opacity: 1; } }
@@ -6131,26 +6134,19 @@
     function celebratePhase(ph) {
       if (phCelebrated.has(ph)) return; phCelebrated.add(ph);
       const nm = (((SID('name') && SID('name').answer) || '').trim().split(/\s+/)[0] || '').replace(/[.,!?;:]+$/, '');
-      const T3 = [['You’ve completed the appointment prep.', 'Vous avez terminé la préparation du rendez-vous.', 'Your pages are ready to print, save or send.', 'Vos pages sont prêtes à imprimer, enregistrer ou envoyer.'],
-        ['You’ve made it through the visit.', 'Vous avez fait toute la visite.', '', ''],
-        ['You’re all done.', 'Vous avez tout terminé.', 'Your summary and next steps are ready to print, save and send.', 'Votre résumé et vos prochaines étapes sont prêts à imprimer, enregistrer et envoyer.']][ph] || ['Section done.', 'Section terminée.', '', ''];
+      // Lighter (Rama, 26 Nov: "the text feels dense"): one short line, then three short next steps, each with an icon.
+      const T3 = [['Your prep is done.', 'Votre préparation est terminée.', '', ''], ['The visit is done.', 'La visite est terminée.', '', ''],
+        ['You’re all done.', 'Vous avez tout terminé.', '', '']][ph] || ['Section done.', 'Section terminée.', '', ''];
       const big = L2('Outstanding' + (nm ? ', ' + nm : '') + '!', 'Bravo' + (nm ? ', ' + nm : '') + ' !');
-      // what comes next, laid out right after the congratulations (Rama, 25 Nov)
-      const NEXT = [[['Print or save your pages, or send them to your care circle.', 'Imprimez ou enregistrez vos pages, ou envoyez-les à votre cercle de soins.'],
-          ['Bring them to your appointment.', 'Apportez-les à votre rendez-vous.'],
-          ['At the visit, open WellHeard: ' + helperName() + ' helps you record and go through your questions.', 'À la visite, ouvrez WellHeard : ' + helperName() + ' vous aide à enregistrer et à passer vos questions.']],
-        [[helperName() + ' writes a summary of what the doctor said.', helperName() + ' écrit un résumé de ce que le médecin a dit.'],
-          ['Check it, and fix anything that isn’t right.', 'Vérifiez-le, et corrigez ce qui n’est pas juste.'],
-          ['Send it to your care circle and add dates to your calendar.', 'Envoyez-le à votre cercle de soins et ajoutez les dates à votre calendrier.']],
-        [['Send your summary to your care circle.', 'Envoyez votre résumé à votre cercle de soins.'],
-          ['Add your next appointment to your calendar.', 'Ajoutez votre prochain rendez-vous à votre calendrier.'],
-          ['For your next visit, start a new one: your basics are kept.', 'Pour votre prochaine visite, commencez-en une nouvelle : vos informations de base sont gardées.']]][ph] || [];
+      const NEXT = [[['print', 'Print or send your pages', 'Imprimez ou envoyez vos pages'], ['calendar', 'Bring them to the visit', 'Apportez-les à la visite'], ['mic', 'Open WellHeard at the visit', 'Ouvrez WellHeard à la visite']],
+        [['note', helperName() + ' writes the summary', helperName() + ' écrit le résumé'], ['check', 'Check it', 'Vérifiez-le'], ['mail', 'Send it and add dates', 'Envoyez-le et ajoutez les dates']],
+        [['mail', 'Send your summary', 'Envoyez votre résumé'], ['calendar', 'Add your next visit to the calendar', 'Ajoutez la prochaine visite au calendrier'], ['user', 'Next time, start a new visit', 'La prochaine fois, commencez une nouvelle visite']]][ph] || [];
       // Accessible for older users (Rama, 25 Nov): no timer, only the Continue button (or Esc, or saying "next") closes it,
       // the button is ready for the keyboard, the text follows the text-size setting, and the voice waits for the chime.
       const ov = document.createElement('div'); ov.className = 'ph-done'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'phBig');
       ov.innerHTML = `<div class="ph-card"><div class="ph-face-wrap"><div class="ph-face reid-happy reid-grin"><svg viewBox="0 0 40 40" aria-hidden="true">${faceSvg(whHelper)}</svg></div><span class="ph-thumb">${THUMB}</span></div>
         <p class="ph-big" id="phBig">${esc(big)}</p><p class="ph-sub">${esc(L2(T3[0], T3[1]))}${T3[2] ? '<br>' + esc(L2(T3[2], T3[3])) : ''}</p>
-        ${NEXT.length ? `<div class="ph-next"><p class="ph-next-h">${L2('What’s next', 'Et ensuite')}</p><ol>${NEXT.map((n) => `<li>${esc(L2(n[0], n[1]))}</li>`).join('')}</ol></div>` : ''}
+        ${NEXT.length ? `<div class="ph-next"><p class="ph-next-h">${L2('What’s next', 'Et ensuite')}</p><ul>${NEXT.map((n) => `<li><span class="ph-ic" aria-hidden="true">${WHI(n[0], 22)}</span><span>${esc(L2(n[1], n[2]))}</span></li>`).join('')}</ul></div>` : ''}
         <button type="button" data-phgo class="tactile-btn primary-capsule-btn w-full min-h-[60px] font-extrabold text-[20px] text-white">${L2('Continue', 'Continuer')}</button></div>`;
       document.body.appendChild(ov); applyLang();
       const emb = document.getElementById('companionEmblem'); if (emb) emb.classList.add('reid-happy', 'reid-grin');
@@ -6158,13 +6154,24 @@
       const key = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
       const close = () => { if (!ov.isConnected) return; ov.remove(); document.removeEventListener('keydown', key, true); window.__phClose = null; if (emb) emb.classList.remove('reid-happy', 'reid-grin'); hush(); if (readAloud) speakStep(); };
       document.addEventListener('keydown', key, true); go.addEventListener('click', close); window.__phClose = close;
-      const nextSaid = NEXT.length ? L2(' Here’s what’s next. ', ' Et ensuite. ') + NEXT.map((n, i) => { const t = L2(n[0], n[1]); return L2(['First', 'Then', 'And'][i] + ', ', ['D’abord', 'Puis', 'Et'][i] + ', ') + (/^(WellHeard|Reid|Lilly)/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1)); }).join(' ') : '';
-      const line = L2(big + ' ' + T3[0] + (T3[2] ? ' ' + T3[2] : ''), big + ' ' + T3[1] + (T3[3] ? ' ' + T3[3] : '')) + nextSaid;
-      chime().then(() => {   // then the helper says it, warmly, even when read-aloud is off (it's the one moment worth hearing)
+      // Each next step appears as the voice reaches it (Rama, 26 Nov). With no sound, they appear one by one anyway.
+      const lis = [...ov.querySelectorAll('.ph-next li')]; lis.forEach((li) => li.classList.add('ph-hide'));
+      const show = (i) => { if (lis[i]) lis[i].classList.remove('ph-hide'); };
+      const wait = (ms) => new Promise((ok) => setTimeout(ok, ms));
+      const head = L2(big + ' ' + T3[0], big + ' ' + T3[1]);
+      const stepSaid = (n, i) => { const t = L2(n[1], n[2]) + '.'; return (i === 0 ? L2('Here’s what’s next. First, ', 'Et ensuite. D’abord, ') : L2(['', 'Then, ', 'And, '][i], ['', 'Puis, ', 'Et, '][i])) + (/^(WellHeard|Reid|Lilly)/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1)); };
+      chime().then(async () => {   // then the helper says it, warmly, even when read-aloud is off (it's the one moment worth hearing)
         if (!ov.isConnected) return;
-        const was = [inputPreference, readAloud]; inputPreference = 'voice'; readAloud = true; window.__ttsMood = 'happy';
-        try { say(line, lang === 'en' || lang === 'fr'); } finally { inputPreference = was[0]; readAloud = was[1]; setTimeout(() => { window.__ttsMood = ''; }, 3000); }
+        const was = [inputPreference, readAloud]; window.__ttsMood = 'happy';
+        const talk = async (t) => { const t0 = Date.now(); inputPreference = 'voice'; readAloud = true;
+          try { await say(t, lang === 'en' || lang === 'fr'); } catch (e) { console.warn('Celebration voice', e); } finally { inputPreference = was[0]; readAloud = was[1]; }
+          if (Date.now() - t0 < 400) await wait(900); };   // no sound came out: still pace the steps
+        try {
+          await talk(head);
+          for (let i = 0; i < NEXT.length; i++) { if (!ov.isConnected) break; show(i); await talk(stepSaid(NEXT[i], i)); }
+        } finally { lis.forEach((li) => li.classList.remove('ph-hide')); setTimeout(() => { window.__ttsMood = ''; }, 500); }
       });
+      // closing early shows nothing half-hidden next time; the Continue button works at any moment
     }
 
     // =====================================================================
