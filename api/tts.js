@@ -14,7 +14,11 @@ import { fromWellHeard, limited } from './_guard.js';
 // Liam HD (29 Oct 2026, Rama: "non-monotone, Canadian accent"): Azure's HD voice reads the mood of
 // each sentence instead of one flat tone. If Azure won't give the HD voice, his standard twin reads.
 const HD = 'en-CA-Liam:DragonHDOmniLatestNeural';
-const TWIN = { [HD]: 'en-CA-LiamNeural' };
+// Lilly's candidates (Rama, 26 Nov: "Lilly is quite monotone"): Clara has no HD version, so these expressive HD
+// voices are offered, each with a standard twin to fall back on.
+const LILLY_HD = { 'en-US-Ava:DragonHDOmniLatestNeural': 'en-US-AvaNeural', 'en-US-Emma:DragonHDLatestNeural': 'en-US-EmmaNeural',
+  'en-US-Jenny:DragonHDLatestNeural': 'en-US-JennyNeural', 'en-US-Aria:DragonHDLatestNeural': 'en-US-AriaNeural' };
+const TWIN = Object.assign({ [HD]: 'en-CA-LiamNeural' }, LILLY_HD);
 const DEFAULT_VOICE = HD;
 const VOICES = {
   [HD]: 'en-CA',
@@ -23,6 +27,7 @@ const VOICES = {
   'fr-CA-SylvieNeural': 'fr-CA', 'fr-CA-ThierryNeural': 'fr-CA', 'fr-CA-AntoineNeural': 'fr-CA',
   'fr-FR-DeniseNeural': 'fr-FR', 'fr-FR-HenriNeural': 'fr-FR',
 };
+Object.keys(LILLY_HD).forEach((v) => { VOICES[v] = 'en-US'; VOICES[LILLY_HD[v]] = 'en-US'; });
 // every language's own voice, plus the multilingual voice as a fallback
 Object.values(LANGS).forEach(([, locale, v]) => { if (!VOICES[v]) VOICES[v] = locale; });
 VOICES[MULTI] = 'en-US';
