@@ -376,8 +376,18 @@
     /* Color-blind-safe primary forward capsule button (distinct shape, elevation & badge) */
     /* the main forward button is the highest: a solid key edge plus a soft clay-tinted ambient shadow; pressed, it sinks onto its edge */
     /* gender on the About you screen (Rama, 25 Nov): 2 × 2 on phones, one row of 4 on wider screens */
-    .ab-sex { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
-    @media (min-width: 700px) { .ab-sex { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .ab-sex { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+    /* About you: each label beside its control, so the whole step fits without scrolling (Rama, 26 Nov) */
+    .ab-card { container-type: inline-size; }
+    .ab-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+    .ab-row > .ab-l { width: 58px; flex-shrink: 0; font-weight: 800; font-size: 17px; color: #1E2634; }
+    .ab-pair { display: grid; grid-template-columns: 1fr; }
+    .ab-pair > .ab-row + .ab-row { border-top: 1px solid #EFE9DE; }
+    @container (min-width: 560px) {
+      .ab-sex { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .ab-pair { grid-template-columns: 1fr 1fr; column-gap: 18px; }
+      .ab-pair > .ab-row + .ab-row { border-top: 0; }
+    }
     /* Once something is picked or typed, Next says so in words (Rama, 25 Nov): "Press Next when done" under the label */
     #nextNavHint { display: none; font-size: 14px; font-weight: 700; line-height: 1.15; opacity: .95; }
     #nextNavBtn.nx-ready #nextNavHint { display: block; animation: nxIn .35s ease-out; }
@@ -7288,9 +7298,17 @@
     const abSave = () => { about.answer = abFmt(); about.customActive = !!about.answer; try { localStorage.setItem('wellheard-about', JSON.stringify(AB)); } catch (e) { /* full */ } saveAll(); };
     const AB_LIM = { age: [1, 120, 70], ft: [2, 7, 5], inch: [0, 11, 6], cm: [60, 230, 168], lb: [40, 500, 160], kg: [20, 230, 72] };
     function abStep(k, d) {
-      const [lo, hi, start] = AB_LIM[k]; let v = parseInt(AB[k], 10);
-      v = isNaN(v) ? start : Math.min(hi, Math.max(lo, v + d));
-      AB[k] = String(v); abSave();
+      if (k === 'hft') {   // one − / + for feet and inches together: an inch at a time
+        let t = (parseInt(AB.ft, 10) || 0) * 12 + (parseInt(AB.inch, 10) || 0);
+        t = AB.ft ? Math.min(95, Math.max(24, t + d)) : 66;
+        AB.ft = String(Math.floor(t / 12)); AB.inch = String(t % 12);
+      } else {
+        const [lo, hi, start] = AB_LIM[k]; let v = parseInt(AB[k], 10);
+        v = isNaN(v) ? start : Math.min(hi, Math.max(lo, v + d));
+        AB[k] = String(v);
+      }
+      abSave();
+      document.querySelectorAll('#listItems [data-abin]').forEach((i) => { if (document.activeElement !== i) i.value = AB[i.dataset.abin] || ''; });
     }
     function abSwitch(kind, u) {   // convert what's there, so nothing is lost when switching units
       if (kind === 'h' && AB.hu !== u) {
@@ -7313,25 +7331,27 @@
       $('listCounter').classList.add('hidden');
       items.classList.add('overflow-y-auto');
       const metric = AB.hu === 'cm';
-      const num = (k, label, unit) => `<div class="flex items-center gap-1.5 shrink-0">
-          <button type="button" data-ab="minus" data-k="${k}" class="tactile-btn w-[46px] h-[48px] shrink-0 rounded-xl bg-[#F0EBE1] border border-[#D6CFC0] text-[26px] font-extrabold text-[#1E2634]" aria-label="${L2('Less', 'Moins')}: ${label}">−</button>
-          <input data-abin="${k}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${esc(AB[k])}" aria-label="${label}" placeholder="–"
-            class="w-[58px] h-[48px] rounded-xl border-2 border-[#1E2634] bg-white text-center text-[22px] font-extrabold text-[#1E2634]">
-          <button type="button" data-ab="plus" data-k="${k}" class="tactile-btn w-[46px] h-[48px] shrink-0 rounded-xl bg-[#F0EBE1] border border-[#D6CFC0] text-[26px] font-extrabold text-[#1E2634]" aria-label="${L2('More', 'Plus')}: ${label}">+</button>
-          <span class="min-w-[26px] text-[16px] font-extrabold text-[#425268]" aria-hidden="true">${unit}</span></div>`;
-      const row = (title, body) => `<div class="w-full flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-1.5">
-          <span class="w-[64px] font-extrabold text-[17px] text-[#1E2634]">${title}</span><div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">${body}</div></div>`;
-      const unitBtn = (u, l) => `<button type="button" data-abu="both" data-u="${u}" aria-pressed="${(u === 'cm') === metric}" class="tactile-btn min-h-[44px] px-3 font-extrabold text-[14px] ${(u === 'cm') === metric ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-white text-[#1E2634]'}">${l}</button>`;
-      items.innerHTML = `<div class="w-full flex items-center justify-between gap-2">
-          <span class="text-[14px] font-extrabold text-[#425268]">${L2('Units', 'Unités')}</span>
-          <div class="inline-flex rounded-xl border border-[#D6CFC0] overflow-hidden" role="group" aria-label="${L2('Units', 'Unités')}">${unitBtn('ft', 'ft · lb')}${unitBtn('cm', 'cm · kg')}</div></div>
-        <div class="w-full bg-white border border-[#E6DFD0] rounded-[18px] px-3 py-1 flex flex-col divide-y divide-[#EFE9DE]">
+      const btn = (k, d, label) => `<button type="button" data-ab="${d > 0 ? 'plus' : 'minus'}" data-k="${k}" style="width:44px;height:46px" class="tactile-btn shrink-0 rounded-xl bg-[#F0EBE1] border border-[#D6CFC0] text-[26px] font-extrabold text-[#1E2634]" aria-label="${d > 0 ? L2('More', 'Plus') : L2('Less', 'Moins')}: ${label}">${d > 0 ? '+' : '−'}</button>`;
+      const box = (k, label, w) => `<input data-abin="${k}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${esc(AB[k])}" aria-label="${label}" placeholder="–"
+            style="width:${w}px;height:46px" class="shrink-0 rounded-xl border-2 border-[#1E2634] bg-white text-center text-[22px] font-extrabold text-[#1E2634]">`;
+      const unit = (u) => `<span class="text-[15px] font-extrabold text-[#425268]" aria-hidden="true">${u}</span>`;
+      const num = (k, label, u) => `<div class="flex items-center gap-1.5">${btn(k, -1, label)}${box(k, label, 54)}${btn(k, 1, label)}${unit(u)}</div>`;
+      const feet = () => `<div class="flex items-center gap-1">${btn('hft', -1, L2('Height', 'Taille'))}${box('ft', L2('Height, feet', 'Taille, pieds'), 36)}${unit('ft')}${box('inch', L2('Height, inches', 'Taille, pouces'), 40)}${unit('in')}${btn('hft', 1, L2('Height', 'Taille'))}</div>`;
+      const row = (title, body) => `<div class="ab-row"><span class="ab-l">${title}</span>${body}</div>`;
+      const unitBtn = (u, l) => `<button type="button" data-abu="both" data-u="${u}" aria-pressed="${(u === 'cm') === metric}" class="tactile-btn min-h-[44px] px-2.5 font-extrabold text-[14px] whitespace-nowrap ${(u === 'cm') === metric ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-white text-[#1E2634]'}">${(u === 'cm') === metric ? '✓ ' : ''}${l}</button>`;
+      { const hp = $('listHelp'), tx = hp.textContent;
+        hp.innerHTML = `<span class="flex items-center justify-between gap-3"><span>${esc(tx)}</span><span class="inline-flex shrink-0 rounded-xl border border-[#D6CFC0] overflow-hidden" role="group" aria-label="${L2('Units', 'Unités')}">${unitBtn('ft', 'ft · lb')}${unitBtn('cm', 'cm · kg')}</span></span>`;
+        hp.querySelectorAll('[data-abu]').forEach((u) => u.addEventListener('click', () => { const m = u.dataset.u === 'cm'; abSwitch('h', m ? 'cm' : 'ft'); abSwitch('w', m ? 'kg' : 'lb'); renderList(); applyLang(); })); }
+      const sexBtn = (g) => `<button type="button" data-absex="${g}" aria-pressed="${AB.sex === g}" style="min-height:46px" class="tactile-btn px-1.5 rounded-xl font-extrabold text-[16px] leading-tight ${AB.sex === g ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${AB.sex === g ? '✓ ' : ''}${L2(...AB_SEX[g])}</button>`;
+      items.innerHTML = `<div class="ab-card w-full bg-white border border-[#E6DFD0] rounded-[18px] px-3 py-1 flex flex-col divide-y divide-[#EFE9DE]">
           ${row(L2('Age', 'Âge'), num('age', L2('Age in years', 'Âge en années'), L2('yrs', 'ans')))}
-          ${`<div class="w-full flex flex-col gap-[8px] py-2"><span class="font-extrabold text-[17px] text-[#1E2634]">${L2('Gender', 'Genre')}</span><div class="ab-sex" role="group" aria-label="${L2('Gender', 'Genre')}">${['female', 'male', 'other', 'none'].map((g) => `<button type="button" data-absex="${g}" aria-pressed="${AB.sex === g}" class="tactile-btn min-h-[52px] px-2 rounded-xl font-extrabold text-[16px] leading-tight ${AB.sex === g ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}">${AB.sex === g ? '✓ ' : ''}${L2(...AB_SEX[g])}</button>`).join('')}</div>${AB.sex === 'other' ? `<input data-absexo type="text" maxlength="40" value="${esc(AB.sexOther)}" placeholder="${L2('Your words (optional)', 'Vos mots (facultatif)')}" aria-label="${L2('Gender, in your words', 'Genre, avec vos mots')}" class="w-full min-h-[48px] px-3 rounded-xl border-2 border-[#5E7A63] bg-white text-[17px] text-[#1E2634]">` : ''}</div>`}
-          ${row(L2('Height', 'Taille'), metric ? num('cm', L2('Height in centimetres', 'Taille en centimètres'), 'cm')
-            : num('ft', L2('Height, feet', 'Taille, pieds'), 'ft') + num('inch', L2('Height, inches', 'Taille, pouces'), 'in'))}
-          ${row(L2('Weight', 'Poids'), metric ? num('kg', L2('Weight in kilograms', 'Poids en kilos'), 'kg') : num('lb', L2('Weight in pounds', 'Poids en livres'), 'lb'))}</div>`;
+          <div class="ab-row" style="align-items:flex-start"><span class="ab-l" style="padding-top:12px">${L2('Gender', 'Genre')}</span><div class="flex-1 min-w-0 flex flex-col gap-2"><div class="ab-sex" role="group" aria-label="${L2('Gender', 'Genre')}">${['female', 'male', 'other', 'none'].map(sexBtn).join('')}</div>${AB.sex === 'other' ? `<input data-absexo type="text" maxlength="40" value="${esc(AB.sexOther)}" placeholder="${L2('Your words (optional)', 'Vos mots (facultatif)')}" aria-label="${L2('Gender, in your words', 'Genre, avec vos mots')}" style="min-height:44px" class="w-full px-3 rounded-xl border-2 border-[#5E7A63] bg-white text-[17px] text-[#1E2634]">` : ''}</div></div>
+          <div class="ab-pair">${row(L2('Height', 'Taille'), metric ? num('cm', L2('Height in centimetres', 'Taille en centimètres'), 'cm') : feet())}
+            ${row(L2('Weight', 'Poids'), metric ? num('kg', L2('Weight in kilograms', 'Poids en kilos'), 'kg') : num('lb', L2('Weight in pounds', 'Poids en livres'), 'lb'))}</div></div>`;
       foot.innerHTML = '';
+      // still a little too tall (e.g. "Your words" showing)? shrink the card slightly rather than hide the last rows (never under 90%)
+      { const card = items.querySelector('.ab-card'); if (card) { card.style.zoom = '';
+        const over = items.scrollHeight - items.clientHeight; if (over > 2) card.style.zoom = String(Math.max(0.9, (card.offsetHeight - over - 2) / card.offsetHeight)); } }
       { const o = items.querySelector('[data-absexo]'); if (o) o.addEventListener('input', () => { AB.sexOther = o.value; abSave(); }); }
       items.querySelectorAll('[data-abin]').forEach((inp) => {
         inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(0, 3); AB[inp.dataset.abin] = inp.value; abSave(); });
@@ -7629,9 +7649,9 @@
     // the row Reid is asking about is highlighted
     { const ra = renderAbout; renderAbout = function (items, foot) {
       ra(items, foot);
-      if (inputPreference !== 'voice' || abAsk > 2) return;
-      const rows = items.querySelectorAll('.divide-y > div'); const r = rows[abAsk];
-      if (r) { r.style.background = '#E5EFE7'; r.style.borderRadius = '12px'; r.style.margin = '0 -6px'; r.style.padding = '6px'; r.setAttribute('aria-current', 'true'); }
+      if (inputPreference !== 'voice' || abAsk > 3) return;
+      const rows = items.querySelectorAll('.ab-row'); const r = rows[[0, 2, 3, 4][abAsk]];   // rows: age, units, gender, height, weight
+      if (r) { r.style.background = '#E5EFE7'; r.style.borderRadius = '12px'; r.style.margin = '0 -6px'; r.style.padding = '7px 6px'; r.setAttribute('aria-current', 'true'); }
     }; }
 
     document.getElementById('listItems').addEventListener('input', (e) => {
@@ -8808,7 +8828,7 @@
           <div class="flex flex-col gap-1.5 relative"><label for="condAdd" class="ap-lbl" style="margin-top:0">${list.length ? L2('Add another', 'En ajouter un autre') : L2('Add a condition', 'Ajouter un problème de santé')}</label>
             <div class="flex gap-[8px] items-start"><div class="flex-1 min-w-0 relative"><input id="condAdd" type="text" autocomplete="off" maxlength="80" class="ap-in" placeholder="${L2('Type or tap to choose', 'Écrivez ou touchez pour choisir')}"></div>
             <button type="button" data-cadd class="tactile-btn shrink-0 min-h-[52px] px-4 rounded-2xl bg-[#3B5E42] text-white font-extrabold text-base">${L2('Add', 'Ajouter')}</button></div></div>
-          ${quick.length && !none ? `<div class="af-chips" role="group" aria-label="${L2('Common ones', 'Les plus courants')}">${quick.map((x) => `<button type="button" data-cq="${esc(x)}" class="tactile-btn ap-chip">+ ${esc(x)}</button>`).join('')}</div>` : ''}
+          ${''/* quick-pick buttons removed: the list under the box has them (Rama, 26 Nov) */}
           ${list.length ? '' : `<button type="button" data-cnone class="tactile-btn w-full min-h-[56px] rounded-2xl font-extrabold text-[17px] ${none ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627]' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'}" aria-pressed="${none}">${none ? '✓ ' : ''}${L2('I don’t have any', 'Je n’en ai pas')}</button>`}
         </div>`;
       foot.innerHTML = '';
