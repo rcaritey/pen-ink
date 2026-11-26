@@ -129,6 +129,13 @@
     .ap-form { background: #fff; border: 1px solid #D6CFC0; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
     .ap-lbl { font-size: 15px; font-weight: 800; color: #1E2634; margin-top: 6px; }
     .ap-in { min-height: 52px; border: 1px solid #8A8370; border-radius: 12px; padding: 0 12px; font-size: 17px; color: #1E2634; background: #fff; width: 100%; }
+    .ap-in { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; box-sizing: border-box; text-align: left; }
+    .ap-in::-webkit-date-and-time-value { text-align: left; margin: 0; }
+    .af-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 2px; }
+    .af-chips .ap-chip { min-height: 44px; padding: 4px 6px; font-size: 14px; white-space: normal; line-height: 1.15; border-radius: 14px; }
+    .af-pair { display: flex; flex-direction: column; gap: 6px; }
+    @media (min-width: 900px) { .af-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; } .af-pair .ap-lbl { margin-top: 6px; } }
+    .af-two { display: grid; grid-template-columns: 1.25fr 1fr; gap: 10px; } .af-two .ap-lbl { margin-top: 0; }
     .ap-in:focus { outline: 3px solid #3B5E42; outline-offset: 2px; } .ap-in[aria-invalid="true"] { border: 2px solid #8A2E1C; }
     .ap-err { color: #8A2E1C; font-size: 15px; font-weight: 700; margin: 2px 0 0; }
     .ap-form-btns { display: flex; gap: 10px; margin-top: 12px; } .ap-cancel, .ap-save { flex: 1; min-height: 52px; border-radius: 14px; font-weight: 800; font-size: 16px; }
@@ -5998,7 +6005,7 @@
       { k: 'start', icon: 'gear', ids: ['setup', 'setupSize', 'helper', 'setupMode', 'setupRead', 'consent'], en: 'Getting started', fr: 'Pour commencer', den: 'getting started', dfr: 'les préparatifs' },
       { k: 'you', icon: 'user', ids: ['name', 'basicsCheck', 'about'], en: 'About you', fr: 'À propos de vous', den: 'the questions about you', dfr: 'les questions sur vous' },
       { k: 'health', icon: 'pill', ids: ['conditions', 'meds', 'allergies'], en: 'Your health', fr: 'Votre santé', den: 'your health and medicines', dfr: 'votre santé et vos médicaments' },
-      { k: 'appt', icon: 'calendar', ids: ['who', 'day', 'time', 'where'], en: 'Your appointment', fr: 'Votre rendez-vous', den: 'your appointment details', dfr: 'les détails du rendez-vous' },
+      { k: 'appt', icon: 'calendar', ids: ['apptForm', 'who', 'day', 'time', 'where'], en: 'Your appointment', fr: 'Votre rendez-vous', den: 'your appointment details', dfr: 'les détails du rendez-vous' },
       { k: 'why', icon: 'speak', ids: ['concerns', 'story', 'goal'], en: 'Why you’re going', fr: 'Pourquoi vous y allez', den: 'why you’re going', dfr: 'pourquoi vous y allez' },
       { k: 'qs', icon: 'help', ids: ['ideas', 'detail', 'priority', 'ask'], dq: 1, en: 'Your questions', fr: 'Vos questions', den: 'your questions', dfr: 'vos questions' },
       { k: 'pages', icon: 'file', ids: ['ready', 'review'], en: 'Your pages', fr: 'Vos pages', den: 'your pages', dfr: 'vos pages' },
@@ -8281,6 +8288,63 @@
       if (changed) { saveAll(); console.info('Cleaned the helper’s words out of', changed, 'saved answer(s)'); }
       try { localStorage.setItem('wellheard-echofix1', '1'); } catch (e) { console.warn('Clean-up flag not saved', e); }
     })();
+
+    // Your appointment on one screen (Rama, 25 Nov: "a good solution for appt details, replace current"): date, time,
+    // doctor or clinic and where, in one form like Add an appointment, instead of four separate screens. The answers
+    // still land in the same places (who, day, time, where), so the pages, the list and Reid's questions are unchanged.
+    const APPT_OLD = ['who', 'day', 'time', 'where'];
+    steps.splice(sIdx('who'), 0, ND({ id: 'apptForm', mode: 'apptForm', topic: 'Your appointment', question: 'Your appointment' }));
+    PREP_ORDER.splice(PREP_ORDER.indexOf('who'), 0, 'apptForm');   // the prep steps get re-sorted by this list; keep the form just before the old four
+    if (typeof orderPrep === 'function') orderPrep();
+    LISTMODES.apptForm = 1;
+    const isoToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+    function to24(t) {   // "2:30 PM", "9 a.m.", "14:30" → "14:30" for the time box; anything else (like "Morning") → ''
+      const m = String(t || '').trim().match(/^(\d{1,2})(?:[:h.](\d{2}))?\s*([ap])?\.?\s*m?\.?$/i); if (!m) return '';
+      let h = +m[1]; const mi = m[2] || '00', ap = (m[3] || '').toLowerCase();
+      if (ap === 'p' && h < 12) h += 12; if (ap === 'a' && h === 12) h = 0; if (h > 23) return '';
+      return `${String(h).padStart(2, '0')}:${mi}`;
+    }
+    const nice24 = (v) => { if (!v) return ''; const [h, m] = v.split(':').map(Number); return new Date(2000, 0, 1, h, m).toLocaleTimeString(LOC[lang] || 'en-CA', { hour: 'numeric', minute: '2-digit' }); };
+    function renderApptForm(items, foot) {
+      const $ = (id) => document.getElementById(id);
+      $('listTitle').textContent = L2('Your appointment', 'Votre rendez-vous');
+      $('listHelp').textContent = L2('Only the date is needed. Add the rest if you know it.', 'Seule la date est nécessaire. Ajoutez le reste si vous le savez.');
+      $('listCounter').classList.add('hidden');
+      const day = SID('day'), who = String(SID('who').answer || ''), presets = (SID('who').presets || []).filter((x) => !/another|autre/i.test(x)).map((x) => [x, tr(x)]);   // "Another specialist" = type it in the box
+      const fld = (id, label, type, val, extra) => `<label for="${id}" class="ap-lbl">${label}</label><input id="${id}" type="${type}" value="${esc(val || '')}" ${extra || ''} class="ap-in">`;
+      items.classList.add('overflow-y-auto');
+      items.innerHTML = `<form id="afForm" class="ap-form" novalidate data-notr onsubmit="return false">
+          <div class="af-two"><div class="flex flex-col gap-1.5 min-w-0">${fld('afDay', L2('Date (required)', 'Date (obligatoire)'), 'date', day.dateISO || '', `required min="${isoToday()}"`)}</div>
+            <div class="flex flex-col gap-1.5 min-w-0">${fld('afTime', L2('Time', 'Heure'), 'time', to24(SID('time').answer), '')}</div></div>
+          <p id="afDayErr" class="ap-err hidden" role="alert">${L2('Add the date of the appointment.', 'Ajoutez la date du rendez-vous.')}</p>
+          <div class="af-pair"><div class="flex flex-col gap-1.5 min-w-0">${fld('afWho', L2('Doctor or clinic', 'Médecin ou clinique'), 'text', who, 'autocomplete="off" maxlength="120"')}
+          <div class="af-chips" role="group" aria-label="${L2('Quick choices', 'Choix rapides')}">${presets.map(([v, t]) => `<button type="button" data-afwho="${esc(t)}" class="tactile-btn ap-chip" aria-pressed="${who === t || who === v}">${who === t || who === v ? '✓ ' : ''}${esc(t)}</button>`).join('')}</div>
+          </div><div class="flex flex-col gap-1.5 min-w-0">${fld('afWhere', L2('Where (clinic or address)', 'Où (clinique ou adresse)'), 'text', SID('where').answer, 'autocomplete="off" maxlength="160"')}</div></div>
+        </form>`;
+      foot.innerHTML = '';
+      items.querySelectorAll('[data-afwho]').forEach((b) => b.addEventListener('click', () => { const w = $('afWho'); w.value = b.dataset.afwho; items.querySelectorAll('[data-afwho]').forEach((c) => { const on = c === b; c.setAttribute('aria-pressed', on); c.textContent = (on ? '✓ ' : '') + c.dataset.afwho; }); }));
+      const d = $('afDay'); if (d) d.addEventListener('input', () => { $('afDayErr').classList.add('hidden'); d.removeAttribute('aria-invalid'); });
+    }
+    function saveApptForm() {   // true when it can move on
+      const $ = (id) => document.getElementById(id), d = $('afDay'); if (!d) return true;
+      const iso = String(d.value || '').trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) { $('afDayErr').classList.remove('hidden'); d.setAttribute('aria-invalid', 'true'); d.setAttribute('aria-describedby', 'afDayErr'); d.focus(); say(L2('Add the date first.', 'Ajoutez d’abord la date.'), true); return false; }
+      const [y, m, dd] = iso.split('-').map(Number), dt = new Date(y, m - 1, dd);
+      const set = (sid, v) => { const st = SID(sid); st.answer = v; st.customActive = !!v; st.fromLast = false; };
+      SID('day').dateISO = iso; set('day', dt.toLocaleDateString(LOC[lang] || 'en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: dt.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }));
+      set('time', nice24($('afTime').value)); set('who', $('afWho').value.trim()); set('where', $('afWhere').value.trim());
+      saveAll(); return true;
+    }
+    { const rl2 = renderList; renderList = function () { const st = steps[currentIndex];
+        if (st && st.mode === 'apptForm') { const items = document.getElementById('listItems'), foot = document.getElementById('listFoot'); renderApptForm(items, foot); return; }
+        return rl2.apply(this, arguments); }; }
+    { const gnA = goNext; goNext = function () { const st = steps[currentIndex];
+        if (st && st.id === 'apptForm') { if (saveApptForm()) goTo(sIdx('concerns')); return; }
+        return gnA.apply(this, arguments); }; }
+    // the old four screens now always open the form instead (Back from "why you're going", Change rows, the road map)
+    { const rcsAF = renderCurrentStep; renderCurrentStep = function () { const st = steps[currentIndex]; if (st && APPT_OLD.includes(st.id)) currentIndex = sIdx('apptForm'); return rcsAF.apply(this, arguments); }; }
+    if (typeof SPEAK === 'object') SPEAK.apptForm = () => L2('Your appointment. Tap the date, and add the time, the doctor and the place if you know them. Then tap Next.', 'Votre rendez-vous. Touchez la date, et ajoutez l’heure, le médecin et le lieu si vous les savez. Puis touchez Suivant.');
+    if (typeof EXPLAIN === 'object' && typeof SPEAK === 'object') EXPLAIN.apptForm = SPEAK.apptForm;
 
     // Is Reid talking, listening, hearing me, or paused? (Rama, 25 Nov) The microphone bar shows all four, with an icon
     // and two short lines so it never gets cut off on a phone. While Reid is talking, tapping the bar stops him.
