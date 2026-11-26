@@ -117,6 +117,9 @@
     .ap-err { color: #8A2E1C; font-size: 15px; font-weight: 700; margin: 2px 0 0; }
     .ap-form-btns { display: flex; gap: 10px; margin-top: 12px; } .ap-cancel, .ap-save { flex: 1; min-height: 52px; border-radius: 14px; font-weight: 800; font-size: 16px; }
     .ap-cancel { background: #fff; border: 1px solid #D6CFC0; color: #1E2634; } .ap-save { background: #1E2634; color: #fff; }
+    .ap-go { margin-top: 14px; width: 100%; min-height: 52px; border-radius: 14px; background: #1E2634; color: #fff; font-weight: 800; font-size: 16px; box-shadow: 0 1px 2px rgba(30,38,52,.25), 0 6px 16px rgba(30,38,52,.16); }
+    .sp-row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 12px; border: 1px solid #D6CFC0; border-radius: 14px; background: #fff; font-size: 16px; font-weight: 700; color: #1E2634; cursor: pointer; }
+    .sp-row input { width: 24px; height: 24px; accent-color: #3B5E42; flex: none; } .sp-row.sp-off { background: #F0EBE1; color: #5D6B7E; text-decoration: line-through; }
     .ap-home { width: 100%; min-height: 52px; margin-top: 8px; padding: 0 14px; border-radius: 16px; background: #fff; border: 1px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 12px; text-align: left; }
     .ap-home .ap-n { margin-left: auto; color: #425268; font-size: 15px; }
     #apViewer { position: fixed; inset: 0; z-index: 95; background: rgba(30, 38, 52, .45); display: flex; align-items: flex-end; justify-content: center; padding: 12px; }
@@ -6135,12 +6138,39 @@
     function apStage(v, tISO) {
       const upcoming = v.dayISO && v.dayISO >= tISO, said = String(v.said || '').trim(), n = (v.todo || []).length + (v.next ? 1 : 0);
       if (said) return { k: 'done', icon: '✓', t: n ? L2(`Done · ${n} next step${n > 1 ? 's' : ''}`, `Terminé · ${n} prochaine${n > 1 ? 's' : ''} étape${n > 1 ? 's' : ''}`) : L2('Done', 'Terminé') };
-      if (!upcoming && v.dayISO) return { k: 'todo', icon: '!', t: L2('Summary to add', 'Résumé à ajouter') };
+      if (!upcoming && v.dayISO) return { k: 'todo', icon: '!', t: L2('Add what the doctor said', 'Ajoutez ce que le médecin a dit') };
       if ((v.qs || []).length) return { k: 'ready', icon: '●', t: L2('Ready for the visit', 'Prêt pour la visite') };
       return { k: 'prep', icon: '○', t: L2('Getting ready', 'En préparation') };
     }
     const apStageTag = (v, tISO) => { const st = apStage(v, tISO); return `<span class="ap-stage ap-st-${st.k}"><span aria-hidden="true">${st.icon}</span> ${st.t}</span>`; };   // apWho: the doctor the list is narrowed to ('' = all visits)
     const whoKey = (w) => String(w || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    // back into the visit from the list (Rama, 25 Nov)
+    function apGoBtn(v, cur, tISO) {
+      const st = apStage(v, tISO).k, btn = (act, t) => `<button type="button" data-apgo="${act}" data-apid="${esc(v.id || '')}" class="tactile-btn ap-go">${t} ›</button>`;
+      if (cur && st === 'todo') return `<p class="ap-p">${L2('The visit date has passed and the doctor’s words haven’t been added yet. Record or paste them to get the summary and next steps.', 'La date est passée et les paroles du médecin ne sont pas encore ajoutées. Enregistrez-les ou collez-les pour avoir le résumé et les prochaines étapes.')}</p>` + btn('recap', L2('Add what the doctor said', 'Ajouter ce que le médecin a dit'));
+      if (cur && st !== 'done') return btn('continue', L2('Continue this visit', 'Continuer cette visite'));
+      if (!cur && st === 'prep' && v.dayISO && v.dayISO >= tISO) return btn('prep', L2('Get ready for this visit', 'Se préparer pour cette visite'));
+      if (!cur && st === 'todo') return `<p class="ap-p">${L2('This visit was kept before the doctor’s words were added.', 'Cette visite a été gardée avant l’ajout des paroles du médecin.')}</p>`;
+      return '';
+    }
+    function apGo(id) { closeModal('helpSettingsModal'); const i = steps.findIndex((x) => x.id === id); if (i >= 0) goTo(i); }
+    function apAct(act, id) {
+      if (act === 'recap') return apGo('recap');
+      if (act === 'continue') {
+        if (currentIndex > 0 && steps[currentIndex] && steps[currentIndex].mode !== 'landing') { closeModal('helpSettingsModal'); return; }   // already in it
+        let at = ''; try { at = localStorage.getItem('wellheard-at') || ''; } catch (e) { console.warn('Last step not readable', e); }
+        return apGo(at && steps.some((x) => x.id === at) ? at : 'who');
+      }
+      if (act === 'prep') {   // an appointment added to the list becomes the visit being prepared
+        const v = visits.find((x) => x.id === id); if (!v) return;
+        if (AP_DEMO) { showToast(L2('Example mode: this would start getting ready for this visit.', 'Mode exemple : ceci commencerait la préparation de cette visite.')); return; }
+        if (hasVisit(visitNow())) startNewVisit();   // the visit in progress is kept in the list first
+        const set = (sid, val) => { const st = SID(sid); if (st && val) { st.answer = val; st.customActive = true; } };
+        set('who', v.who); set('time', v.time); set('concerns', v.about); set('day', v.day); if (v.dayISO) SID('day').dateISO = v.dayISO;
+        visits = visits.filter((x) => x.id !== id); saveVisits(); saveAll();
+        return apGo(!consent ? 'consent' : !SID('name').answer ? 'name' : 'who');
+      }
+    }
     function apAddForm() {
       const fld = (id, label, type, extra) => `<label for="${id}" class="ap-lbl">${label}</label><input id="${id}" name="${id}" type="${type}" ${extra || ''} class="ap-in">`;
       return `<form id="apForm" class="ap-form" novalidate data-notr>
@@ -6178,7 +6208,8 @@
           qs.length ? `<p class="ap-h">${L2('Your questions', 'Vos questions')}</p>${list(qs.map((q) => (q.star ? '★ ' : '') + esc(q.q)))}` : '',
           said.length ? `<p class="ap-h">${L2('What the doctor said', 'Ce que le médecin a dit')}</p>${list(said.map(esc))}` : '',
           (v.todo && v.todo.length) || v.next ? `<p class="ap-h">${L2('Next steps', 'Prochaines étapes')}</p>${list((v.todo || []).map(esc).concat(v.next ? [esc(v.next)] : []))}` : '',
-          cur || v.pages ? `<button type="button" data-apsee="${cur ? 'now' : v.id}" class="tactile-btn ap-see">${L2('See the pages', 'Voir les pages')} ›</button>` : '',
+          apGoBtn(v, cur, tISO),
+          cur || v.pages ? `<button type="button" data-apsee=""${cur ? 'now' : v.id}" class="tactile-btn ap-see">${L2('See the pages', 'Voir les pages')} ›</button>` : '',
           cur ? '' : `<button type="button" data-apdel="${v.id}" class="tactile-btn ap-del">${apDelArm === v.id ? L2('Tap again to delete it', 'Touchez encore pour la supprimer') : L2('Delete this visit', 'Supprimer cette visite')}</button>`
         ].join('');
         return `<details class="ap-card${cur ? ' ap-cur' : ''}"><summary><span class="ap-date">${esc(v.day || L2('Day not set', 'Jour non fixé'))}</span>
@@ -6217,6 +6248,7 @@
       panel.querySelectorAll('[data-apwho]').forEach((b) => b.addEventListener('click', () => { apWho = b.dataset.apwho; renderAppts(); applyLang();
         const f = panel.querySelector(`[data-apwho="${CSS.escape(apWho)}"]`); if (f) f.focus();
         showToast(apWho ? L2('Showing visits with ' + b.textContent.trim(), 'Visites avec ' + b.textContent.trim()) : L2('Showing all visits', 'Toutes les visites')); }));
+      panel.querySelectorAll('[data-apgo]').forEach((b) => b.addEventListener('click', () => apAct(b.dataset.apgo, b.dataset.apid)));
       panel.querySelectorAll('[data-apsee]').forEach((b) => b.addEventListener('click', () => {
         const id = b.dataset.apsee, v = id === 'now' ? Object.assign(visitNow(), { pages: pagesNow() }) : visits.find((x) => x.id === id);
         if (v && v.pages) openApViewer(v, b);
@@ -8048,6 +8080,45 @@
         const zMax = (vh * 0.97) / 580;
         if (z > zMax) { const vis = h * z, visW = w * z; main.style.zoom = zMax; main.style.height = (vis / zMax) + 'px'; main.style.width = (visW / zMax) + 'px'; }
       }; window.addEventListener('resize', () => sizeApp()); sizeApp(); }
+    // Before sending to the care circle: choose which parts go (Rama, 25 Nov). Every part starts ticked; untick what stays private.
+    function sharePick(html, title) {
+      const t = document.createElement('template'); t.innerHTML = cleanPage(html);
+      const pg = t.content.querySelector('.pg') || t.content, h1 = pg.querySelector('h1'), parts = [];
+      let cur = null;
+      [...pg.children].forEach((n) => { if (n === h1) return;
+        if (n.tagName === 'H2') { cur = { h: n.textContent.trim(), nodes: [n] }; parts.push(cur); }
+        else if (cur) cur.nodes.push(n);
+        else if (n.textContent.trim()) { cur = { h: L2('The visit (day, time, place)', 'La visite (jour, heure, lieu)'), nodes: [n] }; parts.push(cur); } });   // the details above the first heading
+      if (!parts.length) return shareText(html, title);
+      const keep = parts.map(() => true), old = document.getElementById('apViewer'); if (old) old.remove();
+      const box = document.createElement('div'); box.id = 'apViewer'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'spTitle');
+      const kept = () => { const d = document.createElement('div'); d.className = 'pg'; if (h1) d.appendChild(h1.cloneNode(true)); parts.forEach((p, i) => { if (keep[i]) p.nodes.forEach((n) => d.appendChild(n.cloneNode(true))); }); return d.outerHTML; };
+      const draw = () => {
+        box.innerHTML = `<div class="apv-box"><div class="apv-top">
+            <div class="flex items-center justify-between gap-2"><p id="spTitle" class="font-extrabold text-lg text-[#1E2634]">${L2('Choose what to share', 'Choisir quoi partager')}</p>
+              <button type="button" data-spx class="tactile-btn min-h-[52px] px-4 rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${L2('Cancel', 'Annuler')}</button></div>
+            <p class="ap-note">${L2('Untick anything you want to keep private. You can also change the words in your message app before sending.', 'Décochez ce que vous voulez garder privé. Vous pourrez aussi changer le texte dans votre app de messages avant d’envoyer.')}</p>
+            <div class="flex flex-col gap-2" role="group" aria-label="${L2('Parts of the page', 'Parties de la page')}">${parts.map((p, i) => `<label class="sp-row${keep[i] ? '' : ' sp-off'}"><input type="checkbox" data-spi="${i}" ${keep[i] ? 'checked' : ''}><span>${esc(p.h)}</span></label>`).join('')}</div>
+            <button type="button" data-spsend class="tactile-btn ap-go" style="margin-top:4px">${L2('Send', 'Envoyer')} ›</button></div>
+          <div class="apv-body" data-notr tabindex="0" aria-label="${L2('What will be sent', 'Ce qui sera envoyé')}">${kept()}</div></div>`;
+        box.querySelector('[data-spx]').addEventListener('click', close);
+        box.querySelectorAll('[data-spi]').forEach((c) => c.addEventListener('change', () => { keep[+c.dataset.spi] = c.checked; draw(); const f = box.querySelector(`[data-spi="${c.dataset.spi}"]`); if (f) f.focus(); }));
+        box.querySelector('[data-spsend]').addEventListener('click', () => { if (!keep.some(Boolean)) { showToast(L2('Tick at least one part to send.', 'Cochez au moins une partie.')); return; } close(); shareText(kept(), title); });
+      };
+      const close = () => { box.remove(); document.removeEventListener('keydown', esc1, true); };
+      const esc1 = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+      document.addEventListener('keydown', esc1, true); box.addEventListener('click', (e) => { if (e.target === box) close(); });
+      draw(); document.body.appendChild(box); applyLang(); const f = box.querySelector('[data-spi]'); if (f) f.focus();
+    }
+    function shareText(html, title) {
+      const tmp = document.createElement('div'); tmp.innerHTML = html; tmp.style.position = 'fixed'; tmp.style.left = '-9999px'; document.body.appendChild(tmp);
+      const text = tmp.innerText.replace(/\n{3,}/g, '\n\n').trim(); tmp.remove();
+      if (navigator.share) navigator.share({ title, text }).catch((e) => { if (!e || e.name !== 'AbortError') console.warn('Share failed', e); });
+      else location.href = 'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(text);
+    }
+    sendCircle = function () { sharePick(circlePage(), L2('Upcoming appointment', 'Rendez-vous à venir')); };
+    shareRecap = function () { sharePick(recapPage(), L2('Visit recap', 'Résumé du rendez-vous')); };
+
     // Is Reid talking, listening, hearing me, or paused? (Rama, 25 Nov) The microphone bar shows all four, with an icon
     // and two short lines so it never gets cut off on a phone. While Reid is talking, tapping the bar stops him.
     { let hear = false, shown = '';
