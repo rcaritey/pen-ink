@@ -112,7 +112,7 @@
     @media (prefers-reduced-motion: reduce) { #voiceWave span { animation: none !important; } }
     #voiceWave.wave-hear span { background: #1E4627 !important; transform-origin: center; animation-duration: .45s !important; }
     /* Reid's status tag on his picture, on every screen (Rama, 25 Nov: not visible on iPhone where there's no microphone bar) */
-    #reidPill { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); z-index: 3; white-space: nowrap; pointer-events: none;
+    #reidPill { position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%); z-index: 3; white-space: nowrap; pointer-events: none;
       font: 800 11px/1 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: .01em; padding: 4px 7px; border-radius: 999px; color: #fff; border: 2px solid #FAF7F0; }
     #reidPill[hidden] { display: none; }
     #companionEmblem.st-talk { box-shadow: 0 0 0 3px #B84A27; } #companionEmblem.st-hear { box-shadow: 0 0 0 3px #1E4627; animation: hearRing 1s ease-in-out infinite; }
@@ -6250,6 +6250,7 @@
           <button type="button" onclick="closeModal('helpSettingsModal')" class="tactile-btn min-h-[52px] px-5 rounded-2xl bg-white border-2 border-[#1E2634] text-[#1E2634] font-extrabold text-base">${L2('Done', 'Terminé')}</button></div>${chips}</div>
         <div class="flex flex-col gap-[10px]">
           ${apAdding ? apAddForm() : `<button type="button" data-apadd class="tactile-btn ap-add"><span aria-hidden="true">＋</span> ${L2('Add an appointment', 'Ajouter un rendez-vous')}</button>`}
+          <button type="button" data-apabout class="tactile-btn ap-home" style="margin-top:0"><span class="text-[#3B5E42]" aria-hidden="true">${WHI('user', 20)}</span><span>${L2('About me', 'À propos de moi')}</span><span class="ap-n">${L2('Health, medicines', 'Santé, médicaments')} ›</span></button>
           ${AP_DEMO ? `<p class="ap-note" style="background:#FBF1E4;border:1px solid #EBD3B8;border-radius:14px;padding:10px 12px;color:#1E2634;font-weight:700">${L2('These are example visits, made up to show how this looks. Nothing here is saved. Open the app without “?demo” to see your real visits.', 'Ce sont des visites d’exemple, inventées pour montrer l’apparence. Rien n’est enregistré. Ouvrez l’app sans « ?demo » pour voir vos vraies visites.')}</p>` : ''}
           <p class="ap-note">${L2(helperName() + ' looks at your last few visits when suggesting questions. They are kept on this device only. Tap one to see it.', helperName() + ' regarde vos dernières visites pour suggérer des questions. Elles restent sur cet appareil seulement. Touchez-en une pour la voir.')}</p>
           ${hasVisit(now) && mine(now) ? card(now, true) : ''}
@@ -6267,6 +6268,7 @@
       panel.querySelectorAll('[data-apwho]').forEach((b) => b.addEventListener('click', () => { apWho = b.dataset.apwho; renderAppts(); applyLang();
         const f = panel.querySelector(`[data-apwho="${CSS.escape(apWho)}"]`); if (f) f.focus();
         showToast(apWho ? L2('Showing visits with ' + b.textContent.trim(), 'Visites avec ' + b.textContent.trim()) : L2('Showing all visits', 'Toutes les visites')); }));
+      const abB = panel.querySelector('[data-apabout]'); if (abB) abB.addEventListener('click', () => openAboutMe());
       panel.querySelectorAll('[data-apgo]').forEach((b) => b.addEventListener('click', () => apAct(b.dataset.apgo, b.dataset.apid)));
       panel.querySelectorAll('[data-apsee]').forEach((b) => b.addEventListener('click', () => {
         const id = b.dataset.apsee, v = id === 'now' ? Object.assign(visitNow(), { pages: pagesNow() }) : visits.find((x) => x.id === id);
@@ -8137,6 +8139,53 @@
     }
     sendCircle = function () { sharePick(circlePage(), L2('Upcoming appointment', 'Rendez-vous à venir')); };
     shareRecap = function () { sharePick(recapPage(), L2('Visit recap', 'Résumé du rendez-vous')); };
+
+    // About me (Rama, 25 Nov): returning people get one review screen. The name screen is skipped (the name is on the
+    // review), each line is tappable to change just that one thing and come straight back, and "About me" in
+    // My appointments opens the same review any time, returning to wherever the person was.
+    let bEdit = '', bBack = -1, bForce = false;
+    const B_IDS = ['name', 'about', 'conditions', 'meds', 'allergies'], sIdx = (id) => steps.findIndex((x) => x.id === id);
+    { const sk = SKIPS.basicsCheck; SKIPS.basicsCheck = () => !bForce && sk(); }
+    SKIPS.name = () => !bEdit && !bForce && isReturning() && !!SID('name').fromLast && !!String(SID('name').answer || '').trim();
+    renderBasicsCheck = function (items, foot) {
+      const $ = (id) => document.getElementById(id), fromList = bBack >= 0;
+      $('listTitle').textContent = fromList ? L2('About me', 'À propos de moi') : L2('Welcome back. Is this still right?', 'Bon retour. Est-ce toujours exact ?');
+      $('listHelp').textContent = fromList ? L2('Tap anything to change it.', 'Touchez une ligne pour la changer.') : L2('From your last visit. If nothing changed, tap All the same.', 'De votre dernière visite. Si rien n’a changé, touchez Tout pareil.');
+      $('listCounter').classList.add('hidden');
+      const meds = medsList.length ? medsList.map((m) => [m.name, m.dose].filter(Boolean).join(' ')).join(', ') : SID('meds').answer;
+      const val = { name: SID('name').answer, about: SID('about').answer, conditions: SID('conditions').answer, meds, allergies: SID('allergies').answer };
+      const lab = { name: L2('Name', 'Nom'), about: L2('Age, gender, height, weight', 'Âge, genre, taille, poids'), conditions: L2('Health conditions', 'Problèmes de santé'), meds: L2('Medicines', 'Médicaments'), allergies: L2('Allergies', 'Allergies') };
+      const row = (id) => `<button type="button" data-bedit="${id}" class="tactile-btn w-full min-h-[56px] px-3 py-2 rounded-xl bg-white border border-[#D6CFC0] text-left flex items-center gap-3">
+          <span class="flex-1 min-w-0"><span class="block text-[12px] font-extrabold uppercase tracking-wide text-[#425268]">${esc(lab[id])}</span>
+          <span class="block text-[16px] font-bold text-[#1E2634] leading-snug" data-notr>${esc(String(val[id] || '').trim()) || `<span class="text-[#5D6B7E] font-semibold">${L2('Not added', 'Pas ajouté')}</span>`}</span></span>
+          <span class="shrink-0 text-[14px] font-extrabold text-[#3B5E42]">${L2('Change', 'Changer')} ›</span></button>`;
+      items.classList.add('overflow-y-auto');
+      items.innerHTML = `<button type="button" data-basics="same" class="tactile-btn w-full min-h-[60px] rounded-[18px] bg-[#3B5E42] text-white font-extrabold text-lg">✓ ${fromList ? L2('Done', 'Terminé') : L2('All the same', 'Tout pareil')}</button>
+        <p class="text-[15px] font-bold text-[#425268] px-1 mt-1">${fromList ? '' : L2('Or tap what changed:', 'Ou touchez ce qui a changé :')}</p>
+        <div class="w-full flex flex-col gap-[8px]">${B_IDS.map(row).join('')}</div>`;
+      foot.innerHTML = '';
+    };
+    // tap a line: open just that question; its Next comes back here
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-bedit]'); if (!b) return;
+      bEdit = b.dataset.bedit; const i = sIdx(bEdit); if (i >= 0) goTo(i);
+    });
+    { const gn = goNext; goNext = function () {
+        const st = steps[currentIndex];
+        if (bEdit && st && st.id === bEdit) { saveCurrentStepState(); if (st.fromLast) st.fromLast = false; bEdit = ''; saveAll(); bForce = true; goTo(sIdx('basicsCheck')); bForce = false; return; }
+        return gn.apply(this, arguments);
+      }; }
+    // "All the same" / "Done": back to where the person came from when opened from My appointments
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-basics="same"]'); if (!b) return;
+      bEdit = '';
+      if (bBack >= 0) { e.stopImmediatePropagation(); const to = bBack; bBack = -1; goTo(to); }
+    }, true);
+    window.openAboutMe = function () {
+      closeModal('helpSettingsModal');
+      bBack = currentIndex > 0 && steps[currentIndex] && steps[currentIndex].id !== 'basicsCheck' ? currentIndex : sIdx('who');
+      bForce = true; goTo(sIdx('basicsCheck')); bForce = false;
+    };
 
     // Is Reid talking, listening, hearing me, or paused? (Rama, 25 Nov) The microphone bar shows all four, with an icon
     // and two short lines so it never gets cut off on a phone. While Reid is talking, tapping the bar stops him.
