@@ -10535,22 +10535,25 @@
       hb.hidden = !back; if (!back) return;
       const rs = window.__resumeStep, ri = rs ? steps.indexOf(rs) : -1;
       hb.innerHTML = `<h1 class="lb-h">${L2('What would you like to do?', 'Que voulez-vous faire ?')}</h1>
-        <p class="lb-s">${L2('Get ready for your next visit, or record a visit now.', 'Préparez votre prochaine visite, ou enregistrez une visite maintenant.')}</p>
+        
         ${ri > 0 ? `<button type="button" id="lbResume" class="tactile-btn lb-r"><span class="lb-r-ic" aria-hidden="true">${WHI('note', 22)}</span><span class="lb-r-t"><b>${L2('Continue where you left off', 'Reprendre où vous étiez')}</b><span>${esc(tr(rs.topic || rs.question || ''))}</span></span><span aria-hidden="true">›</span></button>` : ''}`;
-      const rb = hb.querySelector('#lbResume'); if (rb) rb.addEventListener('click', () => { ensureCtx(); hush(); const i = steps.indexOf(window.__resumeStep); window.__resumeStep = null; if (i > 0) goTo(i); });
-      const far = typeof reachedMax === 'number' ? reachedMax : 0, midPrep = (ri > 0 && rs.phaseIndex === 0) || (far > 0 && steps[far] && steps[far].phaseIndex === 0 && !['consent', 'setup', 'helperpick'].includes(steps[far].mode));
-      const nl = document.getElementById('nextNavLabel'); if (nl) nl.textContent = midPrep ? L2('Continue getting ready', 'Continuer la préparation') : L2('Get ready for a visit', 'Préparer une visite');
-      if (midPrep) { const r0 = hb.querySelector('#lbResume'); if (r0 && rs && rs.phaseIndex === 0) r0.remove(); }   // the big button already does it
-      // two more ways in (Rama, 27 Nov): prepare for a different, new appointment, or just note an appointment without preparing
+      { const r0 = hb.querySelector('#lbResume'); if (r0) r0.remove(); }   // "continue" now lives in the list below, first
+      const far = typeof reachedMax === 'number' ? reachedMax : 0, midPrep = (ri > 0) || (far > 0 && steps[far] && steps[far].phaseIndex === 0 && !['consent', 'setup', 'helperpick'].includes(steps[far].mode));
+      const contStep = ri > 0 ? rs : (midPrep ? steps[far] : null);
+      document.getElementById('appContainer').classList.toggle('home-back', back);   // the home is a list of choices: no orange button at the bottom
+      // the home, in order (Rama, 27 Nov): 1 continue where you left off · 2 prepare for a new appointment · 3 record a visit · 4 my appointments · 5 privacy · 6 language
       let nb = document.getElementById('homeNew');
-      if (!nb) { nb = document.createElement('div'); nb.id = 'homeNew'; nb.className = 'hn-row';
+      if (!nb) { nb = document.createElement('div'); nb.id = 'homeNew';
         nb.addEventListener('click', (e) => { const b = e.target.closest('[data-hn]'); if (!b) return; ensureCtx(); hush(true);
-          if (b.dataset.hn === 'new') { window.__resumeStep = null; startNewVisit(); reachedMax = 0; showToast(L2('New appointment. Your other one is kept in My appointments.', 'Nouveau rendez-vous. L’autre est gardé dans Mes rendez-vous.')); goNext(); }
-          if (b.dataset.hn === 'add') { openAppts(); apAdding = true; renderAppts(); applyLang(); setTimeout(() => { const f = document.querySelector('#apfDay, #apForm input'); if (f) f.focus(); }, 80); } }); }
-      const recB = document.getElementById('landingRec'); if (recB && nb.previousElementSibling !== recB) recB.after(nb);
+          if (b.dataset.hn === 'cont') goNext();
+          if (b.dataset.hn === 'new') { const had = nb.querySelector('[data-hn="cont"]'); window.__resumeStep = null;
+            if (had) { startNewVisit(); reachedMax = 0; showToast(L2('New appointment. Your other one is kept in My appointments.', 'Nouveau rendez-vous. L’autre est gardé dans Mes rendez-vous.')); }
+            goNext(); } }); }
+      const recB = document.getElementById('landingRec'); if (recB && nb.nextElementSibling !== recB) recB.before(nb);
       nb.hidden = !back;
-      nb.innerHTML = `${midPrep ? `<button type="button" data-hn="new" class="tactile-btn hn-b">${WHI('pencil', 20)}<span>${L2('Prepare for a new appointment', 'Préparer un nouveau rendez-vous')}</span></button>` : ''}
-        <button type="button" data-hn="add" class="tactile-btn hn-b">${WHI('calendar', 20)}<span>${L2('Just add an appointment', 'Juste ajouter un rendez-vous')}</span></button>`;
+      const card = (k, cls, ic, t, sub) => `<button type="button" data-hn="${k}" class="tactile-btn hn-c ${cls}"><span class="hn-ic" aria-hidden="true">${WHI(ic, 22)}</span><span class="hn-t"><b>${t}</b>${sub ? `<span>${sub}</span>` : ''}</span><span class="hn-go" aria-hidden="true">›</span></button>`;
+      nb.innerHTML = (contStep ? card('cont', 'hn-cont', 'note', L2('Continue where you left off', 'Reprendre où vous étiez'), L2('Next: ', 'Suite : ') + esc(tr(contStep.topic || contStep.question || ''))) : '')
+        + card('new', 'hn-new', 'pencil', L2('Prepare for a new appointment', 'Préparer un nouveau rendez-vous'), L2('Your questions and a clear page for the doctor', 'Vos questions et une page claire pour le médecin'));
       if (typeof applyLang === 'function') applyLang(hb);
     }
     { const gnH = goNext; goNext = function () {
@@ -10596,9 +10599,14 @@
       /* choices that are just two or three options sit side by side on wider screens */
       #appContainer.wide .su-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
       #appContainer.wide .su-opts > button { min-height: 72px !important; }
-      .hn-row { display: flex; gap: 10px; flex-wrap: wrap; order: 1; } .hn-row[hidden] { display: none; }
-      #screenLanding.lp-back #homeNew { order: 1; }
-      .hn-b { flex: 1 1 200px; min-height: 52px; padding: 6px 12px; border-radius: 16px; background: #fff; border: 2px solid #3B5E42; color: #1E4627; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; text-align: left; }
+      #homeNew { display: flex; flex-direction: column; gap: 12px; order: 0; } #homeNew[hidden] { display: none; }
+      #appContainer.home-back > footer { display: none !important; }
+      .hn-c { width: 100%; min-height: 72px; padding: 10px 14px; border-radius: 18px; display: flex; align-items: center; gap: 12px; text-align: left; background: #fff; border: 2px solid #3B5E42; color: #1E4627; }
+      .hn-c.hn-cont { background: #E5EFE7; }
+      #appContainer:not(.wide) .hn-new .hn-t span { display: none; } #appContainer:not(.wide) .hn-c { min-height: 64px; }
+      .hn-ic { width: 44px; height: 44px; border-radius: 12px; background: #fff; border: 1px solid #B9CBA7; display: flex; align-items: center; justify-content: center; color: #3B5E42; flex-shrink: 0; }
+      .hn-t { flex: 1; min-width: 0; display: flex; flex-direction: column; } .hn-t b { font-size: 17px; font-weight: 800; color: #1E4627; } .hn-t span { font-size: 14px; font-weight: 700; color: #4A5568; }
+      .hn-go { font-size: 22px; font-weight: 800; color: #3B5E42; }
       .lb-s { margin: 8px 0 0; font-size: 15px; line-height: 1.4; color: #425268; font-weight: 500; }`; document.head.appendChild(st); }
 
 
