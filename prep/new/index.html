@@ -5267,7 +5267,11 @@
       return sysScaleV;
     }
     function sizeApp() {
-      const main = document.getElementById('appContainer'), vw = window.innerWidth, vh = window.innerHeight;
+      const main = document.getElementById('appContainer'), vw = window.innerWidth;
+      // iPhone turned sideways and back: for a moment Safari still reports the sideways height, and the page got stuck
+      // squashed in the middle of the screen (Rama, 26 Nov). Upright, take the tallest height the browser reports.
+      let vh = window.innerHeight;
+      if (vw < 500) vh = Math.max(vh, document.documentElement.clientHeight || 0, (window.visualViewport && !document.activeElement?.matches?.('input,textarea')) ? window.visualViewport.height : 0);
       const phoneSideways = vh < 500 && vw > vh && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
       turn.classList.toggle('hidden', !phoneSideways); if (phoneSideways) applyLang(turn);
       let z = 1, w, h;
@@ -5353,7 +5357,8 @@
     }
     let sizeT = null;
     window.addEventListener('resize', () => { clearTimeout(sizeT); sizeT = setTimeout(sizeApp, 120); });
-    window.addEventListener('orientationchange', () => setTimeout(sizeApp, 300));
+    window.addEventListener('orientationchange', () => [150, 400, 800, 1500].forEach((t) => setTimeout(sizeApp, t)));   // iOS settles its sizes late after a turn
+    if (window.matchMedia) { const mq = matchMedia('(orientation: portrait)'); const re = () => [150, 400, 800, 1500].forEach((t) => setTimeout(sizeApp, t)); if (mq.addEventListener) mq.addEventListener('change', re); }
     sizeApp();
 
     // wide layout: Reid's options sit in the left column, always visible
