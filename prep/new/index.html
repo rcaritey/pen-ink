@@ -10541,6 +10541,16 @@
       const far = typeof reachedMax === 'number' ? reachedMax : 0, midPrep = (ri > 0 && rs.phaseIndex === 0) || (far > 0 && steps[far] && steps[far].phaseIndex === 0 && !['consent', 'setup', 'helperpick'].includes(steps[far].mode));
       const nl = document.getElementById('nextNavLabel'); if (nl) nl.textContent = midPrep ? L2('Continue getting ready', 'Continuer la préparation') : L2('Get ready for a visit', 'Préparer une visite');
       if (midPrep) { const r0 = hb.querySelector('#lbResume'); if (r0 && rs && rs.phaseIndex === 0) r0.remove(); }   // the big button already does it
+      // two more ways in (Rama, 27 Nov): prepare for a different, new appointment, or just note an appointment without preparing
+      let nb = document.getElementById('homeNew');
+      if (!nb) { nb = document.createElement('div'); nb.id = 'homeNew'; nb.className = 'hn-row';
+        nb.addEventListener('click', (e) => { const b = e.target.closest('[data-hn]'); if (!b) return; ensureCtx(); hush(true);
+          if (b.dataset.hn === 'new') { window.__resumeStep = null; startNewVisit(); reachedMax = 0; showToast(L2('New appointment. Your other one is kept in My appointments.', 'Nouveau rendez-vous. L’autre est gardé dans Mes rendez-vous.')); goNext(); }
+          if (b.dataset.hn === 'add') { openAppts(); apAdding = true; renderAppts(); applyLang(); setTimeout(() => { const f = document.querySelector('#apfDay, #apForm input'); if (f) f.focus(); }, 80); } }); }
+      const recB = document.getElementById('landingRec'); if (recB && nb.previousElementSibling !== recB) recB.after(nb);
+      nb.hidden = !back;
+      nb.innerHTML = `${midPrep ? `<button type="button" data-hn="new" class="tactile-btn hn-b">${WHI('pencil', 20)}<span>${L2('Prepare for a new appointment', 'Préparer un nouveau rendez-vous')}</span></button>` : ''}
+        <button type="button" data-hn="add" class="tactile-btn hn-b">${WHI('calendar', 20)}<span>${L2('Just add an appointment', 'Juste ajouter un rendez-vous')}</span></button>`;
       if (typeof applyLang === 'function') applyLang(hb);
     }
     { const gnH = goNext; goNext = function () {
@@ -10570,6 +10580,9 @@
       .lb-r { width: 100%; margin-top: 12px; min-height: 64px; padding: 10px 14px; border-radius: 18px; background: #E5EFE7; border: 2px solid #3B5E42; color: #1E4627; display: flex; align-items: center; gap: 12px; text-align: left; font-size: 22px; font-weight: 800; }
       .lb-r-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; background: #fff; display: flex; align-items: center; justify-content: center; color: #3B5E42; }
       .lb-r-t { flex: 1; min-width: 0; display: flex; flex-direction: column; } .lb-r-t b { font-size: 17px; } .lb-r-t span { font-size: 14px; font-weight: 700; color: #425268; }
+      .hn-row { display: flex; gap: 10px; flex-wrap: wrap; order: 1; } .hn-row[hidden] { display: none; }
+      #screenLanding.lp-back #homeNew { order: 1; }
+      .hn-b { flex: 1 1 200px; min-height: 52px; padding: 6px 12px; border-radius: 16px; background: #fff; border: 2px solid #3B5E42; color: #1E4627; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; text-align: left; }
       .lb-s { margin: 8px 0 0; font-size: 15px; line-height: 1.4; color: #425268; font-weight: 500; }`; document.head.appendChild(st); }
 
 
@@ -10705,7 +10718,7 @@
       const app = document.getElementById('appContainer'), side = document.getElementById('sideReid');
       const on = app.classList.contains('wide') && !app.classList.contains('tall');
       app.classList.toggle('side-menu', on);
-      app.style.setProperty('--wh-mw', Math.round(820 / (parseFloat(app.style.zoom) || 1)) + 'px');   // about 820px on screen, whatever the page zoom
+      app.style.setProperty('--wh-mw', Math.round(Math.min(700, app.getBoundingClientRect().width * 0.62) / (parseFloat(app.style.zoom) || 1)) + 'px');   // about 700px on screen (less on a narrow window), whatever the page zoom
       if (!on || !side) return;
       [...side.children].forEach((c) => { if (['reidBadge', 'reidHello', 'lpShow'].includes(c.id)) return; c.remove(); });
       const home = steps[currentIndex].mode === 'landing';
@@ -10791,7 +10804,10 @@
       if (!a) { a = document.createElement('aside'); a.id = 'homeAside'; land.appendChild(a);
         a.addEventListener('click', (e) => { const b = e.target.closest('[data-ha]'); if (!b) return; ensureCtx(); hush(true);
           if (b.dataset.ha === 'pages') showPage('doc'); if (b.dataset.ha === 'prep') goNext(); if (b.dataset.ha === 'appts') openAppts(); }); }
-      a.hidden = !on; if (!on) return;
+      const ft = document.querySelector('#appContainer > footer');
+      a.hidden = !on; if (!on) { if (ft) ft.style.maxWidth = ''; return; }
+      requestAnimationFrame(() => { const rb = document.getElementById('landingRec') || document.getElementById('landingBack'); const z = parseFloat(app.style.zoom) || 1;   // the big button lines up with the home's own column
+        if (ft && rb && rb.offsetWidth) ft.style.maxWidth = (rb.getBoundingClientRect().width / z) + 'px'; });
       const today = isoToday(), d = SID('day').dateISO || '', n = recapNext || {};
       const next = d && d >= today ? { date: d, time: SID('time').time24 || '', with: SID('who').answer || '' } : n.date && n.date >= today ? n : null;
       if (next) {
@@ -10814,11 +10830,11 @@
     window.addEventListener('resize', () => setTimeout(() => { try { homeAside(); } catch (e) { /* later */ } }, 300));
     try { homeAside(); } catch (e) { /* later */ }
     { const st = document.createElement('style'); st.textContent = `
-      #appContainer.home-wide > #stepWork, #appContainer.home-wide > footer { max-width: none !important; }
+      #appContainer.home-wide > #stepWork { max-width: none !important; }
       #appContainer.home-wide #screenLanding.lp-back { display: grid !important; grid-template-columns: minmax(0, var(--wh-mw, 760px)) minmax(260px, 1fr); column-gap: 40px; align-content: start; }
       #appContainer.home-wide #screenLanding.lp-back > * { grid-column: 1; }
       #appContainer.home-wide #screenLanding.lp-back > #homeAside { grid-column: 2; grid-row: 1 / span 6; align-self: start; }
-      #appContainer.home-wide > footer { padding-right: calc(100% - var(--wh-mw, 760px)); }
+
       #homeAside { background: #fff; border: 1px solid #E2DACB; border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 6px 18px rgba(30,38,52,.06); }
       #homeAside[hidden] { display: none !important; }
       .ha-k { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #3B5E42; }
