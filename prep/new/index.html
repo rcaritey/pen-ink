@@ -5809,6 +5809,26 @@
       }
       return out;
     }
+    // times said without "at" (Rama, 27 Nov): "8 AM", "8:00 a.m.", "every morning at eight", "at breakfast", "at bedtime"
+    function parseTimesLoose(t0) {
+      const W = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12 };
+      let t = String(t0 || '').toLowerCase().replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|une?|deux|trois|quatre|cinq|sept|huit|neuf|dix|onze|douze)\b/g, (w) => String(W[w]));
+      const cnt = /(\d+(?:\.5)?|½|half)\s*(?:an?\s+)?(?:pills?|tablets?|capsules?|comprimés?|puffs?|drops?)/.exec(t), n = cnt ? (cnt[1] === '½' || cnt[1] === 'half' ? 0.5 : Number(cnt[1])) : 1;
+      const out = [], add = (h, mi) => { const k = `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`; if (!out.some((x) => x.t === k)) out.push({ t: k, n }); };
+      const re = /\b(\d{1,2})(?:[:h.]\s?(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|o'?clock|h\b|in the morning|du matin|in the afternoon|in the evening|at night|du soir|le soir|le matin)/g;
+      let m; while ((m = re.exec(t))) { let h = Number(m[1]); const mi = Number(m[2] || 0), ap = m[3]; if (h > 23 || mi > 59) continue;
+        if (/^p|afternoon|evening|night|soir/.test(ap) && h < 12) h += 12; else if (/^a|morning|matin/.test(ap) && h === 12) h = 0; else if (/o'?clock/.test(ap) && h >= 1 && h <= 5) h += 12; add(h, mi); }
+      if (!out.length) { const mm = /\b(?:morning|matin)\b.*?\b(\d{1,2})\b|\b(\d{1,2})\b.*?\b(?:morning|matin)\b/.exec(t), ev = /\b(?:evening|night|soir)\b.*?\b(\d{1,2})\b|\b(\d{1,2})\b.*?\b(?:evening|night|soir)\b/.exec(t);
+        if (mm) add(Number(mm[1] || mm[2]) % 12, 0); else if (ev) add(Number(ev[1] || ev[2]) % 12 + 12, 0); }
+      if (!out.length) {
+        if (/breakfast|déjeuner|morning|matin|wake|lever/.test(t)) add(8, 0);
+        if (/lunch|noon|midday|midi|dîner/.test(t)) add(12, 0);
+        if (/afternoon|après-midi/.test(t)) add(15, 0);
+        if (/dinner|supper|souper|evening|soir/.test(t)) add(18, 0);
+        if (/bed|night|nuit|coucher/.test(t)) add(21, 0);
+      }
+      return out;
+    }
     function medTake(text) {   // whatever was said or typed, for the stage we're on
       const t = text.trim(); if (!t) return;
       const d = medDraft;
@@ -5823,7 +5843,8 @@
         medGo(medDraft.amount ? 'sched' : 'dose'); return;
       }
       if (d.stage === 'dose') { const sd = splitDose(medParse(t).dose || t); if (sd) { d.amount = sd.amount; if (sd.unit) d.unit = sd.unit; } else d.doseNote = t; const ts = parseTimes(t); if (ts.length) d.doses = ts; medGo('sched'); return; }
-      if (d.stage === 'sched') { const ts = parseTimes(t); if (/when needed|as needed|au besoin/i.test(t)) d.prn = true;
+      if (d.stage === 'sched') { let ts = parseTimes(t); if (!ts.length) ts = parseTimesLoose(t); if (/when needed|as needed|au besoin/i.test(t)) d.prn = true;
+        if (!ts.length && !d.prn) { say(L2('Say a time, like 8 AM or 9 at night. Or tap the time.', 'Dites une heure, comme 8 h ou 21 h. Ou touchez l’heure.')); return; }
         if (ts.length) { ts.forEach((x) => { d.doses = d.doses.filter((y) => y.t !== x.t).concat(x); }); d.doses = sortDoses(d.doses); renderList(); applyLang(); say(L2('Added. Any other time? Or say done.', 'Ajouté. Une autre heure ? Ou dites terminé.')); } }
     }
     function medNext() {   // Next button / "next": true if it was handled on this page
@@ -6007,7 +6028,14 @@
       if (k === 'edit') medEdit(Number(b.dataset.i));
       if (k === 'del') { const m = medsList[Number(b.dataset.i)]; if (!confirmDel(m)) return; medsList.splice(Number(b.dataset.i), 1); syncMeds(); if (!medsList.length) medDraft = blankMed(); redraw(); }
     });
-    function confirmDel(m) { try { return window.confirm(L2(`Remove ${m.name}?`, `Retirer ${m.name} ?`)); } catch (e) { return true; } }
+    // no browser pop-up (Rama, 27 Nov): remove at once, with Undo in the app's own message
+    function confirmDel(m) { window.__medUndo = medsList.slice();
+      setTimeout(() => { try { showToast(L2(`${m.name} removed.`, `${m.name} retiré.`)); const tb = document.getElementById('toastBanner'); if (!tb) return;
+        const u = document.createElement('button'); u.type = 'button'; u.className = 'tactile-btn'; u.textContent = L2('Undo', 'Annuler');
+        u.style.cssText = 'margin-left:auto;align-self:center;min-height:44px;padding:0 16px;border-radius:14px;background:#fff;border:2px solid #3B5E42;color:#1E4627;font-weight:800;pointer-events:auto;flex-shrink:0';
+        u.addEventListener('click', () => { if (!window.__medUndo) return; medsList = window.__medUndo; window.__medUndo = null; syncMeds(); medDraft = blankMed(); medDraft.stage = medsList.length ? 'list' : 'name'; renderList(); applyLang(); tb.classList.add('hidden'); });
+        tb.style.pointerEvents = 'auto'; tb.appendChild(u); } catch (e) { /* toast without undo */ } }, 0);
+      return true; }
     // the step itself becomes this staged screen
     SID('meds').mode = 'meds'; LISTMODES.meds = 1;
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null');
