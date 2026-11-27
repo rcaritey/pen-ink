@@ -10538,13 +10538,18 @@
         <p class="lb-s">${L2('Get ready for your next visit, or record a visit now.', 'Préparez votre prochaine visite, ou enregistrez une visite maintenant.')}</p>
         ${ri > 0 ? `<button type="button" id="lbResume" class="tactile-btn lb-r"><span class="lb-r-ic" aria-hidden="true">${WHI('note', 22)}</span><span class="lb-r-t"><b>${L2('Continue where you left off', 'Reprendre où vous étiez')}</b><span>${esc(tr(rs.topic || rs.question || ''))}</span></span><span aria-hidden="true">›</span></button>` : ''}`;
       const rb = hb.querySelector('#lbResume'); if (rb) rb.addEventListener('click', () => { ensureCtx(); hush(); const i = steps.indexOf(window.__resumeStep); window.__resumeStep = null; if (i > 0) goTo(i); });
-      const nl = document.getElementById('nextNavLabel'); if (nl) nl.textContent = Number(textSize || 0) >= 2 ? L2('Get ready', 'Préparer') : L2('Get ready for a visit', 'Préparer une visite');
+      const far = typeof reachedMax === 'number' ? reachedMax : 0, midPrep = (ri > 0 && rs.phaseIndex === 0) || (far > 0 && steps[far] && steps[far].phaseIndex === 0 && !['consent', 'setup', 'helperpick'].includes(steps[far].mode));
+      const nl = document.getElementById('nextNavLabel'); if (nl) nl.textContent = midPrep ? L2('Continue getting ready', 'Continuer la préparation') : L2('Get ready for a visit', 'Préparer une visite');
+      if (midPrep) { const r0 = hb.querySelector('#lbResume'); if (r0 && rs && rs.phaseIndex === 0) r0.remove(); }   // the big button already does it
       if (typeof applyLang === 'function') applyLang(hb);
     }
     { const gnH = goNext; goNext = function () {
         if (steps[currentIndex].mode === 'landing' && consent && consent.choice) {
           const rs = window.__resumeStep, ri = rs ? steps.indexOf(rs) : -1;
           if (ri > 0) { window.__resumeStep = null; goTo(ri); return; }
+          // already part-way through getting ready: carry on from the furthest point, never back to questions already answered (Rama, 27 Nov)
+          const far = typeof reachedMax === 'number' ? reachedMax : 0;
+          if (far > 0 && steps[far] && steps[far].phaseIndex === 0 && !['consent', 'setup', 'helperpick'].includes(steps[far].mode)) { goTo(far); return; }
           let last = 0; steps.forEach((x, i) => { if (['consent', 'setup', 'helperpick'].includes(x.mode)) last = i; });
           currentIndex = last;   // move on from the last set-up screen, so the usual skips for returning people apply
         }
