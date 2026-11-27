@@ -7574,7 +7574,7 @@
       $('listTitle').textContent = L2('At the visit', 'Au rendez-vous');
       // One screen for the whole visit (Rama, 27 Nov): Record at the top, the questions to tick in the middle,
       // the pages at the bottom (they were already handed over on paper, so they don't take the screen).
-      $('listHelp').textContent = isRecording ? L2('Recording. Open My page to go through your questions.', 'Enregistrement. Ouvrez Ma page pour passer vos questions.')
+      $('listHelp').textContent = isRecording ? L2('Recording. Tap Your questions to tick them as you go.', 'Enregistrement. Touchez Vos questions pour les cocher au fur et à mesure.')
         : L2('Give the doctor their page, ask if you can record, then tap Record.', 'Donnez sa page au médecin, demandez si vous pouvez enregistrer, puis touchez Enregistrer.');
       $('listCounter').classList.add('hidden');
       items.classList.add('overflow-y-auto');
@@ -7592,10 +7592,10 @@
         : `<p class="vs-none">${L2('No questions on your list. That’s fine: just listen, and Reid will write the summary from the recording.', 'Pas de questions sur votre liste. Ce n’est pas grave : écoutez, Reid fera le résumé à partir de l’enregistrement.')}</p>`;
       items.innerHTML = `<div class="w-full flex flex-col gap-[10px]">
         ${say1}${rec}
+        ${visitQsHint()}
         <button type="button" data-visit="phone" class="vs-link">${L2('Or record with my phone’s own recorder', 'Ou enregistrer avec l’enregistreur du téléphone')}</button>
         <p class="vs-qhead" style="margin-top:6px"><span>${L2('Your pages', 'Vos pages')}</span></p>
-        <div class="vs-tiles">${tile('doc', 'steth', 'Medical team’s page', 'Page de l’équipe médicale')}${tile('mine', 'note', 'My page', 'Ma page')}${tile('circle', 'users', 'Care circle’s page', 'Page du cercle d’aidants')}</div>
-        ${visitQsHint()}</div>`;
+        <div class="vs-tiles">${tile('doc', 'steth', 'Medical team’s page', 'Page de l’équipe médicale')}${tile('mine', 'note', 'My page', 'Ma page')}${tile('circle', 'users', 'Care circle’s page', 'Page du cercle d’aidants')}</div></div>`;
       foot.innerHTML = '';
     }
     setInterval(() => { const t = document.getElementById('vsRecT'); if (t && isRecording) t.textContent = `${Math.floor(recordSeconds / 60)}:${String(recordSeconds % 60).padStart(2, '0')}`; }, 1000);
@@ -9959,10 +9959,11 @@
       const qs = allQs();
       if (!qs.length) return `<p class="vs-none">${L2('No questions on your list. That’s fine: just listen, and the summary is written from the recording.', 'Pas de questions sur votre liste. Ce n’est pas grave : écoutez, le résumé sera fait à partir de l’enregistrement.')}</p>`;
       const n = qs.filter((q) => qAsked[q]).length;
-      return `<button type="button" data-visit="pg-mine" class="tactile-btn vs-qhint">
+      // a tap opens the questions over this screen; the recording keeps going underneath (Rama, 27 Nov)
+      return `<button type="button" data-qpop="1" class="tactile-btn vs-qhint">
           <span class="vs-qhint-n" data-notr>${n}/${qs.length}</span>
-          <span class="vs-qhint-t"><b>${L2(`Your ${qs.length} questions are on My page.`, `Vos ${qs.length} questions sont sur Ma page.`)}</b>
-          <span>${L2('Tap one there to tick it. The recording keeps going. After the visit, the ones the doctor answered are ticked for you.', 'Touchez-en une pour la cocher. L’enregistrement continue. Après la visite, celles auxquelles le médecin a répondu sont cochées pour vous.')}</span></span></button>`;
+          <span class="vs-qhint-t"><b>${L2(`Your ${qs.length} questions`, `Vos ${qs.length} questions`)}</b>
+          <span>${L2('Tap to open and tick them.', 'Touchez pour les ouvrir et cocher.')}</span></span></button>`;
     }
 
     // ---------- the pages on screen: questions tick with a tap, and show the doctor's answer once there is one ----------
@@ -10243,6 +10244,31 @@
       #vsMeterT { font-size: 16px; font-weight: 800; color: #1E4627; }
       .ts-1 .vs-mt { font-size: 17px; } .ts-2 .vs-mt { font-size: 19px; }`;
       document.head.appendChild(st); }
+    // ---------- the questions as a pop-up during the visit (Rama, 27 Nov): tick as you go, recording never stops ----------
+    function openQPop() {
+      const qs = allQs().slice().sort((a, b) => (qPrio.includes(b) ? 1 : 0) - (qPrio.includes(a) ? 1 : 0));
+      const row = (q) => `<li><button type="button" data-qt="${esc(q)}" aria-pressed="${!!qAsked[q]}" class="tactile-btn vs-q${qAsked[q] ? ' on' : ''}">
+          <span class="vs-box" aria-hidden="true">${qAsked[q] ? WHI('check', 20) : ''}</span><span class="vs-qt" data-notr>${qPrio.includes(q) ? '★ ' : ''}${esc(q)}</span></button></li>`;
+      const count = () => L2(`${qs.filter((q) => qAsked[q]).length} of ${qs.length} answered`, `${qs.filter((q) => qAsked[q]).length} sur ${qs.length} répondues`);
+      const el = aSheet(`<div class="flex items-center justify-between gap-2"><h2 class="text-xl font-extrabold text-[#1E2634]">${L2('Your questions', 'Vos questions')}</h2>
+          <span id="qpopN" class="text-sm font-extrabold text-[#425268]">${count()}</span></div>
+        ${isRecording ? `<p class="text-[14px] font-extrabold text-[#991B1B]">● ${L2('Still recording', 'Enregistrement en cours')}</p>` : ''}
+        <ul class="vs-qs">${qs.map(row).join('')}</ul>
+        <p class="text-[13px] text-[#425268] leading-snug">${L2('After the visit, the ones the doctor answered are ticked for you from the recording.', 'Après la visite, celles auxquelles le médecin a répondu sont cochées à partir de l’enregistrement.')}</p>
+        <button type="button" data-x="close" class="${B1} w-full">${L2('Done', 'Terminé')}</button>`);
+      el.firstElementChild.style.maxHeight = '80vh';   // stays below the red recording bar
+      el.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-qt]'); if (!b) return;
+        const q = b.dataset.qt, on = !qAsked[q]; setAsked(q, on);
+        if (QA[q]) QA[q].auto = false;   // their own tick counts over the recording's
+        saveQA(); saveAll();
+        b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+        b.querySelector('.vs-box').innerHTML = on ? WHI('check', 20) : '';
+        el.querySelector('#qpopN').textContent = count();
+      });
+      el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-x="close"]')) setTimeout(() => { if (steps[currentIndex].mode === 'visitStart') { renderList(); applyLang(); } }, 50); });
+    }
+    document.addEventListener('click', (e) => { if (!e.target.closest('[data-qpop]')) return; e.preventDefault(); ensureCtx(); hush(true); openQPop(); }, true);
 
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
