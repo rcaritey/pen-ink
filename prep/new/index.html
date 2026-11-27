@@ -10565,6 +10565,40 @@
       .lb-r-t { flex: 1; min-width: 0; display: flex; flex-direction: column; } .lb-r-t b { font-size: 17px; } .lb-r-t span { font-size: 14px; font-weight: 700; color: #425268; }
       .lb-s { margin: 8px 0 0; font-size: 15px; line-height: 1.4; color: #425268; font-weight: 500; }`; document.head.appendChild(st); }
 
+
+    // ---------- "Describe another concern" on a pick-several question keeps what's already picked (Rama, 27 Nov) ----------
+    { const spM = selectPreset; selectPreset = function (preset) {
+        const step = steps[currentIndex];
+        if (step && step.multi && preset === step.customOptionLabel && (step.answer || '').trim()) {
+          const keep = (step.answer || '').trim().replace(/,\s*$/, '');
+          step.customActive = true; step.answer = keep + ', ';
+          const input = document.getElementById('answerInput'); input.value = step.answer;
+          renderCurrentStep();
+          const inp = document.getElementById('answerInput'); inp.value = step.answer; inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) { /* not a text box */ }
+          return;
+        }
+        return spM.apply(this, arguments);
+      }; }
+    // picked reasons keep their ✓ while another is being typed (the buttons are redrawn as you type, so this watches them)
+    { let marking = false; const markPicked = () => {
+        const step = steps[currentIndex]; if (marking || !step || !step.multi || !step.customActive) return;
+        marking = true;
+        try {
+          const chosen = (step.answer || '').split(/,\s*/).map((x) => x.trim().toLowerCase());
+          document.querySelectorAll('#quickChipsGrid button').forEach((b) => {
+            const label = b.textContent.replace(/^✓\s*/, '').trim();
+            if (label !== tr(step.customOptionLabel) && chosen.includes(label.toLowerCase()) && b.getAttribute('aria-pressed') !== 'true') { b.className = SEL; b.textContent = '✓ ' + label; b.setAttribute('aria-pressed', 'true'); }
+          });
+        } finally { setTimeout(() => { marking = false; }, 0); }
+      };
+      const g = document.getElementById('quickChipsGrid'); if (g) new MutationObserver(markPicked).observe(g, { childList: true, subtree: true, characterData: true });
+      document.getElementById('answerInput').addEventListener('input', () => setTimeout(markPicked, 0)); }
+    // ---------- road map: steps still to come in navy, a full circle, not grey and dashed (Rama, 27 Nov) ----------
+    { const st = document.createElement('style'); st.textContent = `
+      #stepSubtitle .pg-ic.later, #stepSubtitle .pg-ic:not(.done):not(.now) { background: #fff; border: 2px solid #1E2634; color: #1E2634; border-style: solid; opacity: 1; }
+      #stepSubtitle .rm-ph.later { background: #fff; border: 2px solid #1E2634 !important; border-style: solid !important; color: #1E2634; }
+      #stepSubtitle .rm-ph.later .rm-n { background: #1E2634; color: #fff; }`; document.head.appendChild(st); }
+
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>
