@@ -10514,6 +10514,35 @@
       .qe-rm { min-height: 50px; border-radius: 14px; background: #fff; border: 2px solid #E8C4BC; color: #8A2E1C; font-weight: 800; font-size: 15px; }
       .qe-rm.on { background: #FFF4F2; border-color: #8A2E1C; }`; document.head.appendChild(st); }
 
+
+    // ---------- "Welcome back" home (Rama, 27 Nov): once someone has agreed to the privacy page, the first page drops the pitch
+    // and shows what they come back to do: get ready for a visit (the big button at the bottom), record a visit now, their appointments.
+    // The language row stays at the top; the privacy page is one tap away instead of being repeated.
+    function drawHomeBack() {
+      const land = document.getElementById('screenLanding'); if (!land) return;
+      const back = !!consent && steps[currentIndex].mode === 'landing';
+      land.classList.toggle('lp-back', back);
+      let hb = document.getElementById('landingBack');
+      if (!hb) { hb = document.createElement('div'); hb.id = 'landingBack'; const ll = document.getElementById('landingLang'); if (ll) ll.after(hb); else return; }
+      hb.hidden = !back; if (!back) return;
+      hb.innerHTML = `<p class="lb-k">${L2('Welcome back', 'Bon retour')}</p><h1 class="lb-h">${L2('What would you like to do?', 'Que voulez-vous faire ?')}</h1>
+        <p class="lb-s">${L2('Get ready for your next visit, or record a visit now.', 'Préparez votre prochaine visite, ou enregistrez une visite maintenant.')}</p>`;
+      const nl = document.getElementById('nextNavLabel'); if (nl) nl.textContent = L2('Get ready for a visit', 'Préparer une visite');
+      if (typeof applyLang === 'function') applyLang(hb);
+    }
+    { const rcsH = renderCurrentStep; renderCurrentStep = function () { const r = rcsH.apply(this, arguments); try { drawHomeBack(); } catch (e) { console.warn('Welcome back home', e); } return r; }; }
+    { const st = document.createElement('style'); st.textContent = `
+      #screenLanding.lp-back { justify-content: flex-start; gap: 14px; }
+      #screenLanding.lp-back > div { flex-shrink: 0; }
+      #screenLanding.lp-back #landingWelcome, #screenLanding.lp-back #landingWelcome ~ h1, #screenLanding.lp-back #landingHook,
+      #screenLanding.lp-back #landingWhat, #screenLanding.lp-back #landingCard { display: none !important; }
+      #screenLanding.lp-back { overflow-y: auto; }
+      #screenLanding.lp-back > div:has(#privacyLink) { display: flex; flex-direction: column; gap: 12px; }
+      #screenLanding.lp-back #landingRec { order: 1; } #screenLanding.lp-back #landingAppts { order: 2; } #screenLanding.lp-back #privacyLink { order: 3; align-self: center; }
+      .lb-k { margin: 4px 0 0; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #3B5E42; }
+      .lb-h { margin: 4px 0 0; font-size: 1.6rem; line-height: 1.15; font-weight: 800; color: #1E2634; letter-spacing: -.01em; }
+      .lb-s { margin: 8px 0 0; font-size: 15px; line-height: 1.4; color: #425268; font-weight: 500; }`; document.head.appendChild(st); }
+
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>
