@@ -7536,23 +7536,31 @@
       // give the medical team their page, ask the doctor, tap Record. Then the questions.
       const $ = (id) => document.getElementById(id);
       $('listTitle').textContent = L2('At the visit', 'Au rendez-vous');
-      $('listHelp').textContent = L2('Your pages are right here. Then three steps.', 'Vos pages sont ici. Puis trois étapes.');
+      // One screen for the whole visit (Rama, 27 Nov): Record at the top, the questions to tick in the middle,
+      // the pages at the bottom (they were already handed over on paper, so they don't take the screen).
+      $('listHelp').textContent = isRecording ? L2('Recording. Tick each question when it’s answered.', 'Enregistrement. Cochez chaque question une fois répondue.')
+        : L2('Give the doctor their page, ask if you can record, then tap Record.', 'Donnez sa page au médecin, demandez si vous pouvez enregistrer, puis touchez Enregistrer.');
       $('listCounter').classList.add('hidden');
       items.classList.add('overflow-y-auto');
-      const tile = (k, icon, en, fr) => `<button type="button" data-visit="pg-${k}" class="tactile-btn vs-tile"><span class="vs-tile-ic" aria-hidden="true">${WHI(icon, 30)}</span><span>${L2(en, fr)}</span></button>`;
-      const step = (n, icon, title, body, extra) => `<div class="vs-step"><div class="vs-row"><span class="vs-pic" aria-hidden="true">${WHI(icon, 34)}<span class="vs-num">${n}</span></span>
-          <div class="vs-txt"><p class="vs-st"><span class="sr-only">${n}. </span>${title}</p>${body ? `<p class="vs-body">${body}</p>` : ''}</div></div>${extra || ''}</div>`;
+      const tile = (k, icon, en, fr) => `<button type="button" data-visit="pg-${k}" class="tactile-btn vs-tile"><span class="vs-tile-ic" aria-hidden="true">${WHI(icon, 26)}</span><span>${L2(en, fr)}</span></button>`;
       const mm = Math.floor(recordSeconds / 60), ss = String(recordSeconds % 60).padStart(2, '0');
       const rec = `<button type="button" data-visit="rec" aria-pressed="${isRecording}" class="tactile-btn vs-rec${isRecording ? ' on' : ''}"><span class="vs-rec-dot" aria-hidden="true"><span></span></span>
           <span class="vs-rec-txt"><span class="vs-rec-big">${isRecording ? L2('Recording', 'Enregistrement') + ` <span id="vsRecT" data-notr>${mm}:${ss}</span>` : recordSeconds > 0 ? L2('Record again', 'Reprendre') : L2('Record', 'Enregistrer')}</span>
           <span class="vs-rec-small">${isRecording ? L2('Tap to pause', 'Touchez pour arrêter') : L2('Tap once the doctor says yes', 'Touchez quand le médecin a dit oui')}</span></span></button>`;
+      const say1 = !isRecording && !recordSeconds ? `<p class="vs-say">${L2('“Is it OK if I record this, so I remember?”', '« Est-ce que je peux enregistrer, pour m’en souvenir ? »')}</p>` : '';
+      const qs = visitQuestions.map((q, i) => ({ q, i })).filter((x) => x.q && x.q.text);
+      qs.sort((a, b) => (qPrio.includes(b.q.text) ? 1 : 0) - (qPrio.includes(a.q.text) ? 1 : 0));
+      const nDone = qs.filter((x) => x.q.done).length;
+      const qList = qs.length ? `<ul class="vs-qs">${qs.map(({ q, i }) => `<li><button type="button" data-vq="${i}" aria-pressed="${!!q.done}" class="tactile-btn vs-q${q.done ? ' on' : ''}">
+            <span class="vs-box" aria-hidden="true">${q.done ? WHI('check', 20) : ''}</span><span class="vs-qt" data-notr>${qPrio.includes(q.text) ? '★ ' : ''}${esc(q.text)}</span></button></li>`).join('')}</ul>`
+        : `<p class="vs-none">${L2('No questions on your list. That’s fine: just listen, and Reid will write the summary from the recording.', 'Pas de questions sur votre liste. Ce n’est pas grave : écoutez, Reid fera le résumé à partir de l’enregistrement.')}</p>`;
       items.innerHTML = `<div class="w-full flex flex-col gap-[10px]">
+        ${say1}${rec}
+        <button type="button" data-visit="phone" class="vs-link">${L2('Or record with my phone’s own recorder', 'Ou enregistrer avec l’enregistreur du téléphone')}</button>
+        <div class="vs-qhead"><span>${L2('Your questions', 'Vos questions')}</span>${qs.length ? `<span>${L2(`${nDone} of ${qs.length} answered`, `${nDone} sur ${qs.length} répondues`)}</span>` : ''}</div>
+        ${qList}
+        <p class="vs-qhead" style="margin-top:6px"><span>${L2('Your pages', 'Vos pages')}</span></p>
         <div class="vs-tiles">${tile('doc', 'steth', 'Medical team’s page', 'Page de l’équipe médicale')}${tile('mine', 'note', 'My page', 'Ma page')}${tile('circle', 'users', 'Care circle’s page', 'Page du cercle d’aidants')}</div>
-        ${step(1, 'steth', L2('Give the medical team their page', 'Donnez sa page à l’équipe médicale'), L2('The printed page, or show it on this phone.', 'La page imprimée, ou montrez-la sur ce téléphone.'),
-          `<button type="button" data-visit="doc" class="tactile-btn vs-act">${L2('Show their page', 'Montrer leur page')}</button>`)}
-        ${step(2, 'hand', L2('Ask the doctor if it’s OK to record', 'Demandez au médecin si vous pouvez enregistrer'), L2('“Is it OK if I record this, so I remember?”', '« Est-ce que je peux enregistrer, pour m’en souvenir ? »'))}
-        ${step(3, 'mic', L2('Tap Record', 'Touchez Enregistrer'), '', rec)}
-        ${step(4, 'speak', L2('Go through your questions', 'Passez vos questions'), L2('“I have a few questions. May I go through them?” Tick each one when it’s answered.', '« J’ai quelques questions. Est-ce que je peux les passer ? » Cochez chacune une fois répondue.'))}
         ${visitExtras()}</div>`;
       foot.innerHTML = '';
     }
@@ -7569,6 +7577,32 @@
       if (k === 'doc') openFullDoctorCard();
       if (k === 'mine') showPage('mine');
     });
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      if (steps[currentIndex].mode !== 'visitStart') return;
+      const q = e.target.closest('[data-vq]');
+      if (q) { const v = visitQuestions[Number(q.dataset.vq)]; if (v) { v.done = !v.done; saveAll(); renderList(); applyLang(); } return; }
+      if (e.target.closest('[data-visit="phone"]')) { ensureCtx(); hush(true); phoneRecorder(); }
+    });
+    { const st = document.createElement('style'); st.textContent = `
+      .vs-say { margin: 0; font-size: 17px; font-weight: 800; color: #1E4627; background: #E5EFE7; border-radius: 14px; padding: 10px 14px; line-height: 1.35; }
+      .vs-link { align-self: center; min-height: 44px; padding: 0 10px; background: none; border: 0; color: #3B5E42; font-weight: 800; font-size: 16px; text-decoration: underline; text-underline-offset: 3px; }
+      .vs-qhead { display: flex; justify-content: space-between; align-items: baseline; margin: 2px 2px 0; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #425268; }
+      .vs-qs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+      .vs-q { width: 100%; min-height: 60px; padding: 10px 12px; border-radius: 16px; background: #fff; border: 2px solid #D6CFC0; color: #1E2634; display: flex; align-items: center; gap: 12px; text-align: left; font-size: 17px; font-weight: 700; line-height: 1.3; }
+      .vs-q.on { background: #E5EFE7; border-color: #3B5E42; color: #425268; }
+      .vs-q.on .vs-qt { text-decoration: line-through; text-decoration-thickness: 1px; }
+      .vs-box { flex: none; width: 30px; height: 30px; border-radius: 8px; border: 2px solid #3B5E42; background: #fff; color: #3B5E42; display: flex; align-items: center; justify-content: center; }
+      .vs-q.on .vs-box { background: #3B5E42; color: #fff; }
+      .vs-none { margin: 0; font-size: 16px; font-weight: 700; color: #425268; line-height: 1.35; }
+      .vs-tiles .vs-tile { min-height: 80px; }
+      .ts-1 .vs-q { font-size: 19px; } .ts-2 .vs-q { font-size: 22px; }`; document.head.appendChild(st); }
+    // the whole visit is on this one screen, so Next goes straight to the summary, and Back from the summary comes here
+    { const gnV = goNext; goNext = function () { const st = steps[currentIndex];
+        if (st && st.id === 'visitStart') { const r = steps.findIndex((x) => x.id === 'recap'); if (r > -1) { goTo(r); return; } }
+        return gnV.apply(this, arguments); };
+      const gbV = goBack; goBack = function () { const st = steps[currentIndex];
+        if (st && st.id === 'recap') { const v = steps.findIndex((x) => x.id === 'visitStart'); if (v > -1) { goTo(v); return; } }
+        return gbV.apply(this, arguments); }; }
     SPEAK.visitStart = () => L2('At the visit: first, give the medical team their page. Then ask the doctor if it’s OK to record. Then tap Record. After that, go through your questions.', 'Au rendez-vous : d’abord, donnez sa page à l’équipe médicale. Puis demandez au médecin si vous pouvez enregistrer. Puis touchez Enregistrer. Ensuite, passez vos questions.');
     if (typeof EXPLAIN === 'object') EXPLAIN.visitStart = SPEAK.visitStart;
 
