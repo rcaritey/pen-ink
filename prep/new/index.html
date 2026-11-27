@@ -8413,8 +8413,9 @@
     recBar.innerHTML = '<span aria-hidden="true" style="width:12px;height:12px;border-radius:99px;background:#fff"></span><span id="recBarText"></span><button type="button" id="recBarStop" style="font:inherit;font-weight:800;min-height:48px;padding:0 18px;border-radius:999px;border:0;background:#fff;color:#991B1B;cursor:pointer"></button>';
     document.body.appendChild(recBar);
     let wakeLock = null;
-    const keepAwake = async () => { try { if (isRecording && navigator.wakeLock && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch (e) { /* not allowed here */ } };
-    const letSleep = () => { try { if (wakeLock) wakeLock.release(); } catch (e) { /* gone */ } wakeLock = null; };
+    // the screen stays on the whole time WellHeard is open, not only while recording (Rama, 27 Nov)
+    const keepAwake = async () => { try { if (document.visibilityState === 'visible' && navigator.wakeLock && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch (e) { /* not allowed here */ } };
+    const letSleep = () => { /* kept on while WellHeard is open; the phone lets it go when they leave or close it */ };
     function syncRecBar() {
       recBar.style.display = isRecording ? 'flex' : 'none';
       if (!isRecording) return;
@@ -8438,7 +8439,6 @@
         if (dead) {
           if (r) { r.onend = null; try { r.stop(); } catch (e) { /* stopped */ } }
           recRec = null; if (window.__recGo) window.__recGo();
-          showToast(L2('Still recording.', 'L’enregistrement continue.'));
         }
       }, 800);
     }
@@ -9347,6 +9347,8 @@
 `;
         if (AFTER.raw) h += `<button type="button" data-rc="raw" class="${B2} w-full">${L2('My exact words', 'Mes mots exacts')}</button>`;
       }
+      if (AFTER.handoff && !busy) h += `<p class="text-[15px] font-extrabold text-[#7A4A06] leading-snug">${L2('Part of the visit is on your phone’s own recorder. Upload it to add it to the summary.', 'Une partie de la visite est sur l’enregistreur du téléphone. Téléversez-la pour l’ajouter.')}</p>
+          <button type="button" data-rc="upload" class="${B1} w-full">${WHI('upload', 18)}${L2('Upload the rest of the visit', 'Téléverser le reste de la visite')}</button>`;
       rcEl.innerHTML = h;
       if (typeof applyLang === 'function') applyLang(rcEl);
     }
@@ -9424,8 +9426,11 @@
       const kept = texts.map((t, i) => ({ t, w: wavs[i] })).filter((x) => x.t);
       upBusy = '';
       if (!kept.length) { drawRecapCard(); showToast(L2('Reid couldn’t make out any words. Check the recording plays, then try again.', 'Reid n’a reconnu aucun mot. Vérifiez l’enregistrement et réessayez.')); return; }
-      transcript = kept.map((x) => x.t).join('\n');
-      kept.forEach((x, i) => { try { Promise.resolve(clipDB.put(i + 1, x.w)).catch(() => {}); } catch (e) { /* playback only */ } });
+      // when the phone's recorder took over part-way (Rama, 27 Nov), its recording is added after what WellHeard heard
+      const before = AFTER.handoff && transcript.trim() ? transcript.trim().split('\n') : [];
+      transcript = before.concat(kept.map((x) => x.t)).join('\n');
+      kept.forEach((x, i) => { try { Promise.resolve(clipDB.put(before.length + i + 1, x.w)).catch(() => {}); } catch (e) { /* playback only */ } });
+      AFTER.handoff = false;
       recapSrc = {}; const ai = new Set(aLines(AFTER.ai)); SID('recap').answer = aLines(SID('recap').answer).filter((x) => !ai.has(x)).join('\n'); AFTER.ai = ''; saveAfter();
       recapDone = false; window.__recapErr = failed ? L2(`${failed} short part${failed > 1 ? 's' : ''} couldn’t be heard.`, `${failed} partie(s) n’ont pas pu être entendues.`) : '';
       saveAll(); await recapFromRecording(); reRender();
@@ -9691,6 +9696,91 @@
       if (transcript) out += '\n\nTranscript of the visit recording (no speaker names, words may be misheard):\n' + transcript.slice(-Math.max(2000, 13500 - out.length));
       return out.slice(0, 14000);
     }
+
+
+    // ---------- recording stopped on its own: a clear alert, and the phone's own recorder offered (Rama, 27 Nov) ----------
+    // Caught three ways: the microphone goes quiet while WellHeard is on screen, the microphone track ends (a phone call,
+    // another app took it), or they come back after the screen was off and nothing was heard meanwhile.
+    let recDownSince = 0, recAlert = null, recHiddenAt = 0;
+    const recAlive = () => { const r = recRec, tr = r && r._stream ? r._stream.getAudioTracks() : [];
+      return !!r && tr.length > 0 && !tr.some((t) => t.readyState === 'ended') && !!r._beat && performance.now() - r._beat < 4000; };
+    const gapWords = (ms) => { const sec = Math.round(ms / 1000), m = Math.round(sec / 60);
+      return sec < 90 ? L2(`about ${sec} seconds`, `environ ${sec} secondes`) : L2(`about ${m} minutes`, `environ ${m} minutes`); };
+    function recChime() {
+      try { if (navigator.vibrate) navigator.vibrate([300, 150, 300]); } catch (e) { /* no buzz here */ }
+      try { const c = CanadaRec.sharedCtx && CanadaRec.sharedCtx(); if (!c || c.state !== 'running') return;
+        [[660, 0], [520, 0.22]].forEach(([f, t]) => { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, c.currentTime + t);
+          g.gain.exponentialRampToValueAtTime(0.25, c.currentTime + t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + t + 0.2); o.connect(g); g.connect(c.destination); o.start(c.currentTime + t); o.stop(c.currentTime + t + 0.22); }); } catch (e) { /* silent */ }
+    }
+    function recStopped(gapMs, away) {
+      if (recAlert || !isRecording) return;
+      recChime();
+      recAlert = document.createElement('div');
+      recAlert.className = 'fixed inset-0 flex items-end sm:items-center justify-center p-3';
+      recAlert.style.cssText = 'z-index:95;background:rgba(0,0,0,.55)';
+      recAlert.setAttribute('role', 'alertdialog'); recAlert.setAttribute('aria-modal', 'true'); recAlert.setAttribute('aria-labelledby', 'recStopTitle');
+      recAlert.innerHTML = `<div class="w-full max-w-md rounded-3xl p-5 flex flex-col gap-3 shadow-xl" style="background:#FFF4F2;border:3px solid #991B1B;max-height:92vh;overflow:auto">
+        <h2 id="recStopTitle" class="text-2xl font-extrabold text-[#991B1B] flex items-center gap-2">${WHI('alert', 26)}${L2('Recording stopped', 'L’enregistrement s’est arrêté')}</h2>
+        <p class="text-[17px] font-bold text-[#1E2634] leading-snug">${away
+          ? L2(`The phone paused the recording while the screen was off or another app was open. ${gapWords(gapMs)} of the visit weren’t recorded.`, `Le téléphone a mis l’enregistrement en pause pendant que l’écran était éteint ou qu’une autre application était ouverte. ${gapWords(gapMs)} de la visite n’ont pas été enregistrées.`)
+          : L2('The phone stopped the recording on its own (a call, another app, or the microphone). What was recorded before is saved.', 'Le téléphone a arrêté l’enregistrement tout seul (un appel, une autre application ou le micro). Ce qui a été enregistré avant est gardé.')}</p>
+        <p id="recStopState" class="text-[16px] font-extrabold text-[#7A4A06]" role="status">${L2('Trying to start it again…', 'Tentative de redémarrage…')}</p>
+        <button type="button" data-rs="keep" class="tactile-btn w-full min-h-[58px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-[17px]">${L2('Keep recording here', 'Continuer ici')}</button>
+        <button type="button" data-rs="phone" class="tactile-btn w-full min-h-[58px] rounded-2xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-[17px] flex items-center justify-center gap-2">${WHI('mic', 20)}${L2('Use my phone’s recorder instead', 'Utiliser l’enregistreur du téléphone')}</button>
+        <button type="button" data-rs="stop" class="tactile-btn w-full min-h-[52px] rounded-2xl bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-[15px]">${L2('Stop recording', 'Arrêter l’enregistrement')}</button></div>`;
+      document.body.appendChild(recAlert); if (typeof applyLang === 'function') applyLang(recAlert);
+      recAlert.querySelector('[data-rs="keep"]').focus();
+      recAlert.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-rs]'); if (!b) return; ensureCtx();
+        const act = b.dataset.rs; closeRecAlert();
+        if (act === 'keep') { healRecording(); setTimeout(() => { if (isRecording && !recAlive()) recStopped(0, false); }, 6000); }
+        if (act === 'phone') phoneRecorder();
+        if (act === 'stop' && isRecording) { toggleVisitRecording(); syncRecBar(); }
+      });
+      healRecording();   // try straight away; the message below says whether it worked
+      let n = 0; const watch = setInterval(() => {
+        const el = document.getElementById('recStopState'); if (!el || !recAlert) { clearInterval(watch); return; }
+        if (recAlive()) { el.textContent = L2('✓ It’s recording again now.', '✓ L’enregistrement a repris.'); el.style.color = '#1E4627'; recAlert.querySelector('[data-rs="keep"]').textContent = L2('OK', 'OK'); clearInterval(watch); }
+        else if (++n > 6) { el.textContent = L2('It couldn’t start again on its own. Use your phone’s recorder so nothing more is missed.', 'Il n’a pas pu redémarrer. Utilisez l’enregistreur du téléphone pour ne rien manquer.'); el.style.color = '#991B1B'; clearInterval(watch); }
+      }, 1000);
+    }
+    function closeRecAlert() { if (recAlert) { recAlert.remove(); recAlert = null; } recDownSince = 0; }
+    function phoneRecorder() {
+      const ios = isIOS, el = aSheet(`<h2 class="text-xl font-extrabold text-[#1E2634]">${L2('Record with your phone’s recorder', 'Enregistrer avec l’enregistreur du téléphone')}</h2>
+        <ol class="list-decimal pl-6 flex flex-col gap-2 text-[17px] text-[#1E2634] leading-snug">
+          <li>${ios ? L2('Press the Home button or swipe up from the bottom, and open <b>Voice Memos</b> (a white app with a red sound wave). Can’t find it? Swipe down on the home screen and type “Voice Memos”.', 'Revenez à l’écran d’accueil et ouvrez <b>Dictaphone</b> (une app blanche avec une onde rouge). Introuvable ? Glissez vers le bas et tapez « Dictaphone ».')
+            : L2('Go to your home screen and open <b>Recorder</b> or <b>Voice Recorder</b>.', 'Revenez à l’écran d’accueil et ouvrez <b>Enregistreur</b>.')}</li>
+          <li>${L2('Tap the big red button. It keeps recording even with the screen off.', 'Touchez le gros bouton rouge. Il continue même écran éteint.')}</li>
+          <li>${L2('After the visit, tap it again to stop. Then come back to WellHeard, go to <b>Summary</b> and tap <b>Upload the rest of the visit</b>.', 'Après la visite, touchez-le pour arrêter. Revenez dans WellHeard, à <b>Résumé</b>, et touchez <b>Téléverser le reste de la visite</b>.')}</li></ol>
+        <p class="text-[14px] text-[#425268] leading-snug">${L2('What WellHeard already recorded is kept. The two are put together for the summary.', 'Ce que WellHeard a déjà enregistré est gardé. Les deux sont réunis pour le résumé.')}</p>
+        <button type="button" data-ph="go" class="${B1} w-full">${L2('OK, I’ll use my phone’s recorder', 'D’accord, j’utilise l’enregistreur')}</button>
+        <button type="button" data-x="close" class="${B2} w-full">${L2('Back', 'Retour')}</button>`);
+      el.addEventListener('click', (e) => {
+        if (!e.target.closest('[data-ph="go"]')) return;
+        AFTER.handoff = true; saveAfter();
+        if (isRecording) { toggleVisitRecording(); syncRecBar(); }   // frees the microphone for the other app
+        el.remove(); showToast(L2('Start your phone’s recorder now. After the visit: Summary, then Upload.', 'Lancez l’enregistreur maintenant. Après la visite : Résumé, puis Téléverser.'));
+      });
+    }
+    // watching while WellHeard is on screen
+    setInterval(() => {
+      if (!isRecording || recAlert || document.visibilityState !== 'visible' || recHiddenAt) { recDownSince = 0; return; }
+      if (recAlive()) { recDownSince = 0; return; }
+      if (!recDownSince) recDownSince = performance.now();
+      else if (performance.now() - recDownSince > 6000) recStopped(performance.now() - recDownSince, false);
+    }, 2000);
+    // coming back after the screen was off or another app was open: was anything heard meanwhile?
+    document.addEventListener('visibilitychange', () => {
+      if (!isRecording) { recHiddenAt = 0; return; }
+      if (document.visibilityState === 'hidden') { recHiddenAt = performance.now(); return; }
+      const away = recHiddenAt ? performance.now() - recHiddenAt : 0; recHiddenAt = 0;
+      const lastHeard = CanadaRec.beat || 0, missed = performance.now() - Math.max(lastHeard, performance.now() - away);
+      if (away > 5000 && missed > 5000) setTimeout(() => recStopped(missed, true), 400);
+    });
+    // the screen stays on whenever WellHeard is open (Rama, 27 Nov): asked again after every tap and whenever they come back
+    { const ask = () => { if (document.visibilityState === 'visible') keepAwake(); };
+      ['pointerdown', 'keydown'].forEach((ev) => window.addEventListener(ev, ask, { passive: true }));
+      document.addEventListener('visibilitychange', ask); setInterval(ask, 10000); ask(); }
 
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
