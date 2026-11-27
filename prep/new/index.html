@@ -3931,7 +3931,8 @@
           { const m = d.reply || (d.action === 'slower' ? L2('OK, I’ll speak more slowly.', 'D’accord, je parle plus lentement.') : L2('OK, I’ll speak a bit faster.', 'D’accord, je parle un peu plus vite.')); showToast(m); say(m, true); } break;
         case 'tap': { const x = btns[(d.tap || 0) - 1]; if (x && x.b.isConnected) { x.b.click(); } else await talk(); break; }
         case 'answer': if (fallback) fallback(); else await talk(); break;
-        default: await talk();
+        case 'ask': askReid(t); break;
+        default: if (!d.reply && t.trim()) askReid(t); else await talk();
       }
     }
     // Questions said to Reid ("what does that mean?") get a short answer from Claude
@@ -3940,10 +3941,11 @@
       setCompanionState('asking');
       try {
         const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ mode: 'help', lang, question: tr(step.question || step.topic || ''), text: q, history: (window.__convo || []).slice(-10), known: whKnown() }) });
+          body: JSON.stringify({ mode: 'help', lang, question: step.mode === 'voice' ? tr(step.question || '') : '', screen: tr(step.topic || '') + ' (' + step.mode + ')', text: q, history: (window.__convo || []).slice(-10), known: whKnown(), record: typeof whRecord === 'function' ? whRecord() : '' }) });
         const d = await r.json().catch(() => ({}));
-        const a = (r.ok && d.ok && d.answer) || (lang === 'fr' ? "Dites votre réponse, puis dites suivant. Pour revenir, dites retour." : 'Say your answer, then say next. To go back, say back.');
-        showToast(a); await say(a, true);
+        const a = (r.ok && d.ok && d.answer) || (d && d.error) || (lang === 'fr' ? "Je n’arrive pas à répondre pour l’instant. Réessayez dans une minute." : 'I can’t answer right now. Please try again in a minute.');
+        if (typeof rpOpen === 'function' && rpOpen()) rpAdd('them', a); else showToast(a);
+        await say(a, true);
       } catch (e) { console.warn('Help unavailable', e); }
       setCompanionState(isListening ? 'listening' : 'paused');
     }
@@ -4167,22 +4169,26 @@
 
     // ---------- after the visit: Reid fills in the notes from the recording ----------
     async function recapFromRecording() {
-      if (recapDone || transcript.length < 40) return;
-      recapDone = true; showToast(lang === 'fr' ? 'Reid prépare vos notes…' : 'Reid is writing your notes…');
+      if (recapDone || transcript.length < 40 || window.__recapBusy) return;
+      recapDone = true; window.__recapBusy = true; window.__recapErr = ''; if (typeof drawRecapCard === 'function') drawRecapCard();
+      showToast(lang === 'fr' ? 'Reid prépare vos notes…' : 'Reid is writing your notes…');
       try {
         const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ mode: 'recap', lang, transcript: transcript.split('\n').map((l, i) => `[${i + 1}] ${l}`).join('\n'), questions: visitQuestions.map((q) => q.text), meds: medsList.map(fmtMed), purpose: SID('concerns').answer || '', seeing: SID('who').answer || '' }) });
         const d = await r.json().catch(() => ({}));
-        if (!r.ok || !d.ok) { recapDone = false; return; }
+        if (!r.ok || !d.ok) { recapDone = false; window.__recapErr = d.error || (lang === 'fr' ? 'Reid n’a pas pu écrire le résumé.' : 'Reid couldn’t write the summary.'); return; }
         const rc = SID('recap');
-        rc.answer = String(d.said || '').trim(); rc.customActive = true;
+        const own = typeof recapOwnLines === 'function' ? recapOwnLines().join('\n') : '';   // what they typed or said themselves stays, under Reid's summary
+        rc.answer = [String(d.said || '').trim(), own].filter(Boolean).join('\n'); rc.customActive = true;
+        if (typeof setRecapAI === 'function') setRecapAI(String(d.said || '').trim(), d);
         recapSrc = {}; rc.answer.split('\n').map((x) => x.trim()).filter(Boolean).forEach((line, i) => { if (d.saidFrom && d.saidFrom[i] && d.saidFrom[i].length) recapSrc[line] = d.saidFrom[i]; });
         (d.todo || []).forEach((t) => { if (!nextStepTasks.some((x) => x.text === t)) nextStepTasks.push({ text: t, selected: true }); });
         const next = [d.nextWith, d.nextDate, d.nextTime, d.nextWhen].filter(Boolean).join(', ');
         if (next) document.getElementById('customTaskInput').value = (lang === 'fr' ? 'Prochain rendez-vous : ' : 'Next appointment: ') + next;
         recapContact = d.contact || ''; medChanges = Array.isArray(d.medChanges) ? d.medChanges : [];
         renderCurrentStep(); showToast(lang === 'fr' ? 'Reid a rempli ceci à partir de l’enregistrement. Vérifiez et corrigez.' : 'Reid filled this in from the recording. Check it and change anything.');
-      } catch (e) { recapDone = false; console.warn('Recap unavailable', e); }
+      } catch (e) { recapDone = false; window.__recapErr = e && e.message === 'Sharing is off' ? (lang === 'fr' ? 'Le partage avec les services de Reid est désactivé (Réglages), donc il ne peut pas écrire le résumé.' : 'Sharing with Reid’s helpers is off (in Settings), so he can’t write the summary.') : (lang === 'fr' ? 'Pas de connexion. Réessayez.' : 'No connection. Try again.'); console.warn('Recap unavailable', e); }
+      finally { window.__recapBusy = false; if (typeof drawRecapCard === 'function') drawRecapCard(); }
       saveAll();
     }
 
@@ -4237,12 +4243,15 @@
         <h2>${fr ? 'Mes notes' : 'My notes: what the doctor says'}</h2><div class="ans"></div><div class="ans"></div><div class="ans"></div></div>`;
     }
     function recapPage() {
-      const fr = lang === 'fr', said = items(SID('recap').answer.replace(/([.!?])\s+/g, '$1\n'));
+      // one point per line, as Reid wrote them (commas inside a sentence no longer split it into broken pieces)
+      const fr = lang === 'fr', said = String(SID('recap').answer || '').split('\n').map((x) => x.trim()).filter(Boolean);
       const todo = nextStepTasks.filter((t) => t.selected).map((t) => t.text), extra = document.getElementById('customTaskInput').value.trim();
       return `<div class="pg"><h1>${fr ? 'Résumé du rendez-vous' : 'Appointment recap'}</h1>${glance()}
         <h2>${fr ? 'Ce qu’a dit le médecin' : 'What the doctor said'}</h2>${said.length ? `<ul>${said.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p>—</p>'}
         <h2>${fr ? 'Prochaines étapes' : 'Next steps'}</h2><ul>${todo.concat(extra ? [extra] : []).map((x) => `<li>${esc(x)}</li>`).join('') || '<li>—</li>'}</ul>
+        ${typeof nextApptLine === 'function' && nextApptLine() ? `<h2>${fr ? 'Prochain rendez-vous' : 'Next appointment'}</h2><p>${esc(nextApptLine())}</p>` : ''}
         ${recapContact ? `<h2>${fr ? 'Questions d’ici là' : 'Questions before then'}</h2><p>${esc(recapContact)}</p>` : ''}
+        ${typeof papersPrint === 'function' ? papersPrint() : ''}
         ${chartPrint({ after: true, title: fr ? 'Mes médicaments après la visite' : 'My medicine chart after this visit' })}</div>`;
     }
     let ENC = {};
@@ -9261,6 +9270,428 @@
         rpAdd('you', t); window.__typedToReid = true;
         try { return hRm.apply(this, arguments); } finally { window.__typedToReid = false; }
       }; }
+    // =====================================================================
+    // After the visit, stage 3 (Rama, 27 Nov, after Pierre's appointment):
+    //  1. the summary comes from the recording, and says so — or, with no recording, from one uploaded from the phone
+    //     or a pasted transcript; problems are shown instead of silently leaving only what he typed
+    //  2. the next appointment counts down ("In 3 weeks")
+    //  3. papers from the visit can be photographed or uploaded; they're read on the phone, explained, and their to-dos added
+    //  4. what the person types or says themselves is cleaned into clear points, never copied over word for word
+    //  5. Reid answers questions properly, about the app, their own information and the visit (see askReid)
+    // =====================================================================
+    Object.assign(window.WHI_P, {
+      camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+      upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+      clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'
+    });
+    const A_KEY = 'wellheard-after';
+    const AFTER0 = () => ({ ai: '', cleaned: [], raw: '', papers: [] });
+    let AFTER = AFTER0();
+    try { AFTER = Object.assign(AFTER0(), JSON.parse(localStorage.getItem(A_KEY) || '{}') || {}); } catch (e) { AFTER = AFTER0(); }
+    const saveAfter = () => { try { localStorage.setItem(A_KEY, JSON.stringify(AFTER)); } catch (e) { /* full */ } };
+    const aLines = (t) => String(t || '').split('\n').map((x) => x.trim()).filter(Boolean);
+    function setRecapAI(said) { AFTER.ai = said; saveAfter(); }
+    // the lines of the summary that the person typed or said themselves (not Reid's from the recording)
+    function recapOwnLines() { const ai = new Set(aLines(AFTER.ai)); return aLines(SID('recap').answer).filter((x) => !ai.has(x)); }
+    const B1 = 'tactile-btn min-h-[50px] px-3 rounded-[14px] bg-[#1E2634] text-white font-extrabold text-[15px] flex items-center justify-center gap-2';
+    const B2 = 'tactile-btn min-h-[50px] px-3 rounded-[14px] bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold text-[15px] flex items-center justify-center gap-2';
+    function aSheet(html) {
+      const el = document.createElement('div');
+      el.className = 'fixed inset-0 z-[80] bg-black/40 flex items-end sm:items-center justify-center p-3';
+      el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
+      el.innerHTML = `<div class="w-full max-w-md bg-[#FAF7F1] rounded-3xl p-5 flex flex-col gap-3 shadow-xl" style="max-height:88vh;overflow:auto">${html}</div>`;
+      document.body.appendChild(el);
+      el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-x="close"]')) el.remove(); });
+      if (typeof applyLang === 'function') applyLang(el);
+      return el;
+    }
+    function pickFile(accept, capture) {
+      return new Promise((ok) => {
+        const i = document.createElement('input'); i.type = 'file'; i.accept = accept; if (capture) i.setAttribute('capture', capture);
+        i.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(i);
+        i.addEventListener('change', () => { ok(i.files && i.files[0] || null); i.remove(); }, { once: true });
+        i.click();
+      });
+    }
+    const reRender = () => { try { renderCurrentStep(); } catch (e) { /* drawn next time */ } };
+
+    // ---------- 1. the summary from the recording: what's happening, and what to do when there's none ----------
+    let upBusy = '';
+    const rcEl = document.createElement('div'); rcEl.id = 'recapCard';
+    rcEl.className = 'hidden w-full shrink-0 rounded-[16px] border p-3 flex flex-col gap-2';
+    function drawRecapCard() {
+      const st = steps[currentIndex], show = !!st && st.id === 'recap';
+      rcEl.classList.toggle('hidden', !show); if (!show) return;
+      const scr = document.getElementById('voiceCaptureScreen'), box = document.getElementById('answerBoxWrapper');
+      const anchor = hearBtn.parentNode === scr && !hearBtn.classList.contains('hidden') ? hearBtn : box;
+      if (rcEl.parentNode !== scr || rcEl.nextSibling !== anchor) scr.insertBefore(rcEl, anchor);
+      const has = transcript.length >= 40, busy = window.__recapBusy || upBusy, err = window.__recapErr || '';
+      const tone = (bg, bd) => { rcEl.style.background = bg; rcEl.style.borderColor = bd; };
+      let h = '';
+      if (busy) {
+        tone('#E5EFE7', '#3B5E42');
+        h = `<p class="text-[15px] font-extrabold text-[#1E4627] leading-snug" role="status">${upBusy || L2('Reid is writing your summary from the recording…', 'Reid écrit votre résumé à partir de l’enregistrement…')}</p>`;
+      } else if (has && AFTER.ai) {
+        tone('#E5EFE7', '#3B5E42');
+        h = `<p class="text-[15px] font-extrabold text-[#1E4627] leading-snug">${WHI('check', 18)} ${L2('Summary written from your recording. Check it below and change anything.', 'Résumé écrit à partir de votre enregistrement. Vérifiez-le ci-dessous et corrigez.')}</p>
+          <div class="flex gap-[10px]"><button type="button" data-rc="again" class="${B2} flex-1">${L2('Write it again', 'Le réécrire')}</button>${AFTER.raw ? `<button type="button" data-rc="raw" class="${B2} flex-1">${L2('My exact words', 'Mes mots exacts')}</button>` : ''}</div>`;
+      } else if (has) {
+        tone('#FDF3E1', '#D97706');
+        h = `<p class="text-[15px] font-extrabold text-[#7A4A06] leading-snug">${L2('Your recording is saved on this phone.', 'Votre enregistrement est sur ce téléphone.')}${err ? ' ' + esc(err) : ''}</p>
+          <button type="button" data-rc="make" class="${B1} w-full">${WHI('note', 18)}${L2('Write my summary from the recording', 'Écrire mon résumé à partir de l’enregistrement')}</button>`;
+      } else {
+        tone('#FDF3E1', '#D97706');
+        h = `<p class="text-[15px] font-extrabold text-[#7A4A06] leading-snug">${L2('No recording of this visit on this phone. Recorded it another way? Upload it.', 'Aucun enregistrement de cette visite sur ce téléphone. Enregistré autrement ? Téléversez-le.')}</p>
+          <div class="flex gap-[10px]"><button type="button" data-rc="upload" class="${B1} flex-1">${WHI('upload', 18)}${L2('Upload', 'Téléverser')}</button>
+          <button type="button" data-rc="paste" class="${B2} flex-1">${L2('Paste text', 'Coller un texte')}</button></div>
+`;
+        if (AFTER.raw) h += `<button type="button" data-rc="raw" class="${B2} w-full">${L2('My exact words', 'Mes mots exacts')}</button>`;
+      }
+      rcEl.innerHTML = h;
+      if (typeof applyLang === 'function') applyLang(rcEl);
+    }
+    rcEl.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-rc]'); if (!b) return;
+      ensureCtx(); hush(true);
+      const act = b.dataset.rc;
+      if (act === 'make' || act === 'again') {
+        if (act === 'again') { const ai = new Set(aLines(AFTER.ai)); SID('recap').answer = aLines(SID('recap').answer).filter((x) => !ai.has(x)).join('\n'); AFTER.ai = ''; saveAfter(); }
+        recapDone = false; window.__recapErr = ''; recapFromRecording();
+      }
+      if (act === 'upload') { const f = await pickFile('audio/*,video/mp4,video/quicktime,.m4a,.mp3,.wav,.aac,.caf'); if (f) uploadRecording(f); }
+      if (act === 'paste') pasteTranscript();
+      if (act === 'raw') showRawNotes();
+    });
+
+    // a recording file from the phone's own recorder (Voice Memos, Recorder…): turned into words in Canada, in pieces,
+    // each piece kept on this phone so ▶ can play the doctor's own words, exactly like an in-app recording
+    function wav16(f) {
+      const n = f.length, b = new ArrayBuffer(44 + n * 2), v = new DataView(b), w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+      w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, 16000, true); v.setUint32(28, 32000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+      for (let i = 0; i < n; i++) { const x = Math.max(-1, Math.min(1, f[i])); v.setInt16(44 + i * 2, x < 0 ? x * 0x8000 : x * 0x7fff, true); }
+      return b;
+    }
+    async function uploadRecording(file) {
+      const fr = lang === 'fr';
+      if (file.size > 300 * 1024 * 1024) { showToast(L2('That file is too big. Try a recording under about 2 hours.', 'Fichier trop gros. Essayez un enregistrement de moins de 2 heures.')); return; }
+      upBusy = L2('Opening your recording…', 'Ouverture de l’enregistrement…'); drawRecapCard();
+      let mono;
+      try {
+        const ab = await file.arrayBuffer();
+        const AC = window.AudioContext || window.webkitAudioContext;
+        let ctx; try { ctx = new AC({ sampleRate: 16000 }); } catch (e) { ctx = new AC(); }
+        const buf = await new Promise((ok, no) => { const pr = ctx.decodeAudioData(ab, ok, no); if (pr && pr.then) pr.then(ok, no); });
+        try { ctx.close(); } catch (e) { /* closed */ }
+        const ch = buf.numberOfChannels, len = buf.length, src = [];
+        for (let c = 0; c < ch; c++) src.push(buf.getChannelData(c));
+        const rate = buf.sampleRate, step = rate / 16000, out = new Float32Array(Math.floor(len / step));
+        for (let i = 0; i < out.length; i++) { const k = Math.floor(i * step); let x = 0; for (let c = 0; c < ch; c++) x += src[c][k]; out[i] = x / ch; }
+        mono = out;
+      } catch (e) {
+        console.warn('Recording could not be opened', e); upBusy = ''; drawRecapCard();
+        showToast(L2('This phone couldn’t open that file. Try sharing it from the recorder as an .m4a or .mp3.', 'Ce téléphone n’a pas pu ouvrir ce fichier. Essayez un .m4a ou .mp3.'));
+        return;
+      }
+      // cut into pieces of 12–25 seconds, at the quietest moment, so words aren't cut in half; silent pieces are skipped
+      const W = 1600, rms = (a, b) => { let s = 0; for (let i = a; i < b; i++) s += mono[i] * mono[i]; return Math.sqrt(s / Math.max(1, b - a)); };
+      const cuts = []; let at = 0;
+      while (at < mono.length) {
+        let end = Math.min(mono.length, at + 25 * 16000);
+        if (end < mono.length) { let best = end, low = Infinity; for (let p = at + 12 * 16000; p + W <= end; p += W) { const r = rms(p, p + W); if (r < low) { low = r; best = p + W / 2; } } end = best; }
+        cuts.push([at, end]); at = end;
+      }
+      const pieces = cuts.map(([a, b]) => { let peak = 0; for (let p = a; p + W <= b; p += W) peak = Math.max(peak, rms(p, p + W)); return { a, b, peak }; }).filter((x) => x.peak > 0.004);
+      if (!pieces.length) { upBusy = ''; drawRecapCard(); showToast(L2('No speech was found in that recording.', 'Aucune parole trouvée dans cet enregistrement.')); return; }
+      const texts = new Array(pieces.length).fill(''), wavs = new Array(pieces.length);
+      let done = 0, failed = 0, next = 0;
+      const one = async () => {
+        while (next < pieces.length) {
+          const i = next++, x = pieces[i], seg = mono.slice(x.a, x.b), g = Math.min(8, 0.9 / Math.max(1e-4, seg.reduce((m, v) => Math.max(m, Math.abs(v)), 0)));
+          for (let k = 0; k < seg.length; k++) seg[k] *= g;   // quiet phone recordings are lifted so they're heard
+          wavs[i] = wav16(seg);
+          let ok = false;
+          for (let tries = 0; tries < 3 && !ok; tries++) {
+            try { const r = await fetch('/api/stt?lang=' + encodeURIComponent(lang), { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: wavs[i] }); const d = await r.json().catch(() => ({})); if (r.ok) { texts[i] = String(d.text || '').trim(); ok = true; } }
+            catch (e) { /* try again */ }
+            if (!ok) await new Promise((r) => setTimeout(r, 1200 * (tries + 1)));
+          }
+          if (!ok) failed++;
+          done++; upBusy = L2(`Reid is listening to your recording… ${Math.round(done / pieces.length * 100)}%`, `Reid écoute votre enregistrement… ${Math.round(done / pieces.length * 100)} %`); drawRecapCard();
+        }
+      };
+      await Promise.all([one(), one(), one()]);
+      const kept = texts.map((t, i) => ({ t, w: wavs[i] })).filter((x) => x.t);
+      upBusy = '';
+      if (!kept.length) { drawRecapCard(); showToast(L2('Reid couldn’t make out any words. Check the recording plays, then try again.', 'Reid n’a reconnu aucun mot. Vérifiez l’enregistrement et réessayez.')); return; }
+      transcript = kept.map((x) => x.t).join('\n');
+      kept.forEach((x, i) => { try { Promise.resolve(clipDB.put(i + 1, x.w)).catch(() => {}); } catch (e) { /* playback only */ } });
+      recapSrc = {}; const ai = new Set(aLines(AFTER.ai)); SID('recap').answer = aLines(SID('recap').answer).filter((x) => !ai.has(x)).join('\n'); AFTER.ai = ''; saveAfter();
+      recapDone = false; window.__recapErr = failed ? L2(`${failed} short part${failed > 1 ? 's' : ''} couldn’t be heard.`, `${failed} partie(s) n’ont pas pu être entendues.`) : '';
+      saveAll(); await recapFromRecording(); reRender();
+    }
+    function pasteTranscript() {
+      const el = aSheet(`<h2 class="text-xl font-extrabold text-[#1E2634]">${L2('Paste what was said', 'Collez ce qui a été dit')}</h2>
+        <p class="text-[15px] text-[#425268] leading-snug">${L2('From a transcript app or your phone’s recorder. Reid will write the summary and next steps from it.', 'D’une application de transcription ou de l’enregistreur du téléphone. Reid en tirera le résumé et les prochaines étapes.')}</p>
+        <textarea id="pasteBox" rows="8" class="w-full p-3 rounded-2xl border-2 border-[#3B5E42] text-[16px] text-[#1E2634] bg-white"></textarea>
+        <div class="flex gap-[10px]"><button type="button" data-x="close" class="${B2} flex-1">${L2('Cancel', 'Annuler')}</button><button type="button" data-p="go" class="${B1} flex-1">${L2('Write my summary', 'Écrire le résumé')}</button></div>`);
+      el.querySelector('#pasteBox').focus();
+      el.addEventListener('click', (e) => {
+        if (!e.target.closest('[data-p="go"]')) return;
+        const t = el.querySelector('#pasteBox').value.trim();
+        if (t.length < 40) { showToast(L2('That’s too short to make a summary from.', 'Trop court pour un résumé.')); return; }
+        el.remove();
+        transcript = t.replace(/([.!?])\s+(?=[A-ZÀ-Ý])/g, '$1\n').split(/\n+/).map((x) => x.trim()).filter(Boolean).join('\n'); recapSrc = {};
+        const ai = new Set(aLines(AFTER.ai)); SID('recap').answer = aLines(SID('recap').answer).filter((x) => !ai.has(x)).join('\n'); AFTER.ai = ''; saveAfter();
+        recapDone = false; window.__recapErr = ''; saveAll(); recapFromRecording().then(reRender);
+      });
+    }
+
+    // ---------- 4. their own notes, cleaned into clear points (the exact words are kept, one tap away) ----------
+    let cleaning = false;
+    async function cleanOwnNotes() {
+      if (cleaning) return; const rc = SID('recap');
+      const ai = new Set(aLines(AFTER.ai)), done = new Set(AFTER.cleaned || []), all = aLines(rc.answer);
+      const mine = all.filter((x) => !ai.has(x) && !done.has(x)), text = mine.join('\n');
+      if (!text || text.split(/\s+/).length < 3) return;
+      cleaning = true;
+      try {
+        const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ mode: 'notes', lang, text, seeing: SID('who').answer || '', meds: medsList.map(fmtMed) }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.ok || (!(d.said || []).length && !(d.todo || []).length)) return;
+        if (aLines(rc.answer).join('\n') !== all.join('\n')) return;   // they changed it meanwhile: leave theirs
+        AFTER.raw = [AFTER.raw, text].filter(Boolean).join('\n');
+        rc.answer = all.filter((x) => !mine.includes(x)).concat(d.said || []).join('\n'); rc.customActive = true;
+        AFTER.cleaned = (AFTER.cleaned || []).concat(d.said || []);
+        (d.todo || []).forEach((t) => { if (!nextStepTasks.some((x) => x.text === t)) nextStepTasks.push({ text: t, selected: true }); });
+        saveAfter(); saveAll();
+        showToast((d.unclear || []).length ? L2('Reid tidied your notes. He wasn’t sure about: ', 'Reid a clarifié vos notes. Pas sûr de : ') + d.unclear.join(', ') : L2('Reid tidied your notes into clear points. Your exact words are kept.', 'Reid a mis vos notes en points clairs. Vos mots exacts sont gardés.'));
+        reRender();
+      } catch (e) { console.warn('Notes not tidied', e); }
+      finally { cleaning = false; }
+    }
+    function showRawNotes() {
+      const el = aSheet(`<h2 class="text-xl font-extrabold text-[#1E2634]">${L2('Your exact words', 'Vos mots exacts')}</h2>
+        <p class="text-[16px] text-[#1E2634] leading-snug whitespace-pre-line" data-notr>${esc(AFTER.raw)}</p>
+        <div class="flex gap-[10px]"><button type="button" data-x="close" class="${B2} flex-1">${L2('Keep Reid’s points', 'Garder les points de Reid')}</button><button type="button" data-r="use" class="${B1} flex-1">${L2('Use my words', 'Utiliser mes mots')}</button></div>`);
+      el.addEventListener('click', (e) => {
+        if (!e.target.closest('[data-r="use"]')) return;
+        const tidy = new Set(AFTER.cleaned || []), rc = SID('recap');
+        rc.answer = aLines(rc.answer).filter((x) => !tidy.has(x)).concat(aLines(AFTER.raw)).join('\n');
+        AFTER.cleaned = aLines(AFTER.raw); AFTER.raw = ''; saveAfter(); saveAll(); el.remove(); reRender();
+      });
+    }
+    { const gnAfter = goNext; goNext = function () { const st = steps[currentIndex]; if (st && st.id === 'recap') cleanOwnNotes(); return gnAfter.apply(this, arguments); }; }
+
+    // ---------- 2. time to the next appointment ----------
+    function untilText(iso) {
+      const a = new Date(isoToday() + 'T00:00'), b = new Date(iso + 'T00:00'), n = Math.round((b - a) / 864e5), fr = lang === 'fr';
+      if (n === 0) return fr ? 'Aujourd’hui' : 'Today';
+      if (n === 1) return fr ? 'Demain' : 'Tomorrow';
+      if (n < 0) return fr ? `Il y a ${-n} jour${n < -1 ? 's' : ''}` : `${-n} day${n < -1 ? 's' : ''} ago`;
+      if (n < 14) return fr ? `Dans ${n} jours` : `In ${n} days`;
+      if (n < 63) { const w = Math.floor(n / 7), d = n % 7; return fr ? `Dans ${w} semaines${d ? ` et ${d} jour${d > 1 ? 's' : ''}` : ''}` : `In ${w} weeks${d ? ` and ${d} day${d > 1 ? 's' : ''}` : ''}`; }
+      const m = Math.round(n / 30.4); return fr ? `Dans environ ${m} mois` : `In about ${m} months`;
+    }
+    function fmtDay(iso, time) {
+      const d = new Date(iso + 'T' + (time || '12:00'));
+      let t = d.toLocaleDateString(LOC[lang] || 'en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined });
+      if (time) t += ' · ' + d.toLocaleTimeString(LOC[lang] || 'en-CA', { hour: 'numeric', minute: '2-digit' });
+      return t;
+    }
+    function nextApptLine() {
+      const n = recapNext || {};
+      if (n.date) return `${untilText(n.date)} · ${fmtDay(n.date, n.time)}${n.with ? ' · ' + n.with : ''}`;
+      if (n.when) return L2('The doctor said: ', 'Le médecin a dit : ') + n.when + (n.with ? ' · ' + n.with : '');
+      return '';
+    }
+    function setNextAppt(o) { recapNext = Object.assign({}, recapNext || {}, o); try { localStorage.setItem('wellheard-next', JSON.stringify(recapNext)); } catch (e) { /* full */ } }
+    function openSetNext() {
+      const n = recapNext || {};
+      const el = aSheet(`<h2 class="text-xl font-extrabold text-[#1E2634]">${L2('Next appointment', 'Prochain rendez-vous')}</h2>
+        ${n.when && !n.date ? `<p class="text-[15px] font-bold text-[#425268]">${L2('The doctor said: ', 'Le médecin a dit : ')}${esc(n.when)}</p>` : ''}
+        <label class="block text-sm font-extrabold text-[#425268]">${L2('With', 'Avec')}<input id="nxWith" type="text" value="${esc(n.with || SID('who').answer || '')}" class="mt-1 w-full min-h-[54px] px-3 rounded-xl border-2 border-[#D6CFC0] text-[17px] font-bold text-[#1E2634]"></label>
+        <label class="block text-sm font-extrabold text-[#425268]">${L2('Date', 'Date')}<input id="nxDate" type="date" min="${isoToday()}" value="${esc(n.date || '')}" class="mt-1 w-full min-h-[54px] px-2 rounded-xl border-2 border-[#D6CFC0] text-[17px] font-bold"></label>
+        <label class="block text-sm font-extrabold text-[#425268]">${L2('Time (if you know it)', 'Heure (si connue)')}<input id="nxTime" type="time" value="${esc(n.time || '')}" class="mt-1 w-full min-h-[54px] px-2 rounded-xl border-2 border-[#D6CFC0] text-[17px] font-bold"></label>
+        <div class="flex gap-[10px]"><button type="button" data-x="close" class="${B2} flex-1">${L2('Cancel', 'Annuler')}</button><button type="button" data-n="save" class="${B1} flex-1">${L2('Save', 'Enregistrer')}</button></div>`);
+      el.addEventListener('click', (e) => {
+        if (!e.target.closest('[data-n="save"]')) return;
+        const date = el.querySelector('#nxDate').value;
+        if (!date) { showToast(L2('Pick a date first.', 'Choisissez une date.')); return; }
+        setNextAppt({ date, time: el.querySelector('#nxTime').value || '', with: el.querySelector('#nxWith').value.trim() });
+        el.remove(); reRender(); const l = nextApptLine(); showToast(l); say(l, true);
+      });
+    }
+    // the date picker in "Next appointment or note" sets it too
+    { const cpd = confirmPickedDate; confirmPickedDate = function () {
+        if (pickerTarget === 'nextSteps' && !pickerNotBookedYet) setNextAppt({ date: `${pickerYear}-${String(pickerMonthIndex + 1).padStart(2, '0')}-${String(pickerDay).padStart(2, '0')}` });
+        const r = cpd.apply(this, arguments); reRender(); return r; }; }
+    function nextCard(id) {
+      const n = recapNext || {}, el = document.getElementById(id) || Object.assign(document.createElement('div'), { id });
+      el.className = 'w-full shrink-0 rounded-[16px] border border-[#3B5E42]/40 bg-[#E5EFE7] px-3 py-2.5 flex items-center gap-2.5';
+      const big = n.date ? untilText(n.date) : L2('Next appointment', 'Prochain rendez-vous');
+      const small = n.date ? fmtDay(n.date, n.time) + (n.with ? ' · ' + n.with : '') : n.when ? L2('The doctor said: ', 'Le médecin a dit : ') + n.when : L2('Not set yet', 'Pas encore fixé');
+      el.innerHTML = `<span class="text-[#3B5E42] shrink-0">${WHI('clock', 26)}</span>
+        <div class="flex-1 min-w-0">${n.date ? `<p class="text-[11px] font-extrabold uppercase tracking-wide text-[#425268]">${L2('Next appointment', 'Prochain rendez-vous')}</p>` : ''}
+        <p class="text-[17px] font-extrabold text-[#1E2634] leading-tight">${esc(big)}</p><p class="text-[13.5px] font-bold text-[#425268] leading-snug" data-notr>${esc(small)}</p></div>
+        <button type="button" data-nx="set" class="${B2} shrink-0 !min-h-[46px] !px-3">${n.date ? L2('Change', 'Modifier') : L2('Set date', 'Fixer')}</button>`;
+      if (!el.dataset.on) { el.dataset.on = 1; el.addEventListener('click', (e) => { if (e.target.closest('[data-nx]')) { ensureCtx(); hush(true); openSetNext(); } }); }
+      return el;
+    }
+
+    // ---------- 3. papers from the visit: photographed or uploaded, read on this phone ----------
+    const papDB = (() => {
+      let dbp = null; const open = () => dbp || (dbp = new Promise((ok, no) => { const r = indexedDB.open('wellheard-papers', 1); r.onupgradeneeded = () => r.result.createObjectStore('p'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); }));
+      const tx = async (mode, fn) => { const db = await open(); return new Promise((ok, no) => { const t = db.transaction('p', mode), st = t.objectStore('p'), q = fn(st); t.oncomplete = () => ok(q && q.result); t.onerror = () => no(t.error); }); };
+      return { put: (k, v) => tx('readwrite', (s) => s.put(v, k)), get: (k) => tx('readonly', (s) => s.get(k)), del: (k) => tx('readwrite', (s) => s.delete(k)) };
+    })();
+    const loadScript = (src) => new Promise((ok, no) => { if (document.querySelector(`script[src="${src}"]`)) return ok(); const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    async function shrink(file) {   // a smaller copy for this phone, and a sharp one for reading
+      const url = URL.createObjectURL(file);
+      try {
+        const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = url; });
+        const fit = (max) => { const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c; };
+        return { keep: fit(1400).toDataURL('image/jpeg', 0.8), read: fit(2200) };
+      } finally { URL.revokeObjectURL(url); }
+    }
+    async function ocr(canvases) {
+      await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+      const L = lang === 'fr' ? 'fra+eng' : 'eng+fra';
+      const w = await window.Tesseract.createWorker(L);
+      let out = '';
+      try { for (const c of canvases) { const r = await w.recognize(c); out += (r && r.data && r.data.text || '') + '\n'; } } finally { try { await w.terminate(); } catch (e) { /* gone */ } }
+      return out.trim();
+    }
+    async function pdfText(file) {
+      await loadScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js');
+      const pdfjs = window.pdfjsLib; pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+      const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise, pages = Math.min(doc.numPages, 6);
+      let text = '', thumb = '', canv = [];
+      for (let i = 1; i <= pages; i++) {
+        const pg = await doc.getPage(i), tc = await pg.getTextContent(); text += tc.items.map((x) => x.str).join(' ') + '\n';
+        if (i <= 3) { const vp = pg.getViewport({ scale: 2 }), c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; canv.push(c); if (i === 1) thumb = c.toDataURL('image/jpeg', 0.7); }
+      }
+      if (text.replace(/\s+/g, '').length < 40) text = await ocr(canv);   // a scanned PDF: read the pictures
+      return { text, thumb };
+    }
+    let papBusy = '';
+    async function addPaper(file) {
+      if (!file) return;
+      papBusy = L2('Reading your paper on this phone…', 'Lecture du document sur ce téléphone…'); drawPapers();
+      try {
+        let text = '', thumb = '';
+        if (/pdf/i.test(file.type) || /\.pdf$/i.test(file.name || '')) ({ text, thumb } = await pdfText(file));
+        else { const s = await shrink(file); thumb = s.keep; text = await ocr([s.read]); }
+        papBusy = L2('Reid is explaining it…', 'Reid l’explique…'); drawPapers();
+        const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mode: 'paper', lang, text: text.slice(0, 12000) }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.ok) throw new Error(d.error || 'paper');
+        const id = 'p' + Date.now();
+        const p = { id, at: Date.now(), kind: d.unreadable ? L2('Paper from your visit', 'Document de la visite') : (d.kind || L2('Paper from your visit', 'Document de la visite')), points: d.points || [], todo: d.todo || [], date: d.date || '', time: d.time || '', dateWhat: d.dateWhat || '', unreadable: !!d.unreadable };
+        if (thumb) await papDB.put(id, thumb);
+        AFTER.papers.push(p); saveAfter();
+        p.todo.forEach((t) => { if (!nextStepTasks.some((x) => x.text === t)) nextStepTasks.push({ text: t, selected: true }); });
+        if (p.date) { const t = `${p.dateWhat || p.kind}: ${fmtDay(p.date, p.time)}`; if (!nextStepTasks.some((x) => x.text === t)) nextStepTasks.push({ text: t, selected: true }); }
+        saveAll(); papBusy = ''; reRender();
+        const msg = p.unreadable ? L2('I saved the photo, but couldn’t read it clearly. Try again in good light, flat and filling the screen.', 'J’ai gardé la photo, mais je n’ai pas pu la lire. Réessayez avec plus de lumière, à plat.') : `${p.kind}. ${p.points[0] || ''}`;
+        showToast(msg); say(msg, true);
+      } catch (e) {
+        console.warn('Paper not read', e); papBusy = ''; drawPapers();
+        showToast(e && e.message === 'Sharing is off' ? L2('Sharing with Reid’s helpers is off (in Settings), so Reid can’t read papers.', 'Le partage avec les services de Reid est désactivé (Réglages).') : String(e && e.message || '').length > 20 ? e.message : L2('Reid couldn’t read that paper. Check your connection and try again.', 'Reid n’a pas pu lire ce document. Vérifiez la connexion et réessayez.'));
+      }
+    }
+    const papEl = document.createElement('div'); papEl.id = 'papersCard';
+    papEl.className = 'w-full shrink-0 rounded-[16px] border border-[#D6CFC0] bg-[#F0EBE1] p-3 flex flex-col gap-2';
+    function drawPapers() {
+      const n = AFTER.papers.length;
+      papEl.innerHTML = `<div class="flex items-center justify-between gap-2"><span class="text-xs font-extrabold uppercase tracking-wider text-[#425268]">${L2('Papers from the visit', 'Documents de la visite')}</span>
+          ${n ? `<button type="button" data-pp="list" class="tactile-btn min-h-[40px] px-3 rounded-full bg-white border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">${WHI('file', 16)} ${n} ›</button>` : ''}</div>
+        ${papBusy ? `<p class="text-[15px] font-extrabold text-[#1E4627]" role="status">${papBusy}</p>` : `<div class="flex gap-[10px]">
+          <button type="button" data-pp="cam" class="${B1} flex-1">${WHI('camera', 18)}${L2('Scan a paper', 'Photographier')}</button>
+          <button type="button" data-pp="file" class="${B2} flex-1">${WHI('upload', 18)}${L2('Upload', 'Téléverser')}</button></div>`}`;
+      if (typeof applyLang === 'function') applyLang(papEl);
+    }
+    papEl.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-pp]'); if (!b || papBusy) return; ensureCtx(); hush(true);
+      if (b.dataset.pp === 'cam') addPaper(await pickFile('image/*', 'environment'));
+      if (b.dataset.pp === 'file') addPaper(await pickFile('image/*,application/pdf'));
+      if (b.dataset.pp === 'list') openPapers();
+    });
+    async function openPapers() {
+      const rows = await Promise.all(AFTER.papers.map(async (p) => {
+        const img = await papDB.get(p.id).catch(() => '');
+        return `<div class="bg-white border border-[#D6CFC0] rounded-2xl p-3 flex flex-col gap-2">
+          <div class="flex gap-3 items-start">${img ? `<img src="${img}" alt="" class="w-16 h-20 object-cover rounded-lg border border-[#D6CFC0] shrink-0">` : ''}
+          <div class="min-w-0"><p class="font-extrabold text-[16px] text-[#1E2634]">${esc(p.kind)}</p>
+          ${p.date ? `<p class="text-[14px] font-bold text-[#3B5E42]">${esc((p.dateWhat ? p.dateWhat + ': ' : '') + fmtDay(p.date, p.time))} · ${esc(untilText(p.date))}</p>` : ''}</div></div>
+          ${p.points.length ? `<ul class="list-disc pl-5 text-[15px] text-[#1E2634] leading-snug">${p.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+          ${p.todo.length ? `<p class="text-[13px] font-extrabold uppercase text-[#425268]">${L2('To do', 'À faire')}</p><ul class="list-disc pl-5 text-[15px] text-[#1E2634] leading-snug">${p.todo.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+          <button type="button" data-pd="${p.id}" class="tactile-btn min-h-[44px] rounded-xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-sm">${L2('Remove', 'Retirer')}</button></div>`;
+      }));
+      const el = aSheet(`<h2 class="text-xl font-extrabold text-[#1E2634]">${L2('Papers from the visit', 'Documents de la visite')}</h2>${rows.join('')}
+        <p class="text-[13px] text-[#425268] leading-snug">${L2('The photos stay on this phone. Only the words were sent to Reid, with names taken out. Reid can misread: check against the paper itself.', 'Les photos restent sur ce téléphone. Seuls les mots ont été envoyés à Reid, sans les noms. Reid peut mal lire : vérifiez avec le document.')}</p>
+        <button type="button" data-x="close" class="${B1} w-full">${L2('Done', 'Terminé')}</button>`);
+      el.addEventListener('click', (e) => { const b = e.target.closest('[data-pd]'); if (!b) return; AFTER.papers = AFTER.papers.filter((p) => p.id !== b.dataset.pd); papDB.del(b.dataset.pd).catch(() => {}); saveAfter(); el.remove(); reRender(); });
+    }
+    function papersPrint() {
+      const ps = AFTER.papers.filter((p) => p.points.length || p.todo.length); if (!ps.length) return '';
+      return `<h2>${L2('Papers from the visit', 'Documents de la visite')}</h2>` + ps.map((p) => `<p><b>${esc(p.kind)}</b>${p.date ? ' · ' + esc(fmtDay(p.date, p.time)) : ''}</p><ul>${p.points.concat(p.todo).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`).join('');
+    }
+
+    // put the cards on the after-visit screens
+    { const rcsAfter = renderCurrentStep; renderCurrentStep = function () {
+        const r = rcsAfter.apply(this, arguments), st = steps[currentIndex];
+        try {
+          drawRecapCard();
+          if (st && st.mode === 'nextSteps') {
+            const scr = document.getElementById('screenNextSteps'), grid = document.getElementById('nextTasksGrid');
+            drawPapers(); if (papEl.parentNode !== scr || papEl.nextSibling !== grid) scr.insertBefore(papEl, grid);
+            const nc = nextCard('nextApptCard'); if (nc.parentNode !== scr || nc.nextSibling !== papEl) scr.insertBefore(nc, papEl);
+            scr.style.overflowY = 'auto'; scr.style.gap = '10px';
+          }
+          if (st && st.mode === 'shareFinish') {
+            const scr = document.getElementById('screenShareFinish'), cal = document.getElementById('calBtn');
+            const nc = nextCard('finalNextCard'); const before = cal || scr.lastElementChild; if (nc.nextSibling !== before) scr.insertBefore(nc, before);
+            scr.style.overflowY = 'auto'; scr.style.gap = '10px';
+            // what the doctor said and the next steps as points, not one run-on line (Rama, 21 & 27 Nov)
+            const ul = (arr) => arr.length ? `<ul class="list-disc pl-5 flex flex-col gap-1">${arr.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+            const said = aLines(SID('recap').answer), todo = nextStepTasks.filter((t) => t.selected).map((t) => t.text), extra = (document.getElementById('customTaskInput').value || '').trim();
+            const fl = document.getElementById('finalRecapLine'), ft = document.getElementById('finalTasksLine');
+            if (fl) fl.innerHTML = ul(said) || esc(L2('Nothing yet — go back to add what the doctor said.', 'Rien encore — revenez ajouter ce qu’a dit le médecin.'));
+            if (ft) ft.innerHTML = ul(todo.concat(extra ? [extra] : [])) || esc(L2('No tasks added', 'Aucune tâche'));
+          }
+        } catch (e) { console.warn('After-visit cards', e); }
+        return r;
+      }; }
+    // a new visit, or erasing answers, starts the after-visit notes fresh (photos removed from this phone too)
+    { const freshAfter = () => { AFTER.papers.forEach((p) => papDB.del(p.id).catch(() => {})); AFTER = AFTER0(); saveAfter(); };
+      const snvA = startNewVisit; startNewVisit = function () { freshAfter(); return snvA.apply(this, arguments); };
+      const rafA = resetAllFromSettings; resetAllFromSettings = function (x) { if (x !== true) freshAfter(); return rafA.apply(this, arguments); }; }
+
+    // ---------- 5. what Reid knows when he answers: everything they entered for this visit, and the recording ----------
+    // (no name, no birth date and no calendar dates: dates go as "in 3 weeks"; names and contact details are removed on the server too)
+    function whRecord() {
+      const L = [], add = (k, v) => { v = String(v || '').trim(); if (v) L.push(`${k}: ${v}`); };
+      add('Appointment with', SID('who').answer); add('Where', SID('where').answer);
+      if (SID('day').dateISO) add('When', untilText(SID('day').dateISO)); add('Time of day', SID('time').answer);
+      add('What it is about', SID('concerns').answer); add('In their own words', SID('story').answer);
+      add('Health conditions', SID('conditions').answer); add('Allergies', SID('allergies').answer);
+      add('Medicines', medsList.length ? medsList.map(fmtMed).join('; ') : SID('meds').answer);
+      const qs = (visitQuestions || []).filter((q) => q && q.text);
+      if (qs.length) L.push('Questions they brought for the doctor:\n' + qs.map((q) => `- ${q.text}${q.done ? ' (ticked as asked)' : ''}${qPrio.includes(q.text) ? ' (most important)' : ''}`).join('\n'));
+      if (SID('recap').answer) L.push('Summary of what the doctor said:\n' + aLines(SID('recap').answer).map((x) => '- ' + x).join('\n'));
+      const todo = nextStepTasks.filter((t) => t.selected).map((t) => '- ' + t.text); if (todo.length) L.push('Next steps:\n' + todo.join('\n'));
+      add('Note about the next appointment', (document.getElementById('customTaskInput') || {}).value);
+      const n = recapNext || {}; if (n.date || n.when) add('Next appointment', (n.date ? untilText(n.date) : n.when) + (n.with ? ', with ' + n.with : ''));
+      add('Who to contact with questions', recapContact);
+      if (medChanges.length) L.push('Medicine changes heard in the recording:\n' + medChanges.map((m) => `- ${m.change} ${m.name}${m.dose ? ' ' + m.dose : ''}${m.howOften ? ', ' + m.howOften : ''}`).join('\n'));
+      AFTER.papers.forEach((p) => L.push(`Paper from the visit: ${p.kind}\n` + p.points.concat(p.todo).map((x) => '- ' + x).join('\n')));
+      let out = L.join('\n');
+      if (transcript) out += '\n\nTranscript of the visit recording (no speaker names, words may be misheard):\n' + transcript.slice(-Math.max(2000, 13500 - out.length));
+      return out.slice(0, 14000);
+    }
+
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>

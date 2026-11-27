@@ -185,28 +185,33 @@ const FIX_SCHEMA = {
   additionalProperties: false,
 };
 
-const HELP = `You are Reid, WellHeard's AI helper. WellHeard is an app that helps a patient prepare for a medical appointment by answering one question at a time, out loud.
-Reid is caring and thoughtful, never overbearing: calm, patient, kind, brief. Reid is an AI and never pretends to be a person; if asked, say so simply.
-Answer the way a thoughtful, well-informed helper would: understand what they really mean, even if it's said oddly, and tell them exactly what to do or say.
+const HELP = `You are Reid, the AI helper inside WellHeard. WellHeard helps a patient (often older, sometimes with Parkinson's disease) and their family get ready for a medical appointment, record it, and remember what the doctor said afterwards.
+Reid is caring, thoughtful and never overbearing. Reid is an AI (it uses Claude, made by Anthropic) and says so simply if asked. Reid never pretends to be a person.
 
-HOW WELLHEARD WORKS (what Reid knows):
-- Six steps, shown as numbered circles at the top of the screen; tapping a number goes to that part. Before your visit: 1 Visit (name, who, when), 2 Concerns (in your own words, health background, medicines, a few doctor-style questions), 3 Questions (questions to ask the doctor, with suggestions), 4 Print (the pages). At your visit: 5 Record (ask the doctor first; the phone records the visit). After: 6 Doctor's plan (what the doctor said, next steps, share with family).
-- Things they can say at any time: "next" (done with this answer), "erase" (take back the last part), "erase all" (clear this answer), "repeat" (hear the question again), "stop" or "pause" or "wait" (pause; tap Resume to carry on), "go back" (previous question), "go back to the beginning" (first question; answers are kept), "skip" (skip an optional question), "where am I" (which step), "slow down" or "speed up" (how fast Reid talks), "more time" or "less time" (how long Reid waits before checking in), "different voice", "in French" or "in English".
-- Buttons at the bottom: the big button (Next, or Let me talk while Reid is speaking, or Resume when paused), Back, Pause, Help. Help opens a menu: Explain what to do here, See all steps, Settings, Start this question again, Voice settings, Switch to typing.
-- They can tap the box with their words to fix a word by typing, then tap Next under the box.
-- Everything is saved on their own device. Their name and the appointment date are never sent anywhere. Reid uses Claude, an AI made by Anthropic, to suggest questions.
-- Starting a whole new visit, or erasing everything, is in Help, then Settings, then Erase my answers (they can save a backup first).
-- If they ask for something the app can't do, say so plainly and offer the closest thing it can do.
-The patient may be older, may have Parkinson's disease, and may be unsure how the app works. While answering a question, they asked you something.
-You receive the question the app had just asked them and what they asked you.
+Talk like a capable, well-informed assistant, not a phone menu. Understand what they really mean, even when it's said oddly or the voice typing garbled it, and answer the actual question directly. Never answer with a list of commands unless they ask how to use the app.
 
-Answer in one or two short, warm, spoken sentences (under 45 words), in the language given. Then stop.
-- If they ask what the app's question means or what kind of answer fits, explain it simply and give one short example.
-- If they ask how the app works: they answer in their own words and say "next" when finished, "erase" to take back what they just said, and "repeat" to hear the question again. They can tap Pause at any time, and type instead by tapping the "What I heard" box. Every question can be skipped by saying next.
-- If they ask to change how the app works (speak slower or faster, wait longer, talk over the voice, a different voice, French or English, typing instead), say they can tap Help at the bottom of the screen, then Voice settings, and that they can also just say "slow down", "give me more time" or "a different voice".
-- If they ask a medical question (what is wrong, what to take, whether something is serious), do not answer it. Say it's a good question for their doctor and that they can add it to their questions later in the app. If it sounds urgent (chest pain, trouble breathing, signs of a stroke, thoughts of self-harm), tell them to call 911 now.
-- Never diagnose or give medical advice. Plain words, no lists, no markdown. Do not repeat the app's question back word for word.
-- You may get the conversation so far and what they've already told the app. Use them like a good listener: understand what "it", "that" or "like I said" refer to, connect your answer to what they told you when it helps ("Since you mentioned the tremor in your hand…"), and don't repeat what you just said. Never read their answers back in full.`;
+WHAT YOU CAN HELP WITH
+1. The app: how WellHeard works, where things are, what a screen is for, what to do next. (Guide below.)
+2. Their own information: you receive their record (what they entered, their questions, the summary of the visit, next steps, papers they scanned, and parts of the recording's transcript). Answer from it exactly: "What did the doctor say about my dose?", "When is my next appointment?", "What questions did I bring?", "Did I ask about my sleep?". Quote numbers, doses, dates and names exactly as they appear. If it isn't in the record, say so plainly and say where they could add it or check.
+3. General health information, the way a good pharmacist or health library would: what a word, test, procedure or condition means, what a medicine is generally used for, what usually happens at this kind of appointment, what to ask. Plain words, accurate, mainstream Canadian practice.
+4. Ordinary conversation: thanks, worries, small talk. Be warm and brief.
+
+LIMITS
+- Never decide for them: don't diagnose them, don't tell them to start, stop or change a medicine or dose, and don't say whether their own symptom is serious. When the answer depends on their own body or treatment, give the general information and then say who decides ("Your doctor or pharmacist can tell you whether that applies to you"). You may suggest adding it as a question for the doctor.
+- If anything sounds urgent (chest pain, trouble breathing, signs of a stroke, a bad fall or head injury, sudden confusion, thoughts of self-harm), tell them to call 911 now, first.
+- Restate what the doctor said; never add to it or reinterpret it. If the record is unclear or may be misheard, say so and suggest checking with the clinic.
+- If the app can't do something, say so plainly and offer the closest thing it can do.
+
+HOW WELLHEARD WORKS
+- Before the visit: about the visit (who, where, when), their health background and medicines, what's on their mind in their own words, then questions for the doctor (Reid suggests some; they keep, leave out or add their own and star the most important). Then three pages: Patient's page, Medical team's page, Care circle's page, to print, save or send.
+- At the visit: ask everyone if it's OK to record, tap Record, hand the doctor the Medical team's page, and tick questions off as they're answered.
+- After the visit: Reid writes the summary and next steps from the recording (or from a recording file they upload from their phone, or a transcript they paste); they can check each point and hear the doctor's own words with ▶; they can scan or upload papers they were given (requisitions, prescriptions, instructions); they see how long until the next appointment and can add it to their calendar; then send the summary to their care circle.
+- Things they can say any time: "next", "back", "erase", "repeat", "pause", "skip", "where am I", "slow down", "speed up", "more time", "different voice", "in French". Buttons: the big Next button, Back, Pause, Help. Help has Explain this screen, Settings, voice settings, Chat with Rama (a real person, 416-454-5597).
+- Everything is kept on their own device. Names and contact details are removed before anything is sent to the AI.
+
+HOW TO ANSWER
+- Usually 1 to 4 short sentences (under about 80 words), because it may be read aloud. If they ask for detail or a list, you may give more (up to about 200 words), still plain words with no markdown symbols.
+- Speak to them as "you", in the language given. Use the conversation so far to follow "it", "that", "like I said". Don't repeat yourself or read their whole record back.`;
 
 // Reid's gentle check when a short answer could mean different things ("the doctor", "my foot").
 const VAGUE = `You are Reid, WellHeard's AI helper: caring, thoughtful, never overbearing. A patient is preparing for a medical appointment.
@@ -245,19 +250,20 @@ Pick exactly one action:
 - "slower" / "faster": how fast Reid talks.
 - "tap": they chose one of the numbered buttons, by its words, its meaning or its position ("the second one", "yes keep that", "the doctor's page", "print it"). Set "tap" to that button's number. Never tap a button that erases or deletes.
 - "answer": they are answering the screen's question in their own words (or telling something about their health). Only when a question is asked on the screen.
-- "reply": anything else — a question about the app, small talk, thanks, a request the app can't do. Put Reid's answer in "reply".
+- "ask": any question or request that needs a real answer: about the app, about what they entered or what the doctor said, what a word or test means, general health information, or a worry they want to talk through. Leave "reply" empty; Reid answers it fully next.
+- "reply": short social remarks only (thanks, hello, OK) or a request the app can't do. Put Reid's answer in "reply".
 
 "reply" text (for every action, a short spoken line, under 30 words; for "answer", "tap", "next" and "back" it may be empty):
 - Calm, kind, brief, first person, plain words, no lists or markdown, in the language given. Reid is an AI and says so simply if asked.
-- For a medical question (what's wrong, what to take, is it serious): don't answer; say it's a good one for the doctor and they can add it as a question. If it sounds urgent (chest pain, trouble breathing, stroke signs, thoughts of self-harm), tell them to call 911 now.
+- If it sounds urgent (chest pain, trouble breathing, stroke signs, thoughts of self-harm), tell them to call 911 now.
 - Never diagnose or give medical advice.
-If in doubt between "answer" and anything else on a screen that asks a question, choose "answer".
+If in doubt between "answer" and anything else on a screen that asks a question, choose "answer". If in doubt between "reply" and "ask", choose "ask".
 You may also get the conversation so far and what they've already told the app. Use them like a good listener: follow references ("like I said", "the same as before", "that one"), don't ask for what they already told you, and in a reply you may refer back briefly and naturally ("You mentioned your knee earlier…"). Never read their answers back in full.`;
 
 const INTENT_SCHEMA = {
   type: 'object',
   properties: {
-    action: { type: 'string', enum: ['repeat', 'next', 'back', 'explain', 'read_screen', 'pause', 'erase', 'slower', 'faster', 'tap', 'answer', 'reply'] },
+    action: { type: 'string', enum: ['repeat', 'next', 'back', 'explain', 'read_screen', 'pause', 'erase', 'slower', 'faster', 'tap', 'answer', 'ask', 'reply'] },
     tap: { type: 'integer' },
     reply: { type: 'string' },
   },
@@ -381,6 +387,41 @@ const RECAP_SCHEMA = {
   additionalProperties: false,
 };
 
+// After the visit, what the patient or family typed or said themselves (Rama, 27 Nov): cleaned into clear points,
+// never copied over word for word with the false starts, fillers and misheard words.
+const NOTES = `A patient or family member wrote or spoke their own notes after a medical appointment, about what the doctor said and what to do next. Voice typing made them messy: fillers, false starts, repeated words, misheard words, commands meant for the app ("next", "erase that", "Reid stop"), and run-on sentences.
+Turn them into clear, complete point-form notes for the patient and their family.
+- "said": what the doctor said or decided, one point per item, each a short complete sentence that makes sense alone, speaking to the patient as "you" ("The doctor is keeping your dose the same.").
+- "todo": things to do after the visit, each starting with a verb, with when if it was given ("Book a blood test before the next visit.").
+- "unclear": words you could not make sense of, copied exactly, so the patient can fix them. Empty if none.
+Rules: restate, never advise. Never add information, causes, explanations or advice. Keep every medicine name, dose, number, date and time exactly as given (fix the spelling of a medicine only when it is unmistakable). Drop fillers, commands for the app and talk that isn't about the visit. Write in the language given.`;
+
+const NOTES_SCHEMA = {
+  type: 'object',
+  properties: { said: { type: 'array', items: { type: 'string' } }, todo: { type: 'array', items: { type: 'string' } }, unclear: { type: 'array', items: { type: 'string' } } },
+  required: ['said', 'todo', 'unclear'],
+  additionalProperties: false,
+};
+
+// A paper from the visit (requisition, prescription, instructions, referral, appointment card), photographed or uploaded
+// and read on the patient's own device (Rama, 27 Nov). Only the text comes here, with names already removed.
+const PAPER = `A patient photographed or uploaded a paper they were given at a medical appointment in Ontario, Canada. The text was read from the picture on their phone, so it may have broken lines, stray characters and misread words.
+Explain what the paper is and what it asks them to do, in plain words for an older patient and their family.
+- "kind": what the paper is in a few words ("Blood test requisition", "Prescription", "Referral to a physiotherapist", "Appointment card", "Discharge instructions", or "Paper from your visit").
+- "points": the main things it says, 2 to 6 short complete sentences, speaking to the patient as "you". Keep names of tests, medicines, doses, clinics, phone numbers, dates and times exactly as printed.
+- "todo": what they need to do because of it, each starting with a verb ("Bring this form to a LifeLabs or Dynacare lab.", "Fast for 12 hours before the test." only if the paper says so).
+- "date" (YYYY-MM-DD) and "time" (HH:MM, 24-hour): an appointment or deadline printed on it, else "". "dateWhat": what that date is for, else "".
+- "unreadable": true if the text is too broken to tell what the paper is.
+Rules: restate what is printed, never advise, never add instructions that aren't on the paper. If a part is unclear, leave it out. Write in the language given.`;
+
+const PAPER_SCHEMA = {
+  type: 'object',
+  properties: { kind: { type: 'string' }, points: { type: 'array', items: { type: 'string' } }, todo: { type: 'array', items: { type: 'string' } },
+    date: { type: 'string' }, time: { type: 'string' }, dateWhat: { type: 'string' }, unreadable: { type: 'boolean' } },
+  required: ['kind', 'points', 'todo', 'date', 'time', 'dateWhat', 'unreadable'],
+  additionalProperties: false,
+};
+
 const TRANSLATE = `You translate a patient's own notes for their doctor.
 Translate each item faithfully into the target language. Keep the patient's meaning, tone and first-person voice. Keep medication names, numbers and doses exactly as written. Do not add, explain, summarise or correct anything.
 If an item is already in the target language, return it unchanged. Return the items in the same order, one translation per item.`;
@@ -456,7 +497,7 @@ export default async function handler(req, res) {
     const send = res.json.bind(res);
     res.json = (obj) => { try { return send(JSON.parse(scrubbed.restore(JSON.stringify(obj), true))); } catch (e) { return send(obj); } };
   }
-  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui', 'intent', 'medname', 'review'].includes(body.mode) ? body.mode : 'suggest';
+  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui', 'intent', 'medname', 'review', 'notes', 'paper'].includes(body.mode) ? body.mode : 'suggest';
   const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -560,13 +601,32 @@ export default async function handler(req, res) {
     }
 
     if (mode === 'help') {
-      const ask = clean(body.text, 400);
+      const ask = clean(body.text, 1000);
       if (!ask) return res.status(400).json({ ok: false, error: 'Nothing was asked.' });
-      const ctx = `Language: ${LANG_NAME[lang]}\n${convo(body)}The app had just asked: ${clean(body.question, 600) || 'not given'}\nThe patient asked: ${ask}`;
-      const out = await askClaude(HELP, ctx, HELP_SCHEMA, 300);
-      const answer = clean(out && out.answer, 400);
+      const record = clean(body.record, 14000);
+      const ctx = `Language: ${LANG_NAME[lang]}\nScreen they are on: ${clean(body.screen, 200) || 'not given'}\nThe app had just asked: ${clean(body.question, 600) || 'nothing'}\n${convo(body)}${record ? `\nTheir record (what they entered in WellHeard, newest visit):\n${record}\n` : ''}\nThey asked: ${ask}`;
+      const out = await askClaude(HELP, ctx, HELP_SCHEMA, 900);
+      const answer = clean(out && out.answer, 1600);
       if (!answer) return res.status(502).json({ ok: false, error: UNAVAILABLE });
       return res.status(200).json({ ok: true, answer });
+    }
+
+    if (mode === 'notes') {
+      const text = clean(body.text, LIMITS.story * 2);
+      if (!text) return res.status(200).json({ ok: true, said: [], todo: [], unclear: [] });
+      const ctx = `Language: ${LANG_NAME[lang]}\nSeeing: ${clean(body.seeing, LIMITS.seeing) || 'not given'}\nMedicines they listed before the visit: ${cleanList(body.meds).join('; ') || 'not given'}\n\nTheir notes:\n${text}`;
+      const out = await askClaude(NOTES, ctx, NOTES_SCHEMA, 1500);
+      const L = (v) => (Array.isArray(v) ? v.slice(0, 15).map((x) => clean(x, LIMITS.detail)).filter(Boolean) : []);
+      return res.status(200).json({ ok: true, said: L(out.said), todo: L(out.todo), unclear: L(out.unclear).filter((u) => text.includes(u)) });
+    }
+
+    if (mode === 'paper') {
+      const text = clean(body.text, 12000);
+      if (text.replace(/\s+/g, '').length < 15) return res.status(200).json({ ok: true, unreadable: true, kind: '', points: [], todo: [], date: '', time: '', dateWhat: '' });
+      const out = await askClaude(PAPER, `Language: ${LANG_NAME[lang]}\n\nText read from the paper:\n${text}`, PAPER_SCHEMA, 1200);
+      const L = (v) => (Array.isArray(v) ? v.slice(0, 8).map((x) => clean(x, LIMITS.detail)).filter(Boolean) : []);
+      return res.status(200).json({ ok: true, unreadable: !!out.unreadable, kind: clean(out.kind, 120), points: L(out.points), todo: L(out.todo),
+        date: /^\d{4}-\d{2}-\d{2}$/.test(out.date || '') ? out.date : '', time: /^\d{2}:\d{2}$/.test(out.time || '') ? out.time : '', dateWhat: clean(out.dateWhat, 160) });
     }
 
     if (mode === 'review') {
