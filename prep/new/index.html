@@ -3287,7 +3287,7 @@
         if (Array.isArray(d.nextStepTasks)) nextStepTasks = d.nextStepTasks;
         aiPool = Array.isArray(d.aiPool) ? d.aiPool : []; aiAt = d.aiAt || 0; ownQs = Array.isArray(d.ownQs) ? d.ownQs : [];
         vagueOk = d.vagueOk || {}; SID('day').dateISO = d.dayISO || ''; SID('time').time24 = d.time24 || ''; qPicked = Array.isArray(d.qPicked) ? d.qPicked : []; qPrio = Array.isArray(d.qPrio) ? d.qPrio : []; qSkipped = Array.isArray(d.qSkipped) ? d.qSkipped : []; aiTags = d.aiTags && typeof d.aiTags === 'object' ? d.aiTags : {}; recapSrc = d.recapSrc && typeof d.recapSrc === 'object' ? d.recapSrc : {}; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || ''; medChanges = Array.isArray(d.medChanges) ? d.medChanges : [];
-        lang = LOC[d.lang] ? d.lang : 'en'; slowVoice = !!d.slowVoice; voiceName = typeof d.voiceName === 'string' ? d.voiceName : ''; textSize = [0, 1, 2].includes(d.textSize) ? d.textSize : 1; applyTextSize(); readAloud = d.readAloud !== false;
+        lang = LOC[d.lang] ? d.lang : 'en'; slowVoice = !!d.slowVoice; voiceName = typeof d.voiceName === 'string' ? d.voiceName : ''; textSize = d.textSize === 0 ? 0 : 1;   /* Extra large was retired (Rama, 27 Nov): it becomes Large */ applyTextSize(); readAloud = d.readAloud !== false;
         document.getElementById('customTaskInput').value = d.task || '';
         if (d.inputPreference === 'tap') setInputMode('tap');
         if (Number.isInteger(d.currentIndex) && d.currentIndex > 0 && d.currentIndex < steps.length) currentIndex = d.currentIndex;
@@ -4411,7 +4411,7 @@
         body = head(T('Settings', 'Réglages')) + `<div class="flex flex-col gap-[10px]">
           ${group(T('Reading', 'Lecture'))}
           ${row('lang', T('Language', 'Langue'), `<span data-notr>${esc(langName(lang))}</span>`)}
-          ${row('textsize', T('Text size', 'Taille du texte'), [T('Normal', 'Normal'), T('Large', 'Grand'), T('Extra large', 'Très grand')][textSize])}
+          ${row('textsize', T('Text size', 'Taille du texte'), [T('Normal', 'Normal'), T('Large', 'Grand')][textSize ? 1 : 0])}
           ${group(T('Reid', 'Reid'))}
           ${row('helper', T('Your helper', 'Votre assistant'), `<span data-notr>${helperName()}</span>`)}
           ${row('voice', T("Reid's voice", 'La voix de Reid'), (readAloud ? T('On', 'Oui') : T('Off', 'Non')) + ' · ' + (slowVoice ? T('Slower', 'Lente') : T('Normal', 'Normale')))}
@@ -4484,7 +4484,7 @@
           <p class="hp-keep text-sm text-[#425268] leading-snug">${T('Pick the one you like. Reid has a man’s voice, Lilly a woman’s.', 'Choisissez celui que vous aimez. Reid a une voix d’homme, Lilly une voix de femme.')}</p></div>`;
       } else if (setView === 'textsize') {
         body = head(T('Text size', 'Taille du texte'), 1) + `<div class="flex flex-col gap-[12px]">
-          ${card(T('Text size', 'Taille du texte'), `<div class="flex items-stretch gap-[10px]">${[[0, 'A', T('Normal', 'Normal')], [1, 'A', T('Large', 'Grand')], [2, 'A', T('Extra large', 'Très grand')]].map(([v, a, lab]) => `<button type="button" data-ts="${v}" class="tactile-btn flex-1 min-h-[60px] rounded-2xl ${textSize === v ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} font-extrabold flex flex-col items-center justify-center leading-none"><span style="font-size:${16 + v * 6}px">${a}</span><span class="text-[11px] mt-1">${lab}</span></button>`).join('')}</div>`)}
+          ${card(T('Text size', 'Taille du texte'), `<div class="flex items-stretch gap-[10px]">${[[0, 'A', T('Normal', 'Normal')], [1, 'A', T('Large', 'Grand')]].map(([v, a, lab]) => `<button type="button" data-ts="${v}" class="tactile-btn flex-1 min-h-[60px] rounded-2xl ${textSize === v ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-white border border-[#D6CFC0] text-[#1E2634]'} font-extrabold flex flex-col items-center justify-center leading-none"><span style="font-size:${16 + v * 6}px">${a}</span><span class="text-[11px] mt-1">${lab}</span></button>`).join('')}</div>`)}
           <p class="text-sm text-[#425268] leading-snug">${T('Everything on the screen grows together.', 'Tout l’écran grandit ensemble.')}</p></div>`;
       } else if (setView === 'answermode') {
         body = head(T('How you answer', 'Comment vous répondez'), 1) + `<div class="flex flex-col gap-[12px]">
@@ -5440,7 +5440,7 @@
       }
       // Text size: everything grows together; the page keeps the same place on the screen
       // the app's own text size, times the device's Larger Text setting on iPhone and iPad (Rama, 24 Nov)
-      const ts = ([1, 1.18, 1.36][textSize] || 1) * sysTextScale(); z *= ts; w /= ts; h /= ts;
+      const ts = Math.min(1.45, ([1, 1.25][textSize] || 1) * sysTextScale()); z *= ts; w /= ts; h /= ts;
       // upright iPad at large text: Reid's rail plus the question no longer fit side by side, so it becomes one column (Rama, 27 Nov)
       if (main.classList.contains('tall') && w < 700) { main.classList.remove('wide', 'tall'); }
       // an upright iPad never gets so zoomed that the page is narrower than a phone (that squeezes the layout and shrinks its text)
@@ -5587,7 +5587,7 @@
         items.innerHTML = `<div class="pk-list pk-days" data-notr>${LANG_LIST.map(([c, n]) => `<button type="button" data-su="pick-lang" data-v="${c}" aria-pressed="${c === lang}" class="${BIG} ${c === lang ? SEL : OFF}" lang="${c}"><span>${c === lang ? '✓ ' : ''}${esc(n)}</span></button>`).join('')}</div>`;
       } else if (part === 'size') {
         T(L2('Which text size is easiest to read?', 'Quelle taille de texte est la plus facile à lire ?'), L2('Everything on the screen grows together.', 'Tout l’écran grandit ensemble.'));
-        items.innerHTML = `<div class="pk-list">${[[0, L2('Normal', 'Normal'), 18], [1, L2('Large', 'Grand'), 24], [2, L2('Extra large', 'Très grand'), 30]].map(([v, t, px]) =>
+        items.innerHTML = `<div class="pk-list">${[[0, L2('Normal', 'Normal'), 18], [1, L2('Large', 'Grand'), 26]].map(([v, t, px]) =>
           `<button type="button" data-su="ts" data-v="${v}" aria-pressed="${textSize === v}" class="${BIG} ${textSize === v ? SEL : OFF}"><span class="w-[44px] text-center" style="font-size:${px}px" aria-hidden="true">A</span><span class="flex-1">${textSize === v ? '✓ ' : ''}${t}</span></button>`).join('')}</div>`;
       } else if (part === 'mode') {
         T(L2('How would you like to answer?', 'Comment voulez-vous répondre ?'), L2('You can change this any time.', 'Vous pouvez changer à tout moment.'));
@@ -6235,7 +6235,7 @@
           if (/^((open|show|go to) )?(the )?(settings|réglages|paramètres)$/.test(low)) { openPanel('settings'); setView = 'menu'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^((open|show) )?(the )?help( page)?$|^(open|ouvre) (l')?aide$/.test(low) && !/^help$/.test(low)) { openPanel('help'); setView = 'menu'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^(close|close (it|that|this|the settings|help)|ferme|fermer)$/.test(low)) { closeModal('helpSettingsModal'); return; }
-          if (/(bigger|larger) (text|letters|writing)|make (it|the text|the letters) bigger|^bigger$|plus grand/.test(low)) { textSize = Math.min(2, textSize + 1); applyTextSize(); saveAll(); sayT('Bigger.', 'Plus grand.', true); return; }
+          if (/(bigger|larger) (text|letters|writing)|make (it|the text|the letters) bigger|^bigger$|plus grand/.test(low)) { textSize = 1; applyTextSize(); saveAll(); sayT('Bigger.', 'Plus grand.', true); return; }
           if (/smaller (text|letters|writing)|make (it|the text|the letters) smaller|^smaller$|plus petit/.test(low)) { textSize = Math.max(0, textSize - 1); applyTextSize(); saveAll(); sayT('Smaller.', 'Plus petit.', true); return; }
           if (/^(change|switch) (the )?(language|langue)$|^(change|changer) (de )?langue$/.test(low)) { openPanel('settings'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
           if (/^(change|switch) (the )?(helper|assistant|voice)$|^(switch to|change to) (reid|lilly)$/.test(low)) {
@@ -6247,8 +6247,8 @@
             const part = st.part || 'lang', re2 = () => { renderList(); applyLang(); nudgeNext(); };
             if (part === 'lang') { const hit = LANG_LIST.find(([c, n]) => low === n.toLowerCase() || low === n.toLowerCase().split(' ')[0] || ({ english: 'en', anglais: 'en', french: 'fr', français: 'fr', francais: 'fr', spanish: 'es', italian: 'it', portuguese: 'pt', chinese: 'zh', mandarin: 'zh', cantonese: 'yue', punjabi: 'pa', arabic: 'ar', tagalog: 'tl', tamil: 'ta', urdu: 'ur', farsi: 'fa', persian: 'fa', russian: 'ru', korean: 'ko', vietnamese: 'vi', hindi: 'hi', gujarati: 'gu', polish: 'pl', ukrainian: 'uk', greek: 'el' })[low] === c);
               if (hit) { setLang(hit[0]); re2(); ackLang(hit[0]); return; } }
-            if (part === 'size') { const v = /extra|très grand|tres grand|biggest/.test(low) ? 2 : /large|big|grand/.test(low) ? 1 : /normal|small|regular|petit/.test(low) ? 0 : -1;
-              if (v >= 0) { textSize = v; applyTextSize(); saveAll(); re2(); sayT(['Normal.', 'Large.', 'Extra large.'][v] + ' Say next when ready.', ['Normal.', 'Grand.', 'Très grand.'][v] + ' Dites suivant quand c’est bon.', true); return; } }
+            if (part === 'size') { const v = /extra|très grand|tres grand|biggest|large|big|grand/.test(low) ? 1 : /normal|small|regular|petit/.test(low) ? 0 : -1;
+              if (v >= 0) { textSize = v; applyTextSize(); saveAll(); re2(); sayT(['Normal.', 'Large.', 'Large.'][v] + ' Say next when ready.', ['Normal.', 'Grand.', 'Grand.'][v] + ' Dites suivant quand c’est bon.', true); return; } }
             if (part === 'mode') { if (/^(speak|speak and tap|talk|voice|parler|parler et toucher)/.test(low)) { setInputMode('voice'); saveAll(); re2(); sayT('Talk and tap. Say next when ready.', 'Parler et toucher. Dites suivant.', true); return; }
               if (/^(tap|type|tap and type|toucher|écrire)/.test(low)) { setInputMode('tap'); saveAll(); re2(); return; } }
             if (part === 'read') { if (/^(yes|yeah|yep|sure|ok|okay|read them|oui)/.test(low)) { readAloud = true; saveAll(); re2(); sayT('Yes, I’ll read them. Say next when ready.', 'Oui, je les lirai. Dites suivant.', true); return; }
@@ -7946,7 +7946,7 @@
       const could = main.classList.contains('with-pages') || (pagesHidden && window.innerWidth >= 900 && window.innerWidth > window.innerHeight * 1.1 && steps[currentIndex].mode !== 'landing');
       if (pagesHidden && main.classList.contains('with-pages')) {   // lay out as if there were no pages
         main.classList.remove('with-pages'); main.classList.add('wide'); lp.hidden = true; document.body.style.flexDirection = '';
-        const vw = window.innerWidth, vh = window.innerHeight, ts = ([1, 1.18, 1.36][textSize] || 1) * sysTextScale();
+        const vw = window.innerWidth, vh = window.innerHeight, ts = Math.min(1.45, ([1, 1.25][textSize] || 1) * sysTextScale());
         const z = Math.min(1.6, (vh * 0.97) / 640, (vw * 0.97) / 1000) * ts;
         main.style.zoom = z; main.style.width = Math.min(1500 / ts, (vw * 0.97) / z) + 'px'; main.style.height = ((vh * 0.97) / z) + 'px';
         if (LISTMODES[steps[currentIndex].mode]) renderList();
@@ -8113,7 +8113,7 @@
       if (!main.classList.contains('with-pages')) return;
       main.classList.add('wide'); placeWide();
       const vw = window.innerWidth, vh = window.innerHeight, W = 840, appVis = Math.max(640, Math.min(vw * 0.6, vw - 420));
-      const tsz = ([1, 1.18, 1.36][textSize] || 1) * sysTextScale();
+      const tsz = Math.min(1.45, ([1, 1.25][textSize] || 1) * sysTextScale());
       let z = Math.min(1.5, (appVis - 24) / W, (vh * 0.96) / 600) * tsz, h = (vh * 0.96) / z;
       main.style.zoom = z; main.style.width = W + 'px'; main.style.height = h + 'px';
       if (LISTMODES[steps[currentIndex].mode]) renderList();
