@@ -4183,6 +4183,7 @@
         <p class="text-[11px] font-extrabold uppercase tracking-wide text-[#3B5E42]">${fr ? 'Avant d’enregistrer' : 'Before I record'}</p>
         <h2 id="recAskTitle" class="text-xl font-extrabold text-[#1E2634] leading-snug">${fr ? 'Tout le monde dans la pièce est-il d’accord pour être enregistré, y compris le médecin ?' : 'Has everyone in the room agreed to be recorded, including the doctor?'}</h2>
         <p class="text-[15px] text-[#425268] leading-snug">${fr ? 'Si vous n’avez pas encore demandé, demandez maintenant. Un simple « Est-ce que ça vous dérange si j’enregistre pour m’en souvenir ? » suffit.' : 'If you haven’t asked yet, ask now. “Do you mind if I record this so I can remember it?” is enough.'}</p>
+        <p class="text-[15px] font-bold text-[#7A4A06] bg-[#FDF3E1] border border-[#D97706] rounded-2xl px-3 py-2 leading-snug">${fr ? '⚠ Gardez WellHeard ouvert à l’écran jusqu’à la fin. Si vous changez d’application, prenez un appel ou fermez WellHeard, l’enregistrement peut s’arrêter. Vos pages s’ouvrent ici sans l’arrêter.' : '⚠ Keep WellHeard open on the screen until the end. If you switch to another app, take a call or close WellHeard, the recording can stop. Your pages open here without stopping it.'}</p>
         <button type="button" data-ra="yes" class="tactile-btn w-full min-h-[56px] rounded-2xl bg-[#1E2634] text-white font-extrabold text-base">${fr ? 'Oui, tout le monde est d’accord' : 'Yes, everyone agreed'}</button>
         <button type="button" data-ra="no" class="tactile-btn w-full min-h-[56px] rounded-2xl bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634] font-extrabold text-base">${fr ? 'Pas encore' : 'Not yet'}</button>
       </div>`;
@@ -4219,6 +4220,7 @@
         const own = typeof recapOwnLines === 'function' ? recapOwnLines().join('\n') : '';   // what they typed or said themselves stays, under Reid's summary
         rc.answer = [String(d.said || '').trim(), own].filter(Boolean).join('\n'); rc.customActive = true;
         if (typeof setRecapAI === 'function') setRecapAI(String(d.said || '').trim(), d);
+        if (typeof qaFromRecap === 'function') qaFromRecap(d.answers);
         recapSrc = {}; rc.answer.split('\n').map((x) => x.trim()).filter(Boolean).forEach((line, i) => { if (d.saidFrom && d.saidFrom[i] && d.saidFrom[i].length) recapSrc[line] = d.saidFrom[i]; });
         (d.todo || []).forEach((t) => { if (!nextStepTasks.some((x) => x.text === t)) nextStepTasks.push({ text: t, selected: true }); });
         const next = [d.nextWith, d.nextDate, d.nextTime, d.nextWhen].filter(Boolean).join(', ');
@@ -7537,7 +7539,7 @@
       $('listTitle').textContent = L2('At the visit', 'Au rendez-vous');
       // One screen for the whole visit (Rama, 27 Nov): Record at the top, the questions to tick in the middle,
       // the pages at the bottom (they were already handed over on paper, so they don't take the screen).
-      $('listHelp').textContent = isRecording ? L2('Recording. Tick each question when it’s answered.', 'Enregistrement. Cochez chaque question une fois répondue.')
+      $('listHelp').textContent = isRecording ? L2('Recording. Open My page to go through your questions.', 'Enregistrement. Ouvrez Ma page pour passer vos questions.')
         : L2('Give the doctor their page, ask if you can record, then tap Record.', 'Donnez sa page au médecin, demandez si vous pouvez enregistrer, puis touchez Enregistrer.');
       $('listCounter').classList.add('hidden');
       items.classList.add('overflow-y-auto');
@@ -7556,11 +7558,9 @@
       items.innerHTML = `<div class="w-full flex flex-col gap-[10px]">
         ${say1}${rec}
         <button type="button" data-visit="phone" class="vs-link">${L2('Or record with my phone’s own recorder', 'Ou enregistrer avec l’enregistreur du téléphone')}</button>
-        <div class="vs-qhead"><span>${L2('Your questions', 'Vos questions')}</span>${qs.length ? `<span>${L2(`${nDone} of ${qs.length} answered`, `${nDone} sur ${qs.length} répondues`)}</span>` : ''}</div>
-        ${qList}
         <p class="vs-qhead" style="margin-top:6px"><span>${L2('Your pages', 'Vos pages')}</span></p>
         <div class="vs-tiles">${tile('doc', 'steth', 'Medical team’s page', 'Page de l’équipe médicale')}${tile('mine', 'note', 'My page', 'Ma page')}${tile('circle', 'users', 'Care circle’s page', 'Page du cercle d’aidants')}</div>
-        ${visitExtras()}</div>`;
+        ${visitQsHint()}</div>`;
       foot.innerHTML = '';
     }
     setInterval(() => { const t = document.getElementById('vsRecT'); if (t && isRecording) t.textContent = `${Math.floor(recordSeconds / 60)}:${String(recordSeconds % 60).padStart(2, '0')}`; }, 1000);
@@ -9888,6 +9888,209 @@
     { const ask = () => { if (document.visibilityState === 'visible') keepAwake(); };
       ['pointerdown', 'keydown'].forEach((ev) => window.addEventListener(ev, ask, { passive: true }));
       document.addEventListener('visibilitychange', ask); setInterval(ask, 10000); ask(); }
+
+
+    // =====================================================================
+    // Questions answered in the recording (Rama, 27 Nov). After the visit, Reid matches each question to what the
+    // doctor said: clearly answered ones are ticked, and the answer shows under the question (on the Summary screen,
+    // on the pages and in the recap). Not sure → "Partly answered", never a false tick. One list of questions during
+    // the visit: on the pages, where a tap ticks them, and the recording keeps going while a page is open.
+    // =====================================================================
+    const QA_KEY = 'wellheard-qa';
+    let QA = {}; try { QA = JSON.parse(localStorage.getItem(QA_KEY) || '{}') || {}; } catch (e) { QA = {}; }
+    const saveQA = () => { try { localStorage.setItem(QA_KEY, JSON.stringify(QA)); localStorage.setItem('wellheard-asked', JSON.stringify(qAsked)); } catch (e) { /* full */ } };
+    const qNorm = (t) => String(t || '').replace(/[★✓]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+    function setAsked(q, on) {
+      if (on) qAsked[q] = 1; else delete qAsked[q];
+      (visitQuestions || []).forEach((v) => { if (v && v.text === q) v.done = !!on; });
+    }
+    function qaFromRecap(list) {
+      if (!Array.isArray(list)) return;
+      const vq = (visitQuestions || []).filter((v) => v && v.text);
+      list.forEach((x, i) => {
+        const q = (vq.find((v) => qNorm(v.text) === qNorm(x && x.q)) || vq[i] || {}).text; if (!q) return;
+        if (QA[q] && QA[q].mine) return;   // an answer they corrected themselves is kept
+        const was = QA[q] || {}, a = String((x && x.a) || '').trim(), how = a ? (['yes', 'part'].includes(x.how) ? x.how : 'part') : 'no';
+        QA[q] = { a, how, auto: how === 'yes' };
+        if (how === 'yes') setAsked(q, true);
+        else if (was.auto) setAsked(q, false);   // ticked by an earlier summary, not by them
+      });
+      saveQA(); saveAll();
+    }
+    const qaCount = () => { const qs = allQs(); return { qs, yes: qs.filter((q) => QA[q] && QA[q].how === 'yes').length, part: qs.filter((q) => QA[q] && QA[q].how === 'part').length }; };
+
+    // ---------- the visit screen: a pointer to the one list, instead of two lists ----------
+    function visitQsHint() {
+      const qs = allQs();
+      if (!qs.length) return `<p class="vs-none">${L2('No questions on your list. That’s fine: just listen, and the summary is written from the recording.', 'Pas de questions sur votre liste. Ce n’est pas grave : écoutez, le résumé sera fait à partir de l’enregistrement.')}</p>`;
+      const n = qs.filter((q) => qAsked[q]).length;
+      return `<button type="button" data-visit="pg-mine" class="tactile-btn vs-qhint">
+          <span class="vs-qhint-n" data-notr>${n}/${qs.length}</span>
+          <span class="vs-qhint-t"><b>${L2(`Your ${qs.length} questions are on My page.`, `Vos ${qs.length} questions sont sur Ma page.`)}</b>
+          <span>${L2('Tap one there to tick it. The recording keeps going. After the visit, the ones the doctor answered are ticked for you.', 'Touchez-en une pour la cocher. L’enregistrement continue. Après la visite, celles auxquelles le médecin a répondu sont cochées pour vous.')}</span></span></button>`;
+    }
+
+    // ---------- the pages on screen: questions tick with a tap, and show the doctor's answer once there is one ----------
+    function qaPaint(li, q) {
+      const on = !!qAsked[q], x = QA[q];
+      li.classList.toggle('qa-on', on); li.setAttribute('aria-pressed', String(on));
+      let bx = li.querySelector(':scope > .qa-box');
+      if (!bx) { bx = document.createElement('span'); bx.className = 'qa-box'; bx.setAttribute('aria-hidden', 'true'); li.prepend(bx); }
+      bx.textContent = on ? '✓' : '';
+      let an = li.querySelector(':scope > .qa-a');
+      if (x && x.a) {
+        if (!an) { an = document.createElement('span'); an.className = 'qa-a'; an.setAttribute('data-notr', ''); li.append(an); }
+        an.textContent = (x.how === 'part' ? L2('Partly answered: ', 'Réponse partielle : ') : L2('Doctor: ', 'Médecin : ')) + x.a;
+      } else if (an) an.remove();
+    }
+    function qaDecorate() {
+      const box = document.querySelector('#fullDoctorModal .space-y-3'); if (!box) return;
+      const byN = new Map(allQs().map((q) => [qNorm(q), q])); if (!byN.size) return;
+      box.querySelectorAll('li').forEach((li) => {
+        if (li.dataset.q) return;
+        const q = byN.get(qNorm(li.textContent)); if (!q) return;
+        li.dataset.q = q; li.classList.add('qa-li'); li.setAttribute('role', 'button'); li.tabIndex = 0;
+        qaPaint(li, q);
+      });
+    }
+    { const spQ = showPage; showPage = function () { const r = spQ.apply(this, arguments); try { qaDecorate(); } catch (e) { console.warn('Question ticks', e); } return r; }; }
+    const qaTap = (li) => {
+      const q = li.dataset.q; if (!q) return;
+      setAsked(q, !qAsked[q]); saveQA(); saveAll(); qaPaint(li, q);
+      if (steps[currentIndex] && steps[currentIndex].mode === 'visitStart') { renderList(); applyLang(); }
+    };
+    document.getElementById('fullDoctorModal').addEventListener('click', (e) => { const li = e.target.closest('li.qa-li'); if (li) qaTap(li); });
+    document.getElementById('fullDoctorModal').addEventListener('keydown', (e) => { const li = e.target.closest('li.qa-li'); if (li && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); qaTap(li); } });
+
+    // ---------- the Summary screen: "Your questions: 12 of 19 answered", opening the list with the answers ----------
+    { const drQ = drawRecapCard; drawRecapCard = function () {
+      drQ.apply(this, arguments);
+      if (rcEl.classList.contains('hidden') || window.__recapBusy) return;
+      const c = qaCount(); if (!c.qs.length || !c.qs.some((q) => QA[q])) return;
+      rcEl.insertAdjacentHTML('beforeend', `<button type="button" data-qa="open" class="${B1} w-full">${WHI('check', 18)}<span>${L2(`Your questions: ${c.yes} of ${c.qs.length} answered`, `Vos questions : ${c.yes} sur ${c.qs.length} répondues`)}</span><span aria-hidden="true">›</span></button>`);
+      if (typeof applyLang === 'function') applyLang(rcEl);
+    }; }
+    rcEl.addEventListener('click', (e) => { if (e.target.closest('[data-qa="open"]')) { ensureCtx(); hush(true); qaSheet(); } });
+    function qaSheet() {
+      const qs = allQs(), rank = (q) => { const h = QA[q] ? QA[q].how : 'no'; return h === 'no' ? 0 : h === 'part' ? 1 : 2; };
+      const order = qs.slice().sort((a, b) => rank(a) - rank(b)), open = qs.filter((q) => rank(q) === 0).length;
+      const row = (q) => {
+        const x = QA[q] || { a: '', how: 'no' };
+        const t = x.how === 'yes' ? ['✓', L2('Answered', 'Répondue'), '#1E4627', '#E5EFE7'] : x.how === 'part' ? ['◐', L2('Partly answered', 'Réponse partielle'), '#7A4A06', '#FDF3E1'] : ['○', L2('Not answered in the recording', 'Pas de réponse dans l’enregistrement'), '#425268', '#F0EBE1'];
+        return `<div class="rounded-2xl border border-[#D6CFC0] bg-white p-3 flex flex-col gap-2">
+          <span class="self-start text-[14px] font-extrabold rounded-full px-3 py-1" style="color:${t[2]};background:${t[3]}">${t[0]} ${t[1]}</span>
+          <p class="text-[17px] font-extrabold text-[#1E2634] leading-snug" data-notr>${qPrio.includes(q) ? '★ ' : ''}${esc(q)}</p>
+          ${x.a ? `<p class="text-[17px] text-[#1E2634] leading-snug" style="border-left:4px solid #3B5E42;padding-left:12px" data-notr>${esc(x.a)}</p>` : ''}
+          <button type="button" data-qe="${qs.indexOf(q)}" class="${B2} w-full">${x.a ? L2('Change the answer', 'Modifier la réponse') : L2('Add the answer', 'Ajouter la réponse')}</button></div>`;
+      };
+      const el = aSheet(`<h2 class="text-xl font-extrabold text-[#1E2634]">${L2('Your questions and the doctor’s answers', 'Vos questions et les réponses du médecin')}</h2>
+        <p class="text-[16px] text-[#425268] leading-snug">${L2(`${helperName()} matched your questions to what the doctor said in the recording. Check each answer and change anything.`, `${helperName()} a relié vos questions à ce que le médecin a dit dans l’enregistrement. Vérifiez chaque réponse et corrigez.`)}${open ? ' ' + (open === 1 ? L2('1 wasn’t answered, so it’s first: call the office, or ask it next time.', '1 sans réponse, donc en premier : appelez le bureau, ou posez-la la prochaine fois.') : L2(`${open} weren’t answered, so they’re first: call the office, or ask them next time.`, `${open} sans réponse, donc en premier : appelez le bureau, ou posez-les la prochaine fois.`)) : ''}</p>
+        ${order.map(row).join('')}
+        <button type="button" data-x="close" class="${B1} w-full">${L2('Done', 'Terminé')}</button>`);
+      el.addEventListener('click', (e) => { const b = e.target.closest('[data-qe]'); if (!b) return; el.remove(); qaEdit(qs[+b.dataset.qe]); });
+    }
+    function qaEdit(q) {
+      if (!q) return;
+      const x = QA[q] || { a: '', how: 'no' };
+      const el = aSheet(`<h2 class="text-xl font-extrabold text-[#1E2634]">${L2('The doctor’s answer', 'La réponse du médecin')}</h2>
+        <p class="text-[17px] font-extrabold text-[#1E2634] leading-snug" data-notr>${esc(q)}</p>
+        <label class="sr-only" for="qaTxt">${L2('The doctor’s answer', 'La réponse du médecin')}</label>
+        <textarea id="qaTxt" rows="4" class="w-full p-3 rounded-xl border-2 border-[#D6CFC0] text-[17px] text-[#1E2634] leading-snug">${esc(x.a)}</textarea>
+        <p class="text-[15px] text-[#425268] leading-snug">${L2('Leave it empty if the doctor didn’t answer it.', 'Laissez vide si le médecin n’y a pas répondu.')}</p>
+        <button type="button" data-qs="save" class="${B1} w-full">${L2('Save the answer', 'Garder la réponse')}</button>
+        <button type="button" data-x="close" class="${B2} w-full">${L2('Cancel', 'Annuler')}</button>`);
+      el.addEventListener('click', (e) => {
+        if (!e.target.closest('[data-qs="save"]')) return;
+        const a = el.querySelector('#qaTxt').value.trim();
+        QA[q] = { a, how: a ? 'yes' : 'no', mine: true }; setAsked(q, !!a); saveQA(); saveAll();
+        el.remove(); drawRecapCard(); qaSheet();
+      });
+    }
+
+
+    // ---------- the recording itself: listen to it, and read it word for word (Rama, 27 Nov) ----------
+    // Each transcript line has its own sound clip on this phone (in-app recordings and uploaded ones; a pasted text has none).
+    let txPlaying = false;
+    async function playNums(nums, onLine) {
+      hush(); const g = sayGen; speaking = true; txPlaying = true; if (IOS) stopRec();
+      ensureCtx();
+      for (const n of nums) {
+        if (g !== sayGen || !txPlaying) break;
+        const buf = await clipDB.get(n); if (!buf) continue;
+        if (onLine) onLine(n);
+        let ok = false;
+        if (sharedCtx) { if (sharedCtx.state !== 'running') { try { await sharedCtx.resume(); } catch (e) { /* tap needed */ } } if (sharedCtx.state === 'running') ok = await playBuffer(buf.slice(0), g); }
+        if (!ok && g === sayGen) {
+          const url = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })), a = new Audio(url); audioEl = a;
+          await new Promise((res) => { a.onended = res; a.onerror = res; a.play().catch(res); }); URL.revokeObjectURL(url);
+        }
+      }
+      txPlaying = false;
+      if (g === sayGen) { speaking = false; audioEl = null; if (isListening) startRec(); }
+      if (onLine) onLine(0);
+    }
+    const txStop = () => { txPlaying = false; hush(); };
+    async function txSheet(playAll) {
+      const lines = String(transcript || '').split('\n').map((x) => x.trim());
+      const has = await Promise.all(lines.map((_, i) => clipDB.get(i + 1).then((b) => !!b)));
+      const anyAudio = has.some(Boolean);
+      const el = aSheet(`<div class="flex items-center justify-between gap-2"><h2 class="text-xl font-extrabold text-[#1E2634]">${L2('The recording', 'L’enregistrement')}</h2>
+          <button type="button" data-x="close" class="${B2} px-5">${L2('Done', 'Terminé')}</button></div>
+        <p class="text-[15px] text-[#425268] leading-snug">${L2('Word for word, as the phone heard it. Who is speaking isn’t marked, and some words may be misheard: check medicines, doses and dates with the clinic.', 'Mot à mot, tel que le téléphone l’a entendu. Qui parle n’est pas indiqué, et certains mots peuvent être mal entendus : vérifiez médicaments, doses et dates avec la clinique.')}</p>
+        ${anyAudio ? `<button type="button" data-tx="all" class="${B1} w-full">${L2('▶ Play the whole recording', '▶ Écouter tout l’enregistrement')}</button>` : `<p class="text-[15px] font-bold text-[#7A4A06]">${L2('There’s no sound for this one (it was pasted as text).', 'Pas de son pour celui-ci (collé comme texte).')}</p>`}
+        <ol class="flex flex-col gap-1.5" style="list-style:none;padding:0;margin:0">${lines.map((t, i) => t ? `<li data-txl="${i + 1}" class="flex items-start gap-2 rounded-xl bg-white border border-[#D6CFC0] p-2">
+          ${has[i] ? `<button type="button" data-tx="${i + 1}" aria-label="${L2('Play this part', 'Écouter ce passage')}" class="tactile-btn shrink-0 rounded-full bg-[#E5EFE7] border border-[#3B5E42]/40 text-[#1E4627] font-extrabold" style="width:48px;height:48px;min-width:48px;display:flex;align-items:center;justify-content:center;font-size:18px">▶</button>` : ''}
+          <p class="flex-1 text-[17px] text-[#1E2634] leading-snug pt-2" data-notr>${esc(t)}</p></li>` : '').join('')}</ol>`);
+      const mark = (n) => { el.querySelectorAll('[data-txl]').forEach((x) => { const on = +x.dataset.txl === n; x.style.background = on ? '#E5EFE7' : ''; x.style.borderColor = on ? '#3B5E42' : ''; if (on) x.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }); };
+      const allBtn = el.querySelector('[data-tx="all"]');
+      const setAll = (on) => { if (allBtn) allBtn.textContent = on ? L2('■ Stop', '■ Arrêter') : L2('▶ Play the whole recording', '▶ Écouter tout l’enregistrement'); };
+      el.addEventListener('click', (e) => {
+        if (e.target === el || e.target.closest('[data-x="close"]')) { txStop(); return; }
+        const b = e.target.closest('[data-tx]'); if (!b) return;
+        if (txPlaying) { txStop(); setAll(false); mark(0); if (b.dataset.tx === 'all') return; }
+        if (b.dataset.tx === 'all') { setAll(true); playNums(lines.map((_, i) => i + 1).filter((n) => has[n - 1]), mark).then(() => setAll(false)); }
+        else playNums([+b.dataset.tx], mark);
+      });
+      if (playAll && allBtn) allBtn.click();
+    }
+    { const drT = drawRecapCard; drawRecapCard = function () {
+      drT.apply(this, arguments);
+      if (rcEl.classList.contains('hidden') || window.__recapBusy || String(transcript || '').length < 40) return;
+      rcEl.insertAdjacentHTML('beforeend', `<div class="flex gap-[10px]"><button type="button" data-txo="play" class="${B2} flex-1">${L2('▶ Listen', '▶ Écouter')}</button>
+        <button type="button" data-txo="read" class="${B2} flex-1">${WHI('note', 18)}${L2('Transcript', 'Transcription')}</button></div>`);
+      if (typeof applyLang === 'function') applyLang(rcEl);
+    }; }
+    rcEl.addEventListener('click', (e) => { const b = e.target.closest('[data-txo]'); if (!b) return; ensureCtx(); hush(true); txSheet(b.dataset.txo === 'play'); });
+
+    // ---------- the recap page (printed, sent to the care circle): each question with its answer ----------
+    { const rpQ = recapPage; recapPage = function () {
+      const h = rpQ.apply(this, arguments), qs = allQs().filter((q) => QA[q]); if (!qs.length) return h;
+      const fr = lang === 'fr', ans = qs.filter((q) => QA[q].a), open = qs.filter((q) => !QA[q].a);
+      const sec = (ans.length ? `<h2>${fr ? 'Mes questions et les réponses du médecin' : 'My questions and the doctor’s answers'}</h2><ul>${ans.map((q) => `<li><b>${esc(q)}</b><br>${QA[q].how === 'part' ? (fr ? '(Réponse partielle) ' : '(Partly answered) ') : ''}${esc(QA[q].a)}</li>`).join('')}</ul>` : '')
+        + (open.length ? `<h2>${fr ? 'Questions restées sans réponse' : 'Questions not answered at this visit'}</h2><ul>${open.map((q) => `<li>${esc(q)}</li>`).join('')}</ul>` : '');
+      const i = h.indexOf('<h2>' + (fr ? 'Prochaines étapes' : 'Next steps'));
+      return i > 0 ? h.slice(0, i) + sec + h.slice(i) : h.replace(/<\/div>\s*$/, sec + '</div>');
+    }; }
+    // what Reid knows when asked about the visit includes the answers
+    { const wrQ = whRecord; whRecord = function () {
+      const t = wrQ.apply(this, arguments), qs = allQs().filter((q) => QA[q] && QA[q].a); if (!qs.length) return t;
+      return (t + '\nThe doctor\'s answers to their questions, from the recording:\n' + qs.map((q) => `- ${q}: ${QA[q].a}${QA[q].how === 'part' ? ' (partly answered)' : ''}`).join('\n')).slice(0, 14000);
+    }; }
+    // a new visit, or erasing everything, starts the questions' ticks and answers fresh
+    { const snvQ = startNewVisit; startNewVisit = function () { QA = {}; qAsked = {}; saveQA(); return snvQ.apply(this, arguments); };
+      const rafQ = resetAllFromSettings; resetAllFromSettings = function (x) { if (x !== true) { QA = {}; qAsked = {}; saveQA(); } return rafQ.apply(this, arguments); }; }
+    { const st = document.createElement('style'); st.textContent = `
+      .vs-qhint { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; border-radius: 16px; background: #fff; border: 2px solid #3B5E42; color: #1E2634; font-size: 16px; line-height: 1.35; }
+      .vs-qhint b { display: block; font-size: 17px; font-weight: 800; }
+      .vs-qhint-t span { display: block; font-weight: 600; color: #425268; }
+      .vs-qhint-n { flex: none; min-width: 58px; height: 58px; border-radius: 14px; background: #E5EFE7; color: #1E4627; font-weight: 800; font-size: 18px; display: flex; align-items: center; justify-content: center; padding: 0 6px; }
+      .ts-1 .vs-qhint { font-size: 18px; } .ts-2 .vs-qhint { font-size: 20px; }
+      li.qa-li { cursor: pointer; border-radius: 8px; padding: 4px 2px; }
+      li.qa-li:focus-visible { outline: 3px solid #3B5E42; outline-offset: 2px; }
+      .qa-box { display: inline-flex; vertical-align: -5px; width: 26px; height: 26px; margin-right: 8px; border: 2px solid #3B5E42; border-radius: 7px; background: #fff; color: #fff; align-items: center; justify-content: center; font-weight: 800; font-size: 17px; line-height: 1; }
+      li.qa-on .qa-box { background: #3B5E42; }
+      .qa-a { display: block; margin: 6px 0 4px 34px; padding: 6px 10px; border-left: 4px solid #3B5E42; background: #E5EFE7; border-radius: 6px; font-weight: 600; color: #1E4627; }`;
+      document.head.appendChild(st); }
 
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));

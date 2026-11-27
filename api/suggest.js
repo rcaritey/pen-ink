@@ -352,7 +352,7 @@ const RECAP = `You help a patient after a medical appointment in Ontario, Canada
 The transcript has no speaker names, and words may be misheard. Work out from what is said which lines are the doctor (or nurse) and which are the patient or family.
 
 Fill in the patient's after-visit notes:
-- "answers": one entry per question the patient brought, in the same order, with the question copied exactly. "a" is what the doctor said that answers it, in one to three short plain sentences. If the appointment did not answer it, "a" is "". An answer can come at any point in the visit and in passing.
+- "answers": one entry per question the patient brought, in the same order, with the question copied exactly. "a" is what the doctor said that answers it, in one to three short plain sentences. If the appointment did not answer it, "a" is "". An answer can come at any point in the visit and in passing. "how" is "yes" only when the doctor clearly answered the whole question; "part" when only part of it was answered, or you are not sure the doctor was answering this question; "no" when it was not answered ("a" is then ""). When in doubt, choose "part" over "yes": a question wrongly marked as answered is worse than one left open.
 - "said": the main points the doctor made, for family who were not there, as 3 to 6 bullet points: one per line, no bullet symbols. Each point is one complete, short sentence that makes sense on its own when read alone, saying what it is about ("Your swallowing test was normal.", not "Normal."). Most important first.
 - "also": important things the doctor said that answer none of the questions (a warning, a risk, a reason for a test). Short, one per line. Empty if none.
 - "todo": things to do after the visit, each one complete short sentence that makes sense on its own (what, and when if it was said), starting with a verb, saying who does it when it is not the patient ("The doctor is sending the blood work requisition"). Include tests, medicines to start, stop or change (including taking a medicine more regularly), activities or exercise the doctor recommends, referrals, and booking the next visit.
@@ -371,7 +371,7 @@ Rules, most important first:
 const RECAP_SCHEMA = {
   type: 'object',
   properties: {
-    answers: { type: 'array', items: { type: 'object', properties: { q: { type: 'string' }, a: { type: 'string' } }, required: ['q', 'a'], additionalProperties: false } },
+    answers: { type: 'array', items: { type: 'object', properties: { q: { type: 'string' }, a: { type: 'string' }, how: { type: 'string', enum: ['yes', 'part', 'no'] } }, required: ['q', 'a', 'how'], additionalProperties: false } },
     said: { type: 'string' },
     also: { type: 'array', items: { type: 'string' } },
     todo: { type: 'array', items: { type: 'string' } },
@@ -557,7 +557,7 @@ export default async function handler(req, res) {
       const time = /^\d{2}:\d{2}$/.test(out.nextTime || '') ? out.nextTime : '';
       return res.status(200).json({
         ok: true,
-        answers: (Array.isArray(out.answers) ? out.answers : []).slice(0, 40).map((x) => ({ q: clean(x && x.q, LIMITS.item), a: clean(x && x.a, LIMITS.detail) })),
+        answers: (Array.isArray(out.answers) ? out.answers : []).slice(0, 40).map((x) => { const a = clean(x && x.a, LIMITS.detail), h = x && ['yes', 'part', 'no'].includes(x.how) ? x.how : (a ? 'part' : 'no'); return { q: clean(x && x.q, LIMITS.item), a, how: a ? h : 'no' }; }),
         said: clean(out.said, 2000), also: L(out.also), todo: L(out.todo),
         nextWith: clean(out.nextWith, 200), nextWhen: clean(out.nextWhen, 200), nextDate: date, nextTime: time,
         contact: clean(out.contact, 400),
