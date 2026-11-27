@@ -849,7 +849,7 @@
       <div class="flex items-center justify-between text-xs font-extrabold mb-1">
         <span id="phaseLabel0" class="text-[#1E2634]">1. Prepare</span>
         <span id="phaseLabel1" class="text-[#425268]">2. At Visit</span>
-        <span id="phaseLabel2" class="text-[#425268]">3. After</span>
+        <span id="phaseLabel2" class="text-[#425268]">3. Remember</span>
       </div>
 
       <div class="w-full grid grid-cols-3 gap-2.5" aria-hidden="true">
@@ -1824,7 +1824,7 @@
       {
         id: 'recap',
         phaseIndex: 2,
-        subtitle: '3. After · Step 1 of 3',
+        subtitle: '3. Remember · Step 1 of 3',
         topic: "Doctor's Recap",
         mode: 'voice',
         question: 'What did the doctor say?',
@@ -1846,7 +1846,7 @@
       {
         id: 'nextSteps',
         phaseIndex: 2,
-        subtitle: '3. After · Step 2 of 3',
+        subtitle: '3. Remember · Step 2 of 3',
         topic: 'Next Steps',
         mode: 'nextSteps',
         nextLabel: 'Next: Share & Finish'
@@ -1854,7 +1854,7 @@
       {
         id: 'shareFinish',
         phaseIndex: 2,
-        subtitle: '3. After · Step 3 of 3',
+        subtitle: '3. Remember · Step 3 of 3',
         topic: 'Share & Finish',
         mode: 'shareFinish',
         nextLabel: 'Start a new visit'
@@ -2105,7 +2105,7 @@
 
       if (!isLanding) {
         const inPhase = steps.filter((x) => x.phaseIndex === step.phaseIndex), pos = inPhase.indexOf(step) + 1;
-        document.getElementById('stepSubtitle').textContent = `${['1. Prepare', '2. At Visit', '3. After'][step.phaseIndex]} · Step ${pos} of ${inPhase.length}`;
+        document.getElementById('stepSubtitle').textContent = `${['1. Prepare', '2. At Visit', '3. Remember'][step.phaseIndex]} · Step ${pos} of ${inPhase.length}`;
         if (typeof partRow === 'function') partRow(step);
         document.getElementById('stepTopicTag').textContent = step.topic;
 
@@ -3144,7 +3144,7 @@
       '✓ Tap / Type only': '✓ Toucher / écrire seulement', 'Tap / Type only': 'Toucher / écrire seulement',
       'Private: your answers are saved only on this device.': 'Privé : vos réponses sont gardées seulement sur cet appareil.',
       'Help / Settings': 'Aide / Réglages', 'Help': 'Aide', "Hi, I'm Reid, WellHeard's AI helper. Would you like me to read this page to you?": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Voulez-vous que je vous lise cette page ?", '▶ Yes, read it': '▶ Oui, lisez-la', 'No thanks': 'Non merci', 'Your information': 'Vos renseignements', 'From your last visit. Still right? Tap Next, or change it.': 'De votre dernière visite. Toujours bon ? Touchez Suivant, ou changez-le.', 'Once a day': 'Une fois par jour', 'Twice a day': 'Deux fois par jour', '3 times a day': '3 fois par jour', '4 times a day': '4 fois par jour', 'Only when needed': 'Au besoin seulement', 'Once a week': 'Une fois par semaine', 'Not sure': 'Pas sûr', 'Not with me': 'Pas avec moi', 'Before we start': 'Avant de commencer', '🔒 How your information stays private ›': '🔒 Comment vos renseignements restent privés ›', 'How your information stays private ›': 'Comment vos renseignements restent privés ›', ', your AI helper, makes a clear page for your doctor and suggests questions to ask.': ', votre assistant IA, prépare une page claire pour votre médecin et suggère des questions.', "Hi, I'm Reid, WellHeard's AI helper. I'll make a clear page for your doctor and suggest questions to ask. You can speak or tap with me.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Je prépare une page claire pour votre médecin et je suggère des questions. Vous pouvez me parler ou toucher l'écran.", 'Full screen ›': 'Plein écran ›', 'Which day is the appointment?': 'Quel jour est le rendez-vous ?', 'Tap the day, or say it.': 'Touchez le jour, ou dites-le.', 'What time is the appointment?': 'À quelle heure est le rendez-vous ?', 'Tap the hour, then the minutes, or say it.': 'Touchez l’heure, puis les minutes, ou dites-la.', 'Please turn your phone upright.': 'Veuillez tenir votre téléphone à la verticale.', 'WellHeard is easier to read this way.': 'WellHeard est plus facile à lire ainsi.', 'Use WellHeard full screen ›': 'Utiliser WellHeard en plein écran ›', 'When you are ready, tap Get started.': 'Quand vous êtes prêt, touchez Commencer.', "Hi, I'm Reid, WellHeard's AI helper. You can speak or tap with me. I'll build a clear page for your doctor and suggest questions using Claude, by Anthropic. Your name is never sent.": "Bonjour, je suis Reid, l'assistant IA de WellHeard. Vous pouvez me parler ou toucher l'écran. Je prépare une page claire pour votre médecin et je suggère des questions avec Claude, d'Anthropic. Votre nom n'est jamais envoyé.", 'Chat': 'Texto', 'Get started': 'Commencer', 'Next': 'Suivant', '← Back': '← Retour', 'Back': 'Retour',
-      '1. Prepare': '1. Préparer', '2. At Visit': '2. Au rendez-vous', '3. After': '3. Après',
+      '1. Prepare': '1. Préparer', '2. At Visit': '2. Au rendez-vous', '3. Remember': '3. Retenir',
       'What is your name?': 'Comment vous appelez-vous ?', 'Optional — only shown on your doctor summary.': 'Facultatif — seulement sur le résumé pour le médecin.',
       'Helping someone else': "J'aide quelqu'un", 'Skip for now': 'Passer pour l’instant',
       'Who are you seeing?': 'Qui allez-vous voir ?', 'Family doctor': 'Médecin de famille', 'Neurologist': 'Neurologue', 'Foot clinic': 'Clinique du pied', 'Another specialist': 'Autre spécialiste',
@@ -4449,7 +4449,7 @@
           ${sec(T('2. At the appointment', '2. Au rendez-vous'), [
             it(WHI('mic', 22), T('Records the visit', 'Enregistre la visite'), T('Only after you confirm everyone agreed.', 'Seulement après avoir confirmé que tout le monde est d’accord.')),
             it(WHI('check', 22), T('Helps you go through your questions', 'Vous aide à passer vos questions'), T('Tick each one off as it’s answered.', 'Cochez chacune quand elle a une réponse.'))])}
-          ${sec(T('3. After', '3. Après'), [
+          ${sec(T('3. Remember', '3. Retenir'), [
             it(WHI('note', 22), T('Writes a summary and next steps', 'Écrit un résumé et les prochaines étapes'), T('From the recording. Check it and change anything.', 'À partir de l’enregistrement. Vérifiez et corrigez.')),
             it(WHI('calendar', 22), T('Adds your next appointment to your calendar', 'Ajoute le prochain rendez-vous à votre calendrier'), ''),
             it(WHI('mail', 22), T('Sends the summary to your care circle', 'Envoie le résumé à vos aidants'), '')])}
@@ -4496,7 +4496,7 @@
                 <span class="min-w-0"><span class="block text-[18px] font-extrabold text-[#1E2634]"><span aria-hidden="true">${icon}</span> ${title}${on ? ` <span class="text-[13px] text-[#3B5E42]">· ${T('now on', 'actif')}</span>` : ''}</span>
                 <span class="block text-[15px] font-bold text-[#425268] leading-snug mt-1">${sub}</span></span></button>`).join('')}</div>`;
       } else if (setView === 'steps') {
-        const names = ['1. Prepare', '2. At Visit', '3. After'], namesFr = ['1. Préparer', '2. Au rendez-vous', '3. Après'];
+        const names = ['1. Prepare', '2. At Visit', '3. Remember'], namesFr = ['1. Préparer', '2. Au rendez-vous', '3. Après'];
         body = head(T('All steps', 'Toutes les étapes'), 1) + `<div class="flex flex-col gap-2">${[0, 1, 2].map((ph) => `<p class="text-xs font-extrabold uppercase tracking-wider text-[#425268] mt-1">${(fr ? namesFr : names)[ph]}</p>
           <div class="grid grid-cols-2 gap-[10px]">${steps.map((st, i) => st.phaseIndex === ph ? `<button type="button" data-jump="${i}" class="tactile-btn min-h-[48px] px-2 rounded-xl ${i === currentIndex ? 'bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E2634]' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-sm">${i === currentIndex ? '✓ ' : ''}${tr(st.topic)}</button>` : '').join('')}</div>`).join('')}</div>`;
       } else if (setView === 'pages') {
@@ -6318,7 +6318,7 @@
     // The road map is one slim line (Rama, 27 Nov: more room for the question): finished phases are a small ✓ pill,
     // the phase you're in shows its parts as icons you can tap, and the phases still to come are small grey pills.
     // The part's name isn't repeated on its own line: the screen's heading already says it, and each icon says it on hover.
-    const PH_NAMES = [['Prepare', 'Préparer'], ['Visit', 'Visite'], ['After', 'Après']];
+    const PH_NAMES = [['Prepare', 'Préparer'], ['Visit', 'Visite'], ['Remember', 'Retenir']];   // 'After' renamed Remember (Rama, 27 Nov)
     // each phase has its own picture (Rama, 27 Nov): a pencil for getting ready, the microphone for the visit, a clipboard with a tick for after
     window.WHI_P.clipcheck = '<path d="M9 3h6v3H9z"/><path d="M8 4.5H6.5A1.5 1.5 0 0 0 5 6v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 20V6a1.5 1.5 0 0 0-1.5-1.5H16"/><polyline points="9 14 11.2 16.2 15.5 11.8"/>';
     const PH_IC = ['pencil', 'mic', 'clipcheck'];
@@ -10800,7 +10800,7 @@
         a.innerHTML = `<p class="ha-k">${L2('How WellHeard works', 'Comment fonctionne WellHeard')}</p>
           <ol class="ha-steps">${st('pencil', L2('Prepare', 'Préparer'), L2('Your questions and a clear page for the doctor.', 'Vos questions et une page claire pour le médecin.'))}
           ${st('mic', L2('Visit', 'Visite'), L2('Record what the doctor says, with their OK.', 'Enregistrez ce que dit le médecin, avec son accord.'))}
-          ${st('clipcheck', L2('After', 'Après'), L2('A summary of what was said and what to do next.', 'Un résumé de ce qui a été dit et des prochaines étapes.'))}</ol>
+          ${st('clipcheck', L2('Remember', 'Retenir'), L2('A summary of what was said and what to do next.', 'Un résumé de ce qui a été dit et des prochaines étapes.'))}</ol>
 `;
       }
       if (typeof applyLang === 'function') applyLang(a);
