@@ -6323,7 +6323,7 @@
       const open = (p) => firstOf(p, ph) <= reachedMax;
       const icons = inPhase.map((p, i) =>
         open(p) || i === at
-          ? `<button type="button" data-part="${p.k}" class="pg-ic ${i < at ? 'done' : i === at ? 'now' : ''}" aria-label="${esc(L2('Go to ', 'Aller à ') + L2(p.en, p.fr))}"${i === at ? ' aria-current="step"' : ''}>${WHI(i < at ? 'check' : p.icon, i === at ? 16 : 14)}<span class="pg-tip">${L2(p.en, p.fr)}</span></button>`
+          ? `<button type="button" data-part="${p.k}" class="pg-ic ${i < at ? 'done' : i === at ? 'now' : ''}" aria-label="${esc(L2('Go to ', 'Aller à ') + L2(p.en, p.fr))}"${i === at ? ' aria-current="step"' : ''}>${WHI(p.icon, i === at ? 16 : 14)}${i < at ? '<span class="pg-tick" aria-hidden="true"></span>' : ''}<span class="pg-tip">${L2(p.en, p.fr)}</span></button>`
           : `<span class="pg-ic later" role="img" aria-label="${esc(L2('Coming up: ', 'À venir : ') + L2(p.en, p.fr))}">${WHI(p.icon, 14)}</span>`).join('');
       const pill = (k) => {
         const name = L2(PH_NAMES[k][0], PH_NAMES[k][1]);
@@ -10423,6 +10423,74 @@
         lastIdx = currentIndex;
         return rcsS.apply(this, arguments);
       }; }
+
+
+    // ---------- road map (Rama, 27 Nov): a finished part keeps its own icon, sage on pale sage, with a small solid tick badge ----------
+    { const st = document.createElement('style'); st.textContent = `
+      #stepSubtitle .pg-ic.done { position: relative; overflow: visible; background: #E5EFE7; border-color: #3B5E42; color: #3B5E42; }
+      #stepSubtitle .pg-tick { position: absolute; top: -5px; right: -5px; width: 14px; height: 14px; border-radius: 999px; background: #3B5E42; border: 2px solid #FAF7F0; pointer-events: none; }
+      #stepSubtitle .pg-tick::after { content: ''; position: absolute; left: 3px; top: 1.5px; width: 3px; height: 6px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+      .ts-1 #stepSubtitle .pg-tick, .ts-2 #stepSubtitle .pg-tick { width: 15px; height: 15px; }`; document.head.appendChild(st); }
+
+    // ---------- Your questions (Rama, 27 Nov): tap a question to keep or remove it, mark how important it is, fix its words, then Save ----------
+    // Importance is two plain choices, not a number: Must ask (goes first) or If there's time. Reid keeps the order within each.
+    function renameQ(oldQ, neu) {
+      if (!neu || neu === oldQ) return;
+      const sw = (x) => (x === oldQ ? neu : x);
+      qPicked = qPicked.map(sw); qPrio = qPrio.map(sw); if (typeof ownQs !== 'undefined') ownQs = ownQs.map(sw);
+      ['ask', 'ideasmore'].forEach((id) => { const st = SID(id); if (st && st.answer) st.answer = qLines(st.answer).map(sw).join('\n'); });
+      if (!chosen().includes(neu)) { ownQs.push(neu); }   // it came from somewhere else: keep it as their own
+      if (typeof aiTags === 'object' && aiTags[oldQ]) { aiTags[neu] = aiTags[oldQ]; }
+    }
+    function openQEdit(q) {
+      let must = qPrio.includes(q), keep = true;
+      const el = aSheet(`<h2 class="text-xl font-extrabold text-[#1E2634]">${L2('Your question', 'Votre question')}</h2>
+        <label class="block text-sm font-extrabold text-[#425268]" for="qeText">${L2('The words (change anything)', 'Les mots (modifiez au besoin)')}</label>
+        <textarea id="qeText" rows="4" class="w-full p-3 rounded-2xl border-2 border-[#3B5E42] text-[17px] text-[#1E2634] bg-white leading-snug">${esc(q)}</textarea>
+        <p class="text-sm font-extrabold text-[#425268]" id="qeImpL">${L2('How important is it?', 'Est-ce important ?')}</p>
+        <div class="grid grid-cols-2 gap-[10px]" role="radiogroup" aria-labelledby="qeImpL">
+          <button type="button" data-qe="must" role="radio" class="tactile-btn qe-o">${L2('★ Must ask', '★ À poser absolument')}<span>${L2('Goes first', 'En premier')}</span></button>
+          <button type="button" data-qe="later" role="radio" class="tactile-btn qe-o">${L2('If there’s time', 'S’il reste du temps')}<span>${L2('After the must-asks', 'Après les essentielles')}</span></button></div>
+        <button type="button" data-qe="rm" class="tactile-btn qe-rm">${L2('Remove this question', 'Retirer cette question')}</button>
+        <div class="flex gap-[10px]"><button type="button" data-x="close" class="${B2} flex-1">${L2('Cancel', 'Annuler')}</button><button type="button" data-qe="save" class="${B1} flex-1">${L2('Save', 'Enregistrer')}</button></div>`);
+      const paint = () => {
+        el.querySelectorAll('[data-qe="must"],[data-qe="later"]').forEach((b) => { const on = (b.dataset.qe === 'must') === must; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
+        const rm = el.querySelector('[data-qe="rm"]'); rm.classList.toggle('on', !keep); rm.textContent = keep ? L2('Remove this question', 'Retirer cette question') : L2('✓ Will be removed. Tap to keep it', '✓ Sera retirée. Touchez pour la garder');
+        el.querySelector('#qeText').disabled = !keep;
+      };
+      paint();
+      el.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-qe]'); if (!b) return;
+        const k = b.dataset.qe;
+        if (k === 'must') must = true; if (k === 'later') must = false; if (k === 'rm') keep = !keep;
+        if (k !== 'save') { paint(); return; }
+        el.remove();
+        if (!keep) { removeQ(q); return; }
+        const neu = el.querySelector('#qeText').value.replace(/\s+/g, ' ').trim() || q;
+        renameQ(q, neu);
+        qPrio = qPrio.filter((x) => x !== neu); if (must) qPrio.push(neu);
+        if (typeof syncVisit === 'function') syncVisit();
+        saveAll(); renderList(); applyLang(); if (typeof lpSoon === 'function') lpSoon(true);
+        showToast(L2('Saved', 'Enregistré'));
+      });
+    }
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      if (steps[currentIndex].mode !== 'priority') return;
+      const b = e.target.closest('[data-i]'); if (!b) return;
+      e.stopPropagation(); e.preventDefault(); ensureCtx(); hush(true);
+      const q = qShown[Number(b.dataset.i)]; if (q) openQEdit(q);
+    }, true);
+    { const rlQ = renderList; renderList = function () {
+        const r = rlQ.apply(this, arguments);
+        if (steps[currentIndex].mode === 'priority' && chosen().length) document.getElementById('listHelp').textContent = L2('★ = must ask: those go first. Tap a question to change its words, mark it, or remove it.', '★ = à poser absolument : elles vont en premier. Touchez une question pour la modifier, la marquer ou la retirer.');
+        return r;
+      }; }
+    { const st = document.createElement('style'); st.textContent = `
+      .qe-o { min-height: 64px; border-radius: 16px; background: #fff; border: 2px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+      .qe-o span { font-size: 13px; font-weight: 700; color: #425268; }
+      .qe-o.on { background: #1E2634; border-color: #1E2634; color: #fff; } .qe-o.on span { color: #E2DBD0; }
+      .qe-rm { min-height: 50px; border-radius: 14px; background: #fff; border: 2px solid #E8C4BC; color: #8A2E1C; font-weight: 800; font-size: 15px; }
+      .qe-rm.on { background: #FFF4F2; border-color: #8A2E1C; }`; document.head.appendChild(st); }
 
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
