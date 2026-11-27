@@ -6309,17 +6309,52 @@
     // furthest screen reached: road map icons past it can't be tapped (jumping ahead skipped screens and ticked them as done — Rama, 25 Nov)
     let reachedMax = -1;
     const firstOf = (p, ph) => steps.findIndex((x) => x.phaseIndex === ph && partOf(x) === p);
+    // The road map is one slim line (Rama, 27 Nov: more room for the question): finished phases are a small ✓ pill,
+    // the phase you're in shows its parts as icons you can tap, and the phases still to come are small grey pills.
+    // The part's name isn't repeated on its own line: the screen's heading already says it, and each icon says it on hover.
+    const PH_NAMES = [['Prepare', 'Préparer'], ['Visit', 'Visite'], ['After', 'Après']];
     function partRow(step) {
       const el = document.getElementById('stepSubtitle'), here = partOf(step); if (!el || !here) return;
       reachedMax = Math.max(reachedMax, currentIndex);
-      const inPhase = PARTS.filter((p) => steps.some((x) => x.phaseIndex === step.phaseIndex && partOf(x) === p));
+      const ph = step.phaseIndex;
+      const inPhase = PARTS.filter((p) => steps.some((x) => x.phaseIndex === ph && partOf(x) === p));
       const at = inPhase.indexOf(here);
-      const open = (p) => firstOf(p, step.phaseIndex) <= reachedMax;
-      el.innerHTML = `<span class="pg-row" role="group" aria-label="${esc(L2('Part ', 'Partie ') + (at + 1) + L2(' of ', ' sur ') + inPhase.length + ': ' + L2(here.en, here.fr))}"><span class="pg-icons">${inPhase.map((p, i) =>
+      const open = (p) => firstOf(p, ph) <= reachedMax;
+      const icons = inPhase.map((p, i) =>
         open(p) || i === at
-          ? `<button type="button" data-part="${p.k}" class="pg-ic ${i < at ? 'done' : i === at ? 'now' : ''}" aria-label="${esc(L2('Go to ', 'Aller à ') + L2(p.en, p.fr))}"${i === at ? ' aria-current="step"' : ''}>${WHI(i < at ? 'check' : p.icon, i === at ? 18 : 15)}<span class="pg-tip">${L2(p.en, p.fr)}</span></button>`
-          : `<span class="pg-ic later" role="img" aria-label="${esc(L2('Coming up: ', 'À venir : ') + L2(p.en, p.fr))}">${WHI(p.icon, 15)}</span>`).join('')}</span><span class="pg-name" aria-hidden="true">${L2(here.en, here.fr)}</span></span>`;
+          ? `<button type="button" data-part="${p.k}" class="pg-ic ${i < at ? 'done' : i === at ? 'now' : ''}" aria-label="${esc(L2('Go to ', 'Aller à ') + L2(p.en, p.fr))}"${i === at ? ' aria-current="step"' : ''}>${WHI(i < at ? 'check' : p.icon, i === at ? 16 : 14)}<span class="pg-tip">${L2(p.en, p.fr)}</span></button>`
+          : `<span class="pg-ic later" role="img" aria-label="${esc(L2('Coming up: ', 'À venir : ') + L2(p.en, p.fr))}">${WHI(p.icon, 14)}</span>`).join('');
+      const pill = (k) => {
+        const name = L2(PH_NAMES[k][0], PH_NAMES[k][1]);
+        if (k === ph) return `<span class="rm-now" role="group" aria-label="${esc(name + ': ' + L2('part ', 'partie ') + (at + 1) + L2(' of ', ' sur ') + inPhase.length + ', ' + L2(here.en, here.fr))}"><span class="pg-icons">${icons}</span></span>`;
+        const first = steps.findIndex((x) => x.phaseIndex === k && partOf(x));
+        if (k < ph && first > -1) return `<button type="button" class="rm-ph done" data-phase="${k}" aria-label="${esc(name + L2(' — done. Go back to it', ' — terminé. Y retourner'))}">${WHI('check', 13)}<span class="rm-t">${name}</span></button>`;
+        return `<span class="rm-ph later" aria-label="${esc(L2('Coming up: ', 'À venir : ') + name)}"><span class="rm-n" aria-hidden="true">${k + 1}</span><span class="rm-t">${name}</span></span>`;
+      };
+      el.innerHTML = `<span class="rm" role="navigation" aria-label="${esc(L2('Where you are', 'Où vous en êtes'))}">${[0, 1, 2].map(pill).join('')}</span>`;
     }
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('#stepSubtitle [data-phase]'); if (!b) return;
+      const i = steps.findIndex((x) => x.phaseIndex === Number(b.dataset.phase) && partOf(x)); if (i > -1) { hush(true); goTo(i); }
+    });
+    { const st = document.createElement('style'); st.textContent = `
+      #progressHeader > div:nth-child(1), #progressHeader > div:nth-child(2), #stepTopicTag { display: none !important; }
+      #progressHeader > div:nth-child(3) { margin-top: 0; }
+      #stepSubtitle { display: block; width: 100%; }
+      .rm { display: flex; align-items: center; gap: 6px; width: 100%; }
+      .rm-now { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 4px 8px; border-radius: 999px; background: #F0EBE1; border: 1px solid #D6CFC0; }
+      .rm-now .pg-icons { gap: 5px; }
+      #appContainer #stepSubtitle .rm .pg-ic { width: 24px; height: 24px; border-width: 2px; }
+      #appContainer #stepSubtitle .rm .pg-ic.now { width: 30px; height: 30px; }
+      #appContainer #stepSubtitle .rm .pg-icons { gap: 3px; }
+      #appContainer #stepSubtitle .rm button.pg-ic::before { inset: -8px -2px; }
+      .rm-ph { flex: none; display: inline-flex; align-items: center; gap: 4px; min-height: 34px; padding: 0 10px; border-radius: 999px; font-size: 13px; font-weight: 800; white-space: nowrap; }
+      .rm-ph.done { background: #E5EFE7; border: 1px solid #3B5E42; color: #1E4627; cursor: pointer; font: inherit; font-size: 13px; font-weight: 800; position: relative; }
+      .rm-ph.done::before { content: ''; position: absolute; inset: -5px 0; }
+      .rm-ph.later { background: transparent; border: 1px dashed #C9C1B2; color: #6B7482; }
+      .rm-n { width: 18px; height: 18px; border-radius: 999px; background: #E2DBD0; color: #425268; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; }
+      @container (max-width: 420px) { .rm-t { display: none; } .rm-ph { padding: 0; width: 30px; min-height: 30px; justify-content: center; } .rm-ph.later .rm-n { background: none; } .rm-now { padding: 3px 5px; } .rm { gap: 4px; } }
+      .ts-2 .rm-t { display: none; }`; document.head.appendChild(st); }
     // tapping a road map icon goes to the first screen of that part, in this phase
     document.addEventListener('click', (e) => {
       const b = e.target.closest('#stepSubtitle [data-part]'); if (!b) return;
