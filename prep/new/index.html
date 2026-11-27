@@ -10532,11 +10532,11 @@
       if (!hb) { hb = document.createElement('div'); hb.id = 'landingBack'; const ll = document.getElementById('landingLang'); if (ll) ll.after(hb); else return; }
       hb.hidden = !back; if (!back) return;
       const rs = window.__resumeStep, ri = rs ? steps.indexOf(rs) : -1;
-      hb.innerHTML = `<p class="lb-k">${L2('Welcome back', 'Bon retour')}</p><h1 class="lb-h">${L2('What would you like to do?', 'Que voulez-vous faire ?')}</h1>
+      hb.innerHTML = `<h1 class="lb-h">${L2('What would you like to do?', 'Que voulez-vous faire ?')}</h1>
         <p class="lb-s">${L2('Get ready for your next visit, or record a visit now.', 'Préparez votre prochaine visite, ou enregistrez une visite maintenant.')}</p>
         ${ri > 0 ? `<button type="button" id="lbResume" class="tactile-btn lb-r"><span class="lb-r-ic" aria-hidden="true">${WHI('note', 22)}</span><span class="lb-r-t"><b>${L2('Continue where you left off', 'Reprendre où vous étiez')}</b><span>${esc(tr(rs.topic || rs.question || ''))}</span></span><span aria-hidden="true">›</span></button>` : ''}`;
       const rb = hb.querySelector('#lbResume'); if (rb) rb.addEventListener('click', () => { ensureCtx(); hush(); const i = steps.indexOf(window.__resumeStep); window.__resumeStep = null; if (i > 0) goTo(i); });
-      const nl = document.getElementById('nextNavLabel'); if (nl) nl.textContent = L2('Get ready for a visit', 'Préparer une visite');
+      const nl = document.getElementById('nextNavLabel'); if (nl) nl.textContent = Number(textSize || 0) >= 2 ? L2('Get ready', 'Préparer') : L2('Get ready for a visit', 'Préparer une visite');
       if (typeof applyLang === 'function') applyLang(hb);
     }
     { const gnH = goNext; goNext = function () {
@@ -10598,6 +10598,36 @@
       #stepSubtitle .pg-ic.later, #stepSubtitle .pg-ic:not(.done):not(.now) { background: #fff; border: 2px solid #1E2634; color: #1E2634; border-style: solid; opacity: 1; }
       #stepSubtitle .rm-ph.later { background: #fff; border: 2px solid #1E2634 !important; border-style: solid !important; color: #1E2634; }
       #stepSubtitle .rm-ph.later .rm-n { background: #1E2634; color: #fff; }`; document.head.appendChild(st); }
+
+
+    // ---------- Reid on the Welcome back home (Rama, 27 Nov): one short line, not the big first-time bubble, and he reads
+    // what is actually on the home (not "tap Get started") ----------
+    { const shH = showHello; showHello = function () {
+        const r = shH.apply(this, arguments);
+        if (consent && consent.choice && steps[currentIndex].mode === 'landing') {
+          const reading = helloState === 'reading';
+          hello.innerHTML = `<div class="hb-row"><p class="hb-t">${L2('Welcome back!', 'Bon retour !')}</p>
+            <button type="button" data-hi="${reading ? 'stop' : 'yes'}" class="tactile-btn hb-b">${reading ? '■ ' + L2('Stop', 'Arrêter') : '▶ ' + L2('Read aloud', 'Lire à voix haute')}</button></div>`;
+          applyLang(hello); requestAnimationFrame(() => pointTail(hello, '#fff'));
+        }
+        return r;
+      }; }
+    { const rfp = readFirstPage; readFirstPage = async function () {
+        if (!(consent && consent.choice && steps[currentIndex].mode === 'landing')) return rfp.apply(this, arguments);
+        const rs = window.__resumeStep && steps.indexOf(window.__resumeStep) > 0 ? window.__resumeStep : null;
+        const parts = [L2('Welcome back.', 'Bon retour.'), L2('What would you like to do?', 'Que voulez-vous faire ?'),
+          rs ? L2('You can continue where you left off: ', 'Vous pouvez reprendre où vous étiez : ') + tr(rs.topic || '') + '.' : '',
+          L2('If you are at the doctor’s now, tap Record a visit.', 'Si vous êtes chez le médecin, touchez Enregistrer une visite.'),
+          L2('To get ready for your next visit, tap the big button at the bottom.', 'Pour préparer votre prochaine visite, touchez le grand bouton en bas.')].filter(Boolean);
+        const out = isMT() ? await Promise.all(parts.map((t) => mt(t))) : parts;
+        await say(out.join(' '), true);
+      }; }
+    { const st = document.createElement('style'); st.textContent = `
+      .hb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+      .hb-t { margin: 0; font-size: 17px; font-weight: 800; color: #1E2634; }
+      .hb-row { flex-wrap: nowrap; } .hb-t { font-size: 16px; white-space: nowrap; }
+      #screenLanding.lp-back > div:has(#privacyLink), #screenLanding.lp-back > div:has(#privacyLink) > * { margin-top: 0 !important; }
+      .hb-b { white-space: nowrap; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #3B5E42; color: #fff; font-weight: 800; font-size: 15px; }`; document.head.appendChild(st); }
 
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
