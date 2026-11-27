@@ -10626,6 +10626,7 @@
       .hb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
       .hb-t { margin: 0; font-size: 17px; font-weight: 800; color: #1E2634; }
       .hb-row { flex-wrap: nowrap; } .hb-t { font-size: 16px; white-space: nowrap; }
+      #sideReid .hb-row { flex-wrap: wrap; } #sideReid .hb-b { width: 100%; }
       #screenLanding.lp-back > div:has(#privacyLink), #screenLanding.lp-back > div:has(#privacyLink) > * { margin-top: 0 !important; }
       .hb-b { white-space: nowrap; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #3B5E42; color: #fff; font-weight: 800; font-size: 15px; }`; document.head.appendChild(st); }
 
@@ -10675,6 +10676,19 @@
       setInterval(tick, 700); window.addEventListener('resize', () => setTimeout(tick, 150));
       { const rcsMB = renderCurrentStep; renderCurrentStep = function () { const r = rcsMB.apply(this, arguments); setTimeout(tick, 120); return r; }; }
     })();
+
+
+    // ---------- computers and sideways iPads: Reid's speech bubble sits above him, its tail pointing down (Rama, 27 Nov) ----------
+    { const shA = showHello; showHello = function () {
+        const r = shA.apply(this, arguments);
+        const sd = document.getElementById('sideReid'), bd = document.getElementById('reidBadge');
+        if (document.getElementById('appContainer').classList.contains('wide') && sd && sd.offsetWidth && bd && bd.parentElement === sd && !hello.classList.contains('hidden')) {
+          if (hello.nextElementSibling !== bd) bd.before(hello);
+          hello.style.marginTop = '0'; hello.style.marginBottom = '16px';
+          requestAnimationFrame(() => pointTail(hello, '#fff'));
+        }
+        return r;
+      }; }
 
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
