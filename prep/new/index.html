@@ -3588,6 +3588,7 @@
       return '';
     }
     function heard(t) {
+      whConvo('Patient', t);
       if (typeof recAskHeard === 'function' && recAskHeard(t.toLowerCase().replace(/[.!,。！，？、؟،]/g, '').trim())) return;
       const step = steps[currentIndex]; if (!step || step.mode === 'landing') return;
       const low = t.toLowerCase().replace(/[.!,。！，？、؟،]/g, '').trim();
@@ -3720,7 +3721,7 @@
     }
     async function say(text, raw) {
       if (typeof text === 'string' && !window.__keepNames) text = helperText(text);   // the helper-choice screen names both helpers as they are
-      if (text) window.__lastSaid = String(text).slice(0, 400);
+      if (text) { window.__lastSaid = String(text).slice(0, 400); whConvo('Reid', text); }
       if (!text || inputPreference !== 'voice' || !readAloud) return;
       hush(); const g = sayGen; speaking = true; speakStart = performance.now(); talkFace(true);
       if (isMT() && !raw && !Object.values(uic()).includes(text)) { text = await mt(text); if (g !== sayGen) return; }
@@ -3911,7 +3912,7 @@
       try {
         const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ mode: 'intent', lang, text: t, screen: (h ? h.textContent.trim() : '') + ' (' + step.mode + ')',
-            question: step.mode === 'voice' ? tr(step.question || '') : '', buttons: btns.map((x) => x.l), last: window.__lastSaid || '' }) });
+            question: step.mode === 'voice' ? tr(step.question || '') : '', buttons: btns.map((x) => x.l), last: window.__lastSaid || '', history: (window.__convo || []).slice(-10), known: whKnown() }) });
         d = await r.json().catch(() => null); if (!r.ok || !d || !d.ok) d = null;
       } catch (e) { d = null; }
       understanding = false; setCompanionState(isListening ? 'listening' : 'paused');
@@ -3939,7 +3940,7 @@
       setCompanionState('asking');
       try {
         const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ mode: 'help', lang, question: tr(step.question || step.topic || ''), text: q }) });
+          body: JSON.stringify({ mode: 'help', lang, question: tr(step.question || step.topic || ''), text: q, history: (window.__convo || []).slice(-10), known: whKnown() }) });
         const d = await r.json().catch(() => ({}));
         const a = (r.ok && d.ok && d.answer) || (lang === 'fr' ? "Dites votre réponse, puis dites suivant. Pour revenir, dites retour." : 'Say your answer, then say next. To go back, say back.');
         showToast(a); await say(a, true);
@@ -3962,6 +3963,82 @@
       protoSelect(preset);
     };
     isAnswerUnclear = function () { return false; };   // Reid checks with Claude when Next is tapped instead
+
+    // ---------- Reid remembers the conversation (Rama, 26 Nov: "make Reid smarter — conversation") ----------
+    // The last few things Reid and the patient said, and what they've already answered, go with each question to
+    // Reid, so he can follow "like I said", not ask twice, and refer back naturally.
+    function whConvo(who, t) {
+      const a = window.__convo || (window.__convo = []), x = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+      if (!x || a[a.length - 1] === who + ': ' + x) return;
+      a.push(who + ': ' + x); if (a.length > 12) a.shift();
+    }
+    function whKnown() {
+      const out = [];
+      steps.forEach((st, i) => { if (i === currentIndex || st.mode !== 'voice' || !(st.answer || '').trim()) return;
+        out.push(String(tr(st.question || st.topic || '') || st.id).slice(0, 100) + ' → ' + String(st.answer).trim().slice(0, 140)); });
+      return out.slice(-10);
+    }
+
+    // ---------- Reid reads the answer over on Next (Rama, 26 Nov) ----------
+    // Misheard words ("Did you mean Sinemet?") and bits that aren't part of the answer ("clear everything", talk to
+    // someone else in the room). One at a time, by tap or by voice; the patient always decides. Slow or offline: skipped.
+    const reviewed = {};
+    let reviewQ = null;
+    async function reviewCheck(step) {
+      const v = (step.answer || '').trim();
+      if (!v || v.split(/\s+/).length < 4 || reviewed[step.id] === v) return false;
+      reviewed[step.id] = v;
+      let d = null;
+      try {
+        const ctl = new AbortController(); setTimeout(() => ctl.abort(), 7000);
+        const meds = (typeof medsList !== 'undefined' && Array.isArray(medsList)) ? medsList.map((m) => (m && (m.name || m.n)) || '').filter(Boolean) : [];
+        const conds = typeof condList === 'function' ? condList().join(', ') : '';
+        const r = await fetch('/api/suggest', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: ctl.signal,
+          body: JSON.stringify({ mode: 'review', lang, question: tr(step.question || ''), text: v, conditions: conds, meds }) });
+        d = r.ok ? await r.json() : null;
+      } catch (e) { /* slow or offline: carry on */ }
+      if (steps[currentIndex] !== step || !d || !d.ok) return false;
+      const items = (d.fixes || []).map((f) => ({ k: 'fix', from: f.from, to: f.to })).concat((d.strays || []).map((x) => ({ k: 'stray', text: x.text, why: x.why })));
+      if (!items.length) return false;
+      reviewQ = { step, items, i: 0 };
+      reviewShow();
+      return true;
+    }
+    function reviewShow() {
+      const q = reviewQ, card = document.getElementById('samClarifyCard'); if (!q || !card) return;
+      const it = q.items[q.i];
+      if (!it) {   // all done: carry on to the next screen
+        reviewQ = null; card.classList.add('hidden'); reviewed[q.step.id] = (q.step.answer || '').trim();
+        setCompanionState(isListening ? 'listening' : 'paused'); goNext(); return;
+      }
+      const ask = it.k === 'fix'
+        ? L2(`Did you mean “${it.to}” instead of “${it.from}”?`, `Vouliez-vous dire « ${it.to} » au lieu de « ${it.from} » ?`)
+        : L2(`“${it.text}” doesn’t sound like part of your answer${it.why ? ' (' + it.why + ')' : ''}. Take it out?`, `« ${it.text} » ne semble pas faire partie de votre réponse${it.why ? ' (' + it.why + ')' : ''}. L’enlever ?`);
+      const yes = it.k === 'fix' ? L2('Yes, change it', 'Oui, corriger') : L2('Yes, take it out', 'Oui, l’enlever');
+      const no = L2('No, keep it', 'Non, garder');
+      document.getElementById('samClarifyPrompt').textContent = helperName() + ': ' + ask;
+      const opts = document.getElementById('samClarifyOptions');
+      opts.innerHTML = [[yes, 1], [no, 0]].map(([t, y]) => `<button type="button" data-rv="${y}" class="tactile-btn w-full min-h-[52px] px-3 rounded-[14px] ${y ? 'bg-[#1E2634] text-white' : 'bg-white text-[#1E2634] border-2 border-[#1E2634]'} font-extrabold text-base flex items-center justify-center text-center">${escapeHtml(t)}</button>`).join('');
+      opts.querySelectorAll('[data-rv]').forEach((b) => b.addEventListener('click', () => reviewPick(b.dataset.rv === '1')));
+      card.classList.remove('hidden'); setCompanionState('asking'); say(ask, true);
+    }
+    function reviewPick(yes) {
+      const q = reviewQ; if (!q) return; const it = q.items[q.i], st = q.step;
+      if (yes) {
+        let a = st.answer || '';
+        if (it.k === 'fix') a = a.replace(it.from, it.to);
+        else a = a.replace(it.text, ' ').replace(/\s+([,.!?])/g, '$1').replace(/^[\s,.;]+|\s{2,}/g, (m) => (m.trim() ? '' : ' ')).trim();
+        st.answer = a; st.customActive = true;
+        const box = document.getElementById('answerInput'); if (box && steps[currentIndex] === st) box.value = a;
+        if (typeof saveAll === 'function') saveAll();
+      }
+      q.i++; reviewShow();
+    }
+    { const hR = heard; heard = function (t) {   // answer Reid's check by voice: "yes" / "no"
+        if (reviewQ) { const low = String(t || '').toLowerCase().replace(/[.!,?]/g, '').trim();
+          if (/^(yes|yeah|yep|sure|ok|okay|yes please|change it|take it out|oui|d'accord)$/.test(low)) { reviewPick(true); return; }
+          if (/^(no|nope|keep it|no keep it|leave it|non|garder)$/.test(low)) { reviewPick(false); return; } }
+        return hR.apply(this, arguments); }; }
 
     // ---------- Reid's quick question for vague answers (Claude), on Next ----------
     const VAGUE_STEPS = { who: 1, where: 1, concerns: 1 };
@@ -6931,7 +7008,7 @@
       if (nexting) return; nexting = true;
       try {
         const step = steps[currentIndex];
-        if (step.mode === 'voice') { saveCurrentStepState(); if (await vagueCheck(step)) return; }
+        if (step.mode === 'voice') { saveCurrentStepState(); if (await vagueCheck(step)) return; if (await reviewCheck(step)) return; }
         if (step.mode === 'consent' && !consent) {
           consentCheckSeen();
           const m = consentSeen ? L2('Please tap I agree, or No thanks.', 'Touchez J’accepte, ou Non merci.')

@@ -71,6 +71,15 @@ function clean(value, max) {
   if (typeof value !== 'string') return '';
   return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim().slice(0, max);
 }
+// Reid remembers the conversation (Rama, 26 Nov: "make Reid smarter — conversation"): the last few things said
+// both ways, and what the patient has already told the app, so he can follow "like I said", "the same one" and
+// refer back naturally instead of starting from nothing each time.
+function convo(body) {
+  const hist = (Array.isArray(body.history) ? body.history : []).slice(-10).map((x) => clean(x, 240)).filter(Boolean);
+  const known = (Array.isArray(body.known) ? body.known : []).slice(-10).map((x) => clean(x, 240)).filter(Boolean);
+  return (hist.length ? `Conversation so far (oldest first):\n${hist.join('\n')}\n` : '') + (known.length ? `What they have already told the app:\n${known.join('\n')}\n` : '');
+}
+
 function cleanList(value, max = LIMITS.list) {
   if (!Array.isArray(value)) return [];
   return value.slice(-max).map((v) => clean(v, LIMITS.item)).filter(Boolean);
@@ -196,7 +205,8 @@ Answer in one or two short, warm, spoken sentences (under 45 words), in the lang
 - If they ask how the app works: they answer in their own words and say "next" when finished, "erase" to take back what they just said, and "repeat" to hear the question again. They can tap Pause at any time, and type instead by tapping the "What I heard" box. Every question can be skipped by saying next.
 - If they ask to change how the app works (speak slower or faster, wait longer, talk over the voice, a different voice, French or English, typing instead), say they can tap Help at the bottom of the screen, then Voice settings, and that they can also just say "slow down", "give me more time" or "a different voice".
 - If they ask a medical question (what is wrong, what to take, whether something is serious), do not answer it. Say it's a good question for their doctor and that they can add it to their questions later in the app. If it sounds urgent (chest pain, trouble breathing, signs of a stroke, thoughts of self-harm), tell them to call 911 now.
-- Never diagnose or give medical advice. Plain words, no lists, no markdown. Do not repeat the app's question back word for word.`;
+- Never diagnose or give medical advice. Plain words, no lists, no markdown. Do not repeat the app's question back word for word.
+- You may get the conversation so far and what they've already told the app. Use them like a good listener: understand what "it", "that" or "like I said" refer to, connect your answer to what they told you when it helps ("Since you mentioned the tremor in your hand…"), and don't repeat what you just said. Never read their answers back in full.`;
 
 // Reid's gentle check when a short answer could mean different things ("the doctor", "my foot").
 const VAGUE = `You are Reid, WellHeard's AI helper: caring, thoughtful, never overbearing. A patient is preparing for a medical appointment.
@@ -241,7 +251,8 @@ Pick exactly one action:
 - Calm, kind, brief, first person, plain words, no lists or markdown, in the language given. Reid is an AI and says so simply if asked.
 - For a medical question (what's wrong, what to take, is it serious): don't answer; say it's a good one for the doctor and they can add it as a question. If it sounds urgent (chest pain, trouble breathing, stroke signs, thoughts of self-harm), tell them to call 911 now.
 - Never diagnose or give medical advice.
-If in doubt between "answer" and anything else on a screen that asks a question, choose "answer".`;
+If in doubt between "answer" and anything else on a screen that asks a question, choose "answer".
+You may also get the conversation so far and what they've already told the app. Use them like a good listener: follow references ("like I said", "the same as before", "that one"), don't ask for what they already told you, and in a reply you may refer back briefly and naturally ("You mentioned your knee earlier…"). Never read their answers back in full.`;
 
 const INTENT_SCHEMA = {
   type: 'object',
@@ -251,6 +262,31 @@ const INTENT_SCHEMA = {
     reply: { type: 'string' },
   },
   required: ['action', 'tap', 'reply'],
+  additionalProperties: false,
+};
+
+// Reid reads an answer over before moving on (Rama, 26 Nov): words voice typing misheard, and bits that aren't
+// part of the answer at all ("clear everything", "Reid, stop", talk to someone else in the room). He only suggests;
+// the patient chooses.
+const REVIEW = `You are Reid, WellHeard's AI helper, checking a patient's spoken answer before it goes on the page for their doctor.
+The patient may be older, may speak with a French accent, and may have Parkinson's disease (soft, fast or slurred speech), so voice typing mishears words.
+You receive the question they were answering, some context, and the text the voice typing produced.
+
+Find two kinds of problems, only when you are fairly sure:
+1. "fixes": words or short phrases that were clearly misheard, where the context makes the intended word obvious (a medicine heard as ordinary words, a sound-alike word, a body part or place garbled). "from" copied exactly from the text; "to" the correction.
+2. "strays": pieces of the text that are not part of their answer to this question: commands or remarks meant for the app or for Reid ("clear everything", "erase that", "stop listening", "next", "Reid can you hear me", "is this thing on"), talk to another person in the room, TV or background speech, or something clearly unrelated to the question. "text" copied exactly from the text (whole words, as short as possible); "why" a few plain words saying what it seems to be ("a command for the app", "talking to someone else").
+Rules:
+- Never change meaning, never add information, never fix grammar or style, never translate, never judge whether the answer is medically right.
+- Health details, feelings, worries, and stories that wander but are about their health or the visit are NOT strays.
+- If nothing is wrong, return two empty lists. At most 4 of each.`;
+
+const REVIEW_SCHEMA = {
+  type: 'object',
+  properties: {
+    fixes: { type: 'array', items: { type: 'object', properties: { from: { type: 'string' }, to: { type: 'string' } }, required: ['from', 'to'], additionalProperties: false } },
+    strays: { type: 'array', items: { type: 'object', properties: { text: { type: 'string' }, why: { type: 'string' } }, required: ['text', 'why'], additionalProperties: false } },
+  },
+  required: ['fixes', 'strays'],
   additionalProperties: false,
 };
 
@@ -420,7 +456,7 @@ export default async function handler(req, res) {
     const send = res.json.bind(res);
     res.json = (obj) => { try { return send(JSON.parse(scrubbed.restore(JSON.stringify(obj), true))); } catch (e) { return send(obj); } };
   }
-  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui', 'intent', 'medname'].includes(body.mode) ? body.mode : 'suggest';
+  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui', 'intent', 'medname', 'review'].includes(body.mode) ? body.mode : 'suggest';
   const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -517,7 +553,7 @@ export default async function handler(req, res) {
       const said = clean(body.text, 400);
       if (!said) return res.status(400).json({ ok: false, error: 'Nothing was said.' });
       const btns = (Array.isArray(body.buttons) ? body.buttons : []).slice(0, 24).map((b, i) => `${i + 1}. ${clean(b, 80)}`).join('\n');
-      const ctx = `Language: ${LANG_NAME[lang]}\nScreen: ${clean(body.screen, 200) || 'not given'}\nQuestion on the screen: ${clean(body.question, 600) || 'none'}\nButtons:\n${btns || 'none'}\nReid last said: ${clean(body.last, 400) || 'nothing'}\nThe patient said: ${said}`;
+      const ctx = `Language: ${LANG_NAME[lang]}\nScreen: ${clean(body.screen, 200) || 'not given'}\nQuestion on the screen: ${clean(body.question, 600) || 'none'}\nButtons:\n${btns || 'none'}\n${convo(body)}Reid last said: ${clean(body.last, 400) || 'nothing'}\nThe patient said: ${said}`;
       const out = await askClaude(INTENT, ctx, INTENT_SCHEMA, 250);
       if (!out || !out.action) return res.status(502).json({ ok: false, error: UNAVAILABLE });
       return res.status(200).json({ ok: true, action: out.action, tap: Number(out.tap) || 0, reply: clean(out.reply, 300) });
@@ -526,11 +562,31 @@ export default async function handler(req, res) {
     if (mode === 'help') {
       const ask = clean(body.text, 400);
       if (!ask) return res.status(400).json({ ok: false, error: 'Nothing was asked.' });
-      const ctx = `Language: ${LANG_NAME[lang]}\nThe app had just asked: ${clean(body.question, 600) || 'not given'}\nThe patient asked: ${ask}`;
+      const ctx = `Language: ${LANG_NAME[lang]}\n${convo(body)}The app had just asked: ${clean(body.question, 600) || 'not given'}\nThe patient asked: ${ask}`;
       const out = await askClaude(HELP, ctx, HELP_SCHEMA, 300);
       const answer = clean(out && out.answer, 400);
       if (!answer) return res.status(502).json({ ok: false, error: UNAVAILABLE });
       return res.status(200).json({ ok: true, answer });
+    }
+
+    if (mode === 'review') {
+      const text = clean(body.text, LIMITS.story);
+      if (!text || text.split(/\s+/).length < 4) return res.status(200).json({ ok: true, fixes: [], strays: [] });
+      const ctx = [
+        `Language spoken: ${LANG_NAME[lang]}`,
+        `Question being answered: ${clean(body.question, 400) || 'not given'}`,
+        `Conditions: ${clean(body.conditions, LIMITS.conditions) || 'not given'}`,
+        `Medications: ${cleanList(body.meds).join('; ') || 'not given'}`,
+        '',
+        `Voice-typed answer:\n${text}`,
+      ].join('\n');
+      const out = await askClaude(REVIEW, ctx, REVIEW_SCHEMA, 700);
+      if (!out) return res.status(502).json({ ok: false, error: UNAVAILABLE });
+      const fixes = (Array.isArray(out.fixes) ? out.fixes : []).map((f) => ({ from: clean(f && f.from, 120), to: clean(f && f.to, 120) }))
+        .filter((f) => f.from && f.to && f.from !== f.to && text.includes(f.from)).slice(0, 4);
+      const strays = (Array.isArray(out.strays) ? out.strays : []).map((x) => ({ text: clean(x && x.text, 200), why: clean(x && x.why, 80) }))
+        .filter((x) => x.text && text.includes(x.text) && x.text.length < text.length * 0.9).slice(0, 4);
+      return res.status(200).json({ ok: true, fixes, strays });   // names put back by the reply wrapper above
     }
 
     // ---- "Did you mean...?" for voice-typed answers
