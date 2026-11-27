@@ -10690,6 +10690,53 @@
         return r;
       }; }
 
+
+    // ---------- computers and sideways iPads: the left column is the menu (Rama, 27 Nov) ----------
+    // Reid (bubble above him; tap him for Read this screen, Explain, talk & tap), then Home, My appointments, Help, Settings,
+    // and Chat with Rama at the bottom. The top-right Help / Visits / Settings buttons aren't repeated there.
+    function sideMenu() {
+      const app = document.getElementById('appContainer'), side = document.getElementById('sideReid');
+      const on = app.classList.contains('wide') && !app.classList.contains('tall');
+      app.classList.toggle('side-menu', on);
+      if (!on || !side) return;
+      [...side.children].forEach((c) => { if (['reidBadge', 'reidHello', 'lpShow'].includes(c.id)) return; c.remove(); });
+      const home = steps[currentIndex].mode === 'landing';
+      const item = (k, icon, en, fr, cur) => `<button type="button" data-wm="${k}" class="tactile-btn wm-i${cur ? ' on' : ''}"${cur ? ' aria-current="page"' : ''}><span class="wm-ic" aria-hidden="true">${WHI(icon, 20)}</span><span>${L2(en, fr)}</span></button>`;
+      const nav = document.createElement('nav'); nav.className = 'wm'; nav.setAttribute('aria-label', L2('Menu', 'Menu'));
+      nav.innerHTML = `${home ? '' : '<p class="wm-hint">'}${home ? '' : L2('Tap Reid to have this screen read or explained.', 'Touchez Reid pour qu’il lise ou explique cet écran.') + '</p>'}
+        ${item('home', 'note', 'Home', 'Accueil', home)}${item('appts', 'calendar', 'My appointments', 'Mes rendez-vous')}
+        ${item('help', 'help', 'Help', 'Aide')}${item('settings', 'gear', 'Settings', 'Réglages')}
+        ${item('chat', 'speak', 'Chat with Rama', 'Écrire à Rama')}`;
+      const show = document.getElementById('lpShow'); if (show && show.parentElement === side) side.insertBefore(nav, show); else side.appendChild(nav);
+      if (typeof applyLang === 'function') applyLang(nav);
+    }
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-wm]'); if (!b) return; ensureCtx(); hush(true);
+      const k = b.dataset.wm;
+      if (k === 'home') { if (steps[currentIndex].mode !== 'landing') { if (!window.__resumeStep) window.__resumeStep = steps[currentIndex]; goTo(0); } }
+      if (k === 'appts') openAppts();
+      if (k === 'help') openPanel('help');
+      if (k === 'settings') openPanel('settings');
+      if (k === 'chat') openChatPicker();
+    });
+    { const rsM = renderSide; renderSide = function () { const r = rsM.apply(this, arguments); try { sideMenu(); } catch (e) { console.warn('Side menu', e); } return r; }; }
+    { const rcsW = renderCurrentStep; renderCurrentStep = function () { const r = rcsW.apply(this, arguments); try { sideMenu(); } catch (e) { /* drawn next time */ } return r; }; }
+    window.addEventListener('resize', () => setTimeout(() => { try { sideMenu(); } catch (e) { /* later */ } }, 250));
+    { const st = document.createElement('style'); st.textContent = `
+      #appContainer.side-menu header > div:last-child { display: none !important; }
+      .wm { display: flex; flex-direction: column; gap: 7px; flex: 0 0 auto; }
+      .wm-hint { margin: 2px 4px 6px; font-size: 13px; font-weight: 700; color: #425268; line-height: 1.35; }
+      .wm-i { width: 100%; min-height: 48px; padding: 0 12px; border-radius: 16px; background: #F0EBE1; border: 1px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 15.5px; display: flex; align-items: center; gap: 12px; text-align: left; }
+      .wm-i[data-wm="chat"] { margin-top: 8px; background: #E5EFE7; border-color: rgba(59,94,66,.4); color: #1E4627; }
+      .wm-i.on { background: #E5EFE7; border: 2px solid #3B5E42; color: #1E4627; }
+      .wm-ic { width: 36px; height: 36px; border-radius: 11px; background: #fff; border: 1px solid #D6CFC0; color: #3B5E42; display: flex; align-items: center; justify-content: center; flex: none; }
+      .wm-sp { flex: 1 1 auto; min-height: 8px; }
+      #appContainer.side-menu #sideReid { gap: 8px; }
+      #appContainer.side-menu #reidHello .hb-b { min-height: 40px; }
+      #appContainer.side-menu #reidHello { padding-top: 10px !important; padding-bottom: 10px !important; }
+      #appContainer.side-menu .wm-i { min-height: 44px; font-size: 15px; } #appContainer.side-menu .wm-ic { width: 32px; height: 32px; }`; document.head.appendChild(st); }
+    try { sideMenu(); } catch (e) { /* drawn next time */ }
+
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>
