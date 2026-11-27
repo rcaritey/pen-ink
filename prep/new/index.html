@@ -7575,7 +7575,7 @@
       // One screen for the whole visit (Rama, 27 Nov): Record at the top, the questions to tick in the middle,
       // the pages at the bottom (they were already handed over on paper, so they don't take the screen).
       $('listHelp').textContent = isRecording ? L2('Recording. Tap Your questions to tick them as you go.', 'Enregistrement. Touchez Vos questions pour les cocher au fur et à mesure.')
-        : L2('Give the doctor their page, ask if you can record, then tap Record.', 'Donnez sa page au médecin, demandez si vous pouvez enregistrer, puis touchez Enregistrer.');
+        : L2('Four steps:', 'Quatre étapes :');
       $('listCounter').classList.add('hidden');
       items.classList.add('overflow-y-auto');
       const tile = (k, icon, en, fr) => `<button type="button" data-visit="pg-${k}" class="tactile-btn vs-tile"><span class="vs-tile-ic" aria-hidden="true">${WHI(icon, 26)}</span><span>${L2(en, fr)}</span></button>`;
@@ -10269,6 +10269,82 @@
       el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-x="close"]')) setTimeout(() => { if (steps[currentIndex].mode === 'visitStart') { renderList(); applyLang(); } }, 50); });
     }
     document.addEventListener('click', (e) => { if (!e.target.closest('[data-qpop]')) return; e.preventDefault(); ensureCtx(); hush(true); openQPop(); }, true);
+
+
+    // ---------- At the visit, final layout (Rama, 27 Nov): a picture workflow of what to do, the questions on My page ----------
+    // "Your questions" opens My page with the questions at the top, tickable (the recording keeps going). The list is no
+    // longer repeated on the visit screen. On tablets and computers: two columns, the workflow on the left, the actions on the right.
+    function visitFlow(vertical) {
+      const rec = isRecording, started = rec || recordSeconds > 0;
+      const st = (n) => rec ? (n < 4 ? 'done' : 'now') : started ? (n === 3 ? 'now' : n < 3 ? 'done' : '') : (n === 3 ? 'now' : '');
+      const steps4 = [
+        [1, 'steth', L2('Give the doctor their page', 'Donnez sa page au médecin'), L2('Printed, or show it on this screen.', 'Imprimée, ou montrez-la sur cet écran.')],
+        [2, 'hand', L2('Ask if you can record', 'Demandez si vous pouvez enregistrer'), L2('“Is it OK if I record this, so I remember?”', '« Est-ce que je peux enregistrer, pour m’en souvenir ? »')],
+        [3, 'mic', L2('Tap Record', 'Touchez Enregistrer'), L2('Once the doctor says yes.', 'Quand le médecin a dit oui.')],
+        [4, 'check', L2('Go through your questions', 'Passez vos questions'), L2('Tick each one when it’s answered.', 'Cochez chacune une fois répondue.')]];
+      return `<ol class="vf ${vertical ? 'vf-v' : 'vf-h'}" aria-label="${esc(L2('What to do at the visit', 'Quoi faire au rendez-vous'))}">${steps4.map(([n, ic, t, b]) => `<li class="vf-s ${st(n)}">
+          <span class="vf-pic" aria-hidden="true">${WHI(st(n) === 'done' ? 'check' : ic, vertical ? 26 : 22)}<span class="vf-n">${n}</span></span>
+          <span class="vf-t"><b>${t}</b>${vertical ? `<span>${b}</span>` : ''}</span></li>`).join('')}</ol>`;
+    }
+    function myQsTile() {
+      const qs = allQs(), n = qs.filter((q) => qAsked[q]).length;
+      return `<button type="button" data-myq="1" class="tactile-btn vs-tile vs-myq"><span class="vs-tile-ic" aria-hidden="true">${WHI('check', 26)}</span>
+        <span>${L2('Your questions', 'Vos questions')}</span>${qs.length ? `<span class="vs-myq-n" data-notr>${n}/${qs.length}</span>` : ''}</button>`;
+    }
+    { const rvsF = renderVisitStart; renderVisitStart = function (items, foot) {
+      rvsF.apply(this, arguments);
+      try {
+        const wrap = items.firstElementChild; if (!wrap) return;
+        const hint = wrap.querySelector('.vs-qhint, .vs-none'); if (hint) hint.remove();
+        wrap.querySelectorAll('.vs-say').forEach((x) => x.remove());   // the workflow says it now
+        const mine = wrap.querySelector('[data-visit="pg-mine"]'); if (mine) mine.outerHTML = myQsTile();
+        const tiles = wrap.querySelector('.vs-tiles'); if (tiles && tiles.firstElementChild && tiles.firstElementChild.dataset.myq !== '1') { const q = tiles.querySelector('[data-myq]'); if (q) tiles.prepend(q); }
+        const head = [...wrap.querySelectorAll('.vs-qhead')].pop(); if (head) head.innerHTML = `<span>${L2('Your questions and pages', 'Vos questions et vos pages')}</span>`;
+        const link = wrap.querySelector('[data-visit="phone"]'); if (link) wrap.appendChild(link);   // questions and pages first, the phone-recorder link last
+        if (document.getElementById('appContainer').classList.contains('wide')) {
+          items.innerHTML = `<div class="vs-2col"><div class="vs-flowcol">${visitFlow(true)}</div><div class="vs-actcol"></div></div>`;
+          items.querySelector('.vs-actcol').appendChild(wrap);
+        } else wrap.insertAdjacentHTML('afterbegin', visitFlow(false));
+        if (typeof applyLang === 'function') applyLang(items);
+      } catch (e) { console.warn('Visit layout', e); }
+    }; }
+    // "Your questions": My page with the questions moved to the top, tickable; the recording keeps going underneath
+    function openMyQuestions() {
+      showPage('mine');
+      setTimeout(() => {
+        const box = document.querySelector('#fullDoctorModal .space-y-3'); if (!box) return;
+        const sec = [...box.querySelectorAll('.sec')].find((x) => { const h = x.querySelector('h2'); return h && /^(my questions|mes questions)/i.test(h.textContent.trim()); });
+        const pg = box.querySelector('.paper .pg') || box.querySelector('.pg'); if (!sec || !pg) return;
+        const glance = pg.querySelector('.glance'), anchor = glance ? glance.nextSibling : (pg.querySelector('h1') || pg.firstChild).nextSibling;
+        pg.insertBefore(sec, anchor); sec.classList.add('qtop');
+        if (!sec.querySelector('.qtop-note')) sec.querySelector('h2').insertAdjacentHTML('afterend', `<p class="qtop-note">${L2('Tap a question to tick it when it’s answered.', 'Touchez une question pour la cocher une fois répondue.')}${isRecording ? ' ' + L2('The recording keeps going.', 'L’enregistrement continue.') : ''}</p>`);
+        box.scrollTop = 0; if (typeof applyLang === 'function') applyLang(sec);
+      }, 60);
+    }
+    document.addEventListener('click', (e) => { if (!e.target.closest('[data-myq]')) return; e.preventDefault(); e.stopPropagation(); ensureCtx(); hush(true); openMyQuestions(); }, true);
+    { const st = document.createElement('style'); st.textContent = `
+      .vf { list-style: none; margin: 0; padding: 0; }
+      .vf-h { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+      .vf-h .vf-s { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+      .vf-h .vf-t b { font-size: 12.5px; font-weight: 800; line-height: 1.2; color: #425268; display: block; }
+      .vf-v { display: flex; flex-direction: column; gap: 8px; }
+      .vf-v .vf-s { display: flex; align-items: center; gap: 12px; background: #fff; border: 2px solid #E6DFD0; border-radius: 16px; padding: 8px 12px; }
+      .vf-v .vf-t b { display: block; font-size: 17px; font-weight: 800; color: #1E2634; line-height: 1.25; }
+      .vf-v .vf-t span { display: block; font-size: 14.5px; font-weight: 700; color: #425268; line-height: 1.35; margin-top: 2px; }
+      .vf-pic { position: relative; flex: none; width: 46px; height: 46px; border-radius: 14px; background: #F0EBE1; color: #6B7482; display: flex; align-items: center; justify-content: center; }
+      .vf-v .vf-pic { width: 48px; height: 48px; }
+      .vf-n { position: absolute; top: -7px; left: -7px; width: 22px; height: 22px; border-radius: 999px; background: #1E2634; color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 2px solid #FAF7F0; }
+      .vf-s.now .vf-pic { background: #B91C1C; color: #fff; } .vf-s.now .vf-t b { color: #1E2634; }
+      .vf-v .vf-s.now { border-color: #B91C1C; }
+      .vf-s.done .vf-pic { background: #E5EFE7; color: #3B5E42; } .vf-s.done .vf-n { background: #3B5E42; }
+      .vs-2col { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 22px; align-items: start; }
+      .vs-myq { border-color: #1E2634; border-width: 3px; position: relative; }
+      .vs-myq-n { font-size: 14px; font-weight: 800; color: #1E4627; background: #E5EFE7; border-radius: 999px; padding: 2px 10px; }
+      .sec.qtop { background: #FFFDF6; border: 3px solid #3B5E42; border-radius: 14px; padding: 8px 12px; margin: 8px 0 14px; }
+      .qtop-note { font-weight: 700; color: #1E4627; margin: 2px 0 6px; }
+      .vs-2col .vs-rec { min-height: 76px; padding: 10px 14px; } .vs-2col .vs-rec-dot { width: 52px; height: 52px; } .vs-2col .vs-rec-big { font-size: 23px; }
+      .vs-2col .vs-tiles .vs-tile { min-height: 70px; gap: 4px; } .vs-2col .vs-tile-ic { width: 38px; height: 38px; }
+      .vs-2col .vs-mt { padding: 8px 12px; }`; document.head.appendChild(st); }
 
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
