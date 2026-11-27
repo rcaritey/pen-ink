@@ -6297,9 +6297,8 @@
       { k: 'why', icon: 'speak', ids: ['concerns', 'story', 'goal'], en: 'Why you’re going', fr: 'Pourquoi vous y allez', den: 'why you’re going', dfr: 'pourquoi vous y allez' },
       { k: 'qs', icon: 'help', ids: ['ideas', 'detail', 'priority', 'ask'], dq: 1, en: 'Your questions', fr: 'Vos questions', den: 'your questions', dfr: 'vos questions' },
       { k: 'pages', icon: 'file', ids: ['ready', 'review'], en: 'Your pages', fr: 'Vos pages', den: 'your pages', dfr: 'vos pages' },
-      { k: 'vstart', icon: 'mic', ids: ['visitStart'], en: 'Start of the visit', fr: 'Début de la visite', den: 'the start of the visit', dfr: 'le début de la visite' },
-      { k: 'vdoc', icon: 'file', ids: ['doctorSummary'], en: 'The doctor’s page', fr: 'La page du médecin', den: 'the doctor’s page', dfr: 'la page du médecin' },
-      { k: 'vqs', icon: 'check', ids: ['visitQuestions'], en: 'Your questions', fr: 'Vos questions', den: 'your questions', dfr: 'vos questions' },
+      // the whole visit is one screen now (Rama, 27 Nov): one icon, and the two old screens it replaced count as part of it
+      { k: 'vstart', icon: 'mic', ids: ['visitStart', 'doctorSummary', 'visitQuestions'], en: 'At the visit', fr: 'Au rendez-vous', den: 'the visit', dfr: 'le rendez-vous' },
       { k: 'recap', icon: 'note', ids: ['recap'], en: 'Summary', fr: 'Résumé', den: 'the summary', dfr: 'le résumé' },
       { k: 'next', icon: 'calendar', ids: ['nextSteps'], en: 'Next steps', fr: 'Prochaines étapes', den: 'the next steps', dfr: 'les prochaines étapes' },
       { k: 'share', icon: 'mail', ids: ['shareFinish'], en: 'Share', fr: 'Partager', den: 'sharing', dfr: 'le partage' },
@@ -7595,7 +7594,8 @@
       .vs-q.on .vs-box { background: #3B5E42; color: #fff; }
       .vs-none { margin: 0; font-size: 16px; font-weight: 700; color: #425268; line-height: 1.35; }
       .vs-tiles .vs-tile { min-height: 80px; }
-      .ts-1 .vs-q { font-size: 19px; } .ts-2 .vs-q { font-size: 22px; }`; document.head.appendChild(st); }
+      .ts-1 .vs-q { font-size: 19px; } .ts-2 .vs-q { font-size: 22px; }
+      .pg-name { white-space: nowrap; }`; document.head.appendChild(st); }
     // the whole visit is on this one screen, so Next goes straight to the summary, and Back from the summary comes here
     { const gnV = goNext; goNext = function () { const st = steps[currentIndex];
         if (st && st.id === 'visitStart') { const r = steps.findIndex((x) => x.id === 'recap'); if (r > -1) { goTo(r); return; } }
