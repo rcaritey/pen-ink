@@ -6148,7 +6148,8 @@
         // down below it, so nothing is hidden (Rama, 26 Nov: "the AI box / bubble should be above Reid")
         if (menu.parentElement !== document.body) document.body.appendChild(menu);   // outside the app, so shrinking the app doesn't move it
         const ts = [...document.getElementById('appContainer').classList].find((c) => /^ts-\d$/.test(c)); menu.classList.remove('ts-1', 'ts-2'); if (ts) menu.classList.add(ts);
-        if (document.getElementById('appContainer').classList.contains('wide')) {   // computers: same size text as the app, starting over Reid
+        // two columns only where there's room for both: wide screens, and not with the largest text (then the steps run across the top)
+        if (document.getElementById('appContainer').classList.contains('wide') && items.clientWidth >= 640 && Number(textSize || 0) < 2) {   // computers: same size text as the app, starting over Reid
           const w = Math.min(560 * z, vw - 16), left = Math.max(8, Math.min(vw - w - 8, r.left - 24));
           menu.style.zoom = z; menu.style.width = w / z + 'px'; menu.style.left = left / z + 'px'; menu.style.top = 8 / z + 'px';
           menu.dataset.fx = r.left + r.width / 2;   // where Reid's face is before the app shrinks (fit() lines the bubble up with him)
@@ -10300,8 +10301,17 @@
         const mine = wrap.querySelector('[data-visit="pg-mine"]'); if (mine) mine.outerHTML = myQsTile();
         const tiles = wrap.querySelector('.vs-tiles'); if (tiles && tiles.firstElementChild && tiles.firstElementChild.dataset.myq !== '1') { const q = tiles.querySelector('[data-myq]'); if (q) tiles.prepend(q); }
         const head = [...wrap.querySelectorAll('.vs-qhead')].pop(); if (head) head.innerHTML = `<span>${L2('Your questions and pages', 'Vos questions et vos pages')}</span>`;
-        const link = wrap.querySelector('[data-visit="phone"]'); if (link) wrap.appendChild(link);   // questions and pages first, the phone-recorder link last
-        if (document.getElementById('appContainer').classList.contains('wide')) {
+        const link = wrap.querySelector('[data-visit="phone"]'); if (link) wrap.appendChild(link);
+        // Record as a round red microphone button with "Record" under it, beside the microphone check (Rama, 27 Nov):
+        // smaller, so the whole visit fits on one screen
+        const rb = wrap.querySelector('[data-visit="rec"]');
+        if (rb) {
+          const dot = rb.querySelector('.vs-rec-dot'); if (dot) dot.innerHTML = WHI('mic', 34);
+          const row = document.createElement('div'); row.className = 'vs-recrow'; rb.before(row); row.appendChild(rb);
+          const side = wrap.querySelector('.vs-mt') || wrap.querySelector('.vs-meter'); if (side) row.appendChild(side);
+        }   // questions and pages first, the phone-recorder link last
+        // two columns only where there's room for both: wide screens, and not with the largest text (then the steps run across the top)
+        if (document.getElementById('appContainer').classList.contains('wide') && items.clientWidth >= 640 && Number(textSize || 0) < 2) {
           items.innerHTML = `<div class="vs-2col"><div class="vs-flowcol">${visitFlow(true)}</div><div class="vs-actcol"></div></div>`;
           items.querySelector('.vs-actcol').appendChild(wrap);
         } else wrap.insertAdjacentHTML('afterbegin', visitFlow(false));
@@ -10344,7 +10354,27 @@
       .qtop-note { font-weight: 700; color: #1E4627; margin: 2px 0 6px; }
       .vs-2col .vs-rec { min-height: 76px; padding: 10px 14px; } .vs-2col .vs-rec-dot { width: 52px; height: 52px; } .vs-2col .vs-rec-big { font-size: 23px; }
       .vs-2col .vs-tiles .vs-tile { min-height: 70px; gap: 4px; } .vs-2col .vs-tile-ic { width: 38px; height: 38px; }
-      .vs-2col .vs-mt { padding: 8px 12px; }`; document.head.appendChild(st); }
+      .vs-2col .vs-mt { padding: 8px 12px; }
+      .vs-recrow { display: flex; align-items: center; gap: 14px; width: 100%; }
+      .vs-recrow { flex-wrap: wrap; justify-content: center; }
+      .vs-recrow > .vs-mt, .vs-recrow > .vs-meter { flex: 1 1 220px; min-width: 0; }
+      .ts-1 .vs-recrow > .vs-mt.bad, .ts-2 .vs-recrow > .vs-mt.bad { flex-basis: 100%; }
+      .ts-1 .vs-recrow > .vs-mt-go, .ts-2 .vs-recrow > .vs-mt-go { flex-basis: 150px; }
+      #listItems .vs-rec, #listItems .vs-rec.on { flex: none; width: auto; min-height: 0; padding: 2px 4px; background: none; border: 0; box-shadow: none; flex-direction: column; align-items: center; gap: 3px; text-align: center; color: #991B1B; }
+      #listItems .vs-rec .vs-rec-dot { width: 86px; height: 86px; color: #fff; border: 6px solid #fff; background: radial-gradient(circle at 35% 28%, #F43F5E 0%, #DC2626 45%, #B91C1C 100%);
+        box-shadow: 0 0 0 2px #E2DBD0, 0 6px 14px rgba(127, 29, 29, .28); }
+      #listItems .vs-rec.on .vs-rec-dot { background: radial-gradient(circle at 35% 28%, #F43F5E 0%, #DC2626 45%, #B91C1C 100%); color: #fff; box-shadow: 0 0 0 4px rgba(220, 38, 38, .35), 0 6px 14px rgba(127, 29, 29, .28); }
+      #listItems .vs-rec .vs-rec-txt { display: flex; flex-direction: column; align-items: center; }
+      #listItems .vs-rec .vs-rec-big { font-size: 19px; font-weight: 800; line-height: 1.15; color: #991B1B; }
+      #listItems .vs-rec .vs-rec-small { font-size: 12.5px; font-weight: 700; line-height: 1.2; color: #7F1D1D; max-width: 130px; }
+      #listItems .vs-rec:focus-visible .vs-rec-dot { outline: 3px solid #1E2634; outline-offset: 3px; }
+      .ts-1 #listItems .vs-rec .vs-rec-big { font-size: 21px; } .ts-2 #listItems .vs-rec .vs-rec-big { font-size: 23px; }
+      .ts-1 .vf-v .vf-t span, .ts-2 .vf-v .vf-t span { display: none; }
+      .ts-1 .vs-2col .vs-tiles, .ts-2 .vs-2col .vs-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .ts-2 .vs-2col .vs-tile { font-size: 17px; }
+      .ts-1 .vs-mt-go > span:last-child, .ts-2 .vs-mt-go > span:last-child { font-size: 0; }
+      .ts-1 .vs-mt-go b { font-size: 19px; } .ts-2 .vs-mt-go b { font-size: 21px; }
+      .vs-mt .vs-link { display: inline-block; margin-left: 6px; }`; document.head.appendChild(st); }
 
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
