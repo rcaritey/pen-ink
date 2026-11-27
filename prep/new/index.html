@@ -4078,9 +4078,14 @@
       q.i++; reviewShow();
     }
     { const hR = heard; heard = function (t) {   // answer Reid's check by voice: "yes" / "no"
-        if (reviewQ) { const low = String(t || '').toLowerCase().replace(/[.!,?]/g, '').trim();
-          if (/^(yes|yeah|yep|sure|ok|okay|yes please|change it|take it out|oui|d'accord)$/.test(low)) { reviewPick(true); return; }
-          if (/^(no|nope|keep it|no keep it|leave it|non|garder)$/.test(low)) { reviewPick(false); return; } }
+        // while Reid's check is up, whatever is said is a reply to it, never more of the answer (Rama, 27 Nov):
+        // "Yes, take it out. I was talking to you…" counts as yes; it is not added to the answer
+        if (reviewQ) { const low = String(t || '').toLowerCase().replace(/[.!,?]/g, ' ').replace(/\s+/g, ' ').trim();
+          if (/^(yes|yeah|yep|yup|sure|ok|okay|please|correct|right|change it|take it out|take that out|remove it|delete it|get rid of it|oui|d'accord|enlève|corrige)\b/.test(low)) { reviewPick(true); return; }
+          if (/^(no|nope|nah|keep|leave it|don't|do not|non|garde|laisse)\b/.test(low)) { reviewPick(false); return; }
+          if (/\b(repeat|say (that|it) again|again|what|pardon|sorry|répète)\b/.test(low)) { const it = reviewQ.items[reviewQ.i]; if (it) say(document.getElementById('samClarifyPrompt').textContent.replace(/^[^:]+:\s*/, ''), true); return; }
+          if (/\b(take (it|that) out|remove|delete|wrong|not part|talking to you|responding to you)\b/.test(low)) { reviewPick(true); return; }
+          say(L2('Say yes to take it out, or no to keep it. Or tap a button.', 'Dites oui pour l’enlever, ou non pour le garder. Ou touchez un bouton.'), true); return; }
         return hR.apply(this, arguments); }; }
 
     // ---------- Reid's quick question for vague answers (Claude), on Next ----------
