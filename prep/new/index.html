@@ -10698,6 +10698,7 @@
       const app = document.getElementById('appContainer'), side = document.getElementById('sideReid');
       const on = app.classList.contains('wide') && !app.classList.contains('tall');
       app.classList.toggle('side-menu', on);
+      app.style.setProperty('--wh-mw', Math.round(820 / (parseFloat(app.style.zoom) || 1)) + 'px');   // about 820px on screen, whatever the page zoom
       if (!on || !side) return;
       [...side.children].forEach((c) => { if (['reidBadge', 'reidHello', 'lpShow'].includes(c.id)) return; c.remove(); });
       const home = steps[currentIndex].mode === 'landing';
@@ -10764,6 +10765,13 @@
       #screenLanding.lp-back #landingRec .vs-rec-dot { width: 46px; height: 46px; } #screenLanding.lp-back #landingRec .vs-rec-dot span { width: 16px; height: 16px; }
       #screenLanding.lp-back #landingRec .vs-rec-big { font-size: 20px; } #screenLanding.lp-back #landingRec .vs-rec-small { font-size: 13px; }
       #screenLanding.lp-back > div:has(#privacyLink) { gap: 8px !important; }`; document.head.appendChild(st); }
+
+
+    // ---------- computers: the question, answer box and buttons stop at a comfortable reading width (Rama, 27 Nov) ----------
+    // About 760px (roughly 70 characters a line), left-aligned beside the menu, instead of stretching across a wide screen.
+    { const st = document.createElement('style'); st.textContent = `
+      #appContainer.side-menu > #progressHeader, #appContainer.side-menu > #stepWork, #appContainer.side-menu > footer { width: 100%; max-width: var(--wh-mw, 760px); justify-self: start; }
+      #appContainer.side-menu > footer { justify-self: start; }`; document.head.appendChild(st); }
 
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
