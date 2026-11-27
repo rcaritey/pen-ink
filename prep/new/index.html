@@ -9333,7 +9333,12 @@
     { const hC = heard; heard = function (t) {
         const st = steps[currentIndex], low = String(t || '').toLowerCase().replace(/[.!?,]/g, '').trim();
         if (!st || st.mode !== 'condlist' || !low || cmdOf(low) || /^(next|next please|back|go back|repeat|help|stop|pause|wait|undo|skip|done|suivant|retour|aide|passer|terminé)$/.test(low) || window.__typedToReid) return hC.apply(this, arguments);
-        if (document.activeElement && document.activeElement.id === 'condAdd') return hC.apply(this, arguments);   // speaking into the box: it's typed there
+        if (document.activeElement && document.activeElement.id === 'condAdd') {   // speaking into the box: each condition said becomes its own line, not one long line (Rama, 27 Nov)
+          if (low.split(/\s+/).length > 14 || /\?$/.test(String(t).trim())) return hC.apply(this, arguments);
+          const box = document.activeElement, prior = box.value.trim(), got = condAdd((prior ? prior + ', ' : '') + String(t).replace(/^(add|ajoute)\s+/i, ''));
+          if (!got.length) return hC.apply(this, arguments);
+          box.value = ''; renderList(); applyLang(); const nb = document.getElementById('condAdd'); if (nb) nb.focus();
+          setCompanionState('captured'); say(got.join(L2(' and ', ' et ')) + L2(' added. Any others? Or say next.', ' ajouté. D’autres ? Ou dites suivant.'), true); return; }
         if (/\b(clear|erase|delete|wipe|empty|start over|efface|supprime)\b/.test(low) && /\b(all|everything|them|list|answer|box|tout)\b/.test(low)) { condSet([]); renderList(); applyLang(); say(L2('Cleared. Say your conditions, or say none.', 'Effacé. Dites vos problèmes de santé, ou dites aucun.'), true); return; }
         const rm = /^(remove|delete|take off|take out|not|enlève|retire|supprime)\s+(.+)$/.exec(low);
         if (rm) { const l = condList(), i = l.findIndex((x) => sugLc(x).includes(sugLc(rm[2])) || sugLc(rm[2]).includes(sugLc(x))); if (i >= 0) { const g = l.splice(i, 1)[0]; condSet(l); renderList(); applyLang(); say(g + L2(' removed.', ' retiré.'), true); return; } }
@@ -10534,7 +10539,8 @@
       if (!hb) { hb = document.createElement('div'); hb.id = 'landingBack'; const ll = document.getElementById('landingLang'); if (ll) ll.after(hb); else return; }
       hb.hidden = !back; if (!back) return;
       const rs = window.__resumeStep, ri = rs ? steps.indexOf(rs) : -1;
-      hb.innerHTML = `<h1 class="lb-h">${L2('What would you like to do?', 'Que voulez-vous faire ?')}</h1>
+      const gr = homeGreet();
+      hb.innerHTML = `<div class="lb-hero"><p class="lb-date" data-notr>${esc(gr.date)}</p><h1 class="lb-h" data-notr>${esc(gr.hi)}</h1><p class="lb-q">${L2('What would you like to do today?', 'Que voulez-vous faire aujourd’hui ?')}</p></div>
         
         ${ri > 0 ? `<button type="button" id="lbResume" class="tactile-btn lb-r"><span class="lb-r-ic" aria-hidden="true">${WHI('note', 22)}</span><span class="lb-r-t"><b>${L2('Continue where you left off', 'Reprendre où vous étiez')}</b><span>${esc(tr(rs.topic || rs.question || ''))}</span></span><span aria-hidden="true">›</span></button>` : ''}`;
       { const r0 = hb.querySelector('#lbResume'); if (r0) r0.remove(); }   // "continue" now lives in the list below, first
@@ -10571,7 +10577,7 @@
     { const rcsH = renderCurrentStep; renderCurrentStep = function () { const r = rcsH.apply(this, arguments); try { drawHomeBack(); } catch (e) { console.warn('Welcome back home', e); } return r; }; }
     try { drawHomeBack(); } catch (e) { console.warn('Welcome back home', e); }   // the app opens on it: draw it now, not after the first tap
     { const st = document.createElement('style'); st.textContent = `
-      #screenLanding.lp-back { justify-content: flex-start; gap: 14px; }
+      #screenLanding.lp-back { justify-content: flex-start; gap: 10px; }
       #screenLanding.lp-back > div { flex-shrink: 0; }
       #screenLanding.lp-back #landingWelcome, #screenLanding.lp-back #landingWelcome ~ h1, #screenLanding.lp-back #landingHook,
       #screenLanding.lp-back #landingWhat, #screenLanding.lp-back #landingCard { display: none !important; }
@@ -10599,9 +10605,16 @@
       /* choices that are just two or three options sit side by side on wider screens */
       #appContainer.wide .su-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
       #appContainer.wide .su-opts > button { min-height: 72px !important; }
+      .lb-hero { margin-top: 2px; padding: 12px 16px; border-radius: 22px; background: linear-gradient(135deg, #FFF8EC 0%, #EEF4EC 100%); border: 1px solid #E3DCCB; }
+      .lb-hero .lb-h { margin: 2px 0 0; font-size: 1.75rem; }
+      .lb-date { margin: 0; font-size: 14px; font-weight: 800; color: #6B5B3E; letter-spacing: .02em; }
+      .lb-q { margin: 2px 0 0; font-size: 17px; font-weight: 700; color: #3B5E42; }
+      #appContainer:not(.wide) .lb-hero { padding: 8px 14px; } #appContainer:not(.wide) .lb-q { display: none; } #appContainer:not(.wide) .lb-hero .lb-h { font-size: 1.45rem; }
+      #appContainer:not(.wide) .hb-warm .hb-t { font-size: 15px; } #appContainer:not(.wide) .hb-warm .hb-b { min-height: 40px; padding: 4px 14px; font-size: 14px; }
+      .hb-warm { flex-wrap: wrap !important; } .hb-warm .hb-t { white-space: normal !important; font-size: 16px; line-height: 1.35; flex: 1 1 200px; }
       #homeNew { display: flex; flex-direction: column; gap: 12px; order: 0; } #homeNew[hidden] { display: none; }
       #appContainer.home-back > footer { display: none !important; }
-      .hn-c { width: 100%; min-height: 72px; padding: 10px 14px; border-radius: 18px; display: flex; align-items: center; gap: 12px; text-align: left; background: #fff; border: 2px solid #3B5E42; color: #1E4627; }
+      .hn-c { width: 100%; min-height: 64px; padding: 8px 14px; border-radius: 18px; display: flex; align-items: center; gap: 12px; text-align: left; background: #fff; border: 2px solid #3B5E42; color: #1E4627; }
       .hn-c.hn-cont { background: #E5EFE7; }
       #appContainer:not(.wide) .hn-new .hn-t span { display: none; } #appContainer:not(.wide) .hn-c { min-height: 64px; }
       .hn-ic { width: 44px; height: 44px; border-radius: 12px; background: #fff; border: 1px solid #B9CBA7; display: flex; align-items: center; justify-content: center; color: #3B5E42; flex-shrink: 0; }
@@ -10644,13 +10657,33 @@
       #stepSubtitle .rm-ph.later .rm-n { background: #1E2634; color: #fff; }`; document.head.appendChild(st); }
 
 
+    // ---------- a warmer home (Rama, 27 Nov): greet by name and time of day, today's date, and Reid says something that fits ----------
+    function homeNextVisit() {
+      const today = isoToday(), d = SID('day').dateISO || '', n = recapNext || {};
+      return d && d >= today ? { date: d, time: SID('time').time24 || '', with: SID('who').answer || '' } : n.date && n.date >= today ? n : null;
+    }
+    function homeGreet() {
+      const h = new Date().getHours(), first = String(SID('name').answer || '').trim().split(/\s+/)[0] || '';
+      const g = h < 12 ? L2('Good morning', 'Bonjour') : h < 18 ? L2('Good afternoon', 'Bon après-midi') : L2('Good evening', 'Bonsoir');
+      const loc = lang === 'fr' ? 'fr-CA' : (lang || 'en') + '-CA';
+      let date = ''; try { date = new Date().toLocaleDateString(loc, { weekday: 'long', month: 'long', day: 'numeric' }); } catch (e) { date = new Date().toDateString(); }
+      return { hi: first ? g + ', ' + first : g, date: date.charAt(0).toUpperCase() + date.slice(1) };
+    }
+    function homeReidLine() {
+      const rs = window.__resumeStep && steps.indexOf(window.__resumeStep) > 0, far = typeof reachedMax === 'number' ? reachedMax : 0;
+      const mid = rs || (far > 0 && steps[far] && steps[far].phaseIndex === 0 && !['consent', 'setup', 'helperpick'].includes(steps[far].mode));
+      const nv = homeNextVisit();
+      if (mid) return L2('You’re part-way through getting ready. Want to pick up where you left off?', 'Vous êtes en pleine préparation. On reprend où vous étiez ?');
+      if (nv) return L2('Your visit' + (nv.with ? ' with ' + nv.with : '') + ' is ' + untilText(nv.date).toLowerCase() + '. I’m here when you want to get ready.', 'Votre visite' + (nv.with ? ' avec ' + nv.with : '') + ' est ' + untilText(nv.date).toLowerCase() + '. Je suis là quand vous voulez la préparer.');
+      return L2('Nice to see you. Nothing is booked right now.', 'Content de vous revoir. Rien de prévu pour l’instant.');
+    }
     // ---------- Reid on the Welcome back home (Rama, 27 Nov): one short line, not the big first-time bubble, and he reads
     // what is actually on the home (not "tap Get started") ----------
     { const shH = showHello; showHello = function () {
         const r = shH.apply(this, arguments);
         if (consent && consent.choice && steps[currentIndex].mode === 'landing') {
           const reading = helloState === 'reading';
-          hello.innerHTML = `<div class="hb-row"><p class="hb-t">${L2('Welcome back!', 'Bon retour !')}</p>
+          hello.innerHTML = `<div class="hb-row hb-warm"><p class="hb-t">${esc(homeReidLine())}</p>
             <button type="button" data-hi="${reading ? 'stop' : 'yes'}" class="tactile-btn hb-b">${reading ? '■ ' + L2('Stop', 'Arrêter') : '▶ ' + L2('Read aloud', 'Lire à voix haute')}</button></div>`;
           applyLang(hello); requestAnimationFrame(() => pointTail(hello, '#fff'));
         }
@@ -10659,10 +10692,10 @@
     { const rfp = readFirstPage; readFirstPage = async function () {
         if (!(consent && consent.choice && steps[currentIndex].mode === 'landing')) return rfp.apply(this, arguments);
         const rs = window.__resumeStep && steps.indexOf(window.__resumeStep) > 0 ? window.__resumeStep : null;
-        const parts = [L2('Welcome back.', 'Bon retour.'), L2('What would you like to do?', 'Que voulez-vous faire ?'),
+        const parts = [homeGreet().hi + '.', homeReidLine(), L2('What would you like to do today?', 'Que voulez-vous faire aujourd’hui ?'),
           rs ? L2('You can continue where you left off: ', 'Vous pouvez reprendre où vous étiez : ') + tr(rs.topic || '') + '.' : '',
           L2('If you are at the doctor’s now, tap Record a visit.', 'Si vous êtes chez le médecin, touchez Enregistrer une visite.'),
-          L2('To get ready for your next visit, tap the big button at the bottom.', 'Pour préparer votre prochaine visite, touchez le grand bouton en bas.')].filter(Boolean);
+          L2('To get ready for a visit, tap Prepare for a new appointment.', 'Pour préparer une visite, touchez Préparer un nouveau rendez-vous.')].filter(Boolean);
         const out = isMT() ? await Promise.all(parts.map((t) => mt(t))) : parts;
         await say(out.join(' '), true);
       }; }
