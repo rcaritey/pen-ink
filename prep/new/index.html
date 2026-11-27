@@ -10827,6 +10827,29 @@
       .ha-steps b { display: block; font-size: 17px; color: #1E2634; }
       .ha-ic { flex: none; width: 44px; height: 44px; border-radius: 14px; background: #E5EFE7; color: #3B5E42; display: flex; align-items: center; justify-content: center; }`; document.head.appendChild(st); }
 
+
+    // ---------- pop-ups the same size as the page (Rama, 27 Nov) ----------
+    // The page grows or shrinks to fit the window; pop-ups added on top of it (time and date pickers, Reid's sheets, alerts)
+    // didn't, so on some screens they looked much bigger (or smaller) than everything else. They now use the page's own scale.
+    (function samePopupScale() {
+      const scale = () => { const app = document.getElementById('appContainer'); return parseFloat(app && app.style.zoom) || 1; };
+      const fit = (el) => {
+        if (!el || el.nodeType !== 1 || el.closest('#appContainer')) return;
+        if (el.getAttribute('role') !== 'dialog' && !el.querySelector(':scope > [role="dialog"]')) return;
+        const card = el.querySelector(':scope > .pk-box, :scope > [role="dialog"], :scope > div') || el;
+        const z = scale(); card.style.zoom = String(z);
+        if (card.classList.contains('pk-box')) card.style.maxHeight = `calc(${100 / z}dvh - ${20 / z}px)`;
+        else card.style.maxHeight = (88 / z) + 'vh';
+      };
+      new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach(fit))).observe(document.body, { childList: true });
+      window.addEventListener('resize', () => setTimeout(() => [...document.body.children].forEach(fit), 300));
+    })();
+    // "More below" inside a pop-up never sits on top of its buttons: the list gets room underneath for it
+    { const st = document.createElement('style'); st.textContent = `
+      [role="dialog"] :has(> .mb-wrap:not([hidden])) { padding-bottom: 64px !important; }
+      #pkSheet .pk-colbtns:has(> .mb-wrap:not([hidden])) { padding-bottom: 56px !important; }
+      #pkSheet .pk-colbtns .mb-btn { font-size: 13px; min-height: 36px; padding: 0 12px; }`; document.head.appendChild(st); }
+
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>
