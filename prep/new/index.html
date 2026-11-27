@@ -781,7 +781,7 @@
     .wide > header .text-\[1\.25rem\] { font-size: 1.6rem; }
   </style>
   <style id="textSizes">
-    /* Large / Extra large make the whole page bigger; if a page then runs long, it can scroll */
+    /* Large makes the whole page bigger; if a page then runs long, it can scroll */
     .ts-1 #appContainer > section, .ts-2 #appContainer > section { overflow-y: auto !important; }
     .ts-1 #sideReid, .ts-2 #sideReid { overflow-y: auto; min-height: 0; }
   </style>
@@ -3287,7 +3287,7 @@
         if (Array.isArray(d.nextStepTasks)) nextStepTasks = d.nextStepTasks;
         aiPool = Array.isArray(d.aiPool) ? d.aiPool : []; aiAt = d.aiAt || 0; ownQs = Array.isArray(d.ownQs) ? d.ownQs : [];
         vagueOk = d.vagueOk || {}; SID('day').dateISO = d.dayISO || ''; SID('time').time24 = d.time24 || ''; qPicked = Array.isArray(d.qPicked) ? d.qPicked : []; qPrio = Array.isArray(d.qPrio) ? d.qPrio : []; qSkipped = Array.isArray(d.qSkipped) ? d.qSkipped : []; aiTags = d.aiTags && typeof d.aiTags === 'object' ? d.aiTags : {}; recapSrc = d.recapSrc && typeof d.recapSrc === 'object' ? d.recapSrc : {}; transcript = d.transcript || ''; recapDone = !!d.recapDone; recapContact = d.recapContact || ''; medChanges = Array.isArray(d.medChanges) ? d.medChanges : [];
-        lang = LOC[d.lang] ? d.lang : 'en'; slowVoice = !!d.slowVoice; voiceName = typeof d.voiceName === 'string' ? d.voiceName : ''; textSize = d.textSize === 0 ? 0 : 1;   /* Extra large was retired (Rama, 27 Nov): it becomes Large */ applyTextSize(); readAloud = d.readAloud !== false;
+        lang = LOC[d.lang] ? d.lang : 'en'; slowVoice = !!d.slowVoice; voiceName = typeof d.voiceName === 'string' ? d.voiceName : ''; textSize = d.textSize === 0 ? 0 : 1;   /* two sizes since 27 Nov: an old third size becomes Large */ applyTextSize(); readAloud = d.readAloud !== false;
         document.getElementById('customTaskInput').value = d.task || '';
         if (d.inputPreference === 'tap') setInputMode('tap');
         if (Number.isInteger(d.currentIndex) && d.currentIndex > 0 && d.currentIndex < steps.length) currentIndex = d.currentIndex;
@@ -5447,12 +5447,12 @@
       if (vw >= 500 && !main.classList.contains('wide') && !main.classList.contains('with-pages') && w < 380) { const k = w / 380; w = 380; h /= k; z *= k; }
       document.documentElement.classList.toggle('ts-1', textSize === 1); document.documentElement.classList.toggle('ts-2', textSize === 2);
       main.classList.toggle('narrow', w < 385);
-      main.classList.toggle('tiny', w < 330);   // extra-large text on a phone: Reid stands for WellHeard, Help and Settings keep their labels
+      main.classList.toggle('tiny', w < 330);   // Large text on a small phone: Reid stands for WellHeard, Help and Settings keep their labels
       main.style.zoom = z; main.style.width = w + 'px'; main.style.maxWidth = 'none'; main.style.height = h + 'px';
       // Wide layout: make sure the left column (Reid, Help, progress, "Reid can") and the bottom bar fit.
       // Measure them at normal size; if they need more room than the page has, the whole page gets a
       // little smaller (and wider, so it still fills the screen) instead of cutting things off (23 Nov).
-      if (main.classList.contains('wide') && !textSize) {   // Large / Extra large stay large; the left column scrolls if it must (Rama, 25 Nov)
+      if (main.classList.contains('wide') && !textSize) {   // Large stays large; the left column scrolls if it must (Rama, 25 Nov)
         const sec = main.querySelector(':scope > section'), side = document.getElementById('sideReid');
         main.style.zoom = '1'; main.style.height = 'auto';
         const sh = sec ? sec.style.height : '', so = sec ? sec.style.overflow : '';
@@ -7954,7 +7954,7 @@
       }
       // on a computer, nothing should need scrolling: if a screen is too tall, make everything a little smaller instead
       const desk = main.classList.contains('with-pages') || main.classList.contains('wide');
-      // …but only at Normal: Large and Extra large must look bigger, so those scroll instead of shrinking back (Rama, 25 Nov)
+      // …but only at Normal: Large must look bigger, so those scroll instead of shrinking back (Rama, 25 Nov)
       if (!textSize && !(desk ? ['landing', 'consent'] : ['landing', 'consent', 'goalqs', 'ready', 'priority', 'review']).includes(steps[currentIndex].mode)) {
         const floor = desk ? 0.9 : 0.85;
         const boxes = ['listItems', 'screenQuestion', 'sideReid'].map((id) => document.getElementById(id)).filter((e) => e && e.offsetParent);
@@ -8011,7 +8011,7 @@
       if (show) { if (wide) { side.appendChild(show); show.classList.add('in-side'); } else if (show.parentElement !== document.body) { document.body.appendChild(show); show.classList.remove('in-side'); } }
       // the left column (Reid, what he can do, Chat with Rama, See my pages) must fit on a short screen:
       // if it doesn't, the whole page gets a little smaller and wider instead of cutting the bottom button off
-      if (wide && side && !textSize) { const main = document.getElementById('appContainer');   // at Large / Extra large the column scrolls instead
+      if (wide && side && !textSize) { const main = document.getElementById('appContainer');   // at Large the column scrolls instead
         for (let k = 0; k < 3; k++) {
           const over = side.scrollHeight - side.clientHeight; if (over <= 2) break;
           const z = parseFloat(main.style.zoom) || 1, h = parseFloat(main.style.height), w = parseFloat(main.style.width), nz = z * h / (h + over + 12);
@@ -8740,7 +8740,7 @@
         saveAll(); renderCurrentStep(); if (typeof sizeApp === 'function') sizeApp();
       });
     })();
-    // Sideways iPad / computer with Large or Extra large text (Rama, 25 Nov, iPad photos): everything grew, so the answers were cut off
+    // Sideways iPad / computer with Large text (Rama, 25 Nov, iPad photos): everything grew, so the answers were cut off
     // under the road map. With bigger text the road map moves up beside the logo, the question gets the full height,
     // and the page is never made so big that fewer than 580 points are left to work in; anything longer scrolls.
     { const saBig = sizeApp; sizeApp = function () {
@@ -10420,7 +10420,7 @@
         .ll-c { min-height: 44px; padding: 0 12px; border-radius: 999px; background: #fff; border: 2px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 14px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
         .ll-c.on { background: #E5EFE7; border-color: #3B5E42; color: #1E4627; }
         .ts-1 .ll-c { font-size: 15px; } .ts-2 .ll-c { font-size: 15px; }
-        /* never wider than the page (Rama, 27 Nov: at Large and Extra large the row pushed the whole first page sideways) */
+        /* never wider than the page (Rama, 27 Nov: at the bigger sizes the row pushed the whole first page sideways) */
         .ll, .ll-cs { min-width: 0; max-width: 100%; flex-wrap: wrap; }
         .ts-1 .ll-l, .ts-2 .ll-l { display: none; }
         .ts-1 .ll-c, .ts-2 .ll-c { min-height: 42px; padding: 0 10px; }
