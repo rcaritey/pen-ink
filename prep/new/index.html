@@ -5439,6 +5439,8 @@
       // Text size: everything grows together; the page keeps the same place on the screen
       // the app's own text size, times the device's Larger Text setting on iPhone and iPad (Rama, 24 Nov)
       const ts = ([1, 1.18, 1.36][textSize] || 1) * sysTextScale(); z *= ts; w /= ts; h /= ts;
+      // upright iPad at large text: Reid's rail plus the question no longer fit side by side, so it becomes one column (Rama, 27 Nov)
+      if (main.classList.contains('tall') && w < 700) { main.classList.remove('wide', 'tall'); }
       // an upright iPad never gets so zoomed that the page is narrower than a phone (that squeezes the layout and shrinks its text)
       if (vw >= 500 && !main.classList.contains('wide') && !main.classList.contains('with-pages') && w < 380) { const k = w / 380; w = 380; h /= k; z *= k; }
       document.documentElement.classList.toggle('ts-1', textSize === 1); document.documentElement.classList.toggle('ts-2', textSize === 2);
@@ -6314,6 +6316,9 @@
     // the phase you're in shows its parts as icons you can tap, and the phases still to come are small grey pills.
     // The part's name isn't repeated on its own line: the screen's heading already says it, and each icon says it on hover.
     const PH_NAMES = [['Prepare', 'Préparer'], ['Visit', 'Visite'], ['After', 'Après']];
+    // each phase has its own picture (Rama, 27 Nov): a pencil for getting ready, the microphone for the visit, a clipboard with a tick for after
+    window.WHI_P.clipcheck = '<path d="M9 3h6v3H9z"/><path d="M8 4.5H6.5A1.5 1.5 0 0 0 5 6v14a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 20V6a1.5 1.5 0 0 0-1.5-1.5H16"/><polyline points="9 14 11.2 16.2 15.5 11.8"/>';
+    const PH_IC = ['pencil', 'mic', 'clipcheck'];
     function partRow(step) {
       const el = document.getElementById('stepSubtitle'), here = partOf(step); if (!el || !here) return;
       reachedMax = Math.max(reachedMax, currentIndex);
@@ -6329,8 +6334,8 @@
         const name = L2(PH_NAMES[k][0], PH_NAMES[k][1]);
         if (k === ph) return `<span class="rm-now" role="group" aria-label="${esc(name + ': ' + L2('part ', 'partie ') + (at + 1) + L2(' of ', ' sur ') + inPhase.length + ', ' + L2(here.en, here.fr))}"><span class="pg-icons">${icons}</span></span>`;
         const first = steps.findIndex((x) => x.phaseIndex === k && partOf(x));
-        if (k < ph && first > -1) return `<button type="button" class="rm-ph done" data-phase="${k}" aria-label="${esc(name + L2(' — done. Go back to it', ' — terminé. Y retourner'))}">${WHI('check', 13)}<span class="rm-t">${name}</span></button>`;
-        return `<span class="rm-ph later" aria-label="${esc(L2('Coming up: ', 'À venir : ') + name)}"><span class="rm-n" aria-hidden="true">${k + 1}</span><span class="rm-t">${name}</span></span>`;
+        if (k < ph && first > -1) return `<button type="button" class="rm-ph done" data-phase="${k}" aria-label="${esc(name + L2(' — done. Go back to it', ' — terminé. Y retourner'))}"><span class="rm-ic">${WHI(PH_IC[k], 18)}<span class="pg-tick" aria-hidden="true"></span></span><span class="rm-t">${name}</span></button>`;
+        return `<span class="rm-ph later" aria-label="${esc(L2('Coming up: ', 'À venir : ') + name)}"><span class="rm-ic" aria-hidden="true">${WHI(PH_IC[k], 18)}</span><span class="rm-t">${name}</span></span>`;
       };
       el.innerHTML = `<span class="rm" role="navigation" aria-label="${esc(L2('Where you are', 'Où vous en êtes'))}">${[0, 1, 2].map(pill).join('')}</span>`;
     }
@@ -10428,6 +10433,15 @@
     // ---------- road map (Rama, 27 Nov): a finished part keeps its own icon, sage on pale sage, with a small solid tick badge ----------
     { const st = document.createElement('style'); st.textContent = `
       #stepSubtitle .pg-ic.done { position: relative; overflow: visible; background: #E5EFE7; border-color: #3B5E42; color: #3B5E42; }
+      #stepSubtitle .rm-ic { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+      #stepSubtitle .rm-ph .pg-tick { top: -8px; right: -9px; }
+      #stepSubtitle .rm-ph.later { color: #8A93A0; }
+      @media (max-width: 500px) { #stepSubtitle .rm-ph { width: 38px !important; min-height: 38px !important; } }
+      #appContainer.tiny #stepSubtitle .rm .pg-ic { width: 20px; height: 20px; } #appContainer.tiny #stepSubtitle .rm .pg-ic.now { width: 26px; height: 26px; }
+      #appContainer.tiny #stepSubtitle .rm .pg-ic svg { width: 11px; height: 11px; } #appContainer.tiny #stepSubtitle .rm .pg-icons { gap: 2px; }
+      #appContainer.tiny #stepSubtitle .rm-ph { width: 32px !important; min-height: 32px !important; } #appContainer.tiny #stepSubtitle .rm-ph svg { width: 15px; height: 15px; }
+      #appContainer.tiny #reidPill { font-size: 9px !important; padding: 1px 4px !important; max-width: 52px; overflow: hidden; }
+      #appContainer.tiny header > div:last-child { gap: 5px !important; }
       #stepSubtitle .pg-tick { position: absolute; top: -5px; right: -5px; width: 14px; height: 14px; border-radius: 999px; background: #3B5E42; border: 2px solid #FAF7F0; pointer-events: none; }
       #stepSubtitle .pg-tick::after { content: ''; position: absolute; left: 3px; top: 1.5px; width: 3px; height: 6px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
       .ts-1 #stepSubtitle .pg-tick, .ts-2 #stepSubtitle .pg-tick { width: 15px; height: 15px; }`; document.head.appendChild(st); }
