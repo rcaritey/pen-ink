@@ -7928,7 +7928,8 @@
     let pagesHidden = false, pagesPick = null, pagesPickAt = '';
     const PAGES_FROM = ['goalqs', 'ideas', 'detail', 'priority', 'review', 'ready', 'recap', 'nextSteps', 'shareFinish'];
     const pagesPart = () => { const s = steps[currentIndex]; return PAGES_FROM.includes(s.id) || /^dq\d+$/.test(s.id) ? 'late' : 'early'; };
-    const pagesAuto = () => !['ideas', 'review'].includes(steps[currentIndex].mode);   // hidden unless asked for; on the questions screen the space shows the questions kept so far (Rama, 24 Nov)
+    // the pages show by default on wide screens, filling in as they answer (Rama, 27 Nov: use the empty space for them)
+    const pagesAuto = () => ['consent', 'setup', 'helperpick'].includes(steps[currentIndex].mode);   // hidden unless asked for; on the questions screen the space shows the questions kept so far (Rama, 24 Nov)
     { const head = document.querySelector('#livePages .lp-head');
       if (head) { const b = document.createElement('button'); b.type = 'button'; b.id = 'lpHide'; b.className = 'lp-hide';
         b.addEventListener('click', () => setPagesHidden(true)); head.appendChild(b); } }
@@ -10772,6 +10773,57 @@
     { const st = document.createElement('style'); st.textContent = `
       #appContainer.side-menu > #progressHeader, #appContainer.side-menu > #stepWork, #appContainer.side-menu > footer { width: 100%; max-width: var(--wh-mw, 760px); justify-self: start; }
       #appContainer.side-menu > footer { justify-self: start; }`; document.head.appendChild(st); }
+
+
+    // ---------- computers: the home's empty space shows "Your next visit", or how WellHeard works (Rama, 27 Nov) ----------
+    function homeAside() {
+      const app = document.getElementById('appContainer'), land = document.getElementById('screenLanding'); if (!land) return;
+      const on = app.classList.contains('side-menu') && land.classList.contains('lp-back');
+      app.classList.toggle('home-wide', on);
+      let a = document.getElementById('homeAside');
+      if (!a) { a = document.createElement('aside'); a.id = 'homeAside'; land.appendChild(a);
+        a.addEventListener('click', (e) => { const b = e.target.closest('[data-ha]'); if (!b) return; ensureCtx(); hush(true);
+          if (b.dataset.ha === 'pages') showPage('doc'); if (b.dataset.ha === 'prep') goNext(); if (b.dataset.ha === 'appts') openAppts(); }); }
+      a.hidden = !on; if (!on) return;
+      const today = isoToday(), d = SID('day').dateISO || '', n = recapNext || {};
+      const next = d && d >= today ? { date: d, time: SID('time').time24 || '', with: SID('who').answer || '' } : n.date && n.date >= today ? n : null;
+      if (next) {
+        a.innerHTML = `<p class="ha-k">${L2('Your next visit', 'Votre prochaine visite')}</p>
+          <p class="ha-big">${esc(untilText(next.date))}</p>
+          <p class="ha-d" data-notr>${esc(fmtDay(next.date, next.time))}</p>${next.with ? `<p class="ha-w" data-notr>${esc(next.with)}</p>` : ''}
+          <button type="button" data-ha="pages" class="tactile-btn ha-b">${WHI('file', 20)}${L2('See my pages', 'Voir mes pages')}</button>
+          <button type="button" data-ha="appts" class="tactile-btn ha-b2">${L2('All my appointments ›', 'Tous mes rendez-vous ›')}</button>`;
+      } else {
+        const st = (ic, t, b) => `<li><span class="ha-ic" aria-hidden="true">${WHI(ic, 22)}</span><span><b>${t}</b>${b}</span></li>`;
+        a.innerHTML = `<p class="ha-k">${L2('How WellHeard works', 'Comment fonctionne WellHeard')}</p>
+          <ol class="ha-steps">${st('pencil', L2('Prepare', 'Préparer'), L2('Your questions and a clear page for the doctor.', 'Vos questions et une page claire pour le médecin.'))}
+          ${st('mic', L2('Visit', 'Visite'), L2('Record what the doctor says, with their OK.', 'Enregistrez ce que dit le médecin, avec son accord.'))}
+          ${st('clipcheck', L2('After', 'Après'), L2('A summary of what was said and what to do next.', 'Un résumé de ce qui a été dit et des prochaines étapes.'))}</ol>
+`;
+      }
+      if (typeof applyLang === 'function') applyLang(a);
+    }
+    { const rcsHA = renderCurrentStep; renderCurrentStep = function () { const r = rcsHA.apply(this, arguments); try { homeAside(); } catch (e) { console.warn('Home aside', e); } return r; }; }
+    window.addEventListener('resize', () => setTimeout(() => { try { homeAside(); } catch (e) { /* later */ } }, 300));
+    try { homeAside(); } catch (e) { /* later */ }
+    { const st = document.createElement('style'); st.textContent = `
+      #appContainer.home-wide > #stepWork, #appContainer.home-wide > footer { max-width: none !important; }
+      #appContainer.home-wide #screenLanding.lp-back { display: grid !important; grid-template-columns: minmax(0, var(--wh-mw, 760px)) minmax(260px, 1fr); column-gap: 40px; align-content: start; }
+      #appContainer.home-wide #screenLanding.lp-back > * { grid-column: 1; }
+      #appContainer.home-wide #screenLanding.lp-back > #homeAside { grid-column: 2; grid-row: 1 / span 6; align-self: start; }
+      #appContainer.home-wide > footer { padding-right: calc(100% - var(--wh-mw, 760px)); }
+      #homeAside { background: #fff; border: 1px solid #E2DACB; border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 6px 18px rgba(30,38,52,.06); }
+      #homeAside[hidden] { display: none !important; }
+      .ha-k { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #3B5E42; }
+      .ha-big { margin: 4px 0 0; font-size: 30px; font-weight: 800; color: #1E2634; line-height: 1.1; }
+      .ha-d { margin: 0; font-size: 16px; font-weight: 700; color: #425268; } .ha-w { margin: 0; font-size: 16px; font-weight: 800; color: #1E2634; }
+      .ha-b { margin-top: 10px; min-height: 52px; border-radius: 16px; background: #1E2634; color: #fff; font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+      .ha-b2 { min-height: 44px; background: none; border: 0; color: #3B5E42; font-weight: 800; font-size: 15px; text-decoration: underline; text-underline-offset: 3px; }
+      .ha-steps { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+      #homeAside { min-width: 0; }
+      .ha-steps li { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; color: #425268; line-height: 1.35; }
+      .ha-steps b { display: block; font-size: 17px; color: #1E2634; }
+      .ha-ic { flex: none; width: 44px; height: 44px; border-radius: 14px; background: #E5EFE7; color: #3B5E42; display: flex; align-items: center; justify-content: center; }`; document.head.appendChild(st); }
 
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
