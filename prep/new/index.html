@@ -221,6 +221,25 @@
     .ph-card { max-height: calc(100vh - 32px); overflow-y: auto; }
     .ts-1 .ph-next li { font-size: 21px; } .ts-2 .ph-next li { font-size: 24px; }
     .ph-card[hidden] { display: none; }
+    .vs-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .vs-tile { min-height: 96px; padding: 10px 6px; border-radius: 16px; background: #fff; border: 2px solid #3B5E42; color: #1E2634; font-weight: 800; font-size: 15px; line-height: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; }
+    .vs-tile-ic { width: 48px; height: 48px; border-radius: 12px; background: #E5EFE7; color: #3B5E42; display: flex; align-items: center; justify-content: center; }
+    .vs-step { background: #fff; border: 2px solid #E6DFD0; border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .vs-row { display: flex; gap: 12px; align-items: center; }
+    .vs-pic { position: relative; flex: none; width: 60px; height: 60px; border-radius: 14px; background: #E5EFE7; color: #3B5E42; display: flex; align-items: center; justify-content: center; }
+    .vs-num { position: absolute; top: -8px; left: -8px; width: 28px; height: 28px; border-radius: 999px; background: #1E2634; color: #fff; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+    .vs-txt { flex: 1; min-width: 0; } .vs-st { margin: 0; font-size: 19px; font-weight: 800; line-height: 1.25; color: #1E2634; } .vs-body { margin: 3px 0 0; font-size: 16px; font-weight: 700; line-height: 1.35; color: #425268; }
+    .vs-act { width: 100%; min-height: 52px; border-radius: 14px; background: #F0EBE1; border: 1px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 17px; }
+    .vs-rec { width: 100%; min-height: 92px; padding: 12px 16px; border-radius: 22px; background: #FDECEC; border: 3px solid #B91C1C; color: #7F1D1D; display: flex; align-items: center; gap: 16px; text-align: left; }
+    .vs-rec-dot { flex: none; width: 64px; height: 64px; border-radius: 999px; background: #B91C1C; display: flex; align-items: center; justify-content: center; }
+    .vs-rec-dot span { width: 24px; height: 24px; border-radius: 999px; background: #fff; }
+    .vs-rec.on { background: #B91C1C; color: #fff; } .vs-rec.on .vs-rec-dot { background: #fff; animation: vsPulse 1.6s ease-in-out infinite; } .vs-rec.on .vs-rec-dot span { background: #B91C1C; width: 22px; height: 22px; border-radius: 5px; }
+    .vs-rec-txt { display: flex; flex-direction: column; min-width: 0; } .vs-rec-big { font-size: 26px; font-weight: 800; line-height: 1.1; } .vs-rec-small { font-size: 16px; font-weight: 700; margin-top: 4px; }
+    .vs-rec-home { margin: 10px 0 6px; min-height: 84px; } .vs-rec-home.hidden { display: none; }
+    @keyframes vsPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(.9); } }
+    @media (prefers-reduced-motion: reduce) { .vs-rec.on .vs-rec-dot { animation: none; } }
+    @media (max-width: 360px) { .vs-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .ts-1 .vs-st { font-size: 22px; } .ts-1 .vs-body, .ts-1 .vs-tile { font-size: 18px; } .ts-2 .vs-st { font-size: 25px; } .ts-2 .vs-body, .ts-2 .vs-tile { font-size: 20px; } .ts-2 .vs-tiles { grid-template-columns: 1fr; }
     .ph-card-next { text-align: left; } .ph-next-title:focus { outline: none; }
     .ph-next-title { margin: 0 0 14px; font-size: 28px; font-weight: 800; color: #1E4627; }
     .ph-steps { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
@@ -6673,7 +6692,18 @@
         t.innerHTML = `${WHI('calendar', 20)}<span>${L2('Visits', 'Visites')}</span>`; t.addEventListener('click', () => openAppts()); set.parentElement.insertBefore(t, set);
       }
     }
-    { const rcsA = renderCurrentStep; renderCurrentStep = function () { rcsA.apply(this, arguments); placeApButtons(); }; }
+    // Record from the first screen (Rama, 27 Nov): once someone has agreed to the privacy page, a big Record button
+    // sits on the first screen. It opens the At the visit screen and asks the usual "has everyone agreed?" first.
+    function placeHomeRec() {
+      const priv = document.getElementById('privacyLink'); if (!priv) return;
+      let b = document.getElementById('landingRec');
+      if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'landingRec'; b.className = 'tactile-btn vs-rec vs-rec-home';
+        b.addEventListener('click', () => { const i = steps.findIndex((x) => x.id === 'visitStart'); if (i < 0) return; hush(); goTo(i); if (!isRecording) setTimeout(() => toggleVisitRecording(), 300); });
+        priv.parentElement.insertBefore(b, priv); }
+      b.classList.toggle('hidden', !consent);
+      b.innerHTML = `<span class="vs-rec-dot" aria-hidden="true"><span></span></span><span class="vs-rec-txt"><span class="vs-rec-big">${L2('Record a visit', 'Enregistrer une visite')}</span><span class="vs-rec-small">${L2('At the doctor’s now', 'Je suis chez le médecin')}</span></span>`;
+    }
+    { const rcsA = renderCurrentStep; renderCurrentStep = function () { rcsA.apply(this, arguments); placeApButtons(); try { placeHomeRec(); } catch (e) { console.warn('Home record button', e); } }; }
     { const rA = renderAppts; renderAppts = function () { rA.apply(this, arguments); placeApButtons(); }; }
     { const rS = renderSettings; renderSettings = function () {
         if (setView === 'appts') { menuKind = 'settings'; renderAppts(); return; }
@@ -7493,23 +7523,31 @@
     steps.splice(steps.findIndex((x) => x.id === 'doctorSummary'), 0, ND({ id: 'visitStart', phaseIndex: 1, mode: 'visitStart', topic: 'At the appointment', question: 'At the appointment' }));
     LISTMODES.visitStart = 1;
     function renderVisitStart(items, foot) {
+      // More visual, pages within reach, and a big Record button (Rama, 27 Nov). Same order as What's next:
+      // give the medical team their page, ask the doctor, tap Record. Then the questions.
       const $ = (id) => document.getElementById(id);
-      $('listTitle').textContent = L2('At the appointment', 'Au rendez-vous');
-      $('listHelp').textContent = L2('Four steps. Tap each one as you go.', 'Quatre étapes. Touchez chacune au fur et à mesure.');
+      $('listTitle').textContent = L2('At the visit', 'Au rendez-vous');
+      $('listHelp').textContent = L2('Your pages are right here. Then three steps.', 'Vos pages sont ici. Puis trois étapes.');
       $('listCounter').classList.add('hidden');
       items.classList.add('overflow-y-auto');
-      const st = (n, icon, title, body, btn, act, on) => `<div class="w-full bg-white border-2 ${on ? 'border-[#3B5E42]' : 'border-[#E6DFD0]'} rounded-[18px] px-3 py-2 flex flex-col gap-1.5">
-          <div class="flex items-start gap-3"><span class="w-8 h-8 shrink-0 rounded-full bg-[#1E2634] text-white font-extrabold flex items-center justify-center">${n}</span>
-          <div class="min-w-0"><p class="font-extrabold text-[16px] text-[#1E2634] leading-tight"><span aria-hidden="true">${icon}</span> ${title}</p><p class="text-[13px] font-bold text-[#425268] leading-snug">${body}</p></div></div>
-          ${btn ? `<button type="button" data-visit="${act}" class="tactile-btn w-full min-h-[46px] rounded-xl ${on ? 'bg-[#3B5E42] text-white' : 'bg-[#F0EBE1] border border-[#D6CFC0] text-[#1E2634]'} font-extrabold text-[15px]">${btn}</button>` : ''}</div>`;
-      items.innerHTML = `<div class="w-full flex flex-col gap-[6px]">
-        ${st(1, WHI('mic'), L2('Ask to record', 'Demandez pour enregistrer'), L2('"Is it okay if I record this on my phone, so I remember?"', '« Est-ce que je peux enregistrer sur mon téléphone, pour m’en souvenir ? »'),
-          isRecording ? L2('● Recording. Tap to pause', '● Enregistrement. Toucher pour arrêter') : L2('Ask, then start recording', 'Demander, puis enregistrer'), 'rec', isRecording)}
-        ${st(2, WHI('file'), L2('Hand over the doctor’s page', 'Donnez la page du médecin'), L2('Give the printed page, or show it on your device.', 'Donnez la page imprimée, ou montrez-la sur votre appareil.'), L2('Show it on my device', 'La montrer sur mon appareil'), 'doc')}
-        ${st(3, WHI('note'), L2('Keep your page as a guide', 'Gardez votre page comme guide'), L2('Your questions, most important first, and space for notes.', 'Vos questions, les plus importantes en premier, et de la place pour des notes.'), L2('See my page', 'Voir ma page'), 'mine')}
-        ${st(4, WHI('speak'), L2('Ask to go through your questions', 'Demandez à passer vos questions'), L2('"I have a few questions. May I go through them?" Then tick each one below once it’s answered.', '« J’ai quelques questions. Est-ce que je peux les passer ? » Puis cochez chacune ci-dessous une fois répondue.'))}${visitExtras()}</div>`;
+      const tile = (k, icon, en, fr) => `<button type="button" data-visit="pg-${k}" class="tactile-btn vs-tile"><span class="vs-tile-ic" aria-hidden="true">${WHI(icon, 30)}</span><span>${L2(en, fr)}</span></button>`;
+      const step = (n, icon, title, body, extra) => `<div class="vs-step"><div class="vs-row"><span class="vs-pic" aria-hidden="true">${WHI(icon, 34)}<span class="vs-num">${n}</span></span>
+          <div class="vs-txt"><p class="vs-st"><span class="sr-only">${n}. </span>${title}</p>${body ? `<p class="vs-body">${body}</p>` : ''}</div></div>${extra || ''}</div>`;
+      const mm = Math.floor(recordSeconds / 60), ss = String(recordSeconds % 60).padStart(2, '0');
+      const rec = `<button type="button" data-visit="rec" aria-pressed="${isRecording}" class="tactile-btn vs-rec${isRecording ? ' on' : ''}"><span class="vs-rec-dot" aria-hidden="true"><span></span></span>
+          <span class="vs-rec-txt"><span class="vs-rec-big">${isRecording ? L2('Recording', 'Enregistrement') + ` <span id="vsRecT" data-notr>${mm}:${ss}</span>` : recordSeconds > 0 ? L2('Record again', 'Reprendre') : L2('Record', 'Enregistrer')}</span>
+          <span class="vs-rec-small">${isRecording ? L2('Tap to pause', 'Touchez pour arrêter') : L2('Tap once the doctor says yes', 'Touchez quand le médecin a dit oui')}</span></span></button>`;
+      items.innerHTML = `<div class="w-full flex flex-col gap-[10px]">
+        <div class="vs-tiles">${tile('doc', 'steth', 'Medical team’s page', 'Page de l’équipe médicale')}${tile('mine', 'note', 'My page', 'Ma page')}${tile('circle', 'users', 'Care circle’s page', 'Page du cercle d’aidants')}</div>
+        ${step(1, 'steth', L2('Give the medical team their page', 'Donnez sa page à l’équipe médicale'), L2('The printed page, or show it on this phone.', 'La page imprimée, ou montrez-la sur ce téléphone.'),
+          `<button type="button" data-visit="doc" class="tactile-btn vs-act">${L2('Show their page', 'Montrer leur page')}</button>`)}
+        ${step(2, 'hand', L2('Ask the doctor if it’s OK to record', 'Demandez au médecin si vous pouvez enregistrer'), L2('“Is it OK if I record this, so I remember?”', '« Est-ce que je peux enregistrer, pour m’en souvenir ? »'))}
+        ${step(3, 'mic', L2('Tap Record', 'Touchez Enregistrer'), '', rec)}
+        ${step(4, 'speak', L2('Go through your questions', 'Passez vos questions'), L2('“I have a few questions. May I go through them?” Tick each one when it’s answered.', '« J’ai quelques questions. Est-ce que je peux les passer ? » Cochez chacune une fois répondue.'))}
+        ${visitExtras()}</div>`;
       foot.innerHTML = '';
     }
+    setInterval(() => { const t = document.getElementById('vsRecT'); if (t && isRecording) t.textContent = `${Math.floor(recordSeconds / 60)}:${String(recordSeconds % 60).padStart(2, '0')}`; }, 1000);
     { const rl2 = renderList; renderList = function () {
       const step = steps[currentIndex];
       if (step.mode === 'visitStart') { document.getElementById('listCounter').classList.remove('hidden'); renderVisitStart(document.getElementById('listItems'), document.getElementById('listFoot')); return; }
@@ -7522,7 +7560,7 @@
       if (k === 'doc') openFullDoctorCard();
       if (k === 'mine') showPage('mine');
     });
-    SPEAK.visitStart = () => L2('At the appointment: first, ask if you can record. Then hand over the doctor’s page. Keep your page as a guide, and ask to go through your questions.', 'Au rendez-vous : d’abord, demandez si vous pouvez enregistrer. Puis donnez la page du médecin. Gardez votre page comme guide, et demandez à passer vos questions.');
+    SPEAK.visitStart = () => L2('At the visit: first, give the medical team their page. Then ask the doctor if it’s OK to record. Then tap Record. After that, go through your questions.', 'Au rendez-vous : d’abord, donnez sa page à l’équipe médicale. Puis demandez au médecin si vous pouvez enregistrer. Puis touchez Enregistrer. Ensuite, passez vos questions.');
     if (typeof EXPLAIN === 'object') EXPLAIN.visitStart = SPEAK.visitStart;
 
     // =====================================================================
@@ -8513,15 +8551,11 @@
     let qAsked = {}; try { qAsked = JSON.parse(localStorage.getItem('wellheard-asked') || '{}') || {}; } catch (e) { /* none */ }
     function visitExtras() {
       const qs = chosen(), done = qs.filter((q) => qAsked[q]).length;
-      const pb = (k, en, fr) => `<button type="button" data-visit="pg-${k}" class="tactile-btn flex-1 min-h-[52px] px-2 rounded-xl bg-white border-2 border-[#1E2634] text-[#1E2634] font-extrabold text-[14px] leading-tight">${L2(en, fr)}</button>`;
       const row = (q, i) => { const on = !!qAsked[q], top = qPrio.indexOf(q);
         return `<button type="button" data-ask="${i}" aria-pressed="${on}" class="tactile-btn w-full min-h-[54px] px-3 py-2 rounded-[14px] ${on ? 'bg-[#E5EFE7] border-2 border-[#3B5E42]' : 'bg-white border border-[#D6CFC0]'} flex items-center gap-3 text-left">
           <span aria-hidden="true" class="w-8 h-8 shrink-0 rounded-lg border-2 ${on ? 'bg-[#3B5E42] border-[#3B5E42] text-white' : 'bg-white border-[#1E2634]'} flex items-center justify-center font-extrabold text-[18px]">${on ? '✓' : ''}</span>
           <span class="flex-1 min-w-0 text-[15px] font-bold leading-snug ${on ? 'line-through text-[#425268]' : 'text-[#1E2634]'}">${top > -1 ? '★ ' : ''}${esc(q)}</span></button>`; };
       return `<div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[18px] p-2.5 flex flex-col gap-1.5">
-          <p class="font-extrabold text-[14px] text-[#1E2634] px-1">${L2('Your pages', 'Vos pages')}</p>
-          <div class="flex gap-[6px]">${pb('mine', 'Patient’s page', 'Page du patient')}${pb('doc', 'Medical team’s page', 'Page de l’équipe médicale')}${pb('circle', 'Care circle’s page', 'Page du cercle d’aidants')}</div></div>
-        <div class="w-full bg-[#F0EBE1] border border-[#D6CFC0] rounded-[18px] p-2.5 flex flex-col gap-1.5">
           <div class="flex items-baseline gap-2 px-1"><p class="flex-1 font-extrabold text-[14px] text-[#1E2634]">${L2('Your questions: tick each one once it’s answered', 'Vos questions : cochez chacune une fois répondue')}</p>
           <span class="text-[13px] font-extrabold text-[#3B5E42] shrink-0">${L2(`${done} of ${qs.length}`, `${done} sur ${qs.length}`)}</span></div>
           ${qs.some((q) => qPrio.includes(q)) ? `<p class="text-[13px] font-extrabold text-[#8A3A06] px-1">★ = ${L2('must ask', 'à poser absolument')}</p>` : ''}
