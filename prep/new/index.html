@@ -1857,7 +1857,7 @@
         subtitle: '3. Remember · Step 3 of 3',
         topic: 'Share & Finish',
         mode: 'shareFinish',
-        nextLabel: 'Start a new visit'
+        nextLabel: 'New visit'
       }
     ];
 
@@ -3168,7 +3168,7 @@
       'What happens next?': 'Et ensuite ?', 'Tap any tasks to remember after today.': "Touchez ce qu'il faut faire après aujourd'hui.", 'Book blood work or tests': 'Prendre rendez-vous pour une prise de sang ou des tests', 'Pick up prescription': 'Aller chercher la prescription', 'Schedule next visit': 'Prendre le prochain rendez-vous',
       'Next appointment or note': 'Prochain rendez-vous ou note', '+ Pick date': '+ Choisir une date', 'Clear': 'Effacer',
       'Your visit recap': 'Le résumé de votre visite', 'Saved safely on this device.': 'Gardé sur cet appareil.', 'Appointment': 'Rendez-vous', 'What the doctor said': "Ce qu'a dit le médecin", 'Next steps': 'Prochaines étapes',
-      'Send to family': 'Envoyer à la famille', 'Print / Save PDF': 'Imprimer / PDF', 'Start a new visit': 'Nouvelle visite',
+      'Send to family': 'Envoyer à la famille', 'Print / Save PDF': 'Imprimer / PDF', 'Start a new visit': 'Nouvelle visite', 'New visit': 'Nouvelle visite',
       'Pick another date': 'Choisir une date', 'Cancel': 'Annuler', 'Exact date not booked yet': 'Date pas encore fixée', 'Done — Use this date ✓': 'Terminé — utiliser cette date ✓',
       'Hour': 'Heure', 'Minutes': 'Minutes', 'Done — Use this time ✓': 'Terminé — utiliser cette heure ✓',
       'Help & Settings': 'Aide et réglages', 'Done': 'Terminé', 'Hand your phone to the doctor to read.': 'Donnez votre téléphone au médecin.',
@@ -5588,15 +5588,15 @@
         items.innerHTML = `<div class="pk-list pk-days" data-notr>${LANG_LIST.map(([c, n]) => `<button type="button" data-su="pick-lang" data-v="${c}" aria-pressed="${c === lang}" class="${BIG} ${c === lang ? SEL : OFF}" lang="${c}"><span>${c === lang ? '✓ ' : ''}${esc(n)}</span></button>`).join('')}</div>`;
       } else if (part === 'size') {
         T(L2('Which text size is easiest to read?', 'Quelle taille de texte est la plus facile à lire ?'), L2('Everything on the screen grows together.', 'Tout l’écran grandit ensemble.'));
-        items.innerHTML = `<div class="pk-list">${[[0, L2('Normal', 'Normal'), 18], [1, L2('Large', 'Grand'), 26]].map(([v, t, px]) =>
+        items.innerHTML = `<div class="pk-list su-opts">${[[0, L2('Normal', 'Normal'), 18], [1, L2('Large', 'Grand'), 26]].map(([v, t, px]) =>
           `<button type="button" data-su="ts" data-v="${v}" aria-pressed="${textSize === v}" class="${BIG} ${textSize === v ? SEL : OFF}"><span class="w-[44px] text-center" style="font-size:${px}px" aria-hidden="true">A</span><span class="flex-1">${textSize === v ? '✓ ' : ''}${t}</span></button>`).join('')}</div>`;
       } else if (part === 'mode') {
         T(L2('How would you like to answer?', 'Comment voulez-vous répondre ?'), L2('You can change this any time.', 'Vous pouvez changer à tout moment.'));
-        items.innerHTML = `<div class="pk-list">${opt('mode', 1, inputPreference === 'voice', L2('Talk and tap', 'Parler et toucher'), L2(nm + ' listens to you. You can still tap or type.', nm + ' vous écoute. Vous pouvez aussi toucher ou écrire.'), WHI('mic', 26))}
+        items.innerHTML = `<div class="pk-list su-opts">${opt('mode', 1, inputPreference === 'voice', L2('Talk and tap', 'Parler et toucher'), L2(nm + ' listens to you. You can still tap or type.', nm + ' vous écoute. Vous pouvez aussi toucher ou écrire.'), WHI('mic', 26))}
           ${opt('mode', 0, inputPreference !== 'voice', L2('Tap and type only', 'Toucher et écrire seulement'), L2(nm + ' doesn’t listen. You tap or type your answers.', nm + ' n’écoute pas. Vous touchez ou écrivez.'), WHI('hand', 26))}</div>`;
       } else {
         T(L2('Should ' + nm + ' read the questions aloud?', nm + ' lit-il les questions à voix haute ?'), L2('You can turn this on or off any time.', 'Vous pouvez l’activer ou le désactiver à tout moment.'));
-        items.innerHTML = `<div class="pk-list">${opt('read', 1, readAloud, L2('Yes, read them aloud', 'Oui, à voix haute'), '', WHI('volume', 26))}
+        items.innerHTML = `<div class="pk-list su-opts">${opt('read', 1, readAloud, L2('Yes, read them aloud', 'Oui, à voix haute'), '', WHI('volume', 26))}
           ${opt('read', 0, !readAloud, L2('No, I’ll read them', 'Non, je vais les lire'), '', '')}
           ${inSafariOnly ? `<button type="button" data-su="fs" class="tactile-btn w-full min-h-[54px] px-4 rounded-2xl bg-[#E5EFE7] border-2 border-[#3B5E42] text-[#1E4627] font-extrabold text-[16px] flex items-center justify-between mt-1"><span>⛶ ${L2('Make it full screen', 'Mettre en plein écran')}</span><span>›</span></button>` : ''}</div>`;
       }
@@ -10580,6 +10580,22 @@
       .lb-r { width: 100%; margin-top: 12px; min-height: 64px; padding: 10px 14px; border-radius: 18px; background: #E5EFE7; border: 2px solid #3B5E42; color: #1E4627; display: flex; align-items: center; gap: 12px; text-align: left; font-size: 22px; font-weight: 800; }
       .lb-r-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; background: #fff; display: flex; align-items: center; justify-content: center; color: #3B5E42; }
       .lb-r-t { flex: 1; min-width: 0; display: flex; flex-direction: column; } .lb-r-t b { font-size: 17px; } .lb-r-t span { font-size: 14px; font-weight: 700; color: #425268; }
+      /* ---------- one button system (Rama, 27 Nov): 1 orange "next" per screen · white + green outline for every other action · cream chips for answers · red only for recording ---------- */
+      #backNavBtn, #lpShow, .hn-b, .rdy-act, .wh-outline, .rdy-ch, #calBtn, [data-ready="sendcircle"], .vs-mt,
+      #appContainer button[class*="bg-[#1E2634]"][class*="text-white"]:not(.w-9),
+      #appContainer button[class*="rounded-[14px]"][class*="bg-[#E5EFE7]"],
+      #appContainer button[class*="flex-1 min-h-[54px] px-3 rounded-[16px] bg-[#F0EBE1]"],
+      .wh-sheet button[class*="bg-[#1E2634]"][class*="text-white"] {
+        background: #fff !important; color: #1E4627 !important; border: 2px solid #3B5E42 !important; border-radius: 16px !important;
+        min-height: 52px; font-weight: 800 !important; font-size: 16px !important; line-height: 1.2; box-shadow: none !important; }
+      #backNavBtn:hover, #lpShow:hover, .hn-b:hover, .rdy-act:hover, #calBtn:hover, .vs-mt:hover,
+      #appContainer button[class*="bg-[#1E2634]"][class*="text-white"]:not(.w-9):hover, #appContainer button[class*="rounded-[14px]"][class*="bg-[#E5EFE7]"]:hover { background: #EEF5F0 !important; }
+      #backNavBtn svg, .rdy-act svg, #calBtn svg, .hn-b svg { color: #3B5E42; }
+      /* clear focus ring for keyboard users, on everything */
+      #appContainer :focus-visible, body > * :focus-visible { outline: 3px solid #1D4ED8 !important; outline-offset: 3px !important; }
+      /* choices that are just two or three options sit side by side on wider screens */
+      #appContainer.wide .su-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+      #appContainer.wide .su-opts > button { min-height: 72px !important; }
       .hn-row { display: flex; gap: 10px; flex-wrap: wrap; order: 1; } .hn-row[hidden] { display: none; }
       #screenLanding.lp-back #homeNew { order: 1; }
       .hn-b { flex: 1 1 200px; min-height: 52px; padding: 6px 12px; border-radius: 16px; background: #fff; border: 2px solid #3B5E42; color: #1E4627; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; text-align: left; }
@@ -10874,6 +10890,10 @@
       #pkSheet .pk-colbtns:has(> .mb-wrap:not([hidden])) { padding-bottom: 56px !important; }
       #pkSheet .pk-colbtns .mb-btn { font-size: 13px; min-height: 36px; padding: 0 12px; }`; document.head.appendChild(st); }
 
+    // a long Next label on a narrow phone: drop the round arrow so the words fit, never "New vi…" (Rama, 27 Nov)
+    { const lab = document.getElementById('nextNavLabel'), bad = document.getElementById('nextArrowBadge');
+      const fitNext = () => { if (!lab || !bad) return; bad.style.display = ''; requestAnimationFrame(() => { if (lab.scrollWidth > lab.clientWidth + 1) bad.style.display = 'none'; }); };
+      if (lab) { new MutationObserver(fitNext).observe(lab, { childList: true, characterData: true, subtree: true }); window.addEventListener('resize', fitNext); fitNext(); } }
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>
