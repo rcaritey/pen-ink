@@ -8680,6 +8680,10 @@
     try { const d0 = JSON.parse(localStorage.getItem(STORE) || 'null'); const old = d0 && d0.answers && d0.answers.ask; if (old) qLines(old).forEach((q) => { if (!ownQs.some((o) => similar(o, q))) ownQs.push(q); }); } catch (e) { /* nothing to move */ }
     { const at = (() => { try { return localStorage.getItem('wellheard-at'); } catch (e) { return ''; } })(), i = steps.findIndex((s) => s.id === at); if (at && i > 0) currentIndex = i; }
     setCompanionState('listening');
+    // Opening WellHeard again after agreeing and setting up (Rama, 27 Nov): start on the Welcome back home.
+    // Where they were is kept: the home offers "Continue where you left off".
+    window.__resumeStep = null;
+    if (consent && consent.choice && currentIndex > 0 && !['consent', 'setup', 'helperpick'].includes((steps[currentIndex] || {}).mode)) { window.__resumeStep = steps[currentIndex]; currentIndex = 0; }
     renderCurrentStep();
     // Reopened part-way through: ask how they want to answer (this tap is also what lets the microphone start)
     (function welcomeBack() {
@@ -10527,12 +10531,25 @@
       let hb = document.getElementById('landingBack');
       if (!hb) { hb = document.createElement('div'); hb.id = 'landingBack'; const ll = document.getElementById('landingLang'); if (ll) ll.after(hb); else return; }
       hb.hidden = !back; if (!back) return;
+      const rs = window.__resumeStep, ri = rs ? steps.indexOf(rs) : -1;
       hb.innerHTML = `<p class="lb-k">${L2('Welcome back', 'Bon retour')}</p><h1 class="lb-h">${L2('What would you like to do?', 'Que voulez-vous faire ?')}</h1>
-        <p class="lb-s">${L2('Get ready for your next visit, or record a visit now.', 'Préparez votre prochaine visite, ou enregistrez une visite maintenant.')}</p>`;
+        <p class="lb-s">${L2('Get ready for your next visit, or record a visit now.', 'Préparez votre prochaine visite, ou enregistrez une visite maintenant.')}</p>
+        ${ri > 0 ? `<button type="button" id="lbResume" class="tactile-btn lb-r"><span class="lb-r-ic" aria-hidden="true">${WHI('note', 22)}</span><span class="lb-r-t"><b>${L2('Continue where you left off', 'Reprendre où vous étiez')}</b><span>${esc(tr(rs.topic || rs.question || ''))}</span></span><span aria-hidden="true">›</span></button>` : ''}`;
+      const rb = hb.querySelector('#lbResume'); if (rb) rb.addEventListener('click', () => { ensureCtx(); hush(); const i = steps.indexOf(window.__resumeStep); window.__resumeStep = null; if (i > 0) goTo(i); });
       const nl = document.getElementById('nextNavLabel'); if (nl) nl.textContent = L2('Get ready for a visit', 'Préparer une visite');
       if (typeof applyLang === 'function') applyLang(hb);
     }
+    { const gnH = goNext; goNext = function () {
+        if (steps[currentIndex].mode === 'landing' && consent && consent.choice) {
+          const rs = window.__resumeStep, ri = rs ? steps.indexOf(rs) : -1;
+          if (ri > 0) { window.__resumeStep = null; goTo(ri); return; }
+          let last = 0; steps.forEach((x, i) => { if (['consent', 'setup', 'helperpick'].includes(x.mode)) last = i; });
+          currentIndex = last;   // move on from the last set-up screen, so the usual skips for returning people apply
+        }
+        return gnH.apply(this, arguments);
+      }; }
     { const rcsH = renderCurrentStep; renderCurrentStep = function () { const r = rcsH.apply(this, arguments); try { drawHomeBack(); } catch (e) { console.warn('Welcome back home', e); } return r; }; }
+    try { drawHomeBack(); } catch (e) { console.warn('Welcome back home', e); }   // the app opens on it: draw it now, not after the first tap
     { const st = document.createElement('style'); st.textContent = `
       #screenLanding.lp-back { justify-content: flex-start; gap: 14px; }
       #screenLanding.lp-back > div { flex-shrink: 0; }
@@ -10543,6 +10560,9 @@
       #screenLanding.lp-back #landingRec { order: 1; } #screenLanding.lp-back #landingAppts { order: 2; } #screenLanding.lp-back #privacyLink { order: 3; align-self: center; }
       .lb-k { margin: 4px 0 0; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #3B5E42; }
       .lb-h { margin: 4px 0 0; font-size: 1.6rem; line-height: 1.15; font-weight: 800; color: #1E2634; letter-spacing: -.01em; }
+      .lb-r { width: 100%; margin-top: 12px; min-height: 64px; padding: 10px 14px; border-radius: 18px; background: #E5EFE7; border: 2px solid #3B5E42; color: #1E4627; display: flex; align-items: center; gap: 12px; text-align: left; font-size: 22px; font-weight: 800; }
+      .lb-r-ic { flex: none; width: 42px; height: 42px; border-radius: 12px; background: #fff; display: flex; align-items: center; justify-content: center; color: #3B5E42; }
+      .lb-r-t { flex: 1; min-width: 0; display: flex; flex-direction: column; } .lb-r-t b { font-size: 17px; } .lb-r-t span { font-size: 14px; font-weight: 700; color: #425268; }
       .lb-s { margin: 8px 0 0; font-size: 15px; line-height: 1.4; color: #425268; font-weight: 500; }`; document.head.appendChild(st); }
 
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
