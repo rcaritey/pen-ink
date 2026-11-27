@@ -5864,7 +5864,21 @@
         else hit = false;
         if (hit) { renderList(); applyLang(); say(L2('Got it: ', 'Noté : ') + (freqText(Q, lang === 'fr') || L2('every day', 'tous les jours')) + L2('. Say next.', '. Dites suivant.')); return true; }
       }
+      // "delete those, they're wrong", "remove the sertraline", "take off the last one": an instruction, never a medicine name (Rama, 27 Nov)
+      if (/^(undo|bring (them|it) back|put (them|it) back|annule)\b/.test(low) && window.__medUndo) { medsList = window.__medUndo; window.__medUndo = null; syncMeds(); medDraft = blankMed(); medDraft.stage = medsList.length ? 'list' : 'name'; renderList(); applyLang(); say(L2('Put back.', 'Remis.'), true); return true; }
+      if (/\b(delete|remove|erase|clear|take (it |them |those |that )?(off|out)|get rid of|wrong|scratch|efface|supprime|enlève|retire)\b/.test(low)) {
+        if (!medsList.length) { say(L2('There are no medicines on the list yet.', 'Il n’y a pas encore de médicament sur la liste.'), true); return true; }
+        const before = medsList.slice(), hit = medsList.findIndex((m) => m && m.name && low.includes(String(m.name).toLowerCase().split(/\s+/)[0]));
+        let gone;
+        if (hit > -1) gone = medsList.splice(hit, 1);
+        else if (/\b(all|those|these|them|everything|both|the list|tous|toutes|les)\b/.test(low)) gone = medsList.splice(0);
+        else gone = medsList.splice(-1, 1);
+        window.__medUndo = before; syncMeds(); medDraft = blankMed(); medDraft.stage = medsList.length ? 'list' : 'name'; renderList(); applyLang();
+        say(gone.map((m) => m.name).join(L2(' and ', ' et ')) + L2(' removed. Say undo to put it back.', ' retiré. Dites annule pour le remettre.'), true); return true;
+      }
       if (cmdOf(low) || /^(next|back|go back|repeat|help|stop|pause|wait|undo|erase)\b/.test(low)) return false;
+      // a medicine name is short. A sentence ("oh my god", "can you…", "they're wrong") is talk for Reid, not a medicine
+      if (d.stage === 'name' && (low.split(/\s+/).length > 5 || /\b(they|they're|those|these|this|that's|my god|please|can you|could you|i want|i need|why|what|how|don't|isn't|not right)\b/.test(low) || /\?$/.test(String(t).trim()))) return false;
       medTake(t); return true;
     }
     function renderMeds(items, foot) {
