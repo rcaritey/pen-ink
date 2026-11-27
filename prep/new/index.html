@@ -10629,6 +10629,53 @@
       #screenLanding.lp-back > div:has(#privacyLink), #screenLanding.lp-back > div:has(#privacyLink) > * { margin-top: 0 !important; }
       .hb-b { white-space: nowrap; min-height: 44px; padding: 0 14px; border-radius: 14px; background: #3B5E42; color: #fff; font-weight: 800; font-size: 15px; }`; document.head.appendChild(st); }
 
+
+    // ---------- scrolling (Rama, 27 Nov): only when a screen truly can't fit, and then always a "More below" button ----------
+    // Any part of a screen or pop-up that has more below what's showing gets a green "↓ More below" at its bottom edge;
+    // a tap moves down, and it goes away at the end. Nothing bounces or scrolls when everything already fits.
+    (function moreBelow() {
+      const st = document.createElement('style'); st.textContent = `
+        html, body { overscroll-behavior: none; }
+        #appContainer *, [role="dialog"] * { overscroll-behavior: contain; }
+        .mb-wrap { position: sticky; bottom: 0; height: 0; width: 100%; grid-column: 1 / -1; flex: 0 0 0; display: flex; justify-content: center; overflow: visible; z-index: 5; pointer-events: none; }
+        .mb-btn { pointer-events: auto; transform: translateY(calc(-100% - 8px)); display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: #3B5E42; color: #fff; font: inherit; font-weight: 800; font-size: 15px; box-shadow: 0 6px 16px rgba(0,0,0,.2); white-space: nowrap; }
+        .mb-wrap[hidden] { display: none; }
+        /* At the visit on a phone with Large text: smaller pictures and Record button, the microphone check beside it, so it all fits */
+        #appContainer.tiny .vf-h .vf-pic { width: 38px; height: 38px; } #appContainer.tiny .vf-h .vf-t b { font-size: 11.5px; }
+        #appContainer.tiny .vf-n { width: 18px; height: 18px; font-size: 10.5px; top: -6px; left: -6px; }
+        #appContainer.tiny #listItems .vs-rec .vs-rec-dot { width: 70px; height: 70px; border-width: 5px; }
+        #appContainer.tiny #listItems .vs-rec .vs-rec-big { font-size: 17px; } #appContainer.tiny #listItems .vs-rec .vs-rec-small { font-size: 11.5px; max-width: 110px; }
+        #appContainer.tiny .vs-recrow { flex-wrap: nowrap; gap: 10px; } #appContainer.tiny .vs-recrow > .vs-mt-go { flex: 1 1 auto; padding: 8px 10px; }
+        #appContainer.tiny .vs-mt-go b { font-size: 15px !important; } #appContainer.tiny .vs-mt-ic { width: 36px; height: 36px; }
+        #appContainer.tiny .vs-tiles .vs-tile { min-height: 0; padding-top: 8px; padding-bottom: 8px; font-size: 13.5px !important; gap: 4px; }
+        #appContainer.tiny .vs-tiles .vs-tile * { font-size: inherit; } #appContainer.tiny .vs-tiles .vs-tile-ic { width: 36px; height: 36px; }
+        #appContainer.tiny #listItems .vs-rec .vs-rec-small { display: none; }
+        #appContainer.tiny .vf-h { margin-bottom: -4px; }`;
+      document.head.appendChild(st);
+      const skip = (el) => el.matches('textarea, input, select, #answerInput, #fullDoctorModal .space-y-3') || el.clientHeight < 110 || !el.offsetParent;
+      const tick = () => {
+        const roots = [document.getElementById('appContainer'), ...document.querySelectorAll('[role="dialog"]')].filter(Boolean);
+        roots.forEach((root) => root.querySelectorAll('*').forEach((el) => {
+          if (el.classList.contains('mb-wrap') || el.closest('.mb-wrap')) return;
+          const oy = getComputedStyle(el).overflowY; if (oy !== 'auto' && oy !== 'scroll') return;
+          let w = el.querySelector(':scope > .mb-wrap');
+          const left = el.scrollHeight - el.scrollTop - el.clientHeight, need = !skip(el) && el.scrollHeight > el.clientHeight + 12 && left > 24;
+          if (!need) { if (w) w.hidden = true; return; }
+          if (!w) {
+            w = document.createElement('div'); w.className = 'mb-wrap'; w.setAttribute('aria-hidden', 'false');
+            w.innerHTML = `<button type="button" class="tactile-btn mb-btn"></button>`;
+            w.firstChild.addEventListener('click', (e) => { e.stopPropagation(); el.scrollBy({ top: el.clientHeight * 0.75, behavior: 'smooth' }); });
+            if (!el.dataset.mb) { el.dataset.mb = 1; el.addEventListener('scroll', () => { const x = el.querySelector(':scope > .mb-wrap'); if (x) x.hidden = el.scrollHeight - el.scrollTop - el.clientHeight <= 24; }, { passive: true }); }
+          }
+          if (w.parentNode !== el || el.lastElementChild !== w) el.appendChild(w);   // redrawn screens drop it: put it back, last
+          w.firstChild.textContent = L2('↓ More below', '↓ La suite plus bas');
+          w.hidden = false;
+        }));
+      };
+      setInterval(tick, 700); window.addEventListener('resize', () => setTimeout(tick, 150));
+      { const rcsMB = renderCurrentStep; renderCurrentStep = function () { const r = rcsMB.apply(this, arguments); setTimeout(tick, 120); return r; }; }
+    })();
+
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>
