@@ -10805,9 +10805,12 @@
         a.addEventListener('click', (e) => { const b = e.target.closest('[data-ha]'); if (!b) return; ensureCtx(); hush(true);
           if (b.dataset.ha === 'pages') showPage('doc'); if (b.dataset.ha === 'prep') goNext(); if (b.dataset.ha === 'appts') openAppts(); }); }
       const ft = document.querySelector('#appContainer > footer');
-      a.hidden = !on; if (!on) { if (ft) ft.style.maxWidth = ''; return; }
-      requestAnimationFrame(() => { const rb = document.getElementById('landingRec') || document.getElementById('landingBack'); const z = parseFloat(app.style.zoom) || 1;   // the big button lines up with the home's own column
-        if (ft && rb && rb.offsetWidth) ft.style.maxWidth = (rb.getBoundingClientRect().width / z) + 'px'; });
+      a.hidden = !on; if (!on) { if (ft) ft.style.removeProperty('max-width'); return; }
+      const fit = () => { const rb = document.getElementById('landingRec'); const z = parseFloat(app.style.zoom) || 1;   // the big button is exactly as wide as the cards above it
+        if (!ft || !rb || !rb.offsetWidth || !app.classList.contains('home-wide')) { if (ft) ft.style.removeProperty('max-width'); return; }
+        ft.style.setProperty('max-width', (rb.getBoundingClientRect().width / z) + 'px', 'important'); };
+      requestAnimationFrame(fit); setTimeout(fit, 300);
+      if (!window.__fitRO && window.ResizeObserver) { window.__fitRO = new ResizeObserver(() => requestAnimationFrame(fit)); const rb = document.getElementById('landingRec'); if (rb) window.__fitRO.observe(rb); }
       const today = isoToday(), d = SID('day').dateISO || '', n = recapNext || {};
       const next = d && d >= today ? { date: d, time: SID('time').time24 || '', with: SID('who').answer || '' } : n.date && n.date >= today ? n : null;
       if (next) {
