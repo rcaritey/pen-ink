@@ -6688,6 +6688,139 @@
       try { openFromOtherDevice(await f.text()); showToast(L2('Done. Opening your visits…', 'C’est fait. Ouverture de vos visites…')); setTimeout(() => location.reload(), 900); }
       catch (err) { showToast(L2('That file can’t be opened. Make sure it’s the WellHeard file.', 'Ce fichier ne peut pas être ouvert. Vérifiez que c’est le fichier WellHeard.')); }
     }, true);
+    // =====================================================================
+    // Move to another phone with a QR code or a 6-digit code (Rama, 26 Nov: files and share menus were too much)
+    // Old phone: everything is locked (encrypted) on the phone with the code, the locked copy waits in Pen & Ink's
+    // database in Montréal, and shows a QR code plus the 6 numbers. New phone: point the Camera at the QR code (it
+    // opens pen-ink.ca/Reid#move=123456) or type the numbers. The copy is deleted the moment it's picked up, or
+    // after 10 minutes. The old backup file stays available underneath.
+    // =====================================================================
+    const MV_URL = 'https://buakvwobwfumigpzvldu.supabase.co/rest/v1/rpc/', MV_KEY = 'sb_publishable_6qM-aV6OMArnRiCvD-y5vA_a99ssg-q';
+    const mvB64 = (u8) => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+    const mvU8 = (b) => Uint8Array.from(atob(b), (c) => c.charCodeAt(0));
+    async function mvKey(code, salt) {
+      const base = await crypto.subtle.importKey('raw', new TextEncoder().encode('wellheard-move:' + code), 'PBKDF2', false, ['deriveKey']);
+      return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    }
+    async function mvRpc(fn, args) {
+      const r = await fetch(MV_URL + fn, { method: 'POST', headers: { apikey: MV_KEY, Authorization: 'Bearer ' + MV_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+      if (!r.ok) { const t = await r.text().catch(() => ''); throw new Error(/busy/.test(t) ? 'busy' : 'server'); }
+      return r.json();
+    }
+    // the phone picks the 6-digit code, locks everything with it, then stores the locked copy under that code
+    async function mvSend() {
+      const bundle = new TextEncoder().encode(moveBundle());
+      for (let tries = 0; tries < 5; tries++) {
+        const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0');
+        const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await mvKey(code, salt), ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bundle));
+        const got = await mvRpc('wh_move_put', { p_code: code, p_blob: JSON.stringify({ v: 1, s: mvB64(salt), i: mvB64(iv), d: mvB64(ct) }) });
+        if (got === code) return code;   // null: that code is in use by someone else right now; pick another
+      }
+      throw new Error('server');
+    }
+    async function mvReceive(code) {
+      code = String(code || '').replace(/\D/g, '');
+      if (code.length !== 6) throw new Error('code');
+      const blob = await mvRpc('wh_move_take', { p_code: code });
+      if (!blob) throw new Error('gone');
+      const d = JSON.parse(blob); if (!d || d.v !== 1) throw new Error('gone');
+      const key = await mvKey(code, mvU8(d.s));
+      const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: mvU8(d.i) }, key, mvU8(d.d));
+      openFromOtherDevice(new TextDecoder().decode(plain));
+    }
+    function mvQrSvg(text) {
+      if (typeof qrcode !== 'function') return '';
+      const q = qrcode(0, 'M'); q.addData(text); q.make();
+      const n = q.getModuleCount(), m = 4; let path = '';
+      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) path += `M${c + m} ${r + m}h1v1h-1z`;
+      return `<svg viewBox="0 0 ${n + 2 * m} ${n + 2 * m}" width="100%" style="max-width:260px;display:block;margin:0 auto;background:#fff;border-radius:12px" role="img" aria-label="${L2('QR code to scan with the other phone', 'Code QR à scanner avec l’autre téléphone')}" shape-rendering="crispEdges"><path d="${path}" fill="#1E2634"/></svg>`;
+    }
+    function mvLoadQr() {
+      return new Promise((ok) => { if (typeof qrcode === 'function') return ok(); const sc = document.createElement('script'); sc.src = '/prep/qrcode.js'; sc.onload = () => ok(); sc.onerror = () => ok(); document.head.appendChild(sc); });
+    }
+    const mvBtn = 'tactile-btn w-full min-h-[56px] px-3 rounded-2xl font-extrabold text-base flex items-center justify-center text-center';
+    let mvTimer = 0;
+    function mvMoveCard() {
+      return `<div class="bg-[#E5EFE7] border border-[#3B5E42]/40 rounded-2xl p-3.5 flex flex-col gap-2.5" data-mvcard>
+        <p class="font-extrabold text-base text-[#1E2634]">${L2('Move to another phone or tablet', 'Passer à un autre téléphone ou tablette')}</p>
+        <p class="text-sm text-[#425268] leading-snug">${L2('Your appointments, answers and settings move over in one go. Nothing to send or save.', 'Vos rendez-vous, réponses et réglages passent d’un coup. Rien à envoyer ni à enregistrer.')}</p>
+        <div data-mvbody class="flex flex-col gap-2.5">
+          <button type="button" data-mv="show" class="${mvBtn} bg-[#1E2634] text-white">${L2('This is my old phone: show a code', 'C’est mon ancien téléphone : montrer un code')}</button>
+          <button type="button" data-mv="enter" class="${mvBtn} bg-white text-[#1E2634] border-2 border-[#1E2634]">${L2('This is my new phone: type a code', 'C’est mon nouveau téléphone : entrer un code')}</button>
+        </div></div>`;
+    }
+    async function mvShow(body) {
+      body.innerHTML = `<p class="text-base font-bold text-[#1E2634] text-center" role="status">${L2('Getting your code ready…', 'Préparation de votre code…')}</p>`;
+      let code = '';
+      try { await mvLoadQr(); code = await mvSend(); }
+      catch (e) { body.innerHTML = `<p class="text-base font-bold text-[#7A2E12]" role="alert">${e && e.message === 'busy' ? L2('Too many tries just now. Wait a minute and try again.', 'Trop d’essais. Attendez une minute et réessayez.') : L2('That didn’t work. Check the internet connection and try again.', 'Ça n’a pas marché. Vérifiez la connexion Internet et réessayez.')}</p><button type="button" data-mv="show" class="${mvBtn} bg-[#1E2634] text-white">${L2('Try again', 'Réessayer')}</button>`; mvWire(body); return; }
+      const url = 'https://pen-ink.ca/Reid#move=' + code, spaced = code.slice(0, 3) + ' ' + code.slice(3);
+      body.innerHTML = `${mvQrSvg(url)}
+        <p class="text-sm text-[#1E2634] font-bold leading-snug text-center">${L2('On the new phone, open the Camera and point it at this square. Tap the link that appears.', 'Sur le nouveau téléphone, ouvrez l’appareil photo et visez ce carré. Touchez le lien qui apparaît.')}</p>
+        <p class="text-sm text-[#425268] leading-snug text-center">${L2('Or open pen-ink.ca/Reid there and type these numbers:', 'Ou ouvrez pen-ink.ca/Reid là-bas et entrez ces chiffres :')}</p>
+        <p class="font-extrabold text-[#1E2634] text-center" style="font-size:40px;line-height:1.1;letter-spacing:.12em" data-mvnum aria-label="${code.split('').join(' ')}">${spaced}</p>
+        <p class="text-sm text-[#425268] text-center" data-mvleft role="timer"></p>
+        <p class="text-xs text-[#425268] leading-snug text-center">${L2('Locked with this code on this phone before it leaves. Deleted as soon as the new phone has it, or in 10 minutes.', 'Verrouillé avec ce code sur ce téléphone avant de partir. Effacé dès que le nouveau téléphone l’a, ou dans 10 minutes.')}</p>`;
+      clearInterval(mvTimer); const end = Date.now() + 10 * 60000;
+      const tick = () => { const el = body.querySelector('[data-mvleft]'); if (!el) { clearInterval(mvTimer); return; } const s = Math.max(0, Math.round((end - Date.now()) / 1000));
+        el.textContent = s ? L2('Code works for ', 'Code valable encore ') + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') : L2('This code has run out. Tap Back and make a new one.', 'Ce code a expiré. Touchez Retour et créez-en un autre.');
+        if (!s) clearInterval(mvTimer); };
+      tick(); mvTimer = setInterval(tick, 1000);
+      say(L2('On the new phone, open the camera and point it at the square. Or type the six numbers.', 'Sur le nouveau téléphone, ouvrez l’appareil photo et visez le carré. Ou entrez les six chiffres.'), true);
+    }
+    function mvEnter(body, pre) {
+      body.innerHTML = `<label class="text-sm font-bold text-[#1E2634]" for="mvCode">${L2('The 6 numbers shown on your old phone', 'Les 6 chiffres affichés sur l’ancien téléphone')}</label>
+        <input id="mvCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" value="${pre || ''}" class="w-full min-h-[60px] px-3 rounded-2xl border-2 border-[#1E2634] bg-white font-extrabold text-center text-[#1E2634]" style="font-size:32px;letter-spacing:.2em;min-height:64px">
+        <p class="text-sm text-[#7A2E12] font-bold hidden" data-mverr role="alert"></p>
+        <button type="button" data-mv="take" class="${mvBtn} bg-[#1E2634] text-white">${L2('Move my answers here', 'Mettre mes réponses ici')}</button>
+        <p class="text-xs text-[#425268] leading-snug">${L2('Anything already on this phone is kept; visits from the old phone are added.', 'Ce qui est déjà sur ce téléphone est gardé ; les visites de l’ancien téléphone sont ajoutées.')}</p>`;
+      mvWire(body); const inp = body.querySelector('#mvCode'); if (inp && !pre) inp.focus();
+    }
+    async function mvTake(body, code) {
+      const err = body.querySelector('[data-mverr]'), btn = body.querySelector('[data-mv="take"]');
+      if (btn) { btn.disabled = true; btn.textContent = L2('Moving…', 'Transfert…'); }
+      try { await mvReceive(code); showToast(L2('Done. Opening your visits…', 'C’est fait. Ouverture de vos visites…')); say(L2('Done. Your answers are on this phone now.', 'C’est fait. Vos réponses sont sur ce téléphone.'), true);
+        setTimeout(() => { location.replace(location.pathname); }, 1200); }
+      catch (e) {
+        const m = e && e.message === 'code' ? L2('Type all 6 numbers.', 'Entrez les 6 chiffres.')
+          : e && e.message === 'gone' ? L2('That code didn’t work. It may have run out or been used already. Make a new code on the old phone.', 'Ce code n’a pas marché. Il a peut-être expiré ou déjà servi. Créez un nouveau code sur l’ancien téléphone.')
+          : e && e.message === 'busy' ? L2('Too many tries just now. Wait a minute and try again.', 'Trop d’essais. Attendez une minute et réessayez.')
+          : L2('That didn’t work. Check the internet connection and try again.', 'Ça n’a pas marché. Vérifiez la connexion Internet et réessayez.');
+        if (err) { err.textContent = m; err.classList.remove('hidden'); } showToast(m); say(m, true);
+        if (btn) { btn.disabled = false; btn.textContent = L2('Move my answers here', 'Mettre mes réponses ici'); }
+      }
+    }
+    function mvWire(body) {
+      body.querySelectorAll('[data-mv]').forEach((b) => b.addEventListener('click', () => {
+        const k = b.dataset.mv;
+        if (k === 'show') mvShow(body);
+        if (k === 'enter') mvEnter(body);
+        if (k === 'take') { const inp = body.querySelector('#mvCode'); mvTake(body, inp ? inp.value : ''); }
+      }));
+    }
+    // put the card at the top of "Full screen & other devices"; the backup file goes under "Or use a backup file"
+    { const rsM = renderSettings; renderSettings = function () { rsM.apply(this, arguments);
+        if (setView !== 'device') { clearInterval(mvTimer); return; }
+        const panel = document.querySelector('#helpSettingsModal > div'); if (!panel || panel.querySelector('[data-mvcard]')) return;
+        const bk = panel.querySelector('[data-act="backup"]'), op = panel.querySelector('[data-act="open"]');
+        const c1 = bk && bk.closest('div.bg-\\[\\#F0EBE1\\]'), c2 = op && op.closest('div.bg-\\[\\#F0EBE1\\]'); if (!c1) return;
+        const wrap = document.createElement('div'); wrap.innerHTML = mvMoveCard(); const card = wrap.firstElementChild;
+        const list = c1.parentElement; list.insertBefore(card, list.firstElementChild);
+        const det = document.createElement('details'); det.className = 'bg-[#F0EBE1] border border-[#D6CFC0] rounded-2xl p-3.5';
+        det.innerHTML = `<summary class="font-extrabold text-base text-[#1E2634] cursor-pointer min-h-[44px] flex items-center">${L2('Or use a backup file', 'Ou utiliser un fichier de sauvegarde')}</summary><div class="flex flex-col gap-[12px] mt-2"></div>`;
+        list.insertBefore(det, c1); det.lastElementChild.appendChild(c1); if (c2) det.lastElementChild.appendChild(c2);
+        mvWire(card.querySelector('[data-mvbody]'));
+      }; }
+    // scanned on the new phone: pen-ink.ca/Reid#move=123456 opens straight to "Move my answers here"
+    { const m = /[#&]move=(\d{6})/.exec(location.hash || '');
+      if (m) setTimeout(() => {
+        try { history.replaceState(null, '', location.pathname); } catch (e) { /* fine */ }
+        openModal('helpSettingsModal'); setView = 'device'; spokenView = null; renderSettings(); applyLang();
+        const card = document.querySelector('#helpSettingsModal [data-mvcard] [data-mvbody]'); if (card) { mvEnter(card, m[1]); card.closest('[data-mvcard]').scrollIntoView({ block: 'start' }); }
+        say(L2('To move your answers onto this phone, tap Move my answers here.', 'Pour mettre vos réponses sur ce téléphone, touchez Mettre mes réponses ici.'), true);
+      }, 900); }
+
     // on computers: "My appointments" under "See my pages" in the left column
     { const rsA = renderSide; renderSide = function () { rsA.apply(this, arguments);
         const side = document.getElementById('sideReid'); if (!side || side.querySelector('[data-myappts]')) return;
