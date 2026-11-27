@@ -286,7 +286,8 @@
     .pg-tip { position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%); z-index: 80; white-space: nowrap; pointer-events: none;
       background: #1E2634; color: #fff; font-size: 14px; font-weight: 700; line-height: 1.2; padding: 7px 11px; border-radius: 10px; opacity: 0; transition: opacity .12s ease; }
     .pg-tip::after { content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-bottom-color: #1E2634; }
-    button.pg-ic:hover .pg-tip, button.pg-ic:focus-visible .pg-tip { opacity: 1; }
+    button.pg-ic:hover .pg-tip, button.pg-ic:focus-visible .pg-tip, .pg-ic.later:hover .pg-tip, .pg-ic.later:focus-visible .pg-tip, .rm-ph:hover .pg-tip, .rm-ph:focus-visible .pg-tip { opacity: 1; }
+    .pg-ic.later, .rm-ph { position: relative; } .rm-ph.later[tabindex] { outline-offset: 2px; }
     @media (hover: none) { button.pg-ic:hover .pg-tip, button.pg-ic:focus-visible .pg-tip { opacity: 0; } }
     .pg-name { margin-left: 4px; font-weight: 700; color: #1E2634; }
     .comic-tail { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; z-index: 1; }
@@ -6331,13 +6332,13 @@
       const icons = inPhase.map((p, i) =>
         open(p) || i === at
           ? `<button type="button" data-part="${p.k}" class="pg-ic ${i < at ? 'done' : i === at ? 'now' : ''}" aria-label="${esc(L2('Go to ', 'Aller à ') + L2(p.en, p.fr))}"${i === at ? ' aria-current="step"' : ''}>${WHI(p.icon, i === at ? 16 : 14)}${i < at ? '<span class="pg-tick" aria-hidden="true"></span>' : ''}<span class="pg-tip">${L2(p.en, p.fr)}</span></button>`
-          : `<span class="pg-ic later" role="img" aria-label="${esc(L2('Coming up: ', 'À venir : ') + L2(p.en, p.fr))}">${WHI(p.icon, 14)}</span>`).join('');
+          : `<span class="pg-ic later" role="img" tabindex="0" aria-label="${esc(L2('Coming up: ', 'À venir : ') + L2(p.en, p.fr))}">${WHI(p.icon, 14)}<span class="pg-tip">${L2('Coming up: ', 'À venir : ')}${L2(p.en, p.fr)}</span></span>`).join('');
       const pill = (k) => {
         const name = L2(PH_NAMES[k][0], PH_NAMES[k][1]);
         if (k === ph) return `<span class="rm-now" role="group" aria-label="${esc(name + ': ' + L2('part ', 'partie ') + (at + 1) + L2(' of ', ' sur ') + inPhase.length + ', ' + L2(here.en, here.fr))}"><span class="pg-icons">${icons}</span></span>`;
         const first = steps.findIndex((x) => x.phaseIndex === k && partOf(x));
-        if (k < ph && first > -1) return `<button type="button" class="rm-ph done" data-phase="${k}" aria-label="${esc(name + L2(' — done. Go back to it', ' — terminé. Y retourner'))}"><span class="rm-ic">${WHI(PH_IC[k], 18)}<span class="pg-tick" aria-hidden="true"></span></span><span class="rm-t">${name}</span></button>`;
-        return `<span class="rm-ph later" aria-label="${esc(L2('Coming up: ', 'À venir : ') + name)}"><span class="rm-ic" aria-hidden="true">${WHI(PH_IC[k], 18)}</span><span class="rm-t">${name}</span></span>`;
+        if (k < ph && first > -1) return `<button type="button" class="rm-ph done" data-phase="${k}" aria-label="${esc(name + L2(' — done. Go back to it', ' — terminé. Y retourner'))}"><span class="rm-ic">${WHI(PH_IC[k], 18)}<span class="pg-tick" aria-hidden="true"></span></span><span class="rm-t">${name}</span><span class="pg-tip">${name} ✓</span></button>`;
+        return `<span class="rm-ph later" aria-label="${esc(L2('Coming up: ', 'À venir : ') + name)}"><span class="rm-ic" aria-hidden="true">${WHI(PH_IC[k], 18)}</span><span class="rm-t">${name}</span><span class="pg-tip">${L2('Coming up: ', 'À venir : ')}${name}</span></span>`;
       };
       el.innerHTML = `<span class="rm" role="navigation" aria-label="${esc(L2('Where you are', 'Où vous en êtes'))}">${[0, 1, 2].map(pill).join('')}</span>`;
     }
@@ -10770,6 +10771,7 @@
 
     // ---------- computers: the question, answer box and buttons stop at a comfortable reading width (Rama, 27 Nov) ----------
     // About 760px (roughly 70 characters a line), left-aligned beside the menu, instead of stretching across a wide screen.
+    { const sa2 = sizeApp; sizeApp = function () { const r = sa2.apply(this, arguments); try { sideMenu(); } catch (e) { /* later */ } return r; }; }
     { const st = document.createElement('style'); st.textContent = `
       #appContainer.side-menu > #progressHeader, #appContainer.side-menu > #stepWork, #appContainer.side-menu > footer { width: 100%; max-width: var(--wh-mw, 760px); justify-self: start; }
       #appContainer.side-menu > footer { justify-self: start; }`; document.head.appendChild(st); }
