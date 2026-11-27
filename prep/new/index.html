@@ -10376,6 +10376,54 @@
       .ts-1 .vs-mt-go b { font-size: 19px; } .ts-2 .vs-mt-go b { font-size: 21px; }
       .vs-mt .vs-link { display: inline-block; margin-left: 6px; }`; document.head.appendChild(st); }
 
+
+    // ---------- First screens (Rama, 27 Nov): 1. the language at the top of the first page, then "Ever left the doctor's…";
+    // 2. Your story stays yours; 3. the set-up (text size, how you answer, helper…). The separate language screen is skipped.
+    (function landingLang() {
+      const top = document.querySelector('#screenLanding > div'); const wel = document.getElementById('landingWelcome');
+      if (!top || !wel || document.getElementById('landingLang')) return;
+      const row = document.createElement('div'); row.id = 'landingLang'; row.className = 'll';
+      wel.before(row);
+      const old = document.getElementById('langPick'); if (old) old.classList.add('hidden');   // moved up here
+      const draw = () => {
+        const chip = (c, name) => `<button type="button" data-ll="${c}" aria-pressed="${lang === c}" class="tactile-btn ll-c${lang === c ? ' on' : ''}" lang="${c}">${lang === c ? WHI('check', 16) : ''}${name}</button>`;
+        const other = !['en', 'fr'].includes(lang);
+        row.innerHTML = `<span class="ll-l" id="llLabel" aria-label="${esc(L2('Language', 'Langue'))}">${WHI('globe' in window.WHI_P ? 'globe' : 'chat', 18)}<span>${L2('Language', 'Langue')}</span></span>
+          <span class="ll-cs" role="group" aria-labelledby="llLabel">${chip('en', 'English')}${chip('fr', 'Français')}
+          <button type="button" data-ll="more" class="tactile-btn ll-c${other ? ' on' : ''}">${other ? WHI('check', 16) + esc(langName(lang)) : L2('Other ›', 'Autre ›')}</button></span>`;
+      };
+      draw();
+      row.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-ll]'); if (!b) return; ensureCtx();
+        if (b.dataset.ll === 'more') { openModal('helpSettingsModal'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); return; }
+        setLang(b.dataset.ll); draw();
+      });
+      { const rcsL = renderCurrentStep; renderCurrentStep = function () { const r = rcsL.apply(this, arguments); try { draw(); } catch (e) { /* drawn next time */ } return r; }; }
+      const st = document.createElement('style'); st.textContent = `
+        .ll { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+        .ll-cs { flex-wrap: nowrap; gap: 6px; }
+        @media (max-width: 430px) { .ll-l span { display: none; } .ll-c svg { display: none; } .ll-c { padding: 0 11px; } .ll { gap: 6px; } }
+        .ll-l { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #3B5E42; }
+        .ll-cs { display: flex; }
+        .ll-c { min-height: 44px; padding: 0 12px; border-radius: 999px; background: #fff; border: 2px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 14px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .ll-c.on { background: #E5EFE7; border-color: #3B5E42; color: #1E4627; }
+        .ts-1 .ll-c { font-size: 16px; } .ts-2 .ll-c { font-size: 17px; } .ts-1 .ll-l span, .ts-2 .ll-l span { display: none; }`;
+      document.head.appendChild(st);
+    })();
+    // Your story stays yours comes second, straight after the first page, before the set-up (Rama, 27 Nov)
+    { const ci = steps.findIndex((x) => x.id === 'consent'), cur = steps[currentIndex];
+      if (ci > 1) { const [c] = steps.splice(ci, 1); steps.splice(1, 0, c); currentIndex = Math.max(0, steps.indexOf(cur)); } }
+    // the language screen in the set-up is skipped: it was chosen on the first page (and can be changed in Settings)
+    { let lastIdx = currentIndex; const rcsS = renderCurrentStep; renderCurrentStep = function () {
+        const st = steps[currentIndex];
+        if (st && st.id === 'setup' && st.part === 'lang') {
+          const dir = currentIndex >= lastIdx ? 1 : -1, j = currentIndex + dir;
+          if (j >= 0 && j < steps.length) currentIndex = j;
+        }
+        lastIdx = currentIndex;
+        return rcsS.apply(this, arguments);
+      }; }
+
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>
