@@ -10127,6 +10127,123 @@
       .qa-a { display: block; margin: 6px 0 4px 34px; padding: 6px 10px; border-left: 4px solid #3B5E42; background: #E5EFE7; border-radius: 6px; font-weight: 600; color: #1E4627; }`;
       document.head.appendChild(st); }
 
+
+    // ---------- At the visit: test the microphone first, and a live sound meter while recording (Rama, 27 Nov) ----------
+    // Before recording: a 5-second test that plays back what it heard and asks "Could you hear yourself?".
+    // While recording: bars that move with sound (no playback mid-visit: it would interrupt the doctor, and some
+    // phones pause the recording to play). If nothing is heard for 30 seconds, a clear warning.
+    let micT = { st: 'idle' };   // idle | rec | play | ask | ok | bad
+    let vsLvl = 0, vsLastSound = Date.now(), vsSilentWarned = false;
+    const vsRedraw = () => { if (steps[currentIndex] && steps[currentIndex].mode === 'visitStart') { renderList(); applyLang(); } };
+    { const lv = CanadaRec.level; CanadaRec.level = function (v) {
+      lv.apply(this, arguments); if (!isRecording) return;
+      vsLvl = v; if (v > 0.12) { vsLastSound = Date.now(); vsSilentWarned = false; } vsDrawMeter(); }; }
+    function vsDrawMeter() {
+      const m = document.getElementById('vsMeter'); if (!m) return;
+      const n = Math.round(Math.min(1, vsLvl * 1.4) * 8);
+      [...m.children].forEach((b, i) => b.classList.toggle('on', i < n));
+      const t = document.getElementById('vsMeterT'); if (!t) return;
+      t.textContent = Date.now() - vsLastSound < 4000 ? L2('Hearing sound ✓', 'Le son passe ✓') : L2('Waiting for sound…', 'En attente de son…');
+    }
+    { const tv = toggleVisitRecording; toggleVisitRecording = function () {
+      const r = tv.apply(this, arguments); if (isRecording) { vsLastSound = Date.now(); vsSilentWarned = false; vsLvl = 0; } setTimeout(vsRedraw, 450); return r; }; }
+    // after "Yes, everyone agreed" the screen switches to Recording straight away (it used to stay on Record)
+    { const ara = answerRecAsk; answerRecAsk = function () { const r = ara.apply(this, arguments); if (isRecording) { vsLastSound = Date.now(); vsSilentWarned = false; vsLvl = 0; } setTimeout(vsRedraw, 450); return r; }; }
+    setInterval(() => {
+      if (!isRecording) return;
+      vsDrawMeter();
+      if (!vsSilentWarned && Date.now() - vsLastSound > 30000) {
+        vsSilentWarned = true;
+        warnRec('I’m not picking up any sound. Check nothing is covering the microphone (the bottom of the phone), or use your phone’s own recorder.',
+          'Je n’entends aucun son. Vérifiez que rien ne couvre le micro (le bas du téléphone), ou utilisez l’enregistreur du téléphone.', 15000);
+      }
+    }, 1000);
+    // Reid doesn't listen while the test records or plays (he'd take it as an answer)
+    { const sr = startRec; startRec = function () { if (micT.st === 'rec' || micT.st === 'play') return; return sr.apply(this, arguments); }; }
+    async function micTest() {
+      if (micT.st === 'rec' || micT.st === 'play' || isRecording) return;
+      ensureCtx(); hush(); const relisten = isListening; stopRec();
+      const fail = (why) => { micT = { st: 'bad', why, relisten }; vsRedraw(); };
+      let stream;
+      try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+      catch (e) { fail(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? 'perm' : 'other'); return; }
+      const type = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+      let mr; try { mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined); }
+      catch (e) { stream.getTracks().forEach((t) => t.stop()); fail('other'); return; }
+      const chunks = [];
+      mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      mr.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunks, { type: mr.mimeType || type || 'audio/webm' });
+        if (!blob.size) { fail('silent'); return; }
+        CanadaRec.session('playback');   // iPhone: play through the speaker, not the earpiece
+        const url = URL.createObjectURL(blob), a = new Audio(url); a.playsInline = true;
+        micT = { st: 'play', relisten }; vsRedraw();
+        let ended = false; const done = () => { if (ended) return; ended = true; URL.revokeObjectURL(url); micT = { st: 'ask', relisten }; vsRedraw(); };
+        a.onended = done; a.onerror = done; a.play().catch(done);
+        setTimeout(done, 9000);   // never stuck on "Playing it back"
+      };
+      micT = { st: 'rec', left: 5, relisten }; vsRedraw();
+      mr.start();
+      const tick = setInterval(() => {
+        micT.left--; const c = document.getElementById('mtLeft'); if (c) c.textContent = micT.left;
+        if (micT.left <= 0) { clearInterval(tick); try { mr.stop(); } catch (e) { /* stopped */ } }
+      }, 1000);
+    }
+    function mtAnswer(ok) {
+      const relisten = micT.relisten; micT = { st: ok ? 'ok' : 'bad', why: ok ? '' : 'quiet' }; vsRedraw();
+      if (relisten && isListening) setTimeout(startRec, 300);
+    }
+    function mtHtml() {
+      const ic = WHI('mic', 24);
+      if (micT.st === 'rec') return `<div class="vs-mt live" role="status"><span class="vs-mt-ic" aria-hidden="true">${ic}</span><span><b>${L2('Say a few words now…', 'Dites quelques mots…')}</b>${L2('Recording for', 'Enregistrement :')} <span id="mtLeft" data-notr>${micT.left}</span> s</span></div>`;
+      if (micT.st === 'play') return `<div class="vs-mt live" role="status"><span class="vs-mt-ic" aria-hidden="true">${WHI('volume', 24) || ic}</span><span><b>${L2('Playing it back…', 'Réécoute…')}</b>${L2('Listen for your voice.', 'Écoutez votre voix.')}</span></div>`;
+      if (micT.st === 'ask') return `<div class="vs-mt"><span><b>${L2('Could you hear yourself?', 'Vous êtes-vous entendu ?')}</b></span>
+          <span class="vs-mt-yn"><button type="button" data-mt="yes" class="tactile-btn vs-mt-b">${L2('Yes', 'Oui')}</button><button type="button" data-mt="no" class="tactile-btn vs-mt-b">${L2('No', 'Non')}</button></span></div>`;
+      if (micT.st === 'ok') return `<div class="vs-mt ok" role="status"><span class="vs-mt-ic" aria-hidden="true">${WHI('check', 24)}</span><span><b>${L2('The microphone works.', 'Le micro fonctionne.')}</b><button type="button" data-mt="go" class="vs-link" style="padding:0;min-height:36px">${L2('Test again', 'Refaire le test')}</button></span></div>`;
+      if (micT.st === 'bad') {
+        const tip = micT.why === 'perm'
+          ? L2('WellHeard isn’t allowed to use the microphone. On iPhone: open Settings › Safari › Microphone and choose Allow, then come back.', 'WellHeard n’a pas accès au micro. Sur iPhone : Réglages › Safari › Micro, choisissez Autoriser, puis revenez.')
+          : L2('Hold the phone closer, keep the bottom of the phone uncovered, and turn the volume up. Still no luck? Use your phone’s own recorder below.', 'Rapprochez le téléphone, ne couvrez pas le bas du téléphone et montez le volume. Toujours rien ? Utilisez l’enregistreur du téléphone ci-dessous.');
+        return `<div class="vs-mt bad" role="alert"><span><b>${L2('Let’s fix the sound', 'Réglons le son')}</b>${tip}<button type="button" data-mt="go" class="vs-link" style="padding:0;min-height:36px">${L2('Test again', 'Refaire le test')}</button></span></div>`;
+      }
+      return `<button type="button" data-mt="go" class="tactile-btn vs-mt vs-mt-go"><span class="vs-mt-ic" aria-hidden="true">${ic}</span><span><b>${L2('Test the microphone', 'Tester le micro')}</b>${L2('5 seconds: say a few words, then hear them played back', '5 secondes : dites quelques mots, puis réécoutez-les')}</span></button>`;
+    }
+    { const rvs = renderVisitStart; renderVisitStart = function (items, foot) {
+      rvs.apply(this, arguments);
+      const rb = items.querySelector('[data-visit="rec"]'); if (!rb) return;
+      if (isRecording) {
+        rb.insertAdjacentHTML('afterend', `<div class="vs-meter"><span id="vsMeter" class="vs-bars" aria-hidden="true">${'<span></span>'.repeat(8)}</span><span id="vsMeterT" role="status" aria-live="polite"></span></div>`);
+        vsDrawMeter();
+      } else rb.insertAdjacentHTML('beforebegin', mtHtml());
+    }; }
+    document.getElementById('listItems').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-mt]'); if (!b || steps[currentIndex].mode !== 'visitStart') return;
+      const k = b.dataset.mt;
+      if (k === 'go') micTest(); else mtAnswer(k === 'yes');
+    });
+    { const st = document.createElement('style'); st.textContent = `
+      .vs-mt { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; border-radius: 16px; background: #F0EBE1; border: 2px solid #D6CFC0; color: #1E2634; font-size: 15px; font-weight: 600; line-height: 1.35; }
+      .vs-mt b { display: block; font-size: 17px; font-weight: 800; }
+      .vs-mt.live { background: #E5EFE7; border-color: #3B5E42; }
+      .vs-mt.ok { background: #E5EFE7; border-color: #3B5E42; color: #1E4627; }
+      .vs-mt.bad { background: #FFF4F2; border-color: #991B1B; }
+      .vs-mt-ic { flex: none; width: 44px; height: 44px; border-radius: 12px; background: #fff; color: #3B5E42; display: flex; align-items: center; justify-content: center; }
+      .vs-mt.live .vs-mt-ic { animation: vsPulse 1.2s ease-in-out infinite; }
+      @keyframes vsPulse { 50% { opacity: .45; } }
+      @media (prefers-reduced-motion: reduce) { .vs-mt.live .vs-mt-ic { animation: none; } }
+      .vs-mt-yn { margin-left: auto; display: flex; gap: 14px; flex: none; }
+      .vs-mt-b { min-width: 76px; min-height: 52px; border-radius: 14px; background: #fff; border: 2px solid #3B5E42; color: #1E4627; font-weight: 800; font-size: 17px; }
+      .vs-meter { display: flex; align-items: center; gap: 12px; padding: 6px 4px; }
+      .vs-bars { display: flex; align-items: flex-end; gap: 4px; height: 28px; }
+      .vs-bars span { width: 8px; border-radius: 3px; background: #D6CFC0; transition: background .1s; }
+      .vs-bars span:nth-child(1) { height: 25%; } .vs-bars span:nth-child(2) { height: 35%; } .vs-bars span:nth-child(3) { height: 45%; } .vs-bars span:nth-child(4) { height: 55%; }
+      .vs-bars span:nth-child(5) { height: 65%; } .vs-bars span:nth-child(6) { height: 75%; } .vs-bars span:nth-child(7) { height: 88%; } .vs-bars span:nth-child(8) { height: 100%; }
+      .vs-bars span.on { background: #3B5E42; }
+      #vsMeterT { font-size: 16px; font-weight: 800; color: #1E4627; }
+      .ts-1 .vs-mt { font-size: 17px; } .ts-2 .vs-mt { font-size: 19px; }`;
+      document.head.appendChild(st); }
+
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>
