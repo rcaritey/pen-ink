@@ -10412,7 +10412,15 @@
         .ll-cs { display: flex; }
         .ll-c { min-height: 44px; padding: 0 12px; border-radius: 999px; background: #fff; border: 2px solid #D6CFC0; color: #1E2634; font-weight: 800; font-size: 14px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
         .ll-c.on { background: #E5EFE7; border-color: #3B5E42; color: #1E4627; }
-        .ts-1 .ll-c { font-size: 16px; } .ts-2 .ll-c { font-size: 17px; } .ts-1 .ll-l span, .ts-2 .ll-l span { display: none; }`;
+        .ts-1 .ll-c { font-size: 15px; } .ts-2 .ll-c { font-size: 15px; }
+        /* never wider than the page (Rama, 27 Nov: at Large and Extra large the row pushed the whole first page sideways) */
+        .ll, .ll-cs { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+        .ts-1 .ll-l, .ts-2 .ll-l { display: none; }
+        .ts-1 .ll-c, .ts-2 .ll-c { min-height: 42px; padding: 0 10px; }
+        #screenLanding { overflow-x: hidden; }
+        #screenLanding > div { min-width: 0; max-width: 100%; }
+        #appContainer.tiny:not(.wide) header #companionEmblem, #appContainer.tiny:not(.wide) header #companionEmblem svg { width: 48px; height: 48px; }
+        #appContainer.narrow:not(.wide) header > div:first-child { min-width: 0; flex-shrink: 1; } .ts-1 .ll-l span, .ts-2 .ll-l span { display: none; }`;
       document.head.appendChild(st);
     })();
     // Your story stays yours comes second, straight after the first page, before the set-up (Rama, 27 Nov)
