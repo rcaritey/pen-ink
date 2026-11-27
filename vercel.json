@@ -58,6 +58,10 @@
       "dest": "/prep/new/index.html"
     },
     {
+      "src": "/[Rr][Ee][Ii][Dd]2/?",
+      "dest": "/prep/ai/index.html"
+    },
+    {
       "handle": "filesystem"
     }
   ],

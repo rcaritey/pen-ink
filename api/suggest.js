@@ -437,7 +437,7 @@ const TRANSLATE_SCHEMA = {
   additionalProperties: false,
 };
 
-async function askClaude(system, user, schema, maxTokens) {
+async function askClaude(system, user, schema, maxTokens, model) {
   const response = await fetch(ANTHROPIC_ENDPOINT, {
     method: 'POST',
     headers: {
@@ -446,7 +446,7 @@ async function askClaude(system, user, schema, maxTokens) {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: model || MODEL,
       max_tokens: maxTokens,
       inference_geo: 'us',
       system: system + '\n\nPrivacy tags: [name] stands for the patient and tags like [P1] stand for other people or contact details. Copy these tags exactly as written wherever you refer to them; never guess, expand or translate them.',
@@ -473,6 +473,54 @@ async function askClaude(system, user, schema, maxTokens) {
   }
 }
 
+
+// ---- Reid as the first listener (alternate version, /Reid2, Rama 27 Nov): every sentence the patient says goes here
+// first, with the whole screen, and Claude decides what they meant and what the app should do. No phone tree.
+const ACT_MODEL = process.env.ACT_MODEL || 'claude-haiku-5-5';
+const ACT = `You are Reid, WellHeard's AI helper. An older patient (who may have Parkinson's disease, a tremor or a soft voice) is filling in the app by voice, hands-free. Voice typing turned their speech into text: expect misheard words, fillers ("um", "like"), false starts, run-on sentences and no punctuation. Work out what they MEAN, the way a patient, attentive person would, and pick what the app should do.
+
+You get: the screen they're on (its kind and question), what is already filled in on it, what Reid last said, the recent conversation, and what they just said.
+
+Actions:
+- "add": they are answering the screen's question (free-text screens). Put ONLY their answer in "text": their own words and meaning, tidied (drop fillers, false starts, repeated words, and anything said to Reid or to someone else in the room; fix obvious voice-typing errors, especially medicine and condition names; first person, as they said it). Never add facts they didn't say. Never put talk to Reid ("you're not listening", "can you repeat", "take that out") in "text". On short-fact screens (their name) "text" is just the fact ("Pierre Caritey", not "My name is…").
+- "replace": they want what's in the answer changed: remove a part, correct a word, "no I meant…", "take out the bit about…", "start over and say…". Put the WHOLE new answer in "text" (the current answer with their change made). Empty string clears it.
+- "list": lists (health conditions, allergies). "add" = items to add (proper names, one per item, e.g. "Fatty liver", "Tourette syndrome"); "remove" = items to take off, written exactly as they appear on the list; "remove_all" true when they want the whole list cleared ("delete those, they're wrong", "none of those").
+- "meds": the medicines screen. "meds_add" = medicines they named, each with what they said about it: name (spelled correctly), dose ("50 mg", "" if not said), times (24-hour "HH:MM" with how many pills: "every morning" = 08:00, "at breakfast" 08:00, "lunch" 12:00, "dinner/supper" 18:00, "bedtime/at night" 21:00; [] if not said). "meds_remove" = names exactly as on the list; "remove_all" for all of them.
+- "times": on the "how much and when" part of a medicine: the times they said, in "times".
+- "tap": they chose one of the numbered buttons, by its words, meaning or position. Set "tap" to its number. Never tap something that deletes.
+- "next" / "back": they're done or want to move on / want the previous screen.
+- "goto": they want a different part ("let me fix my medicines", "go to my questions"). Set "goto" to one of: name, about, conditions, meds, allergies, appointment, reason, story, questions, pages, home.
+- "ask": a real question or request that needs an answer (about the app, what they entered, a word, a test, general health information, a worry). Leave "reply" empty; Reid answers it next.
+- "repeat" (hear it again), "explain" (lost, don't know what to do), "pause" (stop listening for now), "reply" (thanks, hello, a remark; put Reid's short answer in "reply").
+- "none": nothing to do (noise, half a word, talk to someone else in the room).
+
+Also:
+- "then_next": true only if they clearly also said they're done ("…and that's it, next").
+- "reply": a short spoken line, under 20 words, calm and kind, plain words, in the patient's language. Use it to confirm list and medicine changes ("Took off both. Anything else?", "Added fatty liver and Tourette syndrome.") and for "reply". Leave it EMPTY for "add" and "replace" on free-text screens (they are mid-sentence; don't interrupt), for "tap", "next", "back", "goto", "ask" and "none".
+- If it sounds urgent (chest pain, trouble breathing, stroke signs, thoughts of self-harm): action "reply", tell them to call 911 now.
+- Never diagnose or give medical advice.
+- When unsure between answering and talking to Reid on a free-text screen: if it describes their health, life or the visit, it's "add".`;
+const ACT_SCHEMA = {
+  type: 'object',
+  properties: {
+    action: { type: 'string', enum: ['add', 'replace', 'list', 'meds', 'times', 'tap', 'next', 'back', 'goto', 'ask', 'repeat', 'explain', 'pause', 'reply', 'none'] },
+    text: { type: 'string' },
+    add: { type: 'array', items: { type: 'string' } },
+    remove: { type: 'array', items: { type: 'string' } },
+    remove_all: { type: 'boolean' },
+    meds_add: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dose: { type: 'string' },
+      times: { type: 'array', items: { type: 'object', properties: { t: { type: 'string' }, n: { type: 'number' } }, required: ['t', 'n'], additionalProperties: false } } }, required: ['name', 'dose', 'times'], additionalProperties: false } },
+    meds_remove: { type: 'array', items: { type: 'string' } },
+    times: { type: 'array', items: { type: 'object', properties: { t: { type: 'string' }, n: { type: 'number' } }, required: ['t', 'n'], additionalProperties: false } },
+    tap: { type: 'integer' },
+    goto: { type: 'string' },
+    then_next: { type: 'boolean' },
+    reply: { type: 'string' },
+  },
+  required: ['action', 'text', 'add', 'remove', 'remove_all', 'meds_add', 'meds_remove', 'times', 'tap', 'goto', 'then_next', 'reply'],
+  additionalProperties: false,
+};
+
 const UNAVAILABLE = 'Suggestions are not available right now. Try again in a minute, or use the common questions below.';
 
 export default async function handler(req, res) {
@@ -497,7 +545,7 @@ export default async function handler(req, res) {
     const send = res.json.bind(res);
     res.json = (obj) => { try { return send(JSON.parse(scrubbed.restore(JSON.stringify(obj), true))); } catch (e) { return send(obj); } };
   }
-  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui', 'intent', 'medname', 'review', 'notes', 'paper'].includes(body.mode) ? body.mode : 'suggest';
+  const mode = ['clarify', 'translate', 'fix', 'help', 'tidy', 'recap', 'vague', 'ui', 'intent', 'medname', 'review', 'notes', 'paper', 'act'].includes(body.mode) ? body.mode : 'suggest';
   const lang = pickLang(body.lang), docLang = pickLang(body.docLang);
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -598,6 +646,26 @@ export default async function handler(req, res) {
       const out = await askClaude(INTENT, ctx, INTENT_SCHEMA, 250);
       if (!out || !out.action) return res.status(502).json({ ok: false, error: UNAVAILABLE });
       return res.status(200).json({ ok: true, action: out.action, tap: Number(out.tap) || 0, reply: clean(out.reply, 300) });
+    }
+
+    if (mode === 'act') {
+      const said = clean(body.text, 1200);
+      if (!said) return res.status(400).json({ ok: false, error: 'Nothing was said.' });
+      const btns = (Array.isArray(body.buttons) ? body.buttons : []).slice(0, 24).map((b, i) => `${i + 1}. ${clean(b, 80)}`).join('\n');
+      const meds = (Array.isArray(body.meds) ? body.meds : []).slice(0, 30).map((m) => clean(String(m || ''), 160)).filter(Boolean);
+      const ctx = [`Language: ${LANG_NAME[lang]}`, `Screen: ${clean(body.screen, 200) || 'not given'} (kind: ${clean(body.kind, 30) || 'other'})`,
+        `Question on the screen: ${clean(body.question, 600) || 'none'}`,
+        body.kind === 'answer' ? `Answer so far: ${clean(body.answer, LIMITS.story) || '(empty)'}` : '',
+        body.kind === 'list' ? `On the list now: ${cleanList(body.list).join('; ') || '(empty)'}` : '',
+        body.kind === 'meds' || body.kind === 'times' ? `Medicines on the list now: ${meds.join('; ') || '(none)'}${body.medName ? `\nWorking on: ${clean(body.medName, 80)} (${clean(body.medStage, 20)})` : ''}` : '',
+        `Buttons:\n${btns || 'none'}`, convo(body).trim(), `Reid last said: ${clean(body.last, 400) || 'nothing'}`, `The patient just said: ${said}`].filter(Boolean).join('\n');
+      const out = await askClaude(ACT, ctx, ACT_SCHEMA, 700, ACT_MODEL);
+      if (!out || !out.action) return res.status(502).json({ ok: false, error: UNAVAILABLE });
+      const L = (v, n) => (Array.isArray(v) ? v.slice(0, 15).map((x) => clean(String(x || ''), n || 120)).filter(Boolean) : []);
+      const T = (v) => (Array.isArray(v) ? v.filter((x) => x && /^\d{2}:\d{2}$/.test(x.t)).slice(0, 8).map((x) => ({ t: x.t, n: Number(x.n) > 0 && Number(x.n) <= 20 ? Number(x.n) : 1 })) : []);
+      return res.status(200).json({ ok: true, action: out.action, text: clean(out.text, LIMITS.story), add: L(out.add), remove: L(out.remove), remove_all: !!out.remove_all,
+        meds_add: (Array.isArray(out.meds_add) ? out.meds_add : []).slice(0, 10).map((m) => ({ name: clean(m && m.name, 80), dose: clean(m && m.dose, 40), times: T(m && m.times) })).filter((m) => m.name),
+        meds_remove: L(out.meds_remove), times: T(out.times), tap: Number(out.tap) || 0, goto: clean(out.goto, 20), then_next: !!out.then_next, reply: clean(out.reply, 300) });
     }
 
     if (mode === 'help') {
