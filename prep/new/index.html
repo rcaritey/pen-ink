@@ -10737,6 +10737,34 @@
       #appContainer.side-menu .wm-i { min-height: 44px; font-size: 15px; } #appContainer.side-menu .wm-ic { width: 32px; height: 32px; }`; document.head.appendChild(st); }
     try { sideMenu(); } catch (e) { /* drawn next time */ }
 
+
+    // ---------- Welcome back home: language already chosen, so it's a small link at the bottom, not the big row (Rama, 27 Nov) ----------
+    function homeLangLink() {
+      const land = document.getElementById('screenLanding'), back = land && land.classList.contains('lp-back');
+      const priv = document.getElementById('privacyLink'); if (!priv) return;
+      let a = document.getElementById('homeLang');
+      if (!a) { a = document.createElement('button'); a.type = 'button'; a.id = 'homeLang'; a.className = 'hl-link';
+        a.addEventListener('click', () => { ensureCtx(); openModal('helpSettingsModal'); setView = 'lang'; spokenView = null; renderSettings(); applyLang(); });
+        priv.after(a); }
+      a.hidden = !back;
+      a.innerHTML = `${WHI('globe', 18)}<span data-notr>${esc(langName(lang))}</span><span>· ${L2('Change language ›', 'Changer de langue ›')}</span>`;
+    }
+    { const rcsL2 = renderCurrentStep; renderCurrentStep = function () { const r = rcsL2.apply(this, arguments); try { homeLangLink(); } catch (e) { /* later */ } return r; }; }
+    try { homeLangLink(); } catch (e) { /* later */ }
+    { const st = document.createElement('style'); st.textContent = `
+      #screenLanding.lp-back #landingLang { display: none !important; }
+      #screenLanding.lp-back #homeLang { order: 4; align-self: center; }
+      .hl-link { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 6px; background: none; border: 0; color: #3B5E42; font: inherit; font-size: 14px; font-weight: 800; }
+      .hl-link span:last-child { text-decoration: underline; text-underline-offset: 2px; }
+      .hl-link[hidden] { display: none; }
+      #screenLanding.lp-back .lb-s { display: none; }
+      #screenLanding.lp-back .lb-h { font-size: 1.45rem; }
+      #screenLanding.lp-back .lb-r { min-height: 56px; padding: 8px 12px; margin-top: 10px; } #screenLanding.lp-back .lb-r-t b { font-size: 16px; } #screenLanding.lp-back .lb-r-ic { width: 36px; height: 36px; }
+      #screenLanding.lp-back #landingRec { min-height: 0; padding: 10px 14px; gap: 12px; }
+      #screenLanding.lp-back #landingRec .vs-rec-dot { width: 46px; height: 46px; } #screenLanding.lp-back #landingRec .vs-rec-dot span { width: 16px; height: 16px; }
+      #screenLanding.lp-back #landingRec .vs-rec-big { font-size: 20px; } #screenLanding.lp-back #landingRec .vs-rec-small { font-size: 13px; }
+      #screenLanding.lp-back > div:has(#privacyLink) { gap: 8px !important; }`; document.head.appendChild(st); }
+
     // everything is drawn and sized: show the page (two frames, so the browser has laid it out first)
     requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.classList.remove('wh-boot'); setTimeout(() => { const sp = document.getElementById('whSplash'); if (sp) sp.remove(); }, 400); }));
   </script>
